@@ -28,6 +28,15 @@ Rails.application.routes.draw do
     end
   end
 
+  # Invitations
+  resources :invitations, only: %i[create] do
+    member do
+      patch :resend
+    end
+  end
+  get "invitations/:token", to: "invitations#show", as: :invitation
+  post "invitations/:token/accept", to: "invitations#accept", as: :accept_invitation
+
   # Settings
   get "settings", to: "settings#show", as: :settings
   get "settings/on-call", to: "settings#on_call", as: :on_call_settings

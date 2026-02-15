@@ -6,10 +6,14 @@ class UsersController < ApplicationController
     org_ids = visible_org_ids
     active = User.where(organization_id: org_ids, active: true).includes(:organization).order(:last_name, :first_name)
     deactivated = User.where(organization_id: org_ids, active: false).includes(:organization).order(:last_name, :first_name)
+    pending = Invitation.where(organization_id: org_ids, accepted_at: nil)
+                        .includes(:organization).order(created_at: :desc)
 
     render inertia: "Users/Index", props: {
       active_users: active.map { |u| serialize_user(u) },
-      deactivated_users: deactivated.map { |u| serialize_user(u) }
+      deactivated_users: deactivated.map { |u| serialize_user(u) },
+      pending_invitations: pending.map { |inv| serialize_invitation(inv) },
+      org_options: invite_org_options
     }
   end
 
@@ -59,9 +63,37 @@ class UsersController < ApplicationController
       full_name: user.full_name,
       email: user.email_address,
       phone: user.phone,
-      user_type: user.user_type,
+      role_label: User::ROLE_LABELS[user.user_type],
       organization_name: user.organization.name,
       active: user.active
+    }
+  end
+
+  def serialize_invitation(inv)
+    {
+      id: inv.id,
+      display_name: [inv.first_name, inv.last_name].filter_map(&:presence).join(" ").presence || inv.email,
+      email: inv.email,
+      role_label: User::ROLE_LABELS[inv.user_type],
+      organization_name: inv.organization.name,
+      expired: inv.expired?,
+      resend_path: resend_invitation_path(inv)
+    }
+  end
+
+  # Own org + serviced PM orgs for the invite form, with role options per org
+  def invite_org_options
+    orgs = [current_user.organization]
+    pm_org_ids = Property.where(mitigation_org_id: current_user.organization_id)
+                         .distinct.pluck(:property_management_org_id)
+    orgs += Organization.where(id: pm_org_ids).order(:name) if pm_org_ids.any?
+    orgs.map { |o|
+      types = o.mitigation? ? User::MITIGATION_TYPES : User::PM_TYPES
+      {
+        id: o.id,
+        name: o.name,
+        role_options: types.map { |t| { value: t, label: User::ROLE_LABELS[t] } }
+      }
     }
   end
 
@@ -70,7 +102,7 @@ class UsersController < ApplicationController
       first_name: user.first_name,
       last_name: user.last_name,
       timezone: user.timezone,
-      organization_type: user.organization.organization_type,
+      is_pm_user: user.pm_user?,
       deactivate_path: deactivate_user_path(user),
       reactivate_path: reactivate_user_path(user)
     )
@@ -84,10 +116,16 @@ class UsersController < ApplicationController
     detail[:assigned_incidents] = user.assigned_incidents
       .where.not(status: %w[completed completed_billed paid closed])
       .includes(:property).order(created_at: :desc).map { |i|
-        { id: i.id, description: i.description, damage_type: i.damage_type,
-          status: i.status, property_name: i.property.name, path: incident_path(i) }
+        { id: i.id, summary: incident_summary(i), status_label: Incident::STATUS_LABELS[i.status],
+          property_name: i.property.name, path: incident_path(i) }
       }
 
     detail
+  end
+
+  def incident_summary(incident)
+    label = Incident::DAMAGE_LABELS[incident.damage_type] || incident.damage_type
+    desc = incident.description.truncate(50)
+    "#{label} — #{desc}"
   end
 end

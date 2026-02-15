@@ -28,17 +28,16 @@ class OrganizationsController < ApplicationController
         edit_path: edit_organization_path(@organization),
         phone: @organization.phone,
         email: @organization.email,
-        street_address: @organization.street_address,
-        city: @organization.city,
-        state: @organization.state,
-        zip: @organization.zip,
+        address: @organization.format_address,
+        contact: [@organization.phone, @organization.email].filter_map(&:presence).join(" \u00B7 "),
         properties: @organization.owned_properties.order(:name).map { |p|
+          active_count = p.incidents.where.not(status: %w[completed completed_billed paid closed]).count
           { id: p.id, name: p.name, path: property_path(p),
-            active_incident_count: p.incidents.where.not(status: %w[completed completed_billed paid closed]).count }
+            active_incident_summary: "#{active_count} active #{'incident'.pluralize(active_count)}" }
         },
         users: @organization.users.where(active: true).order(:last_name, :first_name).map { |u|
-          { id: u.id, full_name: u.full_name, email: u.email_address, user_type: u.user_type,
-            path: user_path(u) }
+          { id: u.id, full_name: u.full_name, email: u.email_address,
+            role_label: User::ROLE_LABELS[u.user_type], path: user_path(u) }
         }
       }
     }

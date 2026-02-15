@@ -30,22 +30,19 @@ class PropertiesController < ApplicationController
         path: property_path(@property),
         edit_path: edit_property_path(@property),
         assignments_path: property_assignments_path(@property),
-        street_address: @property.street_address,
-        city: @property.city,
-        state: @property.state,
-        zip: @property.zip,
-        unit_count: @property.unit_count,
+        address: @property.format_address,
+        unit_summary: @property.unit_count ? "#{@property.unit_count} #{'unit'.pluralize(@property.unit_count)}" : nil,
         pm_org: { id: @property.property_management_org.id, name: @property.property_management_org.name,
                   path: organization_path(@property.property_management_org) },
         mitigation_org: { id: @property.mitigation_org.id, name: @property.mitigation_org.name },
         assigned_users: @property.property_assignments.includes(:user)
           .joins(:user).where(users: { active: true }).order("users.last_name, users.first_name").map { |a|
           { id: a.user.id, assignment_id: a.id, full_name: a.user.full_name, email: a.user.email_address,
-            user_type: a.user.user_type, path: user_path(a.user),
+            role_label: User::ROLE_LABELS[a.user.user_type], path: user_path(a.user),
             remove_path: property_assignment_path(@property, a) }
         },
         incidents: @property.incidents.order(created_at: :desc).limit(20).map { |i|
-          { id: i.id, description: i.description, damage_type: i.damage_type, status: i.status,
+          { id: i.id, summary: incident_summary(i), status_label: Incident::STATUS_LABELS[i.status],
             path: incident_path(i) }
         }
       },
@@ -128,10 +125,16 @@ class PropertiesController < ApplicationController
       .where(active: true, user_type: User::PM_TYPES)
       .where.not(id: property.assigned_user_ids)
       .order(:last_name, :first_name)
-      .map { |u| { id: u.id, full_name: u.full_name, user_type: u.user_type } }
+      .map { |u| { id: u.id, full_name: u.full_name, role_label: User::ROLE_LABELS[u.user_type] } }
   end
 
   def pm_org_options
     Organization.where(organization_type: "property_management").order(:name).map { |o| { id: o.id, name: o.name } }
+  end
+
+  def incident_summary(incident)
+    label = Incident::DAMAGE_LABELS[incident.damage_type] || incident.damage_type
+    desc = incident.description.truncate(60)
+    "#{label} — #{desc}"
   end
 end

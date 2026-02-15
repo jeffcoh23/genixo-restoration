@@ -11,72 +11,24 @@ import {
   Settings,
   LogOut,
 } from "lucide-react";
-import { SharedProps } from "@/types";
+import { SharedProps, NavItem } from "@/types";
 
-interface NavItem {
-  label: string;
-  href: string;
-  icon: React.ReactNode;
-  roles: string[];
-}
+const iconMap: Record<string, React.ReactNode> = {
+  LayoutDashboard: <LayoutDashboard className="h-4 w-4" />,
+  AlertTriangle: <AlertTriangle className="h-4 w-4" />,
+  Building2: <Building2 className="h-4 w-4" />,
+  Building: <Building className="h-4 w-4" />,
+  Users: <Users className="h-4 w-4" />,
+  Phone: <Phone className="h-4 w-4" />,
+  Wrench: <Wrench className="h-4 w-4" />,
+  Settings: <Settings className="h-4 w-4" />,
+};
 
 export default function RoleSidebar({ onNavigate }: { onNavigate: () => void }) {
-  const { auth, routes } = usePage<SharedProps>().props;
+  const { auth, routes, nav_items } = usePage<SharedProps>().props;
   const user = auth.user;
   if (!user) return null;
 
-  const navItems: NavItem[] = [
-    {
-      label: "Dashboard",
-      href: routes.dashboard,
-      icon: <LayoutDashboard className="h-4 w-4" />,
-      roles: ["manager", "technician", "office_sales", "property_manager", "area_manager", "pm_manager"],
-    },
-    {
-      label: "Incidents",
-      href: routes.incidents,
-      icon: <AlertTriangle className="h-4 w-4" />,
-      roles: ["manager", "technician", "office_sales", "property_manager", "area_manager", "pm_manager"],
-    },
-    {
-      label: "Properties",
-      href: routes.properties,
-      icon: <Building2 className="h-4 w-4" />,
-      roles: ["manager", "office_sales", "property_manager", "area_manager", "pm_manager"],
-    },
-    {
-      label: "Organizations",
-      href: routes.organizations,
-      icon: <Building className="h-4 w-4" />,
-      roles: ["manager", "office_sales"],
-    },
-    {
-      label: "Users",
-      href: routes.users,
-      icon: <Users className="h-4 w-4" />,
-      roles: ["manager", "office_sales"],
-    },
-    {
-      label: "On-Call",
-      href: routes.on_call,
-      icon: <Phone className="h-4 w-4" />,
-      roles: ["manager"],
-    },
-    {
-      label: "Equipment Types",
-      href: routes.equipment_types,
-      icon: <Wrench className="h-4 w-4" />,
-      roles: ["manager"],
-    },
-    {
-      label: "Settings",
-      href: routes.settings,
-      icon: <Settings className="h-4 w-4" />,
-      roles: ["manager", "technician", "office_sales", "property_manager", "area_manager", "pm_manager"],
-    },
-  ];
-
-  const visibleItems = navItems.filter((item) => item.roles.includes(user.user_type));
   const currentPath = window.location.pathname;
 
   function handleLogout(e: React.MouseEvent) {
@@ -84,19 +36,10 @@ export default function RoleSidebar({ onNavigate }: { onNavigate: () => void }) 
     router.delete(routes.logout);
   }
 
-  const roleLabel: Record<string, string> = {
-    manager: "Manager",
-    technician: "Technician",
-    office_sales: "Office/Sales",
-    property_manager: "Property Manager",
-    area_manager: "Area Manager",
-    pm_manager: "PM Manager",
-  };
-
   return (
     <div className="flex flex-col h-[calc(100%-64px)]">
       <nav className="flex-1 px-3 py-2 space-y-1">
-        {visibleItems.map((item) => {
+        {nav_items.map((item: NavItem) => {
           const isActive = currentPath === item.href ||
             (item.href !== routes.dashboard && currentPath.startsWith(item.href));
 
@@ -114,7 +57,7 @@ export default function RoleSidebar({ onNavigate }: { onNavigate: () => void }) 
                 }
               `}
             >
-              {item.icon}
+              {iconMap[item.icon]}
               {item.label}
             </Link>
           );
@@ -130,7 +73,7 @@ export default function RoleSidebar({ onNavigate }: { onNavigate: () => void }) 
           {user.organization_name}
         </div>
         <div className="text-xs text-muted-foreground">
-          {roleLabel[user.user_type] || user.user_type}
+          {user.role_label}
         </div>
         <button
           onClick={handleLogout}

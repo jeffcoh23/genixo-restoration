@@ -21,6 +21,7 @@ class ApplicationController < ActionController::Base
         full_name: current_user.full_name,
         initials: current_user.initials,
         user_type: current_user.user_type,
+        role_label: User::ROLE_LABELS[current_user.user_type],
         organization_type: current_user.organization.organization_type,
         organization_name: current_user.organization.name,
         timezone: current_user.timezone
@@ -39,6 +40,7 @@ class ApplicationController < ActionController::Base
       organizations: organizations_path,
       new_organization: new_organization_path,
       users: users_path,
+      invitations: invitations_path,
       settings: settings_path,
       on_call: on_call_settings_path,
       equipment_types: equipment_types_settings_path,
@@ -46,4 +48,39 @@ class ApplicationController < ActionController::Base
       logout: logout_path
     }
   }
+
+  inertia_share nav_items: -> {
+    nav_items_for_user(current_user)
+  }
+
+
+  private
+
+  # Server-side nav filtering — the client just renders what it receives
+  def nav_items_for_user(user)
+    return [] unless user
+
+    items = [
+      { label: "Dashboard", href: dashboard_path, icon: "LayoutDashboard" },
+      { label: "Incidents", href: incidents_path, icon: "AlertTriangle" },
+    ]
+
+    unless user.user_type == "technician"
+      items << { label: "Properties", href: properties_path, icon: "Building2" }
+    end
+
+    if User::MITIGATION_TYPES.include?(user.user_type) && user.user_type != "technician"
+      items << { label: "Organizations", href: organizations_path, icon: "Building" }
+      items << { label: "Users", href: users_path, icon: "Users" }
+    end
+
+    if user.user_type == "manager"
+      items << { label: "On-Call", href: on_call_settings_path, icon: "Phone" }
+      items << { label: "Equipment Types", href: equipment_types_settings_path, icon: "Wrench" }
+    end
+
+    items << { label: "Settings", href: settings_path, icon: "Settings" }
+
+    items
+  end
 end

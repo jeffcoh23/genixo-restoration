@@ -1,0 +1,5 @@
+You've been invited to join <%= @invitation.organization.name %> as a <%= @invitation.user_type.titleize %>.
+
+Accept your invitation: <%= @accept_url %>
+
+This invitation expires on <%= @invitation.expires_at.strftime("%B %d, %Y") %>.

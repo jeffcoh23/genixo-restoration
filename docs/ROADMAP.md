@@ -116,12 +116,12 @@ Orgs, properties, users, invitations. Multi-tenant authorization.
 
 ### Invitations
 
-- [ ] Invitation create + mailer (see BUSINESS_RULES.md §2 Invitations)
-- [ ] Invite User modal on users page
-- [ ] Accept invitation page (see VIEWS.md §Accept Invitation)
-- [ ] Token validation, expiry, resend
-- [ ] Cross-org invitations (mitigation → PM org)
-- [ ] Invitation tests — full flow + edge cases
+- [x] Invitation create + mailer (see BUSINESS_RULES.md §2 Invitations)
+- [x] Invite User modal on users page
+- [x] Accept invitation page (see VIEWS.md §Accept Invitation)
+- [x] Token validation, expiry, resend
+- [x] Cross-org invitations (mitigation → PM org)
+- [x] Invitation tests — full flow + edge cases
 
 **Done when:** Full CRUD for orgs, properties, users. Invite → accept → login works. PM isolation confirmed by tests.
 

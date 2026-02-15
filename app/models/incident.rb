@@ -3,6 +3,17 @@ class Incident < ApplicationRecord
   PROJECT_TYPES = %w[emergency_response mitigation_rfq buildback_rfq other].freeze
   DAMAGE_TYPES = %w[flood fire smoke mold odor other].freeze
 
+  STATUS_LABELS = {
+    "new" => "New", "acknowledged" => "Acknowledged", "quote_requested" => "Quote Requested",
+    "active" => "Active", "on_hold" => "On Hold", "completed" => "Completed",
+    "completed_billed" => "Billed", "paid" => "Paid", "closed" => "Closed"
+  }.freeze
+
+  DAMAGE_LABELS = {
+    "flood" => "Flood", "fire" => "Fire", "smoke" => "Smoke",
+    "mold" => "Mold", "odor" => "Odor", "other" => "Other"
+  }.freeze
+
   belongs_to :property
   belongs_to :created_by_user, class_name: "User"
 

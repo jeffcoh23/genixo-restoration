@@ -51,9 +51,13 @@
 ## Frontend
 
 - **Pages are thin.** A page component receives props and renders. Over 100 lines? Extract sub-components. Complex state? Extract a hook.
-- **Let the server do the work.** With Inertia, you're not building a traditional SPA. Pass everything as props from the controller. Don't fetch data client-side or manage server state in React.
+- **Let the server do the work.** With Inertia, you're not building a traditional SPA. The frontend should be dumb — just present what the server sends. No data transformation, no label lookups, no string formatting, no pluralization, no truncation. If you find yourself writing `===` checks or `.length > 0` conditionals to transform data, that logic belongs on the server.
+- **Server sends display-ready data.** Every prop the frontend receives should be ready to render directly. Send `role_label: "Office/Sales"` not `user_type: "office_sales"`. Send `address: "123 Main St, Denver, CO"` not raw fields. Send `summary: "Flood — Kitchen damage..."` not raw description + damage_type for the client to assemble.
+- **Constants live on the server.** Role labels, status labels, damage type labels — all defined as model constants (e.g., `User::ROLE_LABELS`, `Incident::STATUS_LABELS`) and shared via `inertia_share` with `InertiaRails.once`. The frontend never duplicates these mappings.
+- **Nav items come from the server.** The server determines which navigation items to show based on the user's role and sends them via `inertia_share`. The sidebar just renders what it receives.
 - **Never hardcode routes.** Use shared route props. If a route changes, it changes in one place.
-- **Use the component library.** If a component exists in your UI library, use it. Custom components should only exist for domain-specific UI that the library doesn't cover.
+- **Use reusable components.** `DataTable`, `PageHeader`, `DetailList`, `FormField`, `AddressFields`, `StatusBadge` exist for common patterns. Use them instead of writing raw HTML tables, headers, or form fields. Domain-specific UI that these don't cover should become new shared components.
+- **Use the component library.** shadcn/ui for `Button`, `Input`, `Label`, `Card`, `Alert`, `Badge`. Custom components should only exist for domain-specific UI that the library doesn't cover.
 - **Design tokens, not hardcoded values.** Use semantic color/spacing tokens, never raw color codes or pixel values. Tokens make theming possible and keep UI consistent.
 
 ---

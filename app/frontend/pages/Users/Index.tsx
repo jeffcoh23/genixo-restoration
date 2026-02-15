@@ -1,6 +1,10 @@
-import { Link, usePage } from "@inertiajs/react";
+import { Link, useForm, usePage, router } from "@inertiajs/react";
 import { useState } from "react";
 import AppLayout from "@/layout/AppLayout";
+import PageHeader from "@/components/PageHeader";
+import DataTable, { Column, LinkCell, MutedCell } from "@/components/DataTable";
+import FormField from "@/components/FormField";
+import { Button } from "@/components/ui/button";
 import { SharedProps } from "@/types";
 
 interface UserRow {
@@ -9,97 +13,176 @@ interface UserRow {
   full_name: string;
   email: string;
   phone: string | null;
-  user_type: string;
+  role_label: string;
   organization_name: string;
-  active: boolean;
 }
 
-const roleLabel: Record<string, string> = {
-  manager: "Manager",
-  technician: "Technician",
-  office_sales: "Office/Sales",
-  property_manager: "Property Manager",
-  area_manager: "Area Manager",
-  pm_manager: "PM Manager",
-};
+interface PendingInvitation {
+  id: number;
+  display_name: string;
+  email: string;
+  role_label: string;
+  organization_name: string;
+  expired: boolean;
+  resend_path: string;
+}
+
+interface RoleOption {
+  value: string;
+  label: string;
+}
+
+interface OrgOption {
+  id: number;
+  name: string;
+  role_options: RoleOption[];
+}
+
+const userColumns: Column<UserRow>[] = [
+  { header: "Name", render: (u) => <LinkCell href={u.path}>{u.full_name}</LinkCell> },
+  { header: "Email", render: (u) => <MutedCell>{u.email}</MutedCell> },
+  { header: "Role", render: (u) => <MutedCell>{u.role_label}</MutedCell> },
+  { header: "Organization", render: (u) => <MutedCell>{u.organization_name}</MutedCell> },
+  { header: "Phone", render: (u) => <MutedCell>{u.phone || "—"}</MutedCell> },
+];
+
+const deactivatedColumns: Column<UserRow>[] = [
+  { header: "Name", render: (u) => <LinkCell href={u.path}>{u.full_name}</LinkCell> },
+  { header: "Email", render: (u) => <MutedCell>{u.email}</MutedCell> },
+  { header: "Role", render: (u) => <MutedCell>{u.role_label}</MutedCell> },
+  { header: "Organization", render: (u) => <MutedCell>{u.organization_name}</MutedCell> },
+];
 
 export default function UsersIndex() {
-  const { active_users, deactivated_users } = usePage<SharedProps & {
+  const { active_users, deactivated_users, pending_invitations, org_options, routes } = usePage<SharedProps & {
     active_users: UserRow[];
     deactivated_users: UserRow[];
+    pending_invitations: PendingInvitation[];
+    org_options: OrgOption[];
   }>().props;
 
   const [showDeactivated, setShowDeactivated] = useState(false);
+  const [showInviteForm, setShowInviteForm] = useState(false);
+
+  const form = useForm({
+    email: "",
+    user_type: "",
+    first_name: "",
+    last_name: "",
+    phone: "",
+    organization_id: org_options[0]?.id?.toString() || "",
+  });
+
+  const selectedOrg = org_options.find((o) => o.id.toString() === form.data.organization_id);
+
+  function handleInvite(e: React.FormEvent) {
+    e.preventDefault();
+    form.post(routes.invitations, {
+      onSuccess: () => { form.reset(); setShowInviteForm(false); },
+    });
+  }
 
   return (
     <AppLayout>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold text-foreground">Users</h1>
-      </div>
+      <PageHeader
+        title="Users"
+        action={{ label: showInviteForm ? "Cancel" : "Invite User", onClick: () => setShowInviteForm(!showInviteForm) }}
+      />
 
-      {/* Active Users */}
-      {active_users.length === 0 ? (
-        <p className="text-muted-foreground">No team members yet.</p>
-      ) : (
-        <div className="rounded-md border">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b bg-muted/50">
-                <th className="px-4 py-3 text-left font-medium">Name</th>
-                <th className="px-4 py-3 text-left font-medium">Email</th>
-                <th className="px-4 py-3 text-left font-medium">Role</th>
-                <th className="px-4 py-3 text-left font-medium">Organization</th>
-                <th className="px-4 py-3 text-left font-medium">Phone</th>
-              </tr>
-            </thead>
-            <tbody>
-              {active_users.map((u) => (
-                <tr key={u.id} className="border-b last:border-0 hover:bg-muted/30">
-                  <td className="px-4 py-3">
-                    <Link href={u.path} className="font-medium text-primary hover:underline">
-                      {u.full_name}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">{u.email}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{roleLabel[u.user_type] || u.user_type}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{u.organization_name}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{u.phone || "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* Invite User Form */}
+      {showInviteForm && (
+        <div className="rounded-md border p-6 mb-6 bg-muted/20">
+          <h2 className="text-lg font-semibold text-foreground mb-4">Invite User</h2>
+          <form onSubmit={handleInvite} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <FormField id="invite_email" label="Email" type="email" value={form.data.email}
+                onChange={(v) => form.setData("email", v)} error={form.errors.email} required />
+
+              {org_options.length > 1 && (
+                <div className="space-y-2">
+                  <label htmlFor="invite_org" className="text-sm font-medium">Organization</label>
+                  <select id="invite_org" value={form.data.organization_id}
+                    onChange={(e) => { form.setData("organization_id", e.target.value); form.setData("user_type", ""); }}
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm">
+                    {org_options.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+                  </select>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <label htmlFor="invite_role" className="text-sm font-medium">Role</label>
+                <select id="invite_role" value={form.data.user_type}
+                  onChange={(e) => form.setData("user_type", e.target.value)}
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" required>
+                  <option value="">Select a role...</option>
+                  {selectedOrg?.role_options.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+                </select>
+                {form.errors.user_type && <p className="text-sm text-destructive mt-1">{form.errors.user_type}</p>}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <FormField id="invite_first" label="First Name" hint="optional" value={form.data.first_name}
+                onChange={(v) => form.setData("first_name", v)} />
+              <FormField id="invite_last" label="Last Name" hint="optional" value={form.data.last_name}
+                onChange={(v) => form.setData("last_name", v)} />
+              <FormField id="invite_phone" label="Phone" hint="optional" type="tel" value={form.data.phone}
+                onChange={(v) => form.setData("phone", v)} />
+            </div>
+
+            <div className="flex justify-end">
+              <Button type="submit" disabled={form.processing}>
+                {form.processing ? "Sending..." : "Send Invitation"}
+              </Button>
+            </div>
+          </form>
         </div>
       )}
+
+      {/* Pending Invitations */}
+      {pending_invitations.length > 0 && (
+        <div className="mb-6">
+          <h2 className="text-sm font-medium text-muted-foreground mb-2">
+            Pending Invitations ({pending_invitations.length})
+          </h2>
+          <DataTable
+            columns={[
+              { header: "Name", render: (inv) => inv.display_name },
+              { header: "Email", render: (inv) => <MutedCell>{inv.email}</MutedCell> },
+              { header: "Role", render: (inv) => <MutedCell>{inv.role_label}</MutedCell> },
+              { header: "Organization", render: (inv) => <MutedCell>{inv.organization_name}</MutedCell> },
+              { header: "", align: "right", render: (inv) => (
+                <div className="flex items-center gap-2 justify-end">
+                  {inv.expired
+                    ? <span className="text-xs text-destructive">Expired</span>
+                    : <span className="text-xs text-muted-foreground">Pending</span>
+                  }
+                  <button onClick={() => router.patch(inv.resend_path)} className="text-xs text-primary hover:underline">
+                    Resend
+                  </button>
+                </div>
+              )},
+            ]}
+            rows={pending_invitations}
+            keyFn={(inv) => inv.id}
+          />
+        </div>
+      )}
+
+      {/* Active Users */}
+      <DataTable columns={userColumns} rows={active_users} keyFn={(u) => u.id} emptyMessage="No team members yet." />
 
       {/* Deactivated Users */}
       {deactivated_users.length > 0 && (
         <div className="mt-6">
-          <button
-            onClick={() => setShowDeactivated(!showDeactivated)}
-            className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1"
-          >
+          <button onClick={() => setShowDeactivated(!showDeactivated)}
+            className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1">
             <span className="text-xs">{showDeactivated ? "▼" : "▶"}</span>
             Deactivated Users ({deactivated_users.length})
           </button>
-
           {showDeactivated && (
-            <div className="rounded-md border mt-2">
-              <table className="w-full text-sm">
-                <tbody>
-                  {deactivated_users.map((u) => (
-                    <tr key={u.id} className="border-b last:border-0 hover:bg-muted/30">
-                      <td className="px-4 py-3">
-                        <Link href={u.path} className="font-medium text-primary hover:underline">
-                          {u.full_name}
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground">{u.email}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{roleLabel[u.user_type] || u.user_type}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{u.organization_name}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="mt-2">
+              <DataTable columns={deactivatedColumns} rows={deactivated_users} keyFn={(u) => u.id} />
             </div>
           )}
         </div>

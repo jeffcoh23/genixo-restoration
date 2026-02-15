@@ -3,6 +3,15 @@ class User < ApplicationRecord
   PM_TYPES = %w[property_manager area_manager pm_manager].freeze
   ALL_TYPES = (MITIGATION_TYPES + PM_TYPES).freeze
 
+  ROLE_LABELS = {
+    "manager" => "Manager",
+    "technician" => "Technician",
+    "office_sales" => "Office/Sales",
+    "property_manager" => "Property Manager",
+    "area_manager" => "Area Manager",
+    "pm_manager" => "PM Manager"
+  }.freeze
+
   has_secure_password validations: false
 
   belongs_to :organization

@@ -1,6 +1,7 @@
-import { Link, usePage } from "@inertiajs/react";
+import { usePage } from "@inertiajs/react";
 import AppLayout from "@/layout/AppLayout";
-import { Button } from "@/components/ui/button";
+import PageHeader from "@/components/PageHeader";
+import DataTable, { Column, LinkCell, MutedCell } from "@/components/DataTable";
 import { SharedProps } from "@/types";
 
 interface Property {
@@ -13,6 +14,14 @@ interface Property {
   total_incident_count: number;
 }
 
+const columns: Column<Property>[] = [
+  { header: "Name", render: (p) => <LinkCell href={p.path}>{p.name}</LinkCell> },
+  { header: "Address", render: (p) => <MutedCell>{p.address || "—"}</MutedCell> },
+  { header: "PM Organization", render: (p) => <MutedCell>{p.pm_org_name}</MutedCell> },
+  { header: "Active", align: "right", render: (p) => p.active_incident_count },
+  { header: "Total", align: "right", render: (p) => p.total_incident_count },
+];
+
 export default function PropertiesIndex() {
   const { properties, can_create, routes } = usePage<SharedProps & {
     properties: Property[];
@@ -21,49 +30,16 @@ export default function PropertiesIndex() {
 
   return (
     <AppLayout>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold text-foreground">Properties</h1>
-        {can_create && (
-          <Button asChild>
-            <Link href={routes.new_property}>New Property</Link>
-          </Button>
-        )}
-      </div>
-
-      {properties.length === 0 ? (
-        <p className="text-muted-foreground">
-          No properties yet.{can_create && ' Use "New Property" to add one.'}
-        </p>
-      ) : (
-        <div className="rounded-md border">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b bg-muted/50">
-                <th className="px-4 py-3 text-left font-medium">Name</th>
-                <th className="px-4 py-3 text-left font-medium">Address</th>
-                <th className="px-4 py-3 text-left font-medium">PM Organization</th>
-                <th className="px-4 py-3 text-right font-medium">Active</th>
-                <th className="px-4 py-3 text-right font-medium">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {properties.map((p) => (
-                <tr key={p.id} className="border-b last:border-0 hover:bg-muted/30">
-                  <td className="px-4 py-3">
-                    <Link href={p.path} className="font-medium text-primary hover:underline">
-                      {p.name}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">{p.address || "—"}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{p.pm_org_name}</td>
-                  <td className="px-4 py-3 text-right">{p.active_incident_count}</td>
-                  <td className="px-4 py-3 text-right">{p.total_incident_count}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <PageHeader
+        title="Properties"
+        action={can_create ? { href: routes.new_property, label: "New Property" } : undefined}
+      />
+      <DataTable
+        columns={columns}
+        rows={properties}
+        keyFn={(p) => p.id}
+        emptyMessage={can_create ? 'No properties yet. Use "New Property" to add one.' : "No properties yet."}
+      />
     </AppLayout>
   );
 }
