@@ -9,6 +9,13 @@ class Incident < ApplicationRecord
     "completed_billed" => "Billed", "paid" => "Paid", "closed" => "Closed"
   }.freeze
 
+  PROJECT_TYPE_LABELS = {
+    "emergency_response" => "Emergency Response",
+    "mitigation_rfq" => "Mitigation RFQ",
+    "buildback_rfq" => "Buildback RFQ",
+    "other" => "Other"
+  }.freeze
+
   DAMAGE_LABELS = {
     "flood" => "Flood", "fire" => "Fire", "smoke" => "Smoke",
     "mold" => "Mold", "odor" => "Odor", "other" => "Other"
