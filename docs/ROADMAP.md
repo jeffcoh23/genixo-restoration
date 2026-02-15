@@ -161,22 +161,22 @@ Incident lifecycle, dashboard, detail page, assignments.
 
 ### Incident Detail — Layout
 
-- [ ] Incident show controller — load with associations
-- [ ] Split-panel layout + sticky header (see VIEWS.md §Incident Detail)
-- [ ] Status change dropdown — managers only, valid transitions
-- [ ] Responsive — single column on mobile with tab bar
+- [x] Incident show controller — load with associations
+- [x] Split-panel layout + sticky header (see VIEWS.md §Incident Detail)
+- [x] Status change dropdown — managers only, valid transitions
+- [x] Responsive — single column on mobile with tab bar
 
 ### Incident Detail — Left Panel
 
-- [ ] Description, cause, next steps display
-- [ ] Assigned team section — grouped by org (see VIEWS.md §Left Panel: Overview)
+- [x] Description, cause, next steps display
+- [x] Assigned team section — grouped by org (see VIEWS.md §Left Panel: Overview)
 - [ ] Assign/unassign users + activity events (see BUSINESS_RULES.md §5)
 - [ ] Contacts section — add/remove (see BUSINESS_RULES.md §5 Incident Contacts)
 - [ ] Quick stats (labor hours, equipment counts)
 
 ### Incident Detail — Right Panel Shell
 
-- [ ] Tab bar — Messages, Daily Log, Documents
+- [x] Tab bar — Messages, Daily Log, Documents
 - [ ] Compose area pinned to viewport bottom on Messages tab
 
 **Done when:** Create incident → dashboard → detail → change status → assign users → add contacts. All role scoping works.

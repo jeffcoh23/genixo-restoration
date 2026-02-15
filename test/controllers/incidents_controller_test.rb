@@ -111,6 +111,54 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  # --- Show page ---
+
+  test "manager can view incident detail" do
+    incident = create_test_incident(status: "active")
+    login_as @manager
+    get incident_path(incident)
+    assert_response :success
+  end
+
+  test "show includes incident details and assigned users" do
+    incident = create_test_incident(status: "active")
+    IncidentAssignment.create!(incident: incident, user: @manager, assigned_by_user: @manager)
+    login_as @manager
+    get incident_path(incident)
+    assert_response :success
+    assert_includes response.body, "Test Manager"
+  end
+
+  test "pm_user can view incident on assigned property" do
+    incident = create_test_incident(status: "active")
+    login_as @pm_user
+    get incident_path(incident)
+    assert_response :success
+  end
+
+  test "pm_user cannot view incident on unassigned property" do
+    incident = create_test_incident(status: "active", property: @other_property)
+    login_as @pm_user
+    get incident_path(incident)
+    assert_response :not_found
+  end
+
+  test "show passes valid_transitions for managers" do
+    incident = create_test_incident(status: "acknowledged")
+    login_as @manager
+    get incident_path(incident)
+    assert_response :success
+    # Manager should see transition options
+    assert_includes response.body, "active"
+  end
+
+  test "show passes empty valid_transitions for non-managers" do
+    incident = create_test_incident(status: "acknowledged")
+    login_as @pm_user
+    get incident_path(incident)
+    assert_response :success
+  end
+
   # --- New page access control ---
 
   test "manager can access new incident page" do

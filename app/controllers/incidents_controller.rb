@@ -84,7 +84,54 @@ class IncidentsController < ApplicationController
 
   def show
     @incident = find_visible_incident!(params[:id])
-    render inertia: "Incidents/Show"
+    property = @incident.property
+
+    assigned = @incident.incident_assignments.includes(user: :organization)
+      .joins(:user).where(users: { active: true })
+      .order("users.last_name, users.first_name")
+
+    render inertia: "Incidents/Show", props: {
+      incident: {
+        id: @incident.id,
+        path: incident_path(@incident),
+        transition_path: transition_incident_path(@incident),
+        description: @incident.description,
+        cause: @incident.cause,
+        requested_next_steps: @incident.requested_next_steps,
+        units_affected: @incident.units_affected,
+        affected_room_numbers: @incident.affected_room_numbers,
+        status: @incident.status,
+        status_label: Incident::STATUS_LABELS[@incident.status],
+        project_type: @incident.project_type,
+        project_type_label: Incident::PROJECT_TYPE_LABELS[@incident.project_type],
+        damage_type: @incident.damage_type,
+        damage_label: Incident::DAMAGE_LABELS[@incident.damage_type],
+        emergency: @incident.emergency,
+        created_at: @incident.created_at.iso8601,
+        created_by: @incident.created_by_user&.full_name,
+        property: {
+          id: property.id,
+          name: property.name,
+          address: property.short_address,
+          path: property_path(property)
+        },
+        assigned_users: assigned.map { |a|
+          {
+            id: a.user.id,
+            assignment_id: a.id,
+            full_name: a.user.full_name,
+            initials: a.user.initials,
+            role_label: User::ROLE_LABELS[a.user.user_type],
+            organization_name: a.user.organization.name
+          }
+        },
+        valid_transitions: can_transition_status? ? (StatusTransitionService::ALLOWED_TRANSITIONS[@incident.status] || []).map { |s|
+          { value: s, label: Incident::STATUS_LABELS[s] }
+        } : []
+      },
+      can_transition: can_transition_status?,
+      back_path: incidents_path
+    }
   end
 
   def transition
