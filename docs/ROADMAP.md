@@ -85,18 +85,18 @@ Orgs, properties, users, invitations. Multi-tenant authorization.
 
 ### Authorization
 
-- [ ] `Authorization` concern — `visible_properties`, `visible_incidents` (see ARCHITECTURE.md §Authorization)
-- [ ] `find_visible_incident!` / `find_visible_property!` — 404 on unauthorized
-- [ ] `authorize_mitigation_role!` helper
-- [ ] Authorization tests — cross-org isolation, technician scoping, PM scoping
+- [x] `Authorization` concern — `visible_properties`, `visible_incidents` (see ARCHITECTURE.md §Authorization)
+- [x] `find_visible_incident!` / `find_visible_property!` — 404 on unauthorized
+- [x] `authorize_mitigation_role!` helper
+- [x] Authorization tests — cross-org isolation, technician scoping, PM scoping
 
 ### Organizations
 
-- [ ] Organizations controller + tests (see BUSINESS_RULES.md §1)
-- [ ] Organizations list page (see VIEWS.md §Organization List)
-- [ ] Organization detail page (see VIEWS.md §Organization Detail)
-- [ ] New organization page (see VIEWS.md §New Organization)
-- [ ] Edit organization
+- [x] Organizations controller + tests (see BUSINESS_RULES.md §1)
+- [x] Organizations list page (see VIEWS.md §Organization List)
+- [x] Organization detail page (see VIEWS.md §Organization Detail)
+- [x] New organization page (see VIEWS.md §New Organization)
+- [x] Edit organization
 
 ### Properties
 

@@ -16,7 +16,7 @@ Rails.application.routes.draw do
   resources :properties, only: %i[index new show]
 
   # Organizations
-  resources :organizations, only: %i[index new show]
+  resources :organizations, only: %i[index new create show edit update]
 
   # Users
   resources :users, only: %i[index show]

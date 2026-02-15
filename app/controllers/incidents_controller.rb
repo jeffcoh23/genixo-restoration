@@ -8,6 +8,7 @@ class IncidentsController < ApplicationController
   end
 
   def show
+    @incident = find_visible_incident!(params[:id])
     render inertia: "Incidents/Show"
   end
 end

@@ -8,6 +8,7 @@ class PropertiesController < ApplicationController
   end
 
   def show
+    @property = find_visible_property!(params[:id])
     render inertia: "Properties/Show"
   end
 end

@@ -6,32 +6,43 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SharedProps } from "@/types";
 
-export default function NewOrganization() {
-  const { routes } = usePage<SharedProps>().props;
-  const { data, setData, post, processing, errors } = useForm({
-    name: "",
-    phone: "",
-    email: "",
-    street_address: "",
-    city: "",
-    state: "",
-    zip: "",
+interface OrganizationProps {
+  id: number;
+  name: string;
+  phone: string | null;
+  email: string | null;
+  street_address: string | null;
+  city: string | null;
+  state: string | null;
+  zip: string | null;
+}
+
+export default function EditOrganization() {
+  const { organization, routes } = usePage<SharedProps & { organization: OrganizationProps }>().props;
+  const { data, setData, patch, processing, errors } = useForm({
+    name: organization.name,
+    phone: organization.phone || "",
+    email: organization.email || "",
+    street_address: organization.street_address || "",
+    city: organization.city || "",
+    state: organization.state || "",
+    zip: organization.zip || "",
   });
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    post(routes.organizations);
+    patch(`/organizations/${organization.id}`);
   }
 
   return (
     <AppLayout>
       <div className="mb-6">
-        <Link href={routes.organizations} className="text-sm text-muted-foreground hover:text-foreground">
-          &larr; Organizations
+        <Link href={`/organizations/${organization.id}`} className="text-sm text-muted-foreground hover:text-foreground">
+          &larr; {organization.name}
         </Link>
       </div>
 
-      <h1 className="text-2xl font-semibold text-foreground mb-6">New Organization</h1>
+      <h1 className="text-2xl font-semibold text-foreground mb-6">Edit Organization</h1>
 
       <form onSubmit={handleSubmit} className="max-w-lg space-y-4">
         <div className="space-y-2">
@@ -73,10 +84,10 @@ export default function NewOrganization() {
 
         <div className="flex gap-3 pt-2">
           <Button variant="outline" asChild>
-            <Link href={routes.organizations}>Cancel</Link>
+            <Link href={`/organizations/${organization.id}`}>Cancel</Link>
           </Button>
           <Button type="submit" disabled={processing}>
-            {processing ? "Creating..." : "Create Organization"}
+            {processing ? "Saving..." : "Save Changes"}
           </Button>
         </div>
       </form>
