@@ -91,6 +91,8 @@ export interface Message {
   body: string;
   timestamp_label: string;
   date_label: string;
+  show_date_separator: boolean;
+  grouped: boolean;
   is_current_user: boolean;
   sender: {
     full_name: string;

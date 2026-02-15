@@ -114,25 +114,16 @@ function EmptyState() {
 function MessageThread({ messages }: { messages: Message[] }) {
   return (
     <div>
-      {messages.map((msg, i) => {
-        const prev = i > 0 ? messages[i - 1] : null;
-        const showDate = !prev || msg.date_label !== prev.date_label;
-        const sameSender = prev
-          && !showDate
-          && prev.is_current_user === msg.is_current_user
-          && prev.sender.initials === msg.sender.initials;
-
-        return (
-          <div key={msg.id}>
-            {showDate && <DateSeparator label={msg.date_label} />}
-            {msg.is_current_user ? (
-              <OwnMessage message={msg} grouped={!!sameSender} />
-            ) : (
-              <OtherMessage message={msg} grouped={!!sameSender} />
-            )}
-          </div>
-        );
-      })}
+      {messages.map((msg) => (
+        <div key={msg.id}>
+          {msg.show_date_separator && <DateSeparator label={msg.date_label} />}
+          {msg.is_current_user ? (
+            <OwnMessage message={msg} grouped={msg.grouped} />
+          ) : (
+            <OtherMessage message={msg} grouped={msg.grouped} />
+          )}
+        </div>
+      ))}
     </div>
   );
 }
@@ -226,7 +217,7 @@ function AttachmentList({ attachments }: { attachments?: MessageAttachment[] }) 
         >
           <FileText className="h-3 w-3 shrink-0" />
           <span className="truncate max-w-[120px]">{att.filename}</span>
-          <ExternalLink className="h-2.5 w-2.5 shrink-0" />
+          <ExternalLink className="h-3 w-3 shrink-0" />
         </a>
       ))}
     </div>

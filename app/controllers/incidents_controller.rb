@@ -143,7 +143,7 @@ class IncidentsController < ApplicationController
           { value: s, label: Incident::STATUS_LABELS[s] }
         } : []
       },
-      messages: messages.map { |m| serialize_message(m) },
+      messages: serialize_messages(messages),
       can_transition: can_transition_status?,
       can_assign: can_assign_to_incident?,
       can_manage_contacts: can_manage_contacts?,
@@ -243,13 +243,26 @@ class IncidentsController < ApplicationController
     }
   end
 
-  def serialize_message(message)
+  def serialize_messages(messages)
+    prev = nil
+    messages.map do |m|
+      json = serialize_message(m, prev)
+      prev = m
+      json
+    end
+  end
+
+  def serialize_message(message, prev = nil)
     user = message.user
+    show_date = prev.nil? || message.created_at.to_date != prev.created_at.to_date
+    same_sender = !show_date && prev&.user_id == message.user_id
     {
       id: message.id,
       body: message.body,
       timestamp_label: message.created_at.strftime("%-I:%M %p"),
       date_label: message.created_at.strftime("%b %-d, %Y"),
+      show_date_separator: show_date,
+      grouped: same_sender,
       is_current_user: user.id == current_user.id,
       sender: {
         full_name: user.full_name,
