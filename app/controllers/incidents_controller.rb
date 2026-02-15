@@ -90,6 +90,8 @@ class IncidentsController < ApplicationController
       .joins(:user).where(users: { active: true })
       .order("users.last_name, users.first_name")
 
+    messages = @incident.messages.includes(user: :organization).order(created_at: :asc)
+
     render inertia: "Incidents/Show", props: {
       incident: {
         id: @incident.id,
@@ -136,10 +138,12 @@ class IncidentsController < ApplicationController
             remove_path: can_manage_contacts? ? incident_contact_path(@incident, c) : nil
           }
         },
+        messages_path: incident_messages_path(@incident),
         valid_transitions: can_transition_status? ? (StatusTransitionService::ALLOWED_TRANSITIONS[@incident.status] || []).map { |s|
           { value: s, label: Incident::STATUS_LABELS[s] }
         } : []
       },
+      messages: messages.map { |m| serialize_message(m) },
       can_transition: can_transition_status?,
       can_assign: can_assign_to_incident?,
       can_manage_contacts: can_manage_contacts?,
@@ -236,6 +240,23 @@ class IncidentsController < ApplicationController
       active_equipment: active,
       total_equipment_placed: total_placed,
       show_removed_equipment: total_placed > active
+    }
+  end
+
+  def serialize_message(message)
+    user = message.user
+    {
+      id: message.id,
+      body: message.body,
+      timestamp_label: message.created_at.strftime("%-I:%M %p"),
+      date_label: message.created_at.strftime("%b %-d, %Y"),
+      is_current_user: user.id == current_user.id,
+      sender: {
+        full_name: user.full_name,
+        initials: user.initials,
+        role_label: User::ROLE_LABELS[user.user_type],
+        org_name: user.organization.name
+      }
     }
   end
 

@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { SharedProps } from "@/types";
 import OverviewPanel from "./components/OverviewPanel";
 import RightPanelShell from "./components/RightPanelShell";
+import MessagePanel from "./components/MessagePanel";
 import type { ShowProps } from "./types";
 
 function statusColor(status: string): string {
@@ -163,9 +164,10 @@ export default function IncidentShow() {
         <div className="lg:w-[35%] lg:min-w-[35%] lg:border-l lg:border-border lg:pl-6">
           <RightPanelShell activeTab={activeTab} onTabChange={setActiveTab}>
             {activeTab === "messages" && (
-              <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm py-12">
-                Messages coming soon.
-              </div>
+              <MessagePanel
+                messages={messages}
+                messages_path={incident.messages_path}
+              />
             )}
             {activeTab === "daily_log" && (
               <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm py-12">
