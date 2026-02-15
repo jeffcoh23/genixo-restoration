@@ -14,6 +14,7 @@ Rails.application.routes.draw do
     member do
       patch :transition
     end
+    resources :assignments, controller: "incident_assignments", only: %i[create destroy]
   end
 
   # Properties

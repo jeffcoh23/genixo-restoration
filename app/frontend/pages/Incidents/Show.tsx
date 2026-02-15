@@ -1,6 +1,6 @@
 import { Link, router, usePage } from "@inertiajs/react";
 import { useState } from "react";
-import { AlertTriangle, ChevronDown, Building2, Clock, User as UserIcon } from "lucide-react";
+import { AlertTriangle, ChevronDown, Building2, Clock, User as UserIcon, X, Plus } from "lucide-react";
 import AppLayout from "@/layout/AppLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,13 @@ interface AssignedUser {
   initials: string;
   role_label: string;
   organization_name: string;
+  remove_path: string | null;
+}
+
+interface AssignableUser {
+  id: number;
+  full_name: string;
+  role_label: string;
 }
 
 interface Transition {
@@ -24,6 +31,7 @@ interface IncidentDetail {
   id: number;
   path: string;
   transition_path: string;
+  assignments_path: string;
   description: string;
   cause: string | null;
   requested_next_steps: string | null;
@@ -51,6 +59,8 @@ interface IncidentDetail {
 interface ShowProps {
   incident: IncidentDetail;
   can_transition: boolean;
+  can_assign: boolean;
+  assignable_users: AssignableUser[];
   back_path: string;
 }
 
@@ -81,11 +91,21 @@ function formatDate(iso: string): string {
 }
 
 export default function IncidentShow() {
-  const { incident, can_transition, back_path } =
+  const { incident, can_transition, can_assign, assignable_users, back_path } =
     usePage<SharedProps & ShowProps>().props;
 
   const [statusOpen, setStatusOpen] = useState(false);
   const [transitioning, setTransitioning] = useState(false);
+  const [assignOpen, setAssignOpen] = useState(false);
+
+  const handleAssign = (userId: number) => {
+    setAssignOpen(false);
+    router.post(incident.assignments_path, { user_id: userId }, { preserveScroll: true });
+  };
+
+  const handleRemove = (removePath: string) => {
+    router.delete(removePath, { preserveScroll: true });
+  };
 
   const handleTransition = (newStatus: string) => {
     setTransitioning(true);
@@ -267,17 +287,58 @@ export default function IncidentShow() {
                     </div>
                     <div className="space-y-1 ml-6">
                       {users.map((u) => (
-                        <div key={u.id} className="flex items-center gap-2 text-sm">
+                        <div key={u.id} className="flex items-center gap-2 text-sm group">
                           <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-[10px] font-medium text-muted-foreground">
                             {u.initials}
                           </div>
                           <span className="text-foreground">{u.full_name}</span>
                           <span className="text-muted-foreground">&middot; {u.role_label}</span>
+                          {u.remove_path && (
+                            <button
+                              onClick={() => handleRemove(u.remove_path!)}
+                              className="ml-auto opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity"
+                              title={`Remove ${u.full_name}`}
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          )}
                         </div>
                       ))}
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* Assign button */}
+            {can_assign && assignable_users.length > 0 && (
+              <div className="relative mt-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setAssignOpen(!assignOpen)}
+                >
+                  <Plus className="h-3.5 w-3.5 mr-1" />
+                  Assign User
+                </Button>
+
+                {assignOpen && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setAssignOpen(false)} />
+                    <div className="absolute left-0 top-full mt-1 z-20 bg-popover border border-border rounded-md shadow-md py-1 min-w-[240px] max-h-[200px] overflow-y-auto">
+                      {assignable_users.map((u) => (
+                        <button
+                          key={u.id}
+                          onClick={() => handleAssign(u.id)}
+                          className="w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors flex items-center justify-between"
+                        >
+                          <span>{u.full_name}</span>
+                          <span className="text-muted-foreground text-xs">{u.role_label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </DetailSection>

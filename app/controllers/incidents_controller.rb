@@ -115,6 +115,7 @@ class IncidentsController < ApplicationController
           address: property.short_address,
           path: property_path(property)
         },
+        assignments_path: incident_assignments_path(@incident),
         assigned_users: assigned.map { |a|
           {
             id: a.user.id,
@@ -122,7 +123,8 @@ class IncidentsController < ApplicationController
             full_name: a.user.full_name,
             initials: a.user.initials,
             role_label: User::ROLE_LABELS[a.user.user_type],
-            organization_name: a.user.organization.name
+            organization_name: a.user.organization.name,
+            remove_path: can_remove_assignment?(a.user) ? incident_assignment_path(@incident, a) : nil
           }
         },
         valid_transitions: can_transition_status? ? (StatusTransitionService::ALLOWED_TRANSITIONS[@incident.status] || []).map { |s|
@@ -130,6 +132,8 @@ class IncidentsController < ApplicationController
         } : []
       },
       can_transition: can_transition_status?,
+      can_assign: can_assign_to_incident?,
+      assignable_users: can_assign_to_incident? ? assignable_incident_users(@incident) : [],
       back_path: incidents_path
     }
   end
@@ -169,6 +173,27 @@ class IncidentsController < ApplicationController
       :project_type, :damage_type, :description, :cause,
       :requested_next_steps, :units_affected, :affected_room_numbers
     ).to_h.symbolize_keys
+  end
+
+  def can_assign_to_incident?
+    mitigation_admin? || current_user.pm_user?
+  end
+
+  def can_remove_assignment?(user)
+    return true if mitigation_admin?
+    current_user.pm_user? && user.organization_id == current_user.organization_id
+  end
+
+  def assignable_incident_users(incident)
+    scope = if mitigation_admin?
+      User.where(active: true, organization_id: [incident.property.mitigation_org_id, incident.property.property_management_org_id])
+    else
+      User.where(active: true, organization_id: current_user.organization_id)
+    end
+
+    scope.where.not(id: incident.assigned_user_ids)
+      .order(:last_name, :first_name)
+      .map { |u| { id: u.id, full_name: u.full_name, role_label: User::ROLE_LABELS[u.user_type] } }
   end
 
   def serialize_incident(incident)
