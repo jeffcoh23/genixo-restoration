@@ -40,7 +40,7 @@ A user belongs to exactly one organization. A user's `user_type` must be valid f
 
 ### Email Uniqueness
 
-Email is unique **per organization**, not globally. The same email can exist in multiple orgs. This is intentional — in B2B, a person may have accounts with different orgs.
+Email is globally unique across all organizations. One email address = one user account in the system.
 
 ### Deactivation
 
@@ -349,7 +349,7 @@ All groups sorted by `last_activity_at` descending (most recent activity first).
 | Model | Rule | Enforcement |
 |-------|------|-------------|
 | User | `user_type` valid for org's `organization_type` | Model validation |
-| User | Email unique per org | DB unique index on `(organization_id, email_address)` |
+| User | Email globally unique | DB unique index on `email_address` |
 | Incident | Status transitions follow allowed map | Service-level validation (`StatusTransitionService`) |
 | Incident | `property_id` must be visible to creator | Controller-level (scoped query) |
 | Equipment Entry | Exactly one of `equipment_type_id` or `equipment_type_other` | DB CHECK constraint |

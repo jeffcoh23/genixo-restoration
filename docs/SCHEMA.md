@@ -108,8 +108,7 @@ Property Management org:
 ```
 
 **Indexes:**
-- `index_users_on_organization_id_and_email_address` (unique) — email unique per org, not globally
-- `index_users_on_email_address` (non-unique, for lookups)
+- `index_users_on_email_address` (unique) — email globally unique
 - `index_users_on_organization_id`
 - `index_users_on_organization_id_and_user_type`
 

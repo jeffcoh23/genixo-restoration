@@ -45,17 +45,18 @@ class UserTest < ActiveSupport::TestCase
     assert_includes user.errors[:last_name], "can't be blank"
   end
 
-  test "email uniqueness is scoped to organization" do
+  test "email uniqueness is global" do
     build_user(organization: @mitigation_org, email_address: "test@example.com").save!
     duplicate = build_user(organization: @mitigation_org, email_address: "test@example.com")
     assert_not duplicate.valid?
     assert_includes duplicate.errors[:email_address], "has already been taken"
   end
 
-  test "same email allowed in different orgs" do
+  test "same email rejected across different orgs" do
     build_user(organization: @mitigation_org, email_address: "test@example.com").save!
     other = build_user(organization: @pm_org, email_address: "test@example.com", user_type: "property_manager")
-    assert other.valid?
+    assert_not other.valid?
+    assert_includes other.errors[:email_address], "has already been taken"
   end
 
   test "normalizes email to lowercase" do

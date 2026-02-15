@@ -61,19 +61,19 @@ Per PROJECT_SETUP.md seed data section.
 
 ### Authentication
 
-- [ ] `Current` model, `SessionsController`, `require_authentication` (see playbook auth.md)
-- [ ] Login page (see VIEWS.md §Login)
-- [ ] Redirect logic — dashboard on success, login when unauthenticated
-- [ ] Block deactivated users from logging in
+- [x] `Current` model, `SessionsController`, `require_authentication` (see playbook auth.md)
+- [x] Login page (see VIEWS.md §Login)
+- [x] Redirect logic — dashboard on success, login when unauthenticated
+- [x] Block deactivated users from logging in
 
 ### App Shell
 
-- [ ] `AppLayout.tsx` — sidebar + content area (see VIEWS.md §Layout)
-- [ ] `RoleSidebar.tsx` — role-aware nav links (see VIEWS.md §Sidebar Links by Role)
-- [ ] Responsive sidebar — fixed desktop, hamburger mobile
-- [ ] Shared Inertia data — auth user + routes (see ARCHITECTURE.md §Inertia Shared Data)
-- [ ] Flash message component
-- [ ] Placeholder pages for all routes
+- [x] `AppLayout.tsx` — sidebar + content area (see VIEWS.md §Layout)
+- [x] `RoleSidebar.tsx` — role-aware nav links (see VIEWS.md §Sidebar Links by Role)
+- [x] Responsive sidebar — fixed desktop, hamburger mobile
+- [x] Shared Inertia data — auth user + routes (see ARCHITECTURE.md §Inertia Shared Data)
+- [x] Flash message component
+- [x] Placeholder pages for all routes
 
 **Done when:** Log in as any seed user, see correct sidebar for their role, navigate between placeholder pages.
 

@@ -13,7 +13,7 @@ class User < ApplicationRecord
   has_many :incident_assignments, dependent: :destroy
   has_many :assigned_incidents, through: :incident_assignments, source: :incident
 
-  validates :email_address, presence: true, uniqueness: { scope: :organization_id, case_sensitive: false }
+  validates :email_address, presence: true, uniqueness: { case_sensitive: false }
   validates :first_name, presence: true
   validates :last_name, presence: true
   validates :user_type, presence: true, inclusion: { in: ALL_TYPES }
