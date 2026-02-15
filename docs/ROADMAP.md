@@ -133,9 +133,9 @@ Incident lifecycle, dashboard, detail page, assignments.
 
 ### Incident Creation
 
-- [ ] `IncidentCreationService` + tests (see ARCHITECTURE.md §1 Incident Creation)
-- [ ] New incident page + controller (see VIEWS.md §New Incident)
-- [ ] Auto-assignment logic + tests (see BUSINESS_RULES.md §5 Auto-Assignment)
+- [x] `IncidentCreationService` + tests (see ARCHITECTURE.md §1 Incident Creation)
+- [x] New incident page + controller (see VIEWS.md §New Incident)
+- [x] Auto-assignment logic + tests (see BUSINESS_RULES.md §5 Auto-Assignment)
 
 ### Status Transitions
 
@@ -145,7 +145,7 @@ Incident lifecycle, dashboard, detail page, assignments.
 
 ### ActivityLogger
 
-- [ ] `ActivityLogger.log` service (see ARCHITECTURE.md §ActivityLogger)
+- [x] `ActivityLogger.log` service (see ARCHITECTURE.md §ActivityLogger)
 
 ### Dashboard
 
