@@ -139,9 +139,9 @@ Incident lifecycle, dashboard, detail page, assignments.
 
 ### Status Transitions
 
-- [ ] `StatusTransitionService` + tests (see ARCHITECTURE.md §3 Status Transitions)
-- [ ] Status change endpoint — managers only
-- [ ] Transition tests — every valid/invalid transition, escalation resolution
+- [x] `StatusTransitionService` + tests (see ARCHITECTURE.md §3 Status Transitions)
+- [x] Status change endpoint — managers only
+- [x] Transition tests — every valid/invalid transition, escalation resolution
 
 ### ActivityLogger
 
@@ -149,9 +149,9 @@ Incident lifecycle, dashboard, detail page, assignments.
 
 ### Dashboard
 
-- [ ] `DashboardService` + controller (see ARCHITECTURE.md §5 Dashboard Queries)
-- [ ] Dashboard page — urgency groups, incident cards, filters (see VIEWS.md §Dashboard)
-- [ ] Dashboard controller tests — role-specific scoping
+- [x] `DashboardService` + controller (see ARCHITECTURE.md §5 Dashboard Queries)
+- [x] Dashboard page — urgency groups, incident cards, filters (see VIEWS.md §Dashboard)
+- [x] Dashboard controller tests — role-specific scoping
 
 ### Incidents List
 
