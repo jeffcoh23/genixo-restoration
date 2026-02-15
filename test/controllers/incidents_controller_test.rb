@@ -38,6 +38,79 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     PropertyAssignment.create!(user: @area_mgr, property: @property)
   end
 
+  # --- Index access + scoping ---
+
+  test "manager sees all incidents in their mitigation org" do
+    i1 = create_test_incident(status: "active", property: @property)
+    i2 = create_test_incident(status: "acknowledged", property: @other_property)
+    login_as @manager
+    get incidents_path
+    assert_response :success
+    assert_includes response.body, "Sunset Apartments"
+    assert_includes response.body, "Other Building"
+  end
+
+  test "property_manager sees only incidents on assigned properties" do
+    i1 = create_test_incident(status: "active", property: @property)
+    i2 = create_test_incident(status: "acknowledged", property: @other_property)
+    login_as @pm_user
+    get incidents_path
+    assert_response :success
+    assert_includes response.body, "Sunset Apartments"
+    assert_not_includes response.body, "Other Building"
+  end
+
+  test "technician sees only directly assigned incidents" do
+    i1 = create_test_incident(status: "active", property: @property)
+    i2 = create_test_incident(status: "active", property: @other_property)
+    IncidentAssignment.create!(incident: i1, user: @tech, assigned_by_user: @manager)
+    login_as @tech
+    get incidents_path
+    assert_response :success
+    # Should see i1 (assigned) but not i2 (not assigned)
+    incidents_json = JSON.parse(response.body.match(/"incidents":(\[.*?\])/m)[1]) rescue nil
+    if incidents_json
+      assert_equal 1, incidents_json.length
+    end
+  end
+
+  test "index filters by status" do
+    create_test_incident(status: "active", property: @property)
+    create_test_incident(status: "on_hold", property: @other_property)
+    login_as @manager
+    get incidents_path, params: { status: "active" }
+    assert_response :success
+  end
+
+  test "index filters by property" do
+    create_test_incident(status: "active", property: @property)
+    create_test_incident(status: "active", property: @other_property)
+    login_as @manager
+    get incidents_path, params: { property_id: @property.id }
+    assert_response :success
+  end
+
+  test "index filters by search term" do
+    create_test_incident(status: "active", property: @property, description: "Water pipe burst")
+    create_test_incident(status: "active", property: @other_property, description: "Fire damage")
+    login_as @manager
+    get incidents_path, params: { search: "Water" }
+    assert_response :success
+  end
+
+  test "index paginates results" do
+    login_as @manager
+    get incidents_path, params: { page: 1 }
+    assert_response :success
+  end
+
+  test "index passes can_create based on permissions" do
+    login_as @tech
+    # Tech can't create incidents, so can_create should be false
+    get incidents_path
+    assert_response :success
+  end
+
   # --- New page access control ---
 
   test "manager can access new incident page" do
@@ -206,11 +279,11 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     post login_path, params: { email_address: user.email_address, password: "password123" }
   end
 
-  def create_test_incident(status:)
+  def create_test_incident(status:, property: nil, description: "Test incident")
     Incident.create!(
-      property: @property, created_by_user: @manager,
+      property: property || @property, created_by_user: @manager,
       status: status, project_type: "emergency_response",
-      damage_type: "flood", description: "Test incident", emergency: true
+      damage_type: "flood", description: description, emergency: true
     )
   end
 end

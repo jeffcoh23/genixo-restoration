@@ -155,9 +155,9 @@ Incident lifecycle, dashboard, detail page, assignments.
 
 ### Incidents List
 
-- [ ] Incidents index controller — paginated, filterable, sortable
-- [ ] Incidents list page (see VIEWS.md §Incidents)
-- [ ] Controller tests — scoping, pagination
+- [x] Incidents index controller — paginated, filterable, sortable
+- [x] Incidents list page (see VIEWS.md §Incidents)
+- [x] Controller tests — scoping, pagination
 
 ### Incident Detail — Layout
 

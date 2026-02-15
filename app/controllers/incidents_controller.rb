@@ -4,7 +4,57 @@ class IncidentsController < ApplicationController
   before_action :authorize_transition!, only: %i[transition]
 
   def index
-    render inertia: "Incidents/Index"
+    scope = visible_incidents.includes(:property)
+
+    # Filters
+    scope = scope.where(status: params[:status]) if params[:status].present?
+    scope = scope.where(property_id: params[:property_id]) if params[:property_id].present?
+    scope = scope.where(project_type: params[:project_type]) if params[:project_type].present?
+    scope = scope.where(emergency: true) if params[:emergency] == "1"
+
+    if params[:search].present?
+      term = "%#{params[:search]}%"
+      scope = scope.left_joins(:property).where(
+        "incidents.description ILIKE :term OR properties.name ILIKE :term",
+        term: term
+      )
+    end
+
+    # Sort
+    sort_col = %w[property status project_type last_activity_at created_at].include?(params[:sort]) ? params[:sort] : "created_at"
+    sort_dir = params[:direction] == "asc" ? :asc : :desc
+
+    scope = case sort_col
+    when "property"
+      scope.joins(:property).order("properties.name #{sort_dir}")
+    else
+      scope.order(sort_col => sort_dir)
+    end
+
+    # Paginate
+    page = [params.fetch(:page, 1).to_i, 1].max
+    per_page = 25
+    total = scope.count
+    incidents = scope.offset((page - 1) * per_page).limit(per_page)
+
+    render inertia: "Incidents/Index", props: {
+      incidents: incidents.map { |i| serialize_incident(i) },
+      pagination: { page: page, per_page: per_page, total: total, total_pages: (total.to_f / per_page).ceil },
+      filters: {
+        search: params[:search],
+        status: params[:status],
+        property_id: params[:property_id]&.to_i,
+        project_type: params[:project_type],
+        emergency: params[:emergency]
+      },
+      sort: { column: sort_col, direction: sort_dir.to_s },
+      filter_options: {
+        statuses: Incident::STATUSES.map { |s| { value: s, label: Incident::STATUS_LABELS[s] } },
+        project_types: Incident::PROJECT_TYPES.map { |t| { value: t, label: Incident::PROJECT_TYPE_LABELS[t] } },
+        properties: visible_properties.order(:name).map { |p| { id: p.id, name: p.name } }
+      },
+      can_create: can_create_incident?
+    }
   end
 
   def new
@@ -72,5 +122,22 @@ class IncidentsController < ApplicationController
       :project_type, :damage_type, :description, :cause,
       :requested_next_steps, :units_affected, :affected_room_numbers
     ).to_h.symbolize_keys
+  end
+
+  def serialize_incident(incident)
+    {
+      id: incident.id,
+      path: incident_path(incident),
+      property_name: incident.property.name,
+      description: incident.description.truncate(80),
+      status: incident.status,
+      status_label: Incident::STATUS_LABELS[incident.status],
+      project_type: incident.project_type,
+      project_type_label: Incident::PROJECT_TYPE_LABELS[incident.project_type],
+      damage_label: Incident::DAMAGE_LABELS[incident.damage_type],
+      emergency: incident.emergency,
+      last_activity_at: incident.last_activity_at&.iso8601,
+      created_at: incident.created_at.iso8601
+    }
   end
 end
