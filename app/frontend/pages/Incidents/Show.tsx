@@ -1,6 +1,6 @@
 import { Link, router, usePage } from "@inertiajs/react";
 import { useState } from "react";
-import { AlertTriangle, ChevronDown, Building2, Clock, User as UserIcon, X, Plus } from "lucide-react";
+import { AlertTriangle, ChevronDown, Building2, Clock, User as UserIcon, X, Plus, Mail, Phone } from "lucide-react";
 import AppLayout from "@/layout/AppLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,15 @@ interface AssignableUser {
   role_label: string;
 }
 
+interface Contact {
+  id: number;
+  name: string;
+  title: string | null;
+  email: string | null;
+  phone: string | null;
+  remove_path: string | null;
+}
+
 interface Transition {
   value: string;
   label: string;
@@ -32,6 +41,7 @@ interface IncidentDetail {
   path: string;
   transition_path: string;
   assignments_path: string;
+  contacts_path: string;
   description: string;
   cause: string | null;
   requested_next_steps: string | null;
@@ -53,6 +63,7 @@ interface IncidentDetail {
     path: string;
   };
   assigned_users: AssignedUser[];
+  contacts: Contact[];
   valid_transitions: Transition[];
 }
 
@@ -60,6 +71,7 @@ interface ShowProps {
   incident: IncidentDetail;
   can_transition: boolean;
   can_assign: boolean;
+  can_manage_contacts: boolean;
   assignable_users: AssignableUser[];
   back_path: string;
 }
@@ -91,12 +103,17 @@ function formatDate(iso: string): string {
 }
 
 export default function IncidentShow() {
-  const { incident, can_transition, can_assign, assignable_users, back_path } =
+  const { incident, can_transition, can_assign, can_manage_contacts, assignable_users, back_path } =
     usePage<SharedProps & ShowProps>().props;
 
   const [statusOpen, setStatusOpen] = useState(false);
   const [transitioning, setTransitioning] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
+  const [contactFormOpen, setContactFormOpen] = useState(false);
+  const [contactName, setContactName] = useState("");
+  const [contactTitle, setContactTitle] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
 
   const handleAssign = (userId: number) => {
     setAssignOpen(false);
@@ -104,6 +121,26 @@ export default function IncidentShow() {
   };
 
   const handleRemove = (removePath: string) => {
+    router.delete(removePath, { preserveScroll: true });
+  };
+
+  const handleAddContact = (e: React.FormEvent) => {
+    e.preventDefault();
+    router.post(incident.contacts_path, {
+      contact: { name: contactName, title: contactTitle, email: contactEmail, phone: contactPhone }
+    }, {
+      preserveScroll: true,
+      onSuccess: () => {
+        setContactFormOpen(false);
+        setContactName("");
+        setContactTitle("");
+        setContactEmail("");
+        setContactPhone("");
+      },
+    });
+  };
+
+  const handleRemoveContact = (removePath: string) => {
     router.delete(removePath, { preserveScroll: true });
   };
 
@@ -340,6 +377,102 @@ export default function IncidentShow() {
                   </>
                 )}
               </div>
+            )}
+          </DetailSection>
+
+          {/* Contacts */}
+          <DetailSection title="Contacts">
+            {incident.contacts.length === 0 && !can_manage_contacts ? (
+              <p className="text-muted-foreground text-sm">No contacts added.</p>
+            ) : (
+              <>
+                {incident.contacts.length > 0 && (
+                  <div className="space-y-3">
+                    {incident.contacts.map((c) => (
+                      <div key={c.id} className="flex items-start justify-between group">
+                        <div>
+                          <div className="text-sm font-medium text-foreground">
+                            {c.name}
+                            {c.title && <span className="text-muted-foreground font-normal"> &middot; {c.title}</span>}
+                          </div>
+                          <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
+                            {c.email && (
+                              <span className="flex items-center gap-1">
+                                <Mail className="h-3 w-3" />
+                                {c.email}
+                              </span>
+                            )}
+                            {c.phone && (
+                              <span className="flex items-center gap-1">
+                                <Phone className="h-3 w-3" />
+                                {c.phone}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        {c.remove_path && (
+                          <button
+                            onClick={() => handleRemoveContact(c.remove_path!)}
+                            className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity mt-0.5"
+                            title={`Remove ${c.name}`}
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {can_manage_contacts && (
+                  <div className="mt-3">
+                    {contactFormOpen ? (
+                      <form onSubmit={handleAddContact} className="space-y-2 rounded-md border border-border p-3">
+                        <input
+                          type="text"
+                          placeholder="Name *"
+                          value={contactName}
+                          onChange={(e) => setContactName(e.target.value)}
+                          required
+                          className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                        />
+                        <input
+                          type="text"
+                          placeholder="Title"
+                          value={contactTitle}
+                          onChange={(e) => setContactTitle(e.target.value)}
+                          className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                        />
+                        <div className="flex gap-2">
+                          <input
+                            type="email"
+                            placeholder="Email"
+                            value={contactEmail}
+                            onChange={(e) => setContactEmail(e.target.value)}
+                            className="flex-1 rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                          />
+                          <input
+                            type="tel"
+                            placeholder="Phone"
+                            value={contactPhone}
+                            onChange={(e) => setContactPhone(e.target.value)}
+                            className="flex-1 rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <Button type="submit" size="sm">Add Contact</Button>
+                          <Button type="button" variant="ghost" size="sm" onClick={() => setContactFormOpen(false)}>Cancel</Button>
+                        </div>
+                      </form>
+                    ) : (
+                      <Button variant="outline" size="sm" onClick={() => setContactFormOpen(true)}>
+                        <Plus className="h-3.5 w-3.5 mr-1" />
+                        Add Contact
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </>
             )}
           </DetailSection>
         </div>

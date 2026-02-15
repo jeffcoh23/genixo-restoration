@@ -171,7 +171,7 @@ Incident lifecycle, dashboard, detail page, assignments.
 - [x] Description, cause, next steps display
 - [x] Assigned team section — grouped by org (see VIEWS.md §Left Panel: Overview)
 - [x] Assign/unassign users + activity events (see BUSINESS_RULES.md §5)
-- [ ] Contacts section — add/remove (see BUSINESS_RULES.md §5 Incident Contacts)
+- [x] Contacts section — add/remove (see BUSINESS_RULES.md §5 Incident Contacts)
 - [ ] Quick stats (labor hours, equipment counts)
 
 ### Incident Detail — Right Panel Shell

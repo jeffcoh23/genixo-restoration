@@ -127,12 +127,24 @@ class IncidentsController < ApplicationController
             remove_path: can_remove_assignment?(a.user) ? incident_assignment_path(@incident, a) : nil
           }
         },
+        contacts_path: incident_contacts_path(@incident),
+        contacts: @incident.incident_contacts.order(:name).map { |c|
+          {
+            id: c.id,
+            name: c.name,
+            title: c.title,
+            email: c.email,
+            phone: c.phone,
+            remove_path: can_manage_contacts? ? incident_contact_path(@incident, c) : nil
+          }
+        },
         valid_transitions: can_transition_status? ? (StatusTransitionService::ALLOWED_TRANSITIONS[@incident.status] || []).map { |s|
           { value: s, label: Incident::STATUS_LABELS[s] }
         } : []
       },
       can_transition: can_transition_status?,
       can_assign: can_assign_to_incident?,
+      can_manage_contacts: can_manage_contacts?,
       assignable_users: can_assign_to_incident? ? assignable_incident_users(@incident) : [],
       back_path: incidents_path
     }
@@ -173,6 +185,10 @@ class IncidentsController < ApplicationController
       :project_type, :damage_type, :description, :cause,
       :requested_next_steps, :units_affected, :affected_room_numbers
     ).to_h.symbolize_keys
+  end
+
+  def can_manage_contacts?
+    mitigation_admin? || current_user.pm_user?
   end
 
   def can_assign_to_incident?
