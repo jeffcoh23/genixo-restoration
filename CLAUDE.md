@@ -20,8 +20,8 @@
 
 | Layer | Technology |
 |-------|------------|
-| Server | Rails 8 + PostgreSQL |
-| Frontend | Inertia + React + Vite |
+| Server | Rails 8.0.4 + Ruby 3.3.0 + PostgreSQL |
+| Frontend | Inertia + React 19 + TypeScript + Vite 6 |
 | Styling | Tailwind v4 + shadcn/ui |
 | Auth | Rails 8 sessions (email/password only, no OAuth) |
 | Jobs | Solid Queue (single-database) |
@@ -58,8 +58,8 @@ bin/rails console    # Rails console
 ```
 
 ### Key Paths
-- Pages: `app/frontend/pages/`
-- Components: `app/frontend/components/`
+- Pages: `app/frontend/pages/` (`.tsx`)
+- Components: `app/frontend/components/` (`.tsx`)
 - Services: `app/services/`
 - Models: `app/models/`
 - Jobs: `app/jobs/`

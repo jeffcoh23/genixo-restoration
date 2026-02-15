@@ -16,48 +16,48 @@ App setup, database, auth, and app shell.
 
 ### App Setup
 
-- [ ] Generate Rails 8 app with PostgreSQL
-- [ ] Install and configure Vite Rails
-- [ ] Install and configure Inertia Rails + React
-- [ ] Install and configure Tailwind CSS v4
-- [ ] Install and configure shadcn/ui with theme tokens (see DESIGN.md)
-- [ ] Configure Solid Queue + Solid Cache (single-database, see PROJECT_SETUP.md)
-- [ ] Configure Active Storage (local disk for dev)
-- [ ] Set up `Procfile.dev` (Puma + Vite)
+- [x] Generate Rails 8 app with PostgreSQL
+- [x] Install and configure Vite Rails
+- [x] Install and configure Inertia Rails + React
+- [x] Install and configure Tailwind CSS v4
+- [x] Install and configure shadcn/ui with theme tokens (see DESIGN.md)
+- [x] Configure Solid Queue + Solid Cache (single-database, see PROJECT_SETUP.md)
+- [x] Configure Active Storage (local disk for dev)
+- [x] Set up `Procfile.dev` (Puma + Vite)
 
 ### Database & Models
 
 Each item = migration + model + validations + associations per SCHEMA.md.
 
-- [ ] `organizations` table + model
-- [ ] `users` table + model (including user_type validation per org type)
-- [ ] `sessions` table + model
-- [ ] `properties` table + model (dual org FKs)
-- [ ] `property_assignments` table + model
-- [ ] `incidents` table + model (all indexes including dashboard composites)
-- [ ] `incident_assignments` table + model
-- [ ] `incident_contacts` table + model
-- [ ] `messages` table + model
-- [ ] `incident_read_states` table + model
-- [ ] `activity_events` table + model (immutable — no updated_at)
-- [ ] `labor_entries` table + model
-- [ ] `equipment_types` table + model
-- [ ] `equipment_entries` table + model (with DB CHECK constraint)
-- [ ] `operational_notes` table + model (immutable — no updated_at)
-- [ ] `attachments` table + model (polymorphic + Active Storage)
-- [ ] `on_call_configurations` + `escalation_contacts` tables + models
-- [ ] `escalation_events` table + model
-- [ ] `invitations` table + model
+- [x] `organizations` table + model
+- [x] `users` table + model (including user_type validation per org type)
+- [x] `sessions` table + model
+- [x] `properties` table + model (dual org FKs)
+- [x] `property_assignments` table + model
+- [x] `incidents` table + model (all indexes including dashboard composites)
+- [x] `incident_assignments` table + model
+- [x] `incident_contacts` table + model
+- [x] `messages` table + model
+- [x] `incident_read_states` table + model
+- [x] `activity_events` table + model (immutable — no updated_at)
+- [x] `labor_entries` table + model
+- [x] `equipment_types` table + model
+- [x] `equipment_entries` table + model (with DB CHECK constraint)
+- [x] `operational_notes` table + model (immutable — no updated_at)
+- [x] `attachments` table + model (polymorphic + Active Storage)
+- [x] `on_call_configurations` + `escalation_contacts` tables + models
+- [x] `escalation_events` table + model
+- [x] `invitations` table + model
 
 ### Seeds
 
 Per PROJECT_SETUP.md seed data section.
 
-- [ ] Seed organizations (3 orgs: 1 mitigation, 2 PM)
-- [ ] Seed users (all 7 seed users with correct orgs/roles)
-- [ ] Seed properties (3 properties) + property assignments
-- [ ] Seed equipment types + on-call configuration
-- [ ] Seed sample incidents with messages, labor, equipment, activity events
+- [x] Seed organizations (3 orgs: 1 mitigation, 2 PM)
+- [x] Seed users (14 Genixo + 3 Greystar + 1 Sandalwood = 18 users)
+- [x] Seed properties (3 properties) + property assignments
+- [x] Seed equipment types + on-call configuration
+- [x] Seed sample incidents with messages, labor, equipment, activity events
 
 ### Authentication
 
@@ -68,8 +68,8 @@ Per PROJECT_SETUP.md seed data section.
 
 ### App Shell
 
-- [ ] `AppLayout.jsx` — sidebar + content area (see VIEWS.md §Layout)
-- [ ] `RoleSidebar.jsx` — role-aware nav links (see VIEWS.md §Sidebar Links by Role)
+- [ ] `AppLayout.tsx` — sidebar + content area (see VIEWS.md §Layout)
+- [ ] `RoleSidebar.tsx` — role-aware nav links (see VIEWS.md §Sidebar Links by Role)
 - [ ] Responsive sidebar — fixed desktop, hamburger mobile
 - [ ] Shared Inertia data — auth user + routes (see ARCHITECTURE.md §Inertia Shared Data)
 - [ ] Flash message component

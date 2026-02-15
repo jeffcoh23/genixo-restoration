@@ -641,13 +641,13 @@ end
 
 On the frontend, timestamps are passed as ISO 8601 UTC strings. React components format them using the user's timezone from shared props:
 
-```jsx
+```tsx
 // Timezone available via shared Inertia data
 const { auth } = usePage().props;
 const userTimezone = auth.user.timezone;
 
 // Format timestamps in user's timezone
-function formatTime(isoString) {
+function formatTime(isoString: string): string {
   return new Date(isoString).toLocaleString("en-US", {
     timeZone: userTimezone
   });
@@ -740,42 +740,42 @@ routes: -> {
 ```
 app/frontend/pages/
 ├── Auth/
-│   ├── Login.jsx
-│   └── AcceptInvitation.jsx
+│   ├── Login.tsx
+│   └── AcceptInvitation.tsx
 ├── Dashboard/
-│   └── Show.jsx              # Main hub — incident list grouped by urgency
+│   └── Show.tsx              # Main hub — incident list grouped by urgency
 ├── Incidents/
-│   ├── Index.jsx              # Flat filterable incident list
-│   ├── Show.jsx               # Split-panel incident detail
-│   ├── New.jsx                # Intake form
+│   ├── Index.tsx              # Flat filterable incident list
+│   ├── Show.tsx               # Split-panel incident detail
+│   ├── New.tsx                # Intake form
 │   └── components/
-│       ├── StatusBadge.jsx
-│       ├── OverviewPanel.jsx  # Left panel: description, team, contacts, stats
-│       ├── MessagePanel.jsx   # Right panel: chat thread
-│       ├── DailyLogPanel.jsx  # Right panel: day-by-day activity
-│       ├── DocumentPanel.jsx  # Right panel: all attachments
-│       ├── LaborEntryForm.jsx
-│       ├── EquipmentLog.jsx
-│       ├── OperationalNotes.jsx
-│       └── AttachmentUpload.jsx
+│       ├── StatusBadge.tsx
+│       ├── OverviewPanel.tsx  # Left panel: description, team, contacts, stats
+│       ├── MessagePanel.tsx   # Right panel: chat thread
+│       ├── DailyLogPanel.tsx  # Right panel: day-by-day activity
+│       ├── DocumentPanel.tsx  # Right panel: all attachments
+│       ├── LaborEntryForm.tsx
+│       ├── EquipmentLog.tsx
+│       ├── OperationalNotes.tsx
+│       └── AttachmentUpload.tsx
 ├── Properties/
-│   ├── Index.jsx
-│   ├── Show.jsx
-│   └── New.jsx
+│   ├── Index.tsx
+│   ├── Show.tsx
+│   └── New.tsx
 ├── Organizations/
-│   ├── Index.jsx
-│   ├── Show.jsx
-│   └── New.jsx
+│   ├── Index.tsx
+│   ├── Show.tsx
+│   └── New.tsx
 ├── Users/
-│   ├── Index.jsx
-│   └── Show.jsx
+│   ├── Index.tsx
+│   └── Show.tsx
 ├── Settings/
-│   ├── Profile.jsx            # Profile, password, notifications, timezone
-│   ├── OnCall.jsx             # On-call configuration (mitigation only)
-│   └── EquipmentTypes.jsx     # Equipment type management (mitigation only)
+│   ├── Profile.tsx            # Profile, password, notifications, timezone
+│   ├── OnCall.tsx             # On-call configuration (mitigation only)
+│   └── EquipmentTypes.tsx     # Equipment type management (mitigation only)
 └── layout/
-    ├── AppLayout.jsx          # Authenticated shell
-    └── RoleSidebar.jsx        # Navigation varies by role
+    ├── AppLayout.tsx          # Authenticated shell
+    └── RoleSidebar.tsx        # Navigation varies by role
 ```
 
 ### Role-Aware UI

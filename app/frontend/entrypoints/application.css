@@ -1,0 +1,68 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --radius: 0.25rem;
+
+  /* Primary — Genixo brand teal */
+  --color-primary: hsl(187 70% 34%);
+  --color-primary-foreground: hsl(0 0% 100%);
+
+  /* Secondary */
+  --color-secondary: hsl(0 0% 96%);
+  --color-secondary-foreground: hsl(0 0% 9%);
+
+  /* Accent */
+  --color-accent: hsl(187 15% 95%);
+  --color-accent-foreground: hsl(187 70% 25%);
+
+  /* Muted */
+  --color-muted: hsl(0 0% 96%);
+  --color-muted-foreground: hsl(0 0% 46%);
+
+  /* Neutrals */
+  --color-background: hsl(0 0% 99%);
+  --color-foreground: hsl(0 0% 9%);
+  --color-card: hsl(0 0% 100%);
+  --color-card-foreground: hsl(0 0% 9%);
+  --color-border: hsl(0 0% 90%);
+  --color-input: hsl(0 0% 90%);
+  --color-ring: hsl(187 70% 34%);
+
+  /* Semantic */
+  --color-destructive: hsl(0 84% 60%);
+  --color-destructive-foreground: hsl(0 0% 100%);
+
+  /* Status colors */
+  --color-status-emergency: hsl(0 84% 60%);
+  --color-status-warning: hsl(38 92% 50%);
+  --color-status-success: hsl(142 76% 36%);
+  --color-status-info: hsl(199 89% 48%);
+  --color-status-quote: hsl(270 50% 60%);
+  --color-status-completed: hsl(142 40% 50%);
+  --color-status-neutral: hsl(0 0% 55%);
+
+  /* Sidebar */
+  --color-sidebar: hsl(0 0% 98%);
+  --color-sidebar-foreground: hsl(0 0% 9%);
+  --color-sidebar-border: hsl(0 0% 90%);
+  --color-sidebar-accent: hsl(187 15% 95%);
+  --color-sidebar-accent-foreground: hsl(187 70% 25%);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html,
+  body {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased font-sans;
+  }
+}

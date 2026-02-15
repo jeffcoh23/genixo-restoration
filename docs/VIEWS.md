@@ -124,7 +124,7 @@ Fields pre-filled if the inviter provided them, but still editable. First name, 
 
 ## Dashboard — `GET /dashboard`
 
-**Page:** `Dashboard/Show.jsx`
+**Page:** `Dashboard/Show.tsx`
 **Access:** All authenticated users
 
 The landing page. Shows incidents grouped by urgency for quick triage. For a flat filterable list, see the Incidents page.
@@ -178,7 +178,7 @@ The landing page. Shows incidents grouped by urgency for quick triage. For a fla
 
 ## Incidents — `GET /incidents`
 
-**Page:** `Incidents/Index.jsx`
+**Page:** `Incidents/Index.tsx`
 **Access:** All authenticated users (scoped by role)
 
 Flat list of all incidents with filters and sorting. Complements the dashboard — the dashboard groups by urgency for triage, this page is for searching and browsing everything.
@@ -216,7 +216,7 @@ Flat list of all incidents with filters and sorting. Complements the dashboard �
 
 ## Incident Detail — `GET /incidents/:id`
 
-**Page:** `Incidents/Show.jsx`
+**Page:** `Incidents/Show.tsx`
 **Access:** Users who can see this incident (404 if not)
 
 The primary workspace for an incident. Split-panel layout on desktop so users can see incident info and activity simultaneously.
@@ -472,7 +472,7 @@ Viewing marks activity as read.
 
 ## New Incident — `GET /incidents/new`
 
-**Page:** `Incidents/New.jsx`
+**Page:** `Incidents/New.tsx`
 **Access:** Manager, office_sales, property_manager, area_manager (NOT technicians)
 
 ```
@@ -535,7 +535,7 @@ On submit → redirects to the new incident's detail page.
 
 ### Property List — `GET /properties`
 
-**Page:** `Properties/Index.jsx`
+**Page:** `Properties/Index.tsx`
 **Access:** Manager, office_sales, property_manager, area_manager, pm_manager (NOT technicians)
 
 ```
@@ -563,7 +563,7 @@ Click row → property detail. "New Property" visible to manager/office_sales on
 
 ### Property Detail — `GET /properties/:id`
 
-**Page:** `Properties/Show.jsx`
+**Page:** `Properties/Show.tsx`
 **Access:** Users who can see this property (404 if not)
 
 ```
@@ -601,7 +601,7 @@ Click row → property detail. "New Property" visible to manager/office_sales on
 
 ### New Property — `GET /properties/new`
 
-**Page:** `Properties/New.jsx`
+**Page:** `Properties/New.tsx`
 **Access:** Manager, office_sales only
 
 ```
@@ -644,7 +644,7 @@ Click row → property detail. "New Property" visible to manager/office_sales on
 
 ### Organization List — `GET /organizations`
 
-**Page:** `Organizations/Index.jsx`
+**Page:** `Organizations/Index.tsx`
 **Access:** Manager, office_sales (mitigation org users only)
 
 ```
@@ -667,7 +667,7 @@ Click row → org detail.
 
 ### Organization Detail — `GET /organizations/:id`
 
-**Page:** `Organizations/Show.jsx`
+**Page:** `Organizations/Show.tsx`
 **Access:** Manager, office_sales
 
 ```
@@ -698,7 +698,7 @@ Click row → org detail.
 
 ### New Organization — `GET /organizations/new`
 
-**Page:** `Organizations/New.jsx`
+**Page:** `Organizations/New.tsx`
 **Access:** Manager, office_sales
 
 ```
@@ -736,7 +736,7 @@ Click row → org detail.
 
 ### User List — `GET /users`
 
-**Page:** `Users/Index.jsx`
+**Page:** `Users/Index.tsx`
 **Access:** Manager, office_sales
 
 ```
@@ -770,7 +770,7 @@ Click user → user detail. "Invite User" opens modal with: email (required), us
 
 ### User Detail — `GET /users/:id`
 
-**Page:** `Users/Show.jsx`
+**Page:** `Users/Show.tsx`
 **Access:** Manager, office_sales
 
 ```
@@ -800,7 +800,7 @@ Click user → user detail. "Invite User" opens modal with: email (required), us
 
 ### Profile — `GET /settings`
 
-**Page:** `Settings/Profile.jsx`
+**Page:** `Settings/Profile.tsx`
 **Access:** All authenticated users
 
 ```
@@ -850,7 +850,7 @@ Click user → user detail. "Invite User" opens modal with: email (required), us
 
 ### On-Call — `GET /settings/on-call`
 
-**Page:** `Settings/OnCall.jsx`
+**Page:** `Settings/OnCall.tsx`
 **Access:** Manager (mitigation org) only
 
 ```
@@ -887,7 +887,7 @@ Click user → user detail. "Invite User" opens modal with: email (required), us
 
 ### Equipment Types — `GET /settings/equipment-types`
 
-**Page:** `Settings/EquipmentTypes.jsx`
+**Page:** `Settings/EquipmentTypes.tsx`
 **Access:** Manager (mitigation org) only
 
 ```

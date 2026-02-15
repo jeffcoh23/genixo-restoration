@@ -90,15 +90,40 @@ This starts Puma (Rails) + Vite (frontend) via `Procfile.dev`. App runs at `http
 
 ### Users
 
-| Email | Password | Org | Role | Purpose |
-|-------|----------|-----|------|---------|
-| mike@genixo.com | password | Genixo | manager | Primary manager — full access |
-| sarah@genixo.com | password | Genixo | technician | Field tech — assignment-scoped |
-| lisa@genixo.com | password | Genixo | office_sales | Office — read-only operational |
-| jane@greystar.com | password | Greystar | property_manager | PM on River Oaks |
-| tom@greystar.com | password | Greystar | area_manager | AM on multiple properties |
-| amy@greystar.com | password | Greystar | pm_manager | PM org-level manager |
-| bob@sandalwood.com | password | Sandalwood | property_manager | PM on Sandalwood property (isolation test) |
+All passwords: `password`
+
+**Genixo Construction (Mitigation) — 14 users:**
+
+| Email | Name | Role |
+|-------|------|------|
+| fhall@genixoconstruction.com | Fred Hall | manager (VP of Operations) |
+| dhutson@genixoconstruction.com | Daniel Hutson | manager (Mitigation Director) |
+| cmiller@genixoconstruction.com | Caleb Miller | manager (Construction PM) |
+| jowen@genixoconstruction.com | Jeremy Owen | manager (VP of Operations) |
+| jtucker@genixoconstruction.com | John Tucker | manager (Construction PM) |
+| awagner@genixoconstruction.com | Anthony Wagner | manager (Construction Director) |
+| gward@genixoconstruction.com | Gordon Ward | manager (Mitigation PM) |
+| htello@genixoconstruction.com | Henry Tello | technician (Construction Supervisor) |
+| zmeyer@genixoconstruction.com | Zachary Meyer | technician (Construction Supervisor) |
+| cbutler@genixoconstruction.com | Chrystie Butler | office_sales (Office Staff) |
+| enorthern@genixoconstruction.com | Emily Northern | office_sales (Office Manager) |
+| mwoods@genixoconstruction.com | Melanie Woods | office_sales (Office Staff) |
+| tkasbohm@genixoconstruction.com | Taylor Kasbohm | office_sales (Director of Estimating) |
+| jsedita@genixoconstruction.com | Jessica Sedita | office_sales (Business Development) |
+
+**Greystar Properties (PM) — 3 users:**
+
+| Email | Name | Role |
+|-------|------|------|
+| jane@greystar.com | Jane Smith | property_manager (River Oaks) |
+| tom@greystar.com | Tom Rodriguez | area_manager (River Oaks + Heights) |
+| amy@greystar.com | Amy Chen | pm_manager (org-level) |
+
+**Sandalwood Management (PM isolation test) — 1 user:**
+
+| Email | Name | Role |
+|-------|------|------|
+| bob@sandalwood.com | Bob Johnson | property_manager (Sandalwood Apts) |
 
 ### Properties
 
@@ -110,10 +135,10 @@ This starts Puma (Rails) + Vite (frontend) via `Procfile.dev`. App runs at `http
 
 ### Property Assignments
 
-- jane@greystar.com → Park at River Oaks
-- tom@greystar.com → Park at River Oaks, Greystar Heights
-- amy@greystar.com → Park at River Oaks, Greystar Heights
-- bob@sandalwood.com → Sandalwood Apartments
+- Jane Smith (jane@greystar.com) → Park at River Oaks
+- Tom Rodriguez (tom@greystar.com) → Park at River Oaks, Greystar Heights
+- Amy Chen (amy@greystar.com) → Park at River Oaks, Greystar Heights
+- Bob Johnson (bob@sandalwood.com) → Sandalwood Apartments
 
 ### Sample Incidents
 
@@ -128,9 +153,9 @@ Seeds create 2-3 incidents at different statuses with messages, labor entries, e
 
 ### On-Call Configuration (Genixo org)
 
-- Primary on-call: mike@genixo.com
+- Primary on-call: Fred Hall (fhall@genixoconstruction.com)
 - Escalation timeout: 10 minutes
-- Escalation contacts: Mike Kim (position 1), Lisa Chen (position 2)
+- Escalation contacts: Daniel Hutson (position 1), Anthony Wagner (position 2)
 
 ---
 
