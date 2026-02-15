@@ -40,10 +40,12 @@ interface IncidentDetail {
   id: number;
   path: string;
   transition_path: string;
+  show_stats: boolean;
   stats: {
     total_labor_hours: number;
     active_equipment: number;
     total_equipment_placed: number;
+    show_removed_equipment: boolean;
   };
   assignments_path: string;
   contacts_path: string;
@@ -482,7 +484,7 @@ export default function IncidentShow() {
           </DetailSection>
 
           {/* Quick Stats */}
-          {(incident.stats.total_labor_hours > 0 || incident.stats.total_equipment_placed > 0) && (
+          {incident.show_stats && (
             <div className="flex flex-wrap gap-4">
               <div className="flex items-center gap-2 rounded-md border border-border px-4 py-3">
                 <Timer className="h-5 w-5 text-muted-foreground" />
@@ -498,7 +500,7 @@ export default function IncidentShow() {
                   <div className="text-xs text-muted-foreground">active equipment</div>
                 </div>
               </div>
-              {incident.stats.total_equipment_placed > incident.stats.active_equipment && (
+              {incident.stats.show_removed_equipment && (
                 <div className="flex items-center gap-2 rounded-md border border-border px-4 py-3">
                   <Wrench className="h-5 w-5 text-muted-foreground opacity-50" />
                   <div>

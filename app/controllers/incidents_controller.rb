@@ -127,11 +127,8 @@ class IncidentsController < ApplicationController
             remove_path: can_remove_assignment?(a.user) ? incident_assignment_path(@incident, a) : nil
           }
         },
-        stats: {
-          total_labor_hours: @incident.labor_entries.sum(:hours).to_f,
-          active_equipment: @incident.equipment_entries.where(removed_at: nil).count,
-          total_equipment_placed: @incident.equipment_entries.count
-        },
+        show_stats: @incident.labor_entries.any? || @incident.equipment_entries.any?,
+        stats: incident_stats(@incident),
         contacts_path: incident_contacts_path(@incident),
         contacts: @incident.incident_contacts.order(:name).map { |c|
           {
@@ -215,6 +212,17 @@ class IncidentsController < ApplicationController
     scope.where.not(id: incident.assigned_user_ids)
       .order(:last_name, :first_name)
       .map { |u| { id: u.id, full_name: u.full_name, role_label: User::ROLE_LABELS[u.user_type] } }
+  end
+
+  def incident_stats(incident)
+    active = incident.equipment_entries.where(removed_at: nil).count
+    total_placed = incident.equipment_entries.count
+    {
+      total_labor_hours: incident.labor_entries.sum(:hours).to_f,
+      active_equipment: active,
+      total_equipment_placed: total_placed,
+      show_removed_equipment: total_placed > active
+    }
   end
 
   def serialize_incident(incident)
