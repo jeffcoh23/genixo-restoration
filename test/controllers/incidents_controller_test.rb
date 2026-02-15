@@ -1,0 +1,157 @@
+require "test_helper"
+
+class IncidentsControllerTest < ActionDispatch::IntegrationTest
+  setup do
+    @genixo = Organization.create!(name: "Genixo", organization_type: "mitigation")
+    @greystar = Organization.create!(name: "Greystar", organization_type: "property_management")
+    @other_pm = Organization.create!(name: "Other PM", organization_type: "property_management")
+
+    @property = Property.create!(
+      name: "Sunset Apartments", property_management_org: @greystar,
+      mitigation_org: @genixo, street_address: "100 Sunset Blvd",
+      city: "Houston", state: "TX", zip: "77001", unit_count: 24
+    )
+
+    @other_property = Property.create!(
+      name: "Other Building", property_management_org: @other_pm,
+      mitigation_org: @genixo
+    )
+
+    # Mitigation org users
+    @manager = User.create!(organization: @genixo, user_type: "manager",
+      email_address: "mgr@genixo.com", first_name: "Test", last_name: "Manager", password: "password123")
+    @office = User.create!(organization: @genixo, user_type: "office_sales",
+      email_address: "office@genixo.com", first_name: "Test", last_name: "Office", password: "password123")
+    @tech = User.create!(organization: @genixo, user_type: "technician",
+      email_address: "tech@genixo.com", first_name: "Test", last_name: "Tech", password: "password123")
+
+    # PM org users
+    @pm_user = User.create!(organization: @greystar, user_type: "property_manager",
+      email_address: "pm@greystar.com", first_name: "Test", last_name: "PM", password: "password123")
+    @area_mgr = User.create!(organization: @greystar, user_type: "area_manager",
+      email_address: "am@greystar.com", first_name: "Test", last_name: "AreaMgr", password: "password123")
+    @pm_mgr = User.create!(organization: @greystar, user_type: "pm_manager",
+      email_address: "pmmgr@greystar.com", first_name: "Test", last_name: "PMMgr", password: "password123")
+
+    # Assign PM users to the property
+    PropertyAssignment.create!(user: @pm_user, property: @property)
+    PropertyAssignment.create!(user: @area_mgr, property: @property)
+  end
+
+  # --- New page access control ---
+
+  test "manager can access new incident page" do
+    login_as @manager
+    get new_incident_path
+    assert_response :success
+  end
+
+  test "office_sales can access new incident page" do
+    login_as @office
+    get new_incident_path
+    assert_response :success
+  end
+
+  test "property_manager can access new incident page" do
+    login_as @pm_user
+    get new_incident_path
+    assert_response :success
+  end
+
+  test "area_manager can access new incident page" do
+    login_as @area_mgr
+    get new_incident_path
+    assert_response :success
+  end
+
+  test "technician gets 404 on new incident page" do
+    login_as @tech
+    get new_incident_path
+    assert_response :not_found
+  end
+
+  test "pm_manager gets 404 on new incident page" do
+    login_as @pm_mgr
+    get new_incident_path
+    assert_response :not_found
+  end
+
+  # --- Create with valid params ---
+
+  test "creates incident with valid params" do
+    login_as @manager
+
+    # Auto-assign creates 5 assignments:
+    #   PM-side property assignees: @pm_user, @area_mgr (2)
+    #   PM-side pm_managers in PM org: @pm_mgr (1)
+    #   Mitigation-side managers + office_sales: @manager, @office (2)
+    assert_difference "Incident.count", 1 do
+      assert_difference "ActivityEvent.count", 2 do
+        assert_difference "IncidentAssignment.count", 5 do
+          post incidents_path, params: {
+            incident: {
+              property_id: @property.id,
+              project_type: "emergency_response",
+              damage_type: "flood",
+              description: "Major water leak in unit 4B",
+              cause: "Burst pipe",
+              requested_next_steps: "Dispatch crew immediately"
+            }
+          }
+        end
+      end
+    end
+  end
+
+  test "redirects to incident show on success" do
+    login_as @manager
+    post incidents_path, params: {
+      incident: {
+        property_id: @property.id,
+        project_type: "emergency_response",
+        damage_type: "flood",
+        description: "Major water leak in unit 4B"
+      }
+    }
+    incident = Incident.last
+    assert_redirected_to incident_path(incident)
+  end
+
+  # --- Create with invalid params ---
+
+  test "fails with missing required fields" do
+    login_as @manager
+    assert_no_difference "Incident.count" do
+      post incidents_path, params: {
+        incident: {
+          property_id: @property.id,
+          project_type: "emergency_response",
+          damage_type: "flood",
+          description: ""
+        }
+      }
+    end
+    assert_redirected_to new_incident_path
+  end
+
+  test "fails with invalid property from another org" do
+    login_as @pm_user
+    assert_no_difference "Incident.count" do
+      post incidents_path, params: {
+        incident: {
+          property_id: @other_property.id,
+          project_type: "emergency_response",
+          damage_type: "flood",
+          description: "Should not work"
+        }
+      }
+    end
+    assert_redirected_to new_incident_path
+  end
+
+  private
+
+  def login_as(user)
+    post login_path, params: { email_address: user.email_address, password: "password123" }
+  end
+end
