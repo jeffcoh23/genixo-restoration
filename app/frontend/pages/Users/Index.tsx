@@ -91,7 +91,7 @@ export default function UsersIndex() {
 
       {/* Invite User Form */}
       {showInviteForm && (
-        <div className="rounded-md border p-6 mb-6 bg-muted/20">
+        <div className="rounded border p-6 mb-6 bg-muted">
           <h2 className="text-lg font-semibold text-foreground mb-4">Invite User</h2>
           <form onSubmit={handleInvite} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -103,7 +103,7 @@ export default function UsersIndex() {
                   <label htmlFor="invite_org" className="text-sm font-medium">Organization</label>
                   <select id="invite_org" value={form.data.organization_id}
                     onChange={(e) => { form.setData("organization_id", e.target.value); form.setData("user_type", ""); }}
-                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm">
+                    className="flex h-9 w-full rounded border border-input bg-transparent px-3 py-1 text-sm shadow-sm">
                     {org_options.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
                   </select>
                 </div>
@@ -113,7 +113,7 @@ export default function UsersIndex() {
                 <label htmlFor="invite_role" className="text-sm font-medium">Role</label>
                 <select id="invite_role" value={form.data.user_type}
                   onChange={(e) => form.setData("user_type", e.target.value)}
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" required>
+                  className="flex h-9 w-full rounded border border-input bg-transparent px-3 py-1 text-sm shadow-sm" required>
                   <option value="">Select a role...</option>
                   {selectedOrg?.role_options.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
                 </select>
@@ -157,9 +157,9 @@ export default function UsersIndex() {
                     ? <span className="text-xs text-destructive">Expired</span>
                     : <span className="text-xs text-muted-foreground">Pending</span>
                   }
-                  <button onClick={() => router.patch(inv.resend_path)} className="text-xs text-primary hover:underline">
+                  <Button variant="ghost" size="sm" onClick={() => router.patch(inv.resend_path)} className="text-xs text-primary hover:underline h-auto py-0 px-1">
                     Resend
-                  </button>
+                  </Button>
                 </div>
               )},
             ]}
@@ -175,11 +175,11 @@ export default function UsersIndex() {
       {/* Deactivated Users */}
       {deactivated_users.length > 0 && (
         <div className="mt-6">
-          <button onClick={() => setShowDeactivated(!showDeactivated)}
-            className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1">
+          <Button variant="ghost" onClick={() => setShowDeactivated(!showDeactivated)}
+            className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1 h-auto px-0 py-1">
             <span className="text-xs">{showDeactivated ? "▼" : "▶"}</span>
             Deactivated Users ({deactivated_users.length})
-          </button>
+          </Button>
           {showDeactivated && (
             <div className="mt-2">
               <DataTable columns={deactivatedColumns} rows={deactivated_users} keyFn={(u) => u.id} />

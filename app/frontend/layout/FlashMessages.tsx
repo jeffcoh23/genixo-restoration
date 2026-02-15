@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface FlashMessagesProps {
   flash: {
@@ -24,14 +25,14 @@ export default function FlashMessages({ flash }: FlashMessagesProps) {
   return (
     <div className="mb-4 space-y-2">
       {flash.notice && (
-        <div className="rounded-md bg-primary/10 px-4 py-3 text-sm text-primary">
-          {flash.notice}
-        </div>
+        <Alert>
+          <AlertDescription>{flash.notice}</AlertDescription>
+        </Alert>
       )}
       {flash.alert && (
-        <div className="rounded-md bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          {flash.alert}
-        </div>
+        <Alert variant="destructive">
+          <AlertDescription>{flash.alert}</AlertDescription>
+        </Alert>
       )}
     </div>
   );
