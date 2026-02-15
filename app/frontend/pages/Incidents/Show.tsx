@@ -1,6 +1,6 @@
 import { Link, router, usePage } from "@inertiajs/react";
 import { useState } from "react";
-import { AlertTriangle, ChevronDown, Building2, Clock, User as UserIcon, X, Plus, Mail, Phone } from "lucide-react";
+import { AlertTriangle, ChevronDown, Building2, Clock, User as UserIcon, X, Plus, Mail, Phone, Wrench, Timer } from "lucide-react";
 import AppLayout from "@/layout/AppLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -40,6 +40,11 @@ interface IncidentDetail {
   id: number;
   path: string;
   transition_path: string;
+  stats: {
+    total_labor_hours: number;
+    active_equipment: number;
+    total_equipment_placed: number;
+  };
   assignments_path: string;
   contacts_path: string;
   description: string;
@@ -475,6 +480,35 @@ export default function IncidentShow() {
               </>
             )}
           </DetailSection>
+
+          {/* Quick Stats */}
+          {(incident.stats.total_labor_hours > 0 || incident.stats.total_equipment_placed > 0) && (
+            <div className="flex flex-wrap gap-4">
+              <div className="flex items-center gap-2 rounded-md border border-border px-4 py-3">
+                <Timer className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <div className="text-lg font-semibold text-foreground">{incident.stats.total_labor_hours}</div>
+                  <div className="text-xs text-muted-foreground">hours logged</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 rounded-md border border-border px-4 py-3">
+                <Wrench className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <div className="text-lg font-semibold text-foreground">{incident.stats.active_equipment}</div>
+                  <div className="text-xs text-muted-foreground">active equipment</div>
+                </div>
+              </div>
+              {incident.stats.total_equipment_placed > incident.stats.active_equipment && (
+                <div className="flex items-center gap-2 rounded-md border border-border px-4 py-3">
+                  <Wrench className="h-5 w-5 text-muted-foreground opacity-50" />
+                  <div>
+                    <div className="text-lg font-semibold text-foreground">{incident.stats.total_equipment_placed}</div>
+                    <div className="text-xs text-muted-foreground">total placed</div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Right panel — tabs placeholder */}

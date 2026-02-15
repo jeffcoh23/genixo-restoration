@@ -127,6 +127,11 @@ class IncidentsController < ApplicationController
             remove_path: can_remove_assignment?(a.user) ? incident_assignment_path(@incident, a) : nil
           }
         },
+        stats: {
+          total_labor_hours: @incident.labor_entries.sum(:hours).to_f,
+          active_equipment: @incident.equipment_entries.where(removed_at: nil).count,
+          total_equipment_placed: @incident.equipment_entries.count
+        },
         contacts_path: incident_contacts_path(@incident),
         contacts: @incident.incident_contacts.order(:name).map { |c|
           {
