@@ -50,8 +50,10 @@
 
 ## Frontend
 
+> **The frontend is a dumb display layer.** All logic — authorization, data formatting, label resolution, filtering, sorting, pluralization — lives on the Rails server. React components receive display-ready props and render them. If a component needs to think, the server should have thought for it.
+
 - **Pages are thin.** A page component receives props and renders. Over 100 lines? Extract sub-components. Complex state? Extract a hook.
-- **Let the server do the work.** With Inertia, you're not building a traditional SPA. The frontend should be dumb — just present what the server sends. No data transformation, no label lookups, no string formatting, no pluralization, no truncation. If you find yourself writing `===` checks or `.length > 0` conditionals to transform data, that logic belongs on the server.
+- **Let the server do the work.** With Inertia, you're not building a traditional SPA. The frontend just presents what the server sends. No data transformation, no label lookups, no string formatting, no pluralization, no truncation. If you find yourself writing `===` checks or `.length > 0` conditionals to transform data, that logic belongs on the server.
 - **Server sends display-ready data.** Every prop the frontend receives should be ready to render directly. Send `role_label: "Office/Sales"` not `user_type: "office_sales"`. Send `address: "123 Main St, Denver, CO"` not raw fields. Send `summary: "Flood — Kitchen damage..."` not raw description + damage_type for the client to assemble.
 - **Constants live on the server.** Role labels, status labels, damage type labels — all defined as model constants (e.g., `User::ROLE_LABELS`, `Incident::STATUS_LABELS`) and shared via `inertia_share` with `InertiaRails.once`. The frontend never duplicates these mappings.
 - **Nav items come from the server.** The server determines which navigation items to show based on the user's role and sends them via `inertia_share`. The sidebar just renders what it receives.
