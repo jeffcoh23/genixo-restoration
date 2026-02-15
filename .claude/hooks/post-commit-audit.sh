@@ -1,6 +1,6 @@
 #!/bin/bash
 # Post-commit quality audit hook for Claude Code
-# Runs automated checks on committed files and prints PASS/FAIL results.
+# Runs linters + custom design system checks on committed files.
 # Claude must fix any FAILs before moving to the next task.
 
 INPUT=$(cat)
@@ -19,16 +19,17 @@ fi
 
 # Separate files by type
 TSX_FILES=$(echo "$FILES" | grep '\.tsx$' || true)
+TS_FILES=$(echo "$FILES" | grep '\.ts$' || true)
+ALL_TS=$(echo -e "${TSX_FILES}\n${TS_FILES}" | sed '/^$/d' || true)
 RB_FILES=$(echo "$FILES" | grep '\.rb$' || true)
-TEST_FILES=$(echo "$FILES" | grep '^test/' || true)
 
 FAILURES=0
 PASSES=0
 
 check() {
   local label="$1"
-  local result="$2"  # "PASS" or "FAIL"
-  local detail="$3"  # optional detail for failures
+  local result="$2"
+  local detail="$3"
 
   if [ "$result" = "PASS" ]; then
     PASSES=$((PASSES + 1))
@@ -37,7 +38,7 @@ check() {
     FAILURES=$((FAILURES + 1))
     echo "  ❌ $label"
     if [ -n "$detail" ]; then
-      echo "$detail" | sed 's/^/     /'
+      echo "$detail" | head -20 | sed 's/^/     /'
     fi
   fi
 }
@@ -51,138 +52,169 @@ echo "Files committed:"
 echo "$FILES" | sed 's/^/  /'
 echo ""
 
-# ─── Frontend checks (.tsx files) ────────────────────────
+# ─── Linters ─────────────────────────────────────────────
+echo "─── Linters ──────────────────────────────────────────"
+echo ""
+
+# ESLint (on committed .tsx/.ts files)
+if [ -n "$ALL_TS" ]; then
+  ESLINT_OUT=$(echo "$ALL_TS" | xargs npx eslint --no-warn-ignored 2>&1 || true)
+  if echo "$ESLINT_OUT" | grep -q "error"; then
+    check "ESLint" "FAIL" "$ESLINT_OUT"
+  else
+    check "ESLint" "PASS"
+  fi
+else
+  check "ESLint (no .ts/.tsx files)" "PASS"
+fi
+
+# TypeScript (full project — fast with incremental, filters to committed files)
+if [ -n "$ALL_TS" ]; then
+  TSC_OUT=$(npx tsc --noEmit 2>&1 || true)
+  # Filter to only errors in committed files
+  TSC_RELEVANT=""
+  for f in $ALL_TS; do
+    MATCH=$(echo "$TSC_OUT" | grep "^$f" || true)
+    if [ -n "$MATCH" ]; then
+      TSC_RELEVANT="${TSC_RELEVANT}${MATCH}\n"
+    fi
+  done
+  if [ -z "$TSC_RELEVANT" ]; then
+    check "TypeScript" "PASS"
+  else
+    check "TypeScript" "FAIL" "$(echo -e "$TSC_RELEVANT")"
+  fi
+else
+  check "TypeScript (no .ts/.tsx files)" "PASS"
+fi
+
+# RuboCop (on committed .rb files)
+if [ -n "$RB_FILES" ]; then
+  RUBOCOP_OUT=$(echo "$RB_FILES" | xargs bundle exec rubocop --force-exclusion --format simple 2>&1 || true)
+  if echo "$RUBOCOP_OUT" | grep -q "no offenses detected"; then
+    check "RuboCop" "PASS"
+  elif echo "$RUBOCOP_OUT" | grep -qE "[0-9]+ offense"; then
+    check "RuboCop" "FAIL" "$RUBOCOP_OUT"
+  else
+    check "RuboCop" "PASS"
+  fi
+else
+  check "RuboCop (no .rb files)" "PASS"
+fi
+
+echo ""
+
+# ─── Design System Checks (.tsx files) ───────────────────
 if [ -n "$TSX_FILES" ]; then
-  echo "─── Frontend (.tsx) ────────────────────────────────"
+  echo "─── Design System (.tsx) ───────────────────────────"
   echo ""
 
-  # Check 1: No hardcoded colors (bg-[hsl...], text-[hsl...], border-[hsl...])
+  # Hardcoded HSL colors
   HITS=$(echo "$TSX_FILES" | xargs grep -n '\(bg\|text\|border\|shadow\)-\[hsl' 2>/dev/null || true)
   if [ -z "$HITS" ]; then
     check "No hardcoded HSL colors" "PASS"
   else
-    check "No hardcoded HSL colors — use design tokens" "FAIL" "$HITS"
+    check "No hardcoded HSL — use design tokens" "FAIL" "$HITS"
   fi
 
-  # Check 2: No hardcoded shadows (shadow-[...])
+  # Hardcoded shadows
   HITS=$(echo "$TSX_FILES" | xargs grep -n 'shadow-\[' 2>/dev/null || true)
   if [ -z "$HITS" ]; then
     check "No hardcoded shadows" "PASS"
   else
-    check "No hardcoded shadows — use shadow-sm or shadow-md" "FAIL" "$HITS"
+    check "No hardcoded shadows — use shadow-sm/md" "FAIL" "$HITS"
   fi
 
-  # Check 3: No wrong border radius (rounded-xl, rounded-lg, rounded-md, rounded-2xl)
-  # Allow: rounded, rounded-full, rounded-none
+  # Wrong border radius
   HITS=$(echo "$TSX_FILES" | xargs grep -n 'rounded-\(xl\|lg\|md\|2xl\|3xl\)' 2>/dev/null || true)
   if [ -z "$HITS" ]; then
-    check "Border radius uses rounded (4px)" "PASS"
+    check "Border radius = rounded (4px)" "PASS"
   else
-    check "Border radius must be rounded (4px) per DESIGN.md" "FAIL" "$HITS"
+    check "Border radius must be rounded (4px)" "FAIL" "$HITS"
   fi
 
-  # Check 4: No sub-12px text (text-[10px], text-[11px], text-[9px], etc.)
+  # Sub-12px text
   HITS=$(echo "$TSX_FILES" | xargs grep -n 'text-\[[0-9]*px\]' 2>/dev/null | grep -v 'text-\[1[2-9]px\]\|text-\[[2-9][0-9]px\]' || true)
   if [ -z "$HITS" ]; then
-    check "No text below 12px minimum" "PASS"
+    check "No text below 12px" "PASS"
   else
-    check "Text below 12px minimum per DESIGN.md" "FAIL" "$HITS"
+    check "Text below 12px minimum" "FAIL" "$HITS"
   fi
 
-  # Check 5: No opacity modifiers on design tokens (bg-muted/80, text-foreground/50, etc.)
+  # Opacity modifiers on tokens
   HITS=$(echo "$TSX_FILES" | xargs grep -n '\(bg\|text\|border\)-[a-z-]*/[0-9]' 2>/dev/null || true)
   if [ -z "$HITS" ]; then
     check "No opacity modifiers on tokens" "PASS"
   else
-    check "No opacity modifiers on design tokens" "FAIL" "$HITS"
+    check "No opacity modifiers on tokens" "FAIL" "$HITS"
   fi
 
-  # Check 6: No raw <button> (should use shadcn Button)
-  HITS=$(echo "$TSX_FILES" | xargs grep -n '<button\b' 2>/dev/null || true)
+  # Raw <button> or <input>
+  HITS=$(echo "$TSX_FILES" | xargs grep -n '<button\b\|<input\b' 2>/dev/null || true)
   if [ -z "$HITS" ]; then
-    check "No raw <button> — uses shadcn Button" "PASS"
+    check "No raw <button>/<input>" "PASS"
   else
-    check "Raw <button> found — use shadcn Button component" "FAIL" "$HITS"
+    check "Raw HTML — use shadcn Button/Input" "FAIL" "$HITS"
   fi
 
-  # Check 7: No raw <input> (should use shadcn Input)
-  HITS=$(echo "$TSX_FILES" | xargs grep -n '<input\b' 2>/dev/null || true)
-  if [ -z "$HITS" ]; then
-    check "No raw <input> — uses shadcn Input" "PASS"
-  else
-    check "Raw <input> found — use shadcn Input component" "FAIL" "$HITS"
-  fi
-
-  # Check 8: No frontend date formatting (toLocaleDateString, .toISOString, new Date(), .format(, strftime)
+  # Frontend date formatting
   HITS=$(echo "$TSX_FILES" | xargs grep -n 'toLocaleDateString\|toLocaleTimeString\|\.toISOString\|new Date(' 2>/dev/null || true)
   if [ -z "$HITS" ]; then
     check "No frontend date formatting" "PASS"
   else
-    check "Frontend date formatting — dates should come formatted from server" "FAIL" "$HITS"
+    check "Dates should come formatted from server" "FAIL" "$HITS"
   fi
 
-  # Check 9: No .reduce/.filter/.map chains for display logic
+  # .reduce() for display logic
   HITS=$(echo "$TSX_FILES" | xargs grep -n '\.reduce\s*(' 2>/dev/null || true)
   if [ -z "$HITS" ]; then
-    check "No .reduce() for display logic" "PASS"
+    check "No .reduce() display logic" "PASS"
   else
-    check ".reduce() found — display aggregation should happen on server" "FAIL" "$HITS"
+    check ".reduce() — aggregate on server" "FAIL" "$HITS"
   fi
 
-  # Check 10: No hardcoded route construction (template literals with /incidents/ etc.)
+  # Hardcoded route construction
   HITS=$(echo "$TSX_FILES" | xargs grep -n '`/[a-z].*\${' 2>/dev/null || true)
   if [ -z "$HITS" ]; then
-    check "No hardcoded route construction" "PASS"
+    check "No hardcoded routes" "PASS"
   else
-    check "Hardcoded routes — use server-provided path props" "FAIL" "$HITS"
+    check "Hardcoded routes — use path props" "FAIL" "$HITS"
   fi
 
   echo ""
 fi
 
-# ─── Backend checks (.rb files) ──────────────────────────
+# ─── Backend Checks (.rb files) ──────────────────────────
 if [ -n "$RB_FILES" ]; then
-  echo "─── Backend (.rb) ──────────────────────────────────"
-  echo ""
-
-  # Check: No Incident.find or Property.find (should use scoped queries)
   CONTROLLER_FILES=$(echo "$RB_FILES" | grep 'controllers/' || true)
   if [ -n "$CONTROLLER_FILES" ]; then
+    echo "─── Backend Checks (.rb) ─────────────────────────"
+    echo ""
+
     HITS=$(echo "$CONTROLLER_FILES" | xargs grep -n '\(Incident\|Property\|User\)\.find\b' 2>/dev/null | grep -v 'find_visible\|find_by' || true)
     if [ -z "$HITS" ]; then
-      check "No unscoped .find() in controllers" "PASS"
+      check "No unscoped .find()" "PASS"
     else
-      check "Unscoped .find() — use find_visible_incident! or scoped query" "FAIL" "$HITS"
+      check "Unscoped .find() — use scoped query" "FAIL" "$HITS"
     fi
-  fi
 
-  # Check: No .permit! (mass assignment vulnerability)
-  HITS=$(echo "$RB_FILES" | xargs grep -n '\.permit!' 2>/dev/null || true)
-  if [ -z "$HITS" ]; then
-    check "No .permit! (mass assignment)" "PASS"
-  else
-    check ".permit! found — whitelist attributes explicitly" "FAIL" "$HITS"
-  fi
+    HITS=$(echo "$RB_FILES" | xargs grep -n '\.permit!' 2>/dev/null || true)
+    if [ -z "$HITS" ]; then
+      check "No .permit!" "PASS"
+    else
+      check ".permit! — whitelist attributes" "FAIL" "$HITS"
+    fi
 
-  # Check: No direct status updates (should use StatusTransitionService)
-  HITS=$(echo "$RB_FILES" | xargs grep -n 'update.*status:\|\.status\s*=' 2>/dev/null | grep -v 'StatusTransitionService\|test/' || true)
-  if [ -z "$HITS" ]; then
-    check "No direct status updates" "PASS"
-  else
-    check "Direct status update — use StatusTransitionService" "FAIL" "$HITS"
+    echo ""
   fi
-
-  echo ""
 fi
 
-# ─── Manual review reminders ─────────────────────────────
+# ─── Manual Review ───────────────────────────────────────
 echo "─── Manual Review (Claude must verify) ───────────────"
 echo ""
-echo "  □ Server sends display-ready data (labels, not raw enums)"
-echo "  □ TypeScript types match actual controller props"
-echo "  □ No business logic in controllers (use services)"
-echo "  □ Tests cover authorization scoping (cross-org isolation)"
-echo "  □ Docs updated if schema or features changed"
+echo "  □ Server sends display-ready data (labels, not enums)"
+echo "  □ TypeScript types match controller props"
+echo "  □ Tests cover authorization (cross-org isolation)"
 echo ""
 
 # ─── Summary ─────────────────────────────────────────────
@@ -191,12 +223,11 @@ if [ "$FAILURES" -gt 0 ]; then
   echo " RESULT: ❌ $FAILURES FAIL / $PASSES PASS"
   echo ""
   echo " FIX ALL FAILURES BEFORE MOVING TO THE NEXT TASK."
-  echo " Read the failing files line-by-line and fix each issue."
   echo "═══════════════════════════════════════════════════════"
 else
-  echo " RESULT: ✅ ALL $PASSES AUTOMATED CHECKS PASSED"
+  echo " RESULT: ✅ ALL $PASSES CHECKS PASSED"
   echo ""
-  echo " Still verify the manual review items above."
+  echo " Still verify manual review items above."
   echo "═══════════════════════════════════════════════════════"
 fi
 

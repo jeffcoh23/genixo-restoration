@@ -32,7 +32,7 @@ class IncidentsController < ApplicationController
     end
 
     # Paginate
-    page = [params.fetch(:page, 1).to_i, 1].max
+    page = [ params.fetch(:page, 1).to_i, 1 ].max
     per_page = 25
     total = scope.count
     incidents = scope.offset((page - 1) * per_page).limit(per_page)
@@ -123,7 +123,7 @@ class IncidentsController < ApplicationController
         assigned_summary: {
           count: assigned.size,
           avatars: assigned.first(4).map { |a| { id: a.user.id, initials: a.user.initials, full_name: a.user.full_name } },
-          overflow: [assigned.size - 4, 0].max
+          overflow: [ assigned.size - 4, 0 ].max
         },
         show_stats: @incident.labor_entries.any? || @incident.equipment_entries.any?,
         stats: incident_stats(@incident),
@@ -204,7 +204,7 @@ class IncidentsController < ApplicationController
 
   def assignable_incident_users(incident)
     scope = if mitigation_admin?
-      User.where(active: true, organization_id: [incident.property.mitigation_org_id, incident.property.property_management_org_id])
+      User.where(active: true, organization_id: [ incident.property.mitigation_org_id, incident.property.property_management_org_id ])
     else
       User.where(active: true, organization_id: current_user.organization_id)
     end

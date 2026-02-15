@@ -59,7 +59,7 @@ class IncidentAssignmentsController < ApplicationController
     if mitigation_admin?
       # Can assign any active user from either org
       User.where(active: true)
-        .where(organization_id: [@incident.property.mitigation_org_id, @incident.property.property_management_org_id])
+        .where(organization_id: [ @incident.property.mitigation_org_id, @incident.property.property_management_org_id ])
         .where.not(id: @incident.assigned_user_ids)
     else
       # PM users can only assign their own org's users

@@ -8,17 +8,18 @@ interface FlashMessagesProps {
 }
 
 export default function FlashMessages({ flash }: FlashMessagesProps) {
-  const [visible, setVisible] = useState(false);
+  const [hiddenKey, setHiddenKey] = useState("");
+  const flashKey = `${flash.notice || ""}|${flash.alert || ""}`;
+  const hasFlash = !!(flash.notice || flash.alert);
+  const visible = hasFlash && flashKey !== hiddenKey;
 
   useEffect(() => {
-    if (flash.notice || flash.alert) {
-      setVisible(true);
-      const timer = setTimeout(() => setVisible(false), 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [flash.notice, flash.alert]);
+    if (!visible) return;
+    const timer = setTimeout(() => setHiddenKey(flashKey), 5000);
+    return () => clearTimeout(timer);
+  }, [flashKey, visible]);
 
-  if (!visible || (!flash.notice && !flash.alert)) return null;
+  if (!visible) return null;
 
   return (
     <div className="mb-4 space-y-2">

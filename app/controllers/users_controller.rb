@@ -53,7 +53,7 @@ class UsersController < ApplicationController
   def visible_org_ids
     pm_org_ids = Property.where(mitigation_org_id: current_user.organization_id)
                          .distinct.pluck(:property_management_org_id)
-    [current_user.organization_id] + pm_org_ids
+    [ current_user.organization_id ] + pm_org_ids
   end
 
   def serialize_user(user)
@@ -72,7 +72,7 @@ class UsersController < ApplicationController
   def serialize_invitation(inv)
     {
       id: inv.id,
-      display_name: [inv.first_name, inv.last_name].filter_map(&:presence).join(" ").presence || inv.email,
+      display_name: [ inv.first_name, inv.last_name ].filter_map(&:presence).join(" ").presence || inv.email,
       email: inv.email,
       role_label: User::ROLE_LABELS[inv.user_type],
       organization_name: inv.organization.name,
@@ -83,7 +83,7 @@ class UsersController < ApplicationController
 
   # Own org + serviced PM orgs for the invite form, with role options per org
   def invite_org_options
-    orgs = [current_user.organization]
+    orgs = [ current_user.organization ]
     pm_org_ids = Property.where(mitigation_org_id: current_user.organization_id)
                          .distinct.pluck(:property_management_org_id)
     orgs += Organization.where(id: pm_org_ids).order(:name) if pm_org_ids.any?

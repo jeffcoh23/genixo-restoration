@@ -129,7 +129,7 @@ class IncidentCreationServiceTest < ActiveSupport::TestCase
   # --- Validation failure ---
 
   test "rolls back on validation failure" do
-    assert_no_difference ["Incident.count", "IncidentAssignment.count", "ActivityEvent.count"] do
+    assert_no_difference [ "Incident.count", "IncidentAssignment.count", "ActivityEvent.count" ] do
       assert_raises ActiveRecord::RecordInvalid do
         create_incident(description: "")
       end

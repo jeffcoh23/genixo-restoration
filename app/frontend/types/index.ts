@@ -18,7 +18,7 @@ export interface NavItem {
   icon: string;
 }
 
-export interface SharedProps {
+export interface SharedProps extends Record<string, unknown> {
   auth: {
     user: AuthUser | null;
     authenticated: boolean;

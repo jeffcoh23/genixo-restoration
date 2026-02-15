@@ -62,7 +62,7 @@ class ApplicationController < ActionController::Base
 
     items = [
       { label: "Dashboard", href: dashboard_path, icon: "LayoutDashboard" },
-      { label: "Incidents", href: incidents_path, icon: "AlertTriangle" },
+      { label: "Incidents", href: incidents_path, icon: "AlertTriangle" }
     ]
 
     if user.can?(Permissions::VIEW_PROPERTIES)

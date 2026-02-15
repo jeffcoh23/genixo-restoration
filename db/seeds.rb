@@ -70,7 +70,7 @@ genixo_user_data = [
   { key: :emily,    first_name: "Emily",    last_name: "Northern", email_address: "enorthern@genixoconstruction.com", user_type: "office_sales", phone: "512-364-2369" },
   { key: :melanie,  first_name: "Melanie",  last_name: "Woods",   email_address: "mwoods@genixoconstruction.com", user_type: "office_sales", phone: "979-595-5224" },
   { key: :taylor,   first_name: "Taylor",   last_name: "Kasbohm", email_address: "tkasbohm@genixoconstruction.com", user_type: "office_sales", phone: "210-440-0606" },
-  { key: :jessica,  first_name: "Jessica",  last_name: "Sedita",  email_address: "jsedita@genixoconstruction.com", user_type: "office_sales", phone: "936-276-1326" },
+  { key: :jessica,  first_name: "Jessica",  last_name: "Sedita",  email_address: "jsedita@genixoconstruction.com", user_type: "office_sales", phone: "936-276-1326" }
 ]
 
 users = {}
@@ -169,10 +169,10 @@ puts "  Properties: #{Property.count}"
 # ==========================================================================
 
 {
-  jane: [park_river_oaks],
-  tom:  [park_river_oaks, greystar_heights],
-  amy:  [park_river_oaks, greystar_heights],
-  bob:  [sandalwood_apts]
+  jane: [ park_river_oaks ],
+  tom:  [ park_river_oaks, greystar_heights ],
+  amy:  [ park_river_oaks, greystar_heights ],
+  bob:  [ sandalwood_apts ]
 }.each do |user_key, properties|
   properties.each do |property|
     PropertyAssignment.find_or_create_by!(user: users[user_key], property: property)
@@ -186,7 +186,7 @@ puts "  Property Assignments: #{PropertyAssignment.count}"
 # ==========================================================================
 
 equipment_types = {}
-["Dehumidifier", "Air Mover", "Air Blower", "Water Extraction Unit"].each do |name|
+[ "Dehumidifier", "Air Mover", "Air Blower", "Water Extraction Unit" ].each do |name|
   equipment_types[name] = EquipmentType.find_or_create_by!(organization: genixo, name: name)
 end
 
@@ -266,7 +266,7 @@ if Incident.count.zero?
   auto_assign.call(incident1, users[:jane], park_river_oaks)
 
   # Assign technicians (done by manager after moving to active)
-  [:henry, :zachary].each do |tech|
+  [ :henry, :zachary ].each do |tech|
     IncidentAssignment.create!(incident: incident1, user: users[tech], assigned_by_user: users[:fred])
   end
 
@@ -280,7 +280,7 @@ if Incident.count.zero?
   ActivityEvent.create!(incident: incident1, event_type: "status_changed", performed_by_user: users[:fred],
     metadata: { old_status: "acknowledged", new_status: "active" }, created_at: now - 3.days + 30.minutes)
 
-  [:henry, :zachary].each do |tech|
+  [ :henry, :zachary ].each do |tech|
     ActivityEvent.create!(incident: incident1, event_type: "user_assigned", performed_by_user: users[:fred],
       metadata: { user_id: users[tech].id, user_name: users[tech].full_name, user_type: "technician" },
       created_at: now - 3.days + 45.minutes)
@@ -293,7 +293,7 @@ if Incident.count.zero?
     { user: :henry, body: "On site now. Started water extraction in hallway. Standing water is about 1/2 inch deep. Moving into unit 238 next.", at: now - 3.days + 1.hour },
     { user: :henry, body: "Extraction complete. Placed 6 air movers and 2 dehumidifiers across the three units. Will check moisture readings tomorrow morning.", at: now - 3.days + 4.hours },
     { user: :jane,  body: "Thank you for the quick response. Residents in 237 and 239 are asking about timeline — when do you think they can return?", at: now - 2.days },
-    { user: :fred,  body: "Based on initial assessment, we're looking at 3-4 days of drying minimum. We'll have a better estimate after tomorrow's moisture readings.", at: now - 2.days + 2.hours },
+    { user: :fred,  body: "Based on initial assessment, we're looking at 3-4 days of drying minimum. We'll have a better estimate after tomorrow's moisture readings.", at: now - 2.days + 2.hours }
   ].each do |msg|
     Message.create!(incident: incident1, user: users[msg[:user]], body: msg[:body], created_at: msg[:at])
   end
@@ -314,10 +314,10 @@ if Incident.count.zero?
   # Equipment entries
   6.times do |i|
     location = case i
-               when 0..1 then "Unit 237, living room"
-               when 2..3 then "Unit 238, kitchen and hallway"
-               else "Unit 239, bedroom"
-               end
+    when 0..1 then "Unit 237, living room"
+    when 2..3 then "Unit 238, kitchen and hallway"
+    else "Unit 239, bedroom"
+    end
     EquipmentEntry.create!(incident: incident1, equipment_type: equipment_types["Air Mover"],
       equipment_identifier: "AM-#{100 + i}", placed_at: now - 3.days + 3.hours,
       location_notes: location, logged_by_user: users[:henry])
@@ -375,7 +375,7 @@ if Incident.count.zero?
 
   [
     { user: :tom,    body: "Photos attached from the HVAC inspection. The mold is concentrated around the supply vents in both units. Residents haven't reported any health issues yet but we'd like to get this handled quickly.", at: now - 2.days },
-    { user: :gordon, body: "Thanks Tom. I'll schedule a site visit for tomorrow to assess the scope. We'll have a quote to you within 48 hours of the walkthrough.", at: now - 2.days + 3.hours },
+    { user: :gordon, body: "Thanks Tom. I'll schedule a site visit for tomorrow to assess the scope. We'll have a quote to you within 48 hours of the walkthrough.", at: now - 2.days + 3.hours }
   ].each do |msg|
     Message.create!(incident: incident2, user: users[msg[:user]], body: msg[:body], created_at: msg[:at])
   end
@@ -427,7 +427,7 @@ if Incident.count.zero?
     { user: :jane,  body: "Fire department cleared the building about an hour ago. Units 303-306 all have visible smoke damage. Unit 305 has the worst — kitchen is heavily affected.", at: now - 14.days },
     { user: :fred,  body: "Henry is headed over now for assessment. We'll get started on air scrubbing today and do a full scope tomorrow.", at: now - 14.days + 2.hours },
     { user: :henry, body: "Assessment complete. Unit 305 needs full cleaning — walls, ceiling, cabinets. Units 303, 304, 306 have moderate smoke residue. Setting up air scrubbers in all four units now.", at: now - 14.days + 5.hours },
-    { user: :fred,  body: "All work completed. Final air quality readings are within normal range across all four units. Sending completion report.", at: now - 5.days },
+    { user: :fred,  body: "All work completed. Final air quality readings are within normal range across all four units. Sending completion report.", at: now - 5.days }
   ].each do |msg|
     Message.create!(incident: incident3, user: users[msg[:user]], body: msg[:body], created_at: msg[:at])
   end

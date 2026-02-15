@@ -29,7 +29,7 @@ class OrganizationsController < ApplicationController
         phone: @organization.phone,
         email: @organization.email,
         address: @organization.format_address,
-        contact: [@organization.phone, @organization.email].filter_map(&:presence).join(" \u00B7 "),
+        contact: [ @organization.phone, @organization.email ].filter_map(&:presence).join(" \u00B7 "),
         properties: @organization.owned_properties.order(:name).map { |p|
           active_count = p.incidents.where.not(status: %w[completed completed_billed paid closed]).count
           { id: p.id, name: p.name, path: property_path(p),
