@@ -9,6 +9,7 @@ import { SharedProps } from "@/types";
 interface OrganizationProps {
   id: number;
   name: string;
+  path: string;
   phone: string | null;
   email: string | null;
   street_address: string | null;
@@ -18,7 +19,7 @@ interface OrganizationProps {
 }
 
 export default function EditOrganization() {
-  const { organization, routes } = usePage<SharedProps & { organization: OrganizationProps }>().props;
+  const { organization } = usePage<SharedProps & { organization: OrganizationProps }>().props;
   const { data, setData, patch, processing, errors } = useForm({
     name: organization.name,
     phone: organization.phone || "",
@@ -31,13 +32,13 @@ export default function EditOrganization() {
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    patch(`/organizations/${organization.id}`);
+    patch(organization.path);
   }
 
   return (
     <AppLayout>
       <div className="mb-6">
-        <Link href={`/organizations/${organization.id}`} className="text-sm text-muted-foreground hover:text-foreground">
+        <Link href={organization.path} className="text-sm text-muted-foreground hover:text-foreground">
           &larr; {organization.name}
         </Link>
       </div>
@@ -84,7 +85,7 @@ export default function EditOrganization() {
 
         <div className="flex gap-3 pt-2">
           <Button variant="outline" asChild>
-            <Link href={`/organizations/${organization.id}`}>Cancel</Link>
+            <Link href={organization.path}>Cancel</Link>
           </Button>
           <Button type="submit" disabled={processing}>
             {processing ? "Saving..." : "Save Changes"}

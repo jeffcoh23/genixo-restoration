@@ -3,16 +3,44 @@ class OrganizationsController < ApplicationController
   before_action :set_organization, only: %i[show edit update]
 
   def index
-    @organizations = Organization.where(organization_type: "property_management")
-                                 .order(:name)
+    @organizations = Organization.where(organization_type: "property_management").order(:name)
     render inertia: "Organizations/Index", props: {
-      organizations: @organizations.map { |org| serialize_org(org) }
+      organizations: @organizations.map { |org|
+        {
+          id: org.id,
+          name: org.name,
+          path: organization_path(org),
+          phone: org.phone,
+          email: org.email,
+          property_count: org.owned_properties.count,
+          user_count: org.users.where(active: true).count
+        }
+      }
     }
   end
 
   def show
     render inertia: "Organizations/Show", props: {
-      organization: serialize_org_detail(@organization)
+      organization: {
+        id: @organization.id,
+        name: @organization.name,
+        path: organization_path(@organization),
+        edit_path: edit_organization_path(@organization),
+        phone: @organization.phone,
+        email: @organization.email,
+        street_address: @organization.street_address,
+        city: @organization.city,
+        state: @organization.state,
+        zip: @organization.zip,
+        properties: @organization.owned_properties.order(:name).map { |p|
+          { id: p.id, name: p.name, path: property_path(p),
+            active_incident_count: p.incidents.where.not(status: %w[completed completed_billed paid closed]).count }
+        },
+        users: @organization.users.where(active: true).order(:last_name, :first_name).map { |u|
+          { id: u.id, full_name: u.full_name, email: u.email_address, user_type: u.user_type,
+            path: user_path(u) }
+        }
+      }
     }
   end
 
@@ -26,13 +54,24 @@ class OrganizationsController < ApplicationController
     if @organization.save
       redirect_to organization_path(@organization), notice: "Organization created."
     else
-      redirect_to new_organization_path, inertia: { errors: @organization.errors.to_hash }, alert: "Could not create organization."
+      redirect_to new_organization_path, inertia: { errors: @organization.errors.to_hash },
+        alert: "Could not create organization."
     end
   end
 
   def edit
     render inertia: "Organizations/Edit", props: {
-      organization: serialize_org(@organization)
+      organization: {
+        id: @organization.id,
+        name: @organization.name,
+        path: organization_path(@organization),
+        phone: @organization.phone,
+        email: @organization.email,
+        street_address: @organization.street_address,
+        city: @organization.city,
+        state: @organization.state,
+        zip: @organization.zip
+      }
     }
   end
 
@@ -40,7 +79,8 @@ class OrganizationsController < ApplicationController
     if @organization.update(organization_params)
       redirect_to organization_path(@organization), notice: "Organization updated."
     else
-      redirect_to edit_organization_path(@organization), inertia: { errors: @organization.errors.to_hash }, alert: "Could not update organization."
+      redirect_to edit_organization_path(@organization), inertia: { errors: @organization.errors.to_hash },
+        alert: "Could not update organization."
     end
   end
 
@@ -56,45 +96,5 @@ class OrganizationsController < ApplicationController
 
   def organization_params
     params.require(:organization).permit(:name, :phone, :email, :street_address, :city, :state, :zip)
-  end
-
-  def serialize_org(org)
-    {
-      id: org.id,
-      name: org.name,
-      phone: org.phone,
-      email: org.email,
-      property_count: org.owned_properties.count,
-      user_count: org.users.where(active: true).count
-    }
-  end
-
-  def serialize_org_detail(org)
-    {
-      id: org.id,
-      name: org.name,
-      phone: org.phone,
-      email: org.email,
-      street_address: org.street_address,
-      city: org.city,
-      state: org.state,
-      zip: org.zip,
-      properties: org.owned_properties.order(:name).map { |p|
-        {
-          id: p.id,
-          name: p.name,
-          active_incident_count: p.incidents.where.not(status: %w[completed completed_billed paid closed]).count
-        }
-      },
-      users: org.users.where(active: true).order(:last_name, :first_name).map { |u|
-        {
-          id: u.id,
-          full_name: u.full_name,
-          email: u.email_address,
-          user_type: u.user_type,
-          active: u.active
-        }
-      }
-    }
   end
 end

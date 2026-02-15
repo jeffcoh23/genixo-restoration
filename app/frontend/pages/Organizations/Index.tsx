@@ -6,6 +6,7 @@ import { SharedProps } from "@/types";
 interface Organization {
   id: number;
   name: string;
+  path: string;
   phone: string | null;
   email: string | null;
   property_count: number;
@@ -44,10 +45,7 @@ export default function OrganizationsIndex() {
               {organizations.map((org) => (
                 <tr key={org.id} className="border-b last:border-0 hover:bg-muted/30">
                   <td className="px-4 py-3">
-                    <Link
-                      href={`/organizations/${org.id}`}
-                      className="font-medium text-primary hover:underline"
-                    >
+                    <Link href={org.path} className="font-medium text-primary hover:underline">
                       {org.name}
                     </Link>
                   </td>

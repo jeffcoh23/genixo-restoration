@@ -100,11 +100,11 @@ Orgs, properties, users, invitations. Multi-tenant authorization.
 
 ### Properties
 
-- [ ] Properties controller + tests (see BUSINESS_RULES.md §3)
-- [ ] Properties list page (see VIEWS.md §Property List)
-- [ ] Property detail page with assigned users + incidents (see VIEWS.md §Property Detail)
-- [ ] New property page (see VIEWS.md §New Property)
-- [ ] Edit property
+- [x] Properties controller + tests (see BUSINESS_RULES.md §3)
+- [x] Properties list page (see VIEWS.md §Property List)
+- [x] Property detail page with assigned users + incidents (see VIEWS.md §Property Detail)
+- [x] New property page (see VIEWS.md §New Property)
+- [x] Edit property
 - [ ] Property assignment management — add/remove PM users
 
 ### Users

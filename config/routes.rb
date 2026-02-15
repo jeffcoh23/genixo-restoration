@@ -13,7 +13,7 @@ Rails.application.routes.draw do
   resources :incidents, only: %i[index new show]
 
   # Properties
-  resources :properties, only: %i[index new show]
+  resources :properties, only: %i[index new create show edit update]
 
   # Organizations
   resources :organizations, only: %i[index new create show edit update]
