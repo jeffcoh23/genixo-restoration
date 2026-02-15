@@ -26,20 +26,6 @@ class PropertyAssignmentsController < ApplicationController
   end
 
   def require_assign_permission
-    raise ActiveRecord::RecordNotFound unless can_assign?
-  end
-
-  def can_assign?
-    return true if current_user.organization.mitigation? &&
-                   %w[manager office_sales].include?(current_user.user_type)
-    return true if current_user.pm_user? &&
-                   @property.assigned_users.exists?(id: current_user.id)
-    false
-  end
-
-  def assignable_users
-    @property.property_management_org.users
-      .where(active: true, user_type: User::PM_TYPES)
-      .where.not(id: @property.assigned_user_ids)
+    raise ActiveRecord::RecordNotFound unless can_assign_to_property?(@property)
   end
 end

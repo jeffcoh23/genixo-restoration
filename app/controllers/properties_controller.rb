@@ -12,13 +12,13 @@ class PropertiesController < ApplicationController
           id: p.id,
           name: p.name,
           path: property_path(p),
-          address: format_address(p),
+          address: p.short_address,
           pm_org_name: p.property_management_org.name,
           active_incident_count: p.incidents.where.not(status: %w[completed completed_billed paid closed]).count,
           total_incident_count: p.incidents.count
         }
       },
-      can_create: can_create_property?
+      can_create: mitigation_admin?
     }
   end
 
@@ -123,27 +123,6 @@ class PropertiesController < ApplicationController
     params.require(:property).permit(:name, :property_management_org_id, :street_address, :city, :state, :zip, :unit_count)
   end
 
-  def can_create_property?
-    current_user.organization.mitigation? && %w[manager office_sales].include?(current_user.user_type)
-  end
-
-  def can_edit_property?(property = nil)
-    return true if current_user.organization.mitigation? && %w[manager office_sales].include?(current_user.user_type)
-    return true if %w[property_manager area_manager pm_manager].include?(current_user.user_type) &&
-                   property&.assigned_users&.exists?(id: current_user.id)
-    false
-  end
-
-  def mitigation_user?
-    current_user.organization.mitigation?
-  end
-
-  def can_assign_to_property?(property)
-    return true if current_user.organization.mitigation? && %w[manager office_sales].include?(current_user.user_type)
-    return true if current_user.pm_user? && property.assigned_users.exists?(id: current_user.id)
-    false
-  end
-
   def assignable_pm_users(property)
     property.property_management_org.users
       .where(active: true, user_type: User::PM_TYPES)
@@ -154,9 +133,5 @@ class PropertiesController < ApplicationController
 
   def pm_org_options
     Organization.where(organization_type: "property_management").order(:name).map { |o| { id: o.id, name: o.name } }
-  end
-
-  def format_address(property)
-    [property.street_address, property.city, property.state].filter_map(&:presence).join(", ")
   end
 end

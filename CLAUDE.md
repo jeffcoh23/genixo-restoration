@@ -11,6 +11,7 @@
 - [Testing Guidelines](docs/TESTING.md) - Principles for writing excellent tests
 - [Project Setup](docs/PROJECT_SETUP.md) - Local dev, deploy
 - [Roadmap](docs/ROADMAP.md) - Feature priorities
+- [Inertia Rails](docs/INERTIA_RAILS.md) - **Read before writing any controller or frontend page** — rendering, forms, shared data, error handling
 
 **Rails Playbook:** `~/.claude/rails-playbook/README.md` — standard patterns for auth, Inertia, Solid Stack, deployment. Don't duplicate playbook patterns in project docs.
 
@@ -76,6 +77,14 @@ bin/rails console    # Rails console
 - Activity logging: Always use `ActivityLogger.log()` — never create activity_events or touch `last_activity_at` directly
 - Authorization: Always scope through `visible_incidents` / `visible_properties` — never `Incident.find(id)` directly
 - Timestamps: Stored UTC, displayed in user's timezone via `Time.use_zone`
+
+### Inertia Conventions (see [docs/INERTIA_RAILS.md](docs/INERTIA_RAILS.md) for full reference)
+- **URLs from server only** — pass `path`, `edit_path` etc. in props. Never construct URLs on the client (no template literals like `` `/things/${id}` ``).
+- **Collection routes** via `inertia_share` in `ApplicationController` (e.g. `routes.properties`, `routes.new_property`)
+- **Record routes** inline in controller props (e.g. `path: property_path(p)`, `edit_path: edit_property_path(p)`)
+- **Forms** use Inertia `useForm()` hook — `post(url)` / `patch(url)` with `processing`, `errors`, `setData`
+- **Validation errors** — redirect back with `inertia: { errors: model.errors.to_hash }`
+- **Props** — always explicit hashes, never pass raw ActiveRecord objects. Only include fields the frontend needs.
 
 ### Frontend Design
 When building pages, components, or layouts, use the `/frontend-design` skill to generate distinctive, production-grade UI. Avoids generic AI aesthetics and uses the project's design system (Tailwind v4 + shadcn/ui).

@@ -1,4 +1,6 @@
 class Organization < ApplicationRecord
+  include HasAddress
+
   TYPES = %w[mitigation property_management].freeze
 
   has_many :users, dependent: :destroy

@@ -1,4 +1,6 @@
 class Property < ApplicationRecord
+  include HasAddress
+
   belongs_to :property_management_org, class_name: "Organization"
   belongs_to :mitigation_org, class_name: "Organization"
 

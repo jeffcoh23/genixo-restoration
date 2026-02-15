@@ -3,7 +3,8 @@ module Authorization
 
   private
 
-  # Returns properties visible to the current user
+  # --- Visibility scopes ---
+
   def visible_properties
     case current_user.user_type
     when "manager", "office_sales"
@@ -18,7 +19,6 @@ module Authorization
     end
   end
 
-  # Returns incidents visible to the current user
   def visible_incidents
     case current_user.user_type
     when "manager", "office_sales"
@@ -28,14 +28,14 @@ module Authorization
       Incident.joins(:incident_assignments)
               .where(incident_assignments: { user_id: current_user.id })
     when "property_manager", "area_manager", "pm_manager"
-      # Use subqueries so both sides of .or are structurally compatible
       property_ids = PropertyAssignment.where(user_id: current_user.id).select(:property_id)
       incident_ids = IncidentAssignment.where(user_id: current_user.id).select(:incident_id)
       Incident.where(property_id: property_ids).or(Incident.where(id: incident_ids))
     end
   end
 
-  # For finding a specific record — raises RecordNotFound (404) if not in scope
+  # --- Record finders (404 if not in scope) ---
+
   def find_visible_incident!(id)
     visible_incidents.find(id)
   end
@@ -44,11 +44,35 @@ module Authorization
     visible_properties.find(id)
   end
 
-  # Guard for mitigation-only actions
+  # --- Role checks ---
+
   def authorize_mitigation_role!(*allowed_types)
-    unless current_user.organization.mitigation? &&
-           allowed_types.map(&:to_s).include?(current_user.user_type)
+    unless mitigation_admin?(*allowed_types)
       raise ActiveRecord::RecordNotFound
     end
+  end
+
+  # True if current user is a mitigation user with one of the given roles.
+  # Defaults to manager + office_sales (the admin roles).
+  def mitigation_admin?(*roles)
+    roles = %w[manager office_sales] if roles.empty?
+    current_user.organization.mitigation? &&
+      roles.map(&:to_s).include?(current_user.user_type)
+  end
+
+  def mitigation_user?
+    current_user.organization.mitigation?
+  end
+
+  # True if user can edit the given property (mitigation admin OR assigned PM user)
+  def can_edit_property?(property)
+    return true if mitigation_admin?
+    current_user.pm_user? && property.assigned_users.exists?(id: current_user.id)
+  end
+
+  # True if user can manage assignments on the given property
+  def can_assign_to_property?(property)
+    return true if mitigation_admin?
+    current_user.pm_user? && property.assigned_users.exists?(id: current_user.id)
   end
 end
