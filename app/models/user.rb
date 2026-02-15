@@ -49,6 +49,10 @@ class User < ApplicationRecord
     PM_TYPES.include?(user_type)
   end
 
+  def can?(permission)
+    Permissions.has?(user_type, permission)
+  end
+
   private
 
   def user_type_matches_org_type

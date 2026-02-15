@@ -65,17 +65,20 @@ class ApplicationController < ActionController::Base
       { label: "Incidents", href: incidents_path, icon: "AlertTriangle" },
     ]
 
-    unless user.user_type == "technician"
+    if user.can?(Permissions::VIEW_PROPERTIES)
       items << { label: "Properties", href: properties_path, icon: "Building2" }
     end
 
-    if User::MITIGATION_TYPES.include?(user.user_type) && user.user_type != "technician"
+    if user.can?(Permissions::MANAGE_ORGANIZATIONS)
       items << { label: "Organizations", href: organizations_path, icon: "Building" }
       items << { label: "Users", href: users_path, icon: "Users" }
     end
 
-    if user.user_type == "manager"
+    if user.can?(Permissions::MANAGE_ON_CALL)
       items << { label: "On-Call", href: on_call_settings_path, icon: "Phone" }
+    end
+
+    if user.can?(Permissions::MANAGE_EQUIPMENT_TYPES)
       items << { label: "Equipment Types", href: equipment_types_settings_path, icon: "Wrench" }
     end
 

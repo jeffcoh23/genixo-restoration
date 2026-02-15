@@ -86,7 +86,7 @@ class OrganizationsController < ApplicationController
   private
 
   def require_mitigation_admin
-    authorize_mitigation_role!(:manager, :office_sales)
+    raise ActiveRecord::RecordNotFound unless can_manage_organizations?
   end
 
   def set_organization

@@ -44,43 +44,48 @@ module Authorization
     visible_properties.find(id)
   end
 
-  # --- Role checks ---
+  # --- Permission checks (backed by Permissions model) ---
 
-  def authorize_mitigation_role!(*allowed_types)
-    unless mitigation_admin?(*allowed_types)
-      raise ActiveRecord::RecordNotFound
-    end
+  def can_create_incident?
+    current_user.can?(Permissions::CREATE_INCIDENT)
   end
 
-  # True if current user is a mitigation user with one of the given roles.
-  # Defaults to manager + office_sales (the admin roles).
-  def mitigation_admin?(*roles)
-    roles = %w[manager office_sales] if roles.empty?
+  def can_transition_status?
+    current_user.can?(Permissions::TRANSITION_STATUS)
+  end
+
+  def can_create_property?
+    current_user.can?(Permissions::CREATE_PROPERTY)
+  end
+
+  def can_view_properties?
+    current_user.can?(Permissions::VIEW_PROPERTIES)
+  end
+
+  def can_manage_organizations?
+    current_user.can?(Permissions::MANAGE_ORGANIZATIONS)
+  end
+
+  def can_manage_users?
+    current_user.can?(Permissions::MANAGE_USERS)
+  end
+
+  # --- Resource-scoped checks (need a specific record) ---
+
+  def mitigation_admin?
     current_user.organization.mitigation? &&
-      roles.map(&:to_s).include?(current_user.user_type)
+      current_user.can?(Permissions::CREATE_PROPERTY)
   end
 
   def mitigation_user?
     current_user.organization.mitigation?
   end
 
-  # True if user can create incidents (manager, office_sales, property_manager, area_manager)
-  def can_create_incident?
-    %w[manager office_sales property_manager area_manager].include?(current_user.user_type)
-  end
-
-  # True if user can change incident status (managers only)
-  def can_transition_status?
-    current_user.user_type == "manager"
-  end
-
-  # True if user can edit the given property (mitigation admin OR assigned PM user)
   def can_edit_property?(property)
     return true if mitigation_admin?
     current_user.pm_user? && property.assigned_users.exists?(id: current_user.id)
   end
 
-  # True if user can manage assignments on the given property
   def can_assign_to_property?(property)
     return true if mitigation_admin?
     current_user.pm_user? && property.assigned_users.exists?(id: current_user.id)

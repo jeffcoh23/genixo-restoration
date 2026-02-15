@@ -56,63 +56,61 @@ Rails 8 session-based auth (see `~/.claude/rails-playbook/auth.md`). No OAuth fo
 
 ### Authorization
 
-Authorization is **not role-based access control (RBAC) with a permissions table**. It's scoped queries + controller-level checks.
+Authorization has two layers: **scoped queries** for data visibility, and a **centralized Permissions model** for action-level checks.
+
+#### Permissions Model
+
+`app/models/permissions.rb` — single source of truth for role → permission mapping. Constants + a static map, easily replaceable with a database-backed system when per-user overrides are needed.
+
+```ruby
+class Permissions
+  CREATE_INCIDENT       = :create_incident
+  TRANSITION_STATUS     = :transition_status
+  CREATE_PROPERTY       = :create_property
+  VIEW_PROPERTIES       = :view_properties
+  MANAGE_ORGANIZATIONS  = :manage_organizations
+  MANAGE_USERS          = :manage_users
+  MANAGE_ON_CALL        = :manage_on_call
+  MANAGE_EQUIPMENT_TYPES = :manage_equipment_types
+
+  ROLE_PERMISSIONS = {
+    "manager"          => [all 8],
+    "office_sales"     => [CREATE_INCIDENT, CREATE_PROPERTY, VIEW_PROPERTIES, MANAGE_ORGANIZATIONS, MANAGE_USERS],
+    "technician"       => [],
+    "property_manager" => [CREATE_INCIDENT, VIEW_PROPERTIES],
+    "area_manager"     => [CREATE_INCIDENT, VIEW_PROPERTIES],
+    "pm_manager"       => [VIEW_PROPERTIES]
+  }.freeze
+
+  def self.has?(user_type, permission) ... end
+end
+```
+
+Usage: `current_user.can?(Permissions::CREATE_INCIDENT)` — delegates to `Permissions.has?`.
+
+#### Scoped Queries
 
 ```ruby
 # app/controllers/concerns/authorization.rb
 module Authorization
-  extend ActiveSupport::Concern
+  # Visibility scopes — returns only records the user is allowed to see
+  def visible_properties ...
+  def visible_incidents ...
 
-  private
+  # Record finders — 404 if not in scope
+  def find_visible_incident!(id) ...
+  def find_visible_property!(id) ...
 
-  # Returns properties visible to the current user
-  def visible_properties
-    case current_user.user_type
-    when "manager", "office_sales"
-      Property.where(mitigation_org_id: current_user.organization_id)
-    when "technician"
-      Property.joins(incidents: :incident_assignments)
-              .where(incident_assignments: { user_id: current_user.id })
-              .distinct
-    when "property_manager", "area_manager", "pm_manager"
-      Property.joins(:property_assignments)
-              .where(property_assignments: { user_id: current_user.id })
-    end
-  end
+  # Permission helpers (delegate to Permissions model)
+  def can_create_incident? ...
+  def can_view_properties? ...
+  def can_manage_organizations? ...
+  # etc.
 
-  # Returns incidents visible to the current user
-  def visible_incidents
-    case current_user.user_type
-    when "manager", "office_sales"
-      Incident.joins(:property)
-              .where(properties: { mitigation_org_id: current_user.organization_id })
-    when "technician"
-      Incident.joins(:incident_assignments)
-              .where(incident_assignments: { user_id: current_user.id })
-    when "property_manager", "area_manager", "pm_manager"
-      # Via property assignments OR direct incident assignments
-      Incident.joins(property: :property_assignments)
-              .where(property_assignments: { user_id: current_user.id })
-              .or(Incident.joins(:incident_assignments)
-                          .where(incident_assignments: { user_id: current_user.id }))
-    end
-  end
-
-  # For finding a specific record — raises RecordNotFound (404) if not in scope
-  def find_visible_incident!(id)
-    visible_incidents.find(id)
-  end
-
-  def find_visible_property!(id)
-    visible_properties.find(id)
-  end
-
-  def authorize_mitigation_role!(*allowed_types)
-    unless current_user.organization.mitigation? &&
-           allowed_types.map(&:to_s).include?(current_user.user_type)
-      raise ActiveRecord::RecordNotFound
-    end
-  end
+  # Resource-scoped checks (need a specific record)
+  def mitigation_admin? ...
+  def can_edit_property?(property) ...
+  def can_assign_to_property?(property) ...
 end
 ```
 
@@ -120,6 +118,7 @@ end
 - Never trust the URL. Always scope queries through `visible_incidents` / `visible_properties`.
 - Use `find_visible_incident!(id)` instead of `Incident.find(id)` — returns 404 if not in scope, concealing existence.
 - Authorization failures render 404 (not 403), so unauthorized users can't probe for valid IDs.
+- **Permission checks use constants, never string comparisons.** Write `can_create_incident?` not `user_type == "manager"`.
 - **Message visibility:** If you can see the incident, you can see all its messages. No per-message access control. Controllers load messages through the incident: `find_visible_incident!(id).messages`.
 
 ---
@@ -850,9 +849,9 @@ Stub external services (notification providers) in tests. Use `ActiveJob::TestHe
 
 ## Technical Decisions
 
-### Why scoped queries instead of Pundit/CanCanCan?
+### Why Permissions model instead of Pundit/CanCanCan?
 
-The access model is simple enough that a concern with 3 `case` branches handles it. Adding a gem introduces complexity without benefit. If permissions become more granular post-MVP, we can introduce Pundit then.
+The `Permissions` model is a lightweight, centralized map of role → permission constants. It avoids the overhead of a full RBAC gem while keeping all permission logic in one replaceable file. To grant a new permission to a role, add it to the `ROLE_PERMISSIONS` hash. When per-user overrides are needed (e.g. temporary escalation), replace the static map with a database-backed lookup — the `user.can?(permission)` interface stays the same.
 
 ### Why `last_activity_at` denormalization?
 

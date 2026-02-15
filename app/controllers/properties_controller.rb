@@ -1,6 +1,6 @@
 class PropertiesController < ApplicationController
-  before_action :reject_technicians, only: %i[index]
-  before_action :require_mitigation_admin, only: %i[new create]
+  before_action :require_view_properties, only: %i[index]
+  before_action :require_create_property, only: %i[new create]
   before_action :set_property, only: %i[show edit update]
   before_action :require_edit_permission, only: %i[edit update]
 
@@ -18,7 +18,7 @@ class PropertiesController < ApplicationController
           total_incident_count: p.incidents.count
         }
       },
-      can_create: mitigation_admin?
+      can_create: can_create_property?
     }
   end
 
@@ -100,12 +100,12 @@ class PropertiesController < ApplicationController
 
   private
 
-  def reject_technicians
-    raise ActiveRecord::RecordNotFound if current_user.user_type == "technician"
+  def require_view_properties
+    raise ActiveRecord::RecordNotFound unless can_view_properties?
   end
 
-  def require_mitigation_admin
-    authorize_mitigation_role!(:manager, :office_sales)
+  def require_create_property
+    raise ActiveRecord::RecordNotFound unless can_create_property?
   end
 
   def set_property
