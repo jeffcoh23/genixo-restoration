@@ -29,6 +29,7 @@ class PropertiesController < ApplicationController
         name: @property.name,
         path: property_path(@property),
         edit_path: edit_property_path(@property),
+        assignments_path: property_assignments_path(@property),
         street_address: @property.street_address,
         city: @property.city,
         state: @property.state,
@@ -37,16 +38,20 @@ class PropertiesController < ApplicationController
         pm_org: { id: @property.property_management_org.id, name: @property.property_management_org.name,
                   path: organization_path(@property.property_management_org) },
         mitigation_org: { id: @property.mitigation_org.id, name: @property.mitigation_org.name },
-        assigned_users: @property.assigned_users.where(active: true).order(:last_name, :first_name).map { |u|
-          { id: u.id, full_name: u.full_name, email: u.email_address, user_type: u.user_type,
-            path: user_path(u) }
+        assigned_users: @property.property_assignments.includes(:user)
+          .joins(:user).where(users: { active: true }).order("users.last_name, users.first_name").map { |a|
+          { id: a.user.id, assignment_id: a.id, full_name: a.user.full_name, email: a.user.email_address,
+            user_type: a.user.user_type, path: user_path(a.user),
+            remove_path: property_assignment_path(@property, a) }
         },
         incidents: @property.incidents.order(created_at: :desc).limit(20).map { |i|
           { id: i.id, description: i.description, damage_type: i.damage_type, status: i.status,
             path: incident_path(i) }
         }
       },
-      can_edit: can_edit_property?(@property)
+      can_edit: can_edit_property?(@property),
+      can_assign: can_assign_to_property?(@property),
+      assignable_users: can_assign_to_property?(@property) ? assignable_pm_users(@property) : []
     }
   end
 
@@ -131,6 +136,20 @@ class PropertiesController < ApplicationController
 
   def mitigation_user?
     current_user.organization.mitigation?
+  end
+
+  def can_assign_to_property?(property)
+    return true if current_user.organization.mitigation? && %w[manager office_sales].include?(current_user.user_type)
+    return true if current_user.pm_user? && property.assigned_users.exists?(id: current_user.id)
+    false
+  end
+
+  def assignable_pm_users(property)
+    property.property_management_org.users
+      .where(active: true, user_type: User::PM_TYPES)
+      .where.not(id: property.assigned_user_ids)
+      .order(:last_name, :first_name)
+      .map { |u| { id: u.id, full_name: u.full_name, user_type: u.user_type } }
   end
 
   def pm_org_options

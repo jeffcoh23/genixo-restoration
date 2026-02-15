@@ -1,14 +1,23 @@
-import { Link, usePage } from "@inertiajs/react";
+import { Link, usePage, router } from "@inertiajs/react";
+import { useState } from "react";
 import AppLayout from "@/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { SharedProps } from "@/types";
 
 interface AssignedUser {
   id: number;
+  assignment_id: number;
   full_name: string;
   email: string;
   user_type: string;
   path: string;
+  remove_path: string;
+}
+
+interface AssignableUser {
+  id: number;
+  full_name: string;
+  user_type: string;
 }
 
 interface PropertyIncident {
@@ -24,6 +33,7 @@ interface PropertyDetail {
   name: string;
   path: string;
   edit_path: string;
+  assignments_path: string;
   street_address: string | null;
   city: string | null;
   state: string | null;
@@ -65,14 +75,31 @@ const damageLabel: Record<string, string> = {
 };
 
 export default function PropertyShow() {
-  const { property, can_edit, routes } = usePage<SharedProps & {
+  const { property, can_edit, can_assign, assignable_users, routes } = usePage<SharedProps & {
     property: PropertyDetail;
     can_edit: boolean;
+    can_assign: boolean;
+    assignable_users: AssignableUser[];
   }>().props;
+
+  const [showAssignForm, setShowAssignForm] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState("");
 
   const address = [property.street_address, property.city, property.state, property.zip]
     .filter(Boolean)
     .join(", ");
+
+  function handleAssign() {
+    if (!selectedUserId) return;
+    router.post(property.assignments_path, { user_id: selectedUserId }, {
+      onSuccess: () => { setSelectedUserId(""); setShowAssignForm(false); }
+    });
+  }
+
+  function handleRemove(user: AssignedUser) {
+    if (!confirm(`Remove ${user.full_name} from this property?`)) return;
+    router.delete(user.remove_path);
+  }
 
   return (
     <AppLayout>
@@ -114,7 +141,35 @@ export default function PropertyShow() {
 
       {/* Assigned Users */}
       <section className="mb-8">
-        <h2 className="text-lg font-semibold text-foreground mb-3">Assigned Users</h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-semibold text-foreground">Assigned Users</h2>
+          {can_assign && assignable_users.length > 0 && (
+            <Button variant="outline" size="sm" onClick={() => setShowAssignForm(!showAssignForm)}>
+              {showAssignForm ? "Cancel" : "+ Assign"}
+            </Button>
+          )}
+        </div>
+
+        {showAssignForm && (
+          <div className="flex gap-2 mb-4">
+            <select
+              value={selectedUserId}
+              onChange={(e) => setSelectedUserId(e.target.value)}
+              className="flex h-9 w-full max-w-xs rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              <option value="">Select a user...</option>
+              {assignable_users.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.full_name} ({roleLabel[u.user_type] || u.user_type})
+                </option>
+              ))}
+            </select>
+            <Button size="sm" onClick={handleAssign} disabled={!selectedUserId}>
+              Assign
+            </Button>
+          </div>
+        )}
+
         {property.assigned_users.length === 0 ? (
           <p className="text-sm text-muted-foreground">No users assigned to this property.</p>
         ) : (
@@ -127,9 +182,19 @@ export default function PropertyShow() {
                   </Link>
                   <span className="text-sm text-muted-foreground ml-2">{user.email}</span>
                 </div>
-                <span className="text-sm text-muted-foreground">
-                  {roleLabel[user.user_type] || user.user_type}
-                </span>
+                <div className="flex items-center gap-3">
+                  <span className="text-sm text-muted-foreground">
+                    {roleLabel[user.user_type] || user.user_type}
+                  </span>
+                  {can_assign && (
+                    <button
+                      onClick={() => handleRemove(user)}
+                      className="text-xs text-muted-foreground hover:text-destructive transition-colors"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>

@@ -105,7 +105,7 @@ Orgs, properties, users, invitations. Multi-tenant authorization.
 - [x] Property detail page with assigned users + incidents (see VIEWS.md §Property Detail)
 - [x] New property page (see VIEWS.md §New Property)
 - [x] Edit property
-- [ ] Property assignment management — add/remove PM users
+- [x] Property assignment management — add/remove PM users
 
 ### Users
 
