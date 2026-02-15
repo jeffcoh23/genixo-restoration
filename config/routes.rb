@@ -21,7 +21,12 @@ Rails.application.routes.draw do
   resources :organizations, only: %i[index new create show edit update]
 
   # Users
-  resources :users, only: %i[index show]
+  resources :users, only: %i[index show] do
+    member do
+      patch :deactivate
+      patch :reactivate
+    end
+  end
 
   # Settings
   get "settings", to: "settings#show", as: :settings

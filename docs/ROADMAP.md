@@ -109,10 +109,10 @@ Orgs, properties, users, invitations. Multi-tenant authorization.
 
 ### Users
 
-- [ ] Users controller + tests (see BUSINESS_RULES.md §2)
-- [ ] Users list page (see VIEWS.md §User List)
-- [ ] User detail page (see VIEWS.md §User Detail)
-- [ ] User deactivation — soft delete, block login, hide from dropdowns
+- [x] Users controller + tests (see BUSINESS_RULES.md §2)
+- [x] Users list page (see VIEWS.md §User List)
+- [x] User detail page (see VIEWS.md §User Detail)
+- [x] User deactivation — soft delete, block login, hide from dropdowns
 
 ### Invitations
 
