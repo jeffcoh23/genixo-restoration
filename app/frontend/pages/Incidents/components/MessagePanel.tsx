@@ -61,14 +61,16 @@ export default function MessagePanel({ messages, messages_path }: MessagePanelPr
 
       <div className="border-t border-border bg-background px-3 py-2.5">
         <div className="flex items-end gap-1.5">
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon"
             disabled
-            className="shrink-0 p-1.5 text-muted-foreground/30 cursor-not-allowed"
+            className="shrink-0 h-9 w-9"
             title="Attachments coming soon"
           >
             <Paperclip className="h-4 w-4" />
-          </button>
+          </Button>
           <textarea
             ref={textareaRef}
             value={body}
@@ -76,18 +78,18 @@ export default function MessagePanel({ messages, messages_path }: MessagePanelPr
             onKeyDown={handleKeyDown}
             placeholder="Type a message..."
             rows={1}
-            className="flex-1 resize-none rounded-lg border border-input bg-background px-3 py-2 text-sm leading-snug placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring min-h-[36px] max-h-[120px]"
+            className="flex-1 resize-none rounded border border-input bg-background px-3 py-2 text-sm leading-snug placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring min-h-9 max-h-[120px]"
           />
           <Button
             size="icon"
             onClick={handleSend}
             disabled={!body.trim() || sending}
-            className="shrink-0 h-9 w-9 rounded-lg"
+            className="shrink-0 h-9 w-9"
           >
             <Send className="h-4 w-4" />
           </Button>
         </div>
-        <p className="text-[11px] text-muted-foreground/50 mt-1 text-right">
+        <p className="text-xs text-muted-foreground mt-1 text-right">
           Enter to send · Shift+Enter for new line
         </p>
       </div>
@@ -98,8 +100,8 @@ export default function MessagePanel({ messages, messages_path }: MessagePanelPr
 function EmptyState() {
   return (
     <div className="flex flex-col items-center justify-center h-full text-center px-6">
-      <div className="h-12 w-12 rounded-full bg-muted/70 flex items-center justify-center mb-3">
-        <MessageCircle className="h-6 w-6 text-muted-foreground/50" />
+      <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">
+        <MessageCircle className="h-6 w-6 text-muted-foreground" />
       </div>
       <p className="text-sm font-medium text-foreground">No messages yet</p>
       <p className="text-xs text-muted-foreground mt-1 max-w-[220px]">
@@ -138,11 +140,11 @@ function MessageThread({ messages }: { messages: Message[] }) {
 function DateSeparator({ label }: { label: string }) {
   return (
     <div className="flex items-center gap-3 py-3">
-      <div className="flex-1 border-t border-border/50" />
-      <span className="text-[11px] font-medium text-muted-foreground/60 uppercase tracking-wider select-none">
+      <div className="flex-1 border-t border-border" />
+      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider select-none">
         {label}
       </span>
-      <div className="flex-1 border-t border-border/50" />
+      <div className="flex-1 border-t border-border" />
     </div>
   );
 }
@@ -153,15 +155,15 @@ function OwnMessage({ message, grouped }: { message: Message; grouped: boolean }
       {!grouped && (
         <div className="flex items-center gap-2 mb-1 mr-1">
           <span className="text-xs font-medium text-foreground">You</span>
-          <span className="text-[11px] text-muted-foreground">{message.timestamp_label}</span>
+          <span className="text-xs text-muted-foreground">{message.timestamp_label}</span>
         </div>
       )}
-      <div className="max-w-[85%] rounded-xl bg-[hsl(187_35%_92%)] px-3.5 py-2">
+      <div className="max-w-[85%] rounded bg-accent px-3.5 py-2">
         <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{message.body}</p>
         <AttachmentList attachments={message.attachments} />
       </div>
       {grouped && (
-        <span className="text-[11px] text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity mr-1 mt-0.5 select-none">
+        <span className="text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity mr-1 mt-0.5 select-none">
           {message.timestamp_label}
         </span>
       )}
@@ -174,7 +176,7 @@ function OtherMessage({ message, grouped }: { message: Message; grouped: boolean
     <div className={`group flex items-start gap-2 ${grouped ? "mt-0.5 pl-9" : "mt-3"}`}>
       {!grouped && (
         <div className="h-7 w-7 shrink-0 rounded-full bg-muted flex items-center justify-center">
-          <span className="text-[10px] font-semibold text-muted-foreground leading-none">
+          <span className="text-xs font-semibold text-muted-foreground leading-none">
             {message.sender.initials}
           </span>
         </div>
@@ -186,21 +188,21 @@ function OtherMessage({ message, grouped }: { message: Message; grouped: boolean
               <span className="text-xs font-medium text-foreground truncate">
                 {message.sender.full_name}
               </span>
-              <span className="text-[11px] text-muted-foreground shrink-0">
+              <span className="text-xs text-muted-foreground shrink-0">
                 {message.timestamp_label}
               </span>
             </div>
-            <span className="text-[11px] text-muted-foreground/70 leading-none">
+            <span className="text-xs text-muted-foreground leading-none">
               {message.sender.role_label} · {message.sender.org_name}
             </span>
           </div>
         )}
-        <div className="rounded-xl bg-background border border-border/50 px-3.5 py-2 shadow-[0_1px_2px_hsl(0_0%_0%/0.04)]">
+        <div className="rounded bg-background border border-border px-3.5 py-2 shadow-sm">
           <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{message.body}</p>
           <AttachmentList attachments={message.attachments} />
         </div>
         {grouped && (
-          <span className="text-[11px] text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity mt-0.5 block select-none">
+          <span className="text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity mt-0.5 block select-none">
             {message.timestamp_label}
           </span>
         )}
@@ -213,18 +215,18 @@ function AttachmentList({ attachments }: { attachments?: MessageAttachment[] }) 
   if (!attachments || attachments.length === 0) return null;
 
   return (
-    <div className="flex flex-wrap gap-1.5 mt-2 pt-2 border-t border-border/30">
+    <div className="flex flex-wrap gap-1.5 mt-2 pt-2 border-t border-border">
       {attachments.map((att) => (
         <a
           key={att.id}
           href={att.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 rounded-md bg-muted/40 hover:bg-muted border border-border/40 hover:border-border px-2 py-0.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          className="inline-flex items-center gap-1 rounded bg-muted hover:bg-accent border border-border px-2 py-0.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
           <FileText className="h-3 w-3 shrink-0" />
           <span className="truncate max-w-[120px]">{att.filename}</span>
-          <ExternalLink className="h-2.5 w-2.5 shrink-0 opacity-40" />
+          <ExternalLink className="h-2.5 w-2.5 shrink-0" />
         </a>
       ))}
     </div>
