@@ -1,5 +1,7 @@
 class IncidentsController < ApplicationController
   before_action :authorize_creation!, only: %i[new create]
+  before_action :set_incident, only: %i[show transition]
+  before_action :authorize_manager!, only: %i[transition]
 
   def index
     render inertia: "Incidents/Index"
@@ -35,11 +37,31 @@ class IncidentsController < ApplicationController
     render inertia: "Incidents/Show"
   end
 
+  def transition
+    StatusTransitionService.new(
+      incident: @incident,
+      new_status: params[:status],
+      user: current_user
+    ).call
+
+    redirect_to incident_path(@incident), notice: "Status updated."
+  rescue StatusTransitionService::InvalidTransitionError => e
+    redirect_to incident_path(@incident), alert: e.message
+  end
+
   private
 
   def authorize_creation!
     allowed = %w[manager office_sales property_manager area_manager]
     raise ActiveRecord::RecordNotFound unless allowed.include?(current_user.user_type)
+  end
+
+  def set_incident
+    @incident = find_visible_incident!(params[:id])
+  end
+
+  def authorize_manager!
+    raise ActiveRecord::RecordNotFound unless current_user.user_type == "manager"
   end
 
   def creatable_properties

@@ -10,7 +10,11 @@ Rails.application.routes.draw do
   get "dashboard", to: "dashboard#show", as: :dashboard
 
   # Incidents
-  resources :incidents, only: %i[index new create show]
+  resources :incidents, only: %i[index new create show] do
+    member do
+      patch :transition
+    end
+  end
 
   # Properties
   resources :properties, only: %i[index new create show edit update] do

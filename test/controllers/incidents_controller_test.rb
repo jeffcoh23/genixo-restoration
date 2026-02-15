@@ -149,9 +149,68 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to new_incident_path
   end
 
+  # --- Status transition ---
+
+  test "manager can transition incident status" do
+    incident = create_test_incident(status: "acknowledged")
+    login_as @manager
+    patch transition_incident_path(incident), params: { status: "active" }
+    assert_redirected_to incident_path(incident)
+    assert_equal "active", incident.reload.status
+  end
+
+  test "manager transition creates activity event" do
+    incident = create_test_incident(status: "acknowledged")
+    login_as @manager
+    assert_difference "ActivityEvent.count", 1 do
+      patch transition_incident_path(incident), params: { status: "active" }
+    end
+  end
+
+  test "invalid transition redirects with alert" do
+    incident = create_test_incident(status: "acknowledged")
+    login_as @manager
+    patch transition_incident_path(incident), params: { status: "completed" }
+    assert_redirected_to incident_path(incident)
+    assert_equal "acknowledged", incident.reload.status
+  end
+
+  test "office_sales cannot transition status" do
+    incident = create_test_incident(status: "acknowledged")
+    login_as @office
+    patch transition_incident_path(incident), params: { status: "active" }
+    assert_response :not_found
+    assert_equal "acknowledged", incident.reload.status
+  end
+
+  test "technician cannot transition status" do
+    incident = create_test_incident(status: "active")
+    IncidentAssignment.create!(incident: incident, user: @tech, assigned_by_user: @manager)
+    login_as @tech
+    patch transition_incident_path(incident), params: { status: "on_hold" }
+    assert_response :not_found
+    assert_equal "active", incident.reload.status
+  end
+
+  test "property_manager cannot transition status" do
+    incident = create_test_incident(status: "acknowledged")
+    login_as @pm_user
+    patch transition_incident_path(incident), params: { status: "active" }
+    assert_response :not_found
+    assert_equal "acknowledged", incident.reload.status
+  end
+
   private
 
   def login_as(user)
     post login_path, params: { email_address: user.email_address, password: "password123" }
+  end
+
+  def create_test_incident(status:)
+    Incident.create!(
+      property: @property, created_by_user: @manager,
+      status: status, project_type: "emergency_response",
+      damage_type: "flood", description: "Test incident", emergency: true
+    )
   end
 end
