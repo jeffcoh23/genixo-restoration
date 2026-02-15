@@ -4,16 +4,27 @@ import { AlertTriangle, ChevronDown, Building2, Clock, User as UserIcon, X, Plus
 import AppLayout from "@/layout/AppLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { SharedProps } from "@/types";
 
-interface AssignedUser {
+interface TeamUser {
   id: number;
   assignment_id: number;
   full_name: string;
   initials: string;
   role_label: string;
-  organization_name: string;
   remove_path: string | null;
+}
+
+interface TeamGroup {
+  organization_name: string;
+  users: TeamUser[];
+}
+
+interface AssignedSummary {
+  count: number;
+  avatars: { id: number; initials: string; full_name: string }[];
+  overflow: number;
 }
 
 interface AssignableUser {
@@ -62,6 +73,7 @@ interface IncidentDetail {
   damage_label: string;
   emergency: boolean;
   created_at: string;
+  created_at_label: string;
   created_by: string | null;
   property: {
     id: number;
@@ -69,7 +81,8 @@ interface IncidentDetail {
     address: string | null;
     path: string;
   };
-  assigned_users: AssignedUser[];
+  assigned_team: TeamGroup[];
+  assigned_summary: AssignedSummary;
   contacts: Contact[];
   valid_transitions: Transition[];
 }
@@ -99,14 +112,6 @@ function statusColor(status: string): string {
     default:
       return "bg-[hsl(0_0%_55%)] text-white";
   }
-}
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
 }
 
 export default function IncidentShow() {
@@ -158,14 +163,6 @@ export default function IncidentShow() {
       onFinish: () => setTransitioning(false),
     });
   };
-
-  // Group assigned users by org
-  const orgGroups = incident.assigned_users.reduce<Record<string, AssignedUser[]>>((acc, u) => {
-    const key = u.organization_name;
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(u);
-    return acc;
-  }, {});
 
   return (
     <AppLayout>
@@ -250,14 +247,14 @@ export default function IncidentShow() {
           )}
           <span className="flex items-center gap-1">
             <Clock className="h-3.5 w-3.5" />
-            {formatDate(incident.created_at)}
+            {incident.created_at_label}
           </span>
 
           {/* Assigned users avatars */}
-          {incident.assigned_users.length > 0 && (
+          {incident.assigned_summary.count > 0 && (
             <div className="flex items-center gap-1">
               <div className="flex -space-x-1.5">
-                {incident.assigned_users.slice(0, 4).map((u) => (
+                {incident.assigned_summary.avatars.map((u) => (
                   <div
                     key={u.id}
                     title={u.full_name}
@@ -267,12 +264,12 @@ export default function IncidentShow() {
                   </div>
                 ))}
               </div>
-              {incident.assigned_users.length > 4 && (
+              {incident.assigned_summary.overflow > 0 && (
                 <span className="text-xs text-muted-foreground ml-1">
-                  +{incident.assigned_users.length - 4}
+                  +{incident.assigned_summary.overflow}
                 </span>
               )}
-              <span className="text-xs ml-1">{incident.assigned_users.length} assigned</span>
+              <span className="text-xs ml-1">{incident.assigned_summary.count} assigned</span>
             </div>
           )}
         </div>
@@ -319,18 +316,18 @@ export default function IncidentShow() {
 
           {/* Assigned Team */}
           <DetailSection title="Assigned Team">
-            {Object.keys(orgGroups).length === 0 ? (
+            {incident.assigned_team.length === 0 ? (
               <p className="text-muted-foreground text-sm">No users assigned yet.</p>
             ) : (
               <div className="space-y-4">
-                {Object.entries(orgGroups).map(([orgName, users]) => (
-                  <div key={orgName}>
+                {incident.assigned_team.map((group) => (
+                  <div key={group.organization_name}>
                     <div className="flex items-center gap-2 mb-2">
                       <Building2 className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium text-sm">{orgName}</span>
+                      <span className="font-medium text-sm">{group.organization_name}</span>
                     </div>
                     <div className="space-y-1 ml-6">
-                      {users.map((u) => (
+                      {group.users.map((u) => (
                         <div key={u.id} className="flex items-center gap-2 text-sm group">
                           <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-[10px] font-medium text-muted-foreground">
                             {u.initials}
@@ -435,35 +432,33 @@ export default function IncidentShow() {
                   <div className="mt-3">
                     {contactFormOpen ? (
                       <form onSubmit={handleAddContact} className="space-y-2 rounded-md border border-border p-3">
-                        <input
+                        <Input
                           type="text"
                           placeholder="Name *"
                           value={contactName}
                           onChange={(e) => setContactName(e.target.value)}
                           required
-                          className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
                         />
-                        <input
+                        <Input
                           type="text"
                           placeholder="Title"
                           value={contactTitle}
                           onChange={(e) => setContactTitle(e.target.value)}
-                          className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
                         />
                         <div className="flex gap-2">
-                          <input
+                          <Input
                             type="email"
                             placeholder="Email"
                             value={contactEmail}
                             onChange={(e) => setContactEmail(e.target.value)}
-                            className="flex-1 rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                            className="flex-1"
                           />
-                          <input
+                          <Input
                             type="tel"
                             placeholder="Phone"
                             value={contactPhone}
                             onChange={(e) => setContactPhone(e.target.value)}
-                            className="flex-1 rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                            className="flex-1"
                           />
                         </div>
                         <div className="flex gap-2">

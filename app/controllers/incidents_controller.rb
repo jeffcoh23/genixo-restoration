@@ -108,6 +108,7 @@ class IncidentsController < ApplicationController
         damage_label: Incident::DAMAGE_LABELS[@incident.damage_type],
         emergency: @incident.emergency,
         created_at: @incident.created_at.iso8601,
+        created_at_label: @incident.created_at.strftime("%b %-d, %Y"),
         created_by: @incident.created_by_user&.full_name,
         property: {
           id: property.id,
@@ -116,16 +117,11 @@ class IncidentsController < ApplicationController
           path: property_path(property)
         },
         assignments_path: incident_assignments_path(@incident),
-        assigned_users: assigned.map { |a|
-          {
-            id: a.user.id,
-            assignment_id: a.id,
-            full_name: a.user.full_name,
-            initials: a.user.initials,
-            role_label: User::ROLE_LABELS[a.user.user_type],
-            organization_name: a.user.organization.name,
-            remove_path: can_remove_assignment?(a.user) ? incident_assignment_path(@incident, a) : nil
-          }
+        assigned_team: assigned_team_groups(assigned),
+        assigned_summary: {
+          count: assigned.size,
+          avatars: assigned.first(4).map { |a| { id: a.user.id, initials: a.user.initials, full_name: a.user.full_name } },
+          overflow: [assigned.size - 4, 0].max
         },
         show_stats: @incident.labor_entries.any? || @incident.equipment_entries.any?,
         stats: incident_stats(@incident),
@@ -212,6 +208,24 @@ class IncidentsController < ApplicationController
     scope.where.not(id: incident.assigned_user_ids)
       .order(:last_name, :first_name)
       .map { |u| { id: u.id, full_name: u.full_name, role_label: User::ROLE_LABELS[u.user_type] } }
+  end
+
+  def assigned_team_groups(assignments)
+    assignments.group_by { |a| a.user.organization.name }.map do |org_name, group|
+      {
+        organization_name: org_name,
+        users: group.map { |a|
+          {
+            id: a.user.id,
+            assignment_id: a.id,
+            full_name: a.user.full_name,
+            initials: a.user.initials,
+            role_label: User::ROLE_LABELS[a.user.user_type],
+            remove_path: can_remove_assignment?(a.user) ? incident_assignment_path(@incident, a) : nil
+          }
+        }
+      }
+    end
   end
 
   def incident_stats(incident)
