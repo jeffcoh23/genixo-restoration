@@ -79,6 +79,13 @@ export interface IncidentDetail {
   valid_transitions: Transition[];
 }
 
+export interface MessageAttachment {
+  id: number;
+  filename: string;
+  category_label: string;
+  url: string;
+}
+
 export interface Message {
   id: number;
   body: string;
@@ -91,6 +98,7 @@ export interface Message {
     role_label: string;
     org_name: string;
   };
+  attachments?: MessageAttachment[];
 }
 
 export interface ShowProps {
