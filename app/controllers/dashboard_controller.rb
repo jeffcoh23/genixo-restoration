@@ -28,8 +28,4 @@ class DashboardController < ApplicationController
       last_activity_at: incident.last_activity_at&.iso8601
     }
   end
-
-  def can_create_incident?
-    %w[manager office_sales property_manager area_manager].include?(current_user.user_type)
-  end
 end

@@ -64,6 +64,16 @@ module Authorization
     current_user.organization.mitigation?
   end
 
+  # True if user can create incidents (manager, office_sales, property_manager, area_manager)
+  def can_create_incident?
+    %w[manager office_sales property_manager area_manager].include?(current_user.user_type)
+  end
+
+  # True if user can change incident status (managers only)
+  def can_transition_status?
+    current_user.user_type == "manager"
+  end
+
   # True if user can edit the given property (mitigation admin OR assigned PM user)
   def can_edit_property?(property)
     return true if mitigation_admin?
