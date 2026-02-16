@@ -139,15 +139,19 @@ class IncidentsController < ApplicationController
           }
         },
         messages_path: incident_messages_path(@incident),
+        labor_entries_path: incident_labor_entries_path(@incident),
         valid_transitions: can_transition_status? ? (StatusTransitionService::ALLOWED_TRANSITIONS[@incident.status] || []).map { |s|
           { value: s, label: Incident::STATUS_LABELS[s] }
         } : []
       },
       messages: serialize_messages(messages),
+      labor_entries: serialize_labor_entries(@incident),
       can_transition: can_transition_status?,
       can_assign: can_assign_to_incident?,
       can_manage_contacts: can_manage_contacts?,
+      can_manage_labor: can_manage_labor?,
       assignable_users: can_assign_to_incident? ? assignable_incident_users(@incident) : [],
+      assignable_labor_users: can_manage_labor? ? assignable_labor_users(@incident) : [],
       back_path: incidents_path
     }
   end
@@ -191,6 +195,15 @@ class IncidentsController < ApplicationController
 
   def can_manage_contacts?
     mitigation_admin? || current_user.pm_user?
+  end
+
+  def can_manage_labor?
+    current_user.user_type.in?(%w[manager technician])
+  end
+
+  def can_edit_labor_entry?(entry)
+    return true if current_user.user_type == "manager"
+    current_user.user_type == "technician" && entry.created_by_user_id == current_user.id
   end
 
   def can_assign_to_incident?
@@ -271,6 +284,34 @@ class IncidentsController < ApplicationController
         org_name: user.organization.name
       }
     }
+  end
+
+  def serialize_labor_entries(incident)
+    incident.labor_entries.includes(:user, :created_by_user).order(log_date: :desc, created_at: :desc).map do |entry|
+      {
+        id: entry.id,
+        role_label: entry.role_label,
+        hours: entry.hours.to_f,
+        log_date: entry.log_date.iso8601,
+        log_date_label: entry.log_date.strftime("%b %-d, %Y"),
+        started_at_label: entry.started_at&.strftime("%-I:%M %p"),
+        ended_at_label: entry.ended_at&.strftime("%-I:%M %p"),
+        notes: entry.notes,
+        user_name: entry.user&.full_name,
+        created_by_name: entry.created_by_user.full_name,
+        edit_path: can_edit_labor_entry?(entry) ? incident_labor_entry_path(incident, entry) : nil
+      }
+    end
+  end
+
+  def assignable_labor_users(incident)
+    if current_user.user_type == "manager"
+      User.where(active: true, organization_id: incident.property.mitigation_org_id)
+        .order(:last_name, :first_name)
+        .map { |u| { id: u.id, full_name: u.full_name, role_label: User::ROLE_LABELS[u.user_type] } }
+    else
+      [ { id: current_user.id, full_name: current_user.full_name, role_label: User::ROLE_LABELS[current_user.user_type] } ]
+    end
   end
 
   def serialize_incident(incident)
