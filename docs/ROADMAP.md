@@ -297,13 +297,13 @@ Complete the app for production use.
 
 ### Equipment Type Management
 
-- [ ] Equipment types page + controller (see VIEWS.md §Equipment Types)
-- [ ] Add, deactivate, reactivate — manager only
+- [x] Equipment types page + controller (see VIEWS.md §Equipment Types)
+- [x] Add, deactivate, reactivate — manager only
 
 ### Settings Page
 
-- [ ] Settings page + controller (see VIEWS.md §Profile)
-- [ ] Profile edit, password change, timezone picker, notification toggles
+- [x] Settings page + controller (see VIEWS.md §Profile)
+- [x] Profile edit, password change, timezone picker
 
 ### Password Reset
 
@@ -312,12 +312,12 @@ Complete the app for production use.
 
 ### Timezone Handling
 
-- [ ] `around_action :set_timezone` in ApplicationController (see ARCHITECTURE.md §Timezone Handling)
-- [ ] Frontend timestamp formatting helper
+- [x] `around_action :set_timezone` in ApplicationController (see ARCHITECTURE.md §Timezone Handling)
+- [x] TimeFormatting helper — centralized date/time formatting
 
 ### Empty States
 
-- [ ] Empty states for all lists and panels (see VIEWS.md §Empty States)
+- [x] Empty states for all lists and panels (see VIEWS.md §Empty States)
 
 ### Final QA
 
