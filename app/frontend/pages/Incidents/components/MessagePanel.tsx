@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { router } from "@inertiajs/react";
 import { Send, Paperclip, FileText, ExternalLink, MessageCircle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import type { Message, MessageAttachment } from "../types";
 
 interface MessagePanelProps {
@@ -28,9 +29,7 @@ export default function MessagePanel({ messages, messages_path }: MessagePanelPr
     if (!trimmed || sending) return;
     setSending(true);
 
-    const formData: Record<string, unknown> = { message: { body: trimmed, files } };
-
-    router.post(messages_path, formData, {
+    router.post(messages_path, { message: { body: trimmed, files } } as Record<string, unknown>, {
       forceFormData: files.length > 0,
       preserveScroll: true,
       onSuccess: () => {
@@ -97,7 +96,7 @@ export default function MessagePanel({ messages, messages_path }: MessagePanelPr
           </div>
         )}
         <div className="flex items-end gap-1.5">
-          <input
+          <Input
             ref={fileInputRef}
             type="file"
             multiple
