@@ -212,8 +212,8 @@ Messages, labor, equipment, notes, attachments, daily log, documents panel.
 
 ### Attachments
 
-- [ ] Attachments controller + tests (see BUSINESS_RULES.md §10)
-- [ ] Active Storage config — local dev, S3 production
+- [x] Attachments controller + tests (see BUSINESS_RULES.md §10)
+- [x] Active Storage config — local dev, S3 production
 - [ ] Upload form — file, description, category, log_date
 - [ ] Message attachment support
 
