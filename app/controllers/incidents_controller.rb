@@ -140,18 +140,22 @@ class IncidentsController < ApplicationController
         },
         messages_path: incident_messages_path(@incident),
         labor_entries_path: incident_labor_entries_path(@incident),
+        equipment_entries_path: incident_equipment_entries_path(@incident),
         valid_transitions: can_transition_status? ? (StatusTransitionService::ALLOWED_TRANSITIONS[@incident.status] || []).map { |s|
           { value: s, label: Incident::STATUS_LABELS[s] }
         } : []
       },
       messages: serialize_messages(messages),
       labor_entries: serialize_labor_entries(@incident),
+      equipment_entries: serialize_equipment_entries(@incident),
       can_transition: can_transition_status?,
       can_assign: can_assign_to_incident?,
       can_manage_contacts: can_manage_contacts?,
       can_manage_labor: can_manage_labor?,
+      can_manage_equipment: can_manage_equipment?,
       assignable_users: can_assign_to_incident? ? assignable_incident_users(@incident) : [],
       assignable_labor_users: can_manage_labor? ? assignable_labor_users(@incident) : [],
+      equipment_types: can_manage_equipment? ? equipment_types_for_incident(@incident) : [],
       back_path: incidents_path
     }
   end
@@ -199,6 +203,15 @@ class IncidentsController < ApplicationController
 
   def can_manage_labor?
     can_create_labor?
+  end
+
+  def can_manage_equipment?
+    can_create_equipment?
+  end
+
+  def can_edit_equipment_entry?(entry)
+    return true if mitigation_admin?
+    can_create_equipment? && entry.logged_by_user_id == current_user.id
   end
 
   def can_edit_labor_entry?(entry)
@@ -312,6 +325,30 @@ class IncidentsController < ApplicationController
     else
       [ { id: current_user.id, full_name: current_user.full_name, role_label: User::ROLE_LABELS[current_user.user_type] } ]
     end
+  end
+
+  def serialize_equipment_entries(incident)
+    incident.equipment_entries.includes(:equipment_type, :logged_by_user)
+      .order(placed_at: :desc, created_at: :desc).map do |entry|
+      {
+        id: entry.id,
+        type_name: entry.type_name,
+        equipment_identifier: entry.equipment_identifier,
+        placed_at_label: entry.placed_at.strftime("%b %-d, %Y %-I:%M %p"),
+        removed_at_label: entry.removed_at&.strftime("%b %-d, %Y %-I:%M %p"),
+        active: entry.removed_at.nil?,
+        location_notes: entry.location_notes,
+        logged_by_name: entry.logged_by_user.full_name,
+        edit_path: can_edit_equipment_entry?(entry) ? incident_equipment_entry_path(incident, entry) : nil,
+        remove_path: can_edit_equipment_entry?(entry) && entry.removed_at.nil? ? remove_incident_equipment_entry_path(incident, entry) : nil
+      }
+    end
+  end
+
+  def equipment_types_for_incident(incident)
+    EquipmentType.where(organization_id: incident.property.mitigation_org_id)
+      .active.order(:name)
+      .map { |t| { id: t.id, name: t.name } }
   end
 
   def serialize_incident(incident)
