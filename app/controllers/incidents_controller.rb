@@ -306,7 +306,8 @@ class IncidentsController < ApplicationController
 
   def serialize_labor_entries(incident)
     incident.labor_entries.includes(:user, :created_by_user).order(log_date: :desc, created_at: :desc).map do |entry|
-      {
+      editable = can_edit_labor_entry?(entry)
+      data = {
         id: entry.id,
         role_label: entry.role_label,
         hours: entry.hours.to_f,
@@ -317,8 +318,14 @@ class IncidentsController < ApplicationController
         notes: entry.notes,
         user_name: entry.user&.full_name,
         created_by_name: entry.created_by_user.full_name,
-        edit_path: can_edit_labor_entry?(entry) ? incident_labor_entry_path(incident, entry) : nil
+        edit_path: editable ? incident_labor_entry_path(incident, entry) : nil
       }
+      if editable
+        data[:started_at] = entry.started_at&.strftime("%H:%M")
+        data[:ended_at] = entry.ended_at&.strftime("%H:%M")
+        data[:user_id] = entry.user_id
+      end
+      data
     end
   end
 
@@ -335,7 +342,8 @@ class IncidentsController < ApplicationController
   def serialize_equipment_entries(incident)
     incident.equipment_entries.includes(:equipment_type, :logged_by_user)
       .order(placed_at: :desc, created_at: :desc).map do |entry|
-      {
+      editable = can_edit_equipment_entry?(entry)
+      data = {
         id: entry.id,
         type_name: entry.type_name,
         equipment_identifier: entry.equipment_identifier,
@@ -344,9 +352,15 @@ class IncidentsController < ApplicationController
         active: entry.removed_at.nil?,
         location_notes: entry.location_notes,
         logged_by_name: entry.logged_by_user.full_name,
-        edit_path: can_edit_equipment_entry?(entry) ? incident_equipment_entry_path(incident, entry) : nil,
-        remove_path: can_edit_equipment_entry?(entry) && entry.removed_at.nil? ? remove_incident_equipment_entry_path(incident, entry) : nil
+        edit_path: editable ? incident_equipment_entry_path(incident, entry) : nil,
+        remove_path: editable && entry.removed_at.nil? ? remove_incident_equipment_entry_path(incident, entry) : nil
       }
+      if editable
+        data[:equipment_type_id] = entry.equipment_type_id
+        data[:equipment_type_other] = entry.equipment_type_other
+        data[:placed_at] = in_user_zone { entry.placed_at.strftime("%Y-%m-%dT%H:%M") }
+      end
+      data
     end
   end
 

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { router } from "@inertiajs/react";
-import { Send, Paperclip, FileText, ExternalLink, MessageCircle } from "lucide-react";
+import { Send, Paperclip, FileText, ExternalLink, MessageCircle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Message, MessageAttachment } from "../types";
 
@@ -11,9 +11,11 @@ interface MessagePanelProps {
 
 export default function MessagePanel({ messages, messages_path }: MessagePanelProps) {
   const [body, setBody] = useState("");
+  const [files, setFiles] = useState<File[]>([]);
   const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -25,10 +27,15 @@ export default function MessagePanel({ messages, messages_path }: MessagePanelPr
     const trimmed = body.trim();
     if (!trimmed || sending) return;
     setSending(true);
-    router.post(messages_path, { message: { body: trimmed } }, {
+
+    const formData: Record<string, unknown> = { message: { body: trimmed, files } };
+
+    router.post(messages_path, formData, {
+      forceFormData: files.length > 0,
       preserveScroll: true,
       onSuccess: () => {
         setBody("");
+        setFiles([]);
         if (textareaRef.current) textareaRef.current.style.height = "auto";
       },
       onFinish: () => setSending(false),
@@ -49,6 +56,17 @@ export default function MessagePanel({ messages, messages_path }: MessagePanelPr
     ta.style.height = Math.min(ta.scrollHeight, 120) + "px";
   };
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setFiles((prev) => [...prev, ...Array.from(e.target.files!)]);
+    }
+    e.target.value = "";
+  };
+
+  const removeFile = (index: number) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
   return (
     <div className="flex flex-col h-full">
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-4">
@@ -60,14 +78,38 @@ export default function MessagePanel({ messages, messages_path }: MessagePanelPr
       </div>
 
       <div className="border-t border-border bg-background px-3 py-2.5">
+        {files.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-2">
+            {files.map((file, i) => (
+              <span key={i} className="inline-flex items-center gap-1 rounded bg-muted border border-border px-2 py-0.5 text-xs">
+                <FileText className="h-3 w-3 shrink-0" />
+                <span className="truncate max-w-[120px]">{file.name}</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-4 w-4 p-0 hover:text-destructive"
+                  onClick={() => removeFile(i)}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </span>
+            ))}
+          </div>
+        )}
         <div className="flex items-end gap-1.5">
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            className="hidden"
+            onChange={handleFileSelect}
+          />
           <Button
             type="button"
             variant="ghost"
             size="icon"
-            disabled
             className="shrink-0 h-9 w-9"
-            title="Attachments coming soon"
+            onClick={() => fileInputRef.current?.click()}
           >
             <Paperclip className="h-4 w-4" />
           </Button>

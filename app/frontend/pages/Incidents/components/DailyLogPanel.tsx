@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { router } from "@inertiajs/react";
-import { ArrowUp, ArrowDown, Clock, FileText, Wrench, StickyNote, Plus, Upload } from "lucide-react";
+import { ArrowUp, ArrowDown, Clock, FileText, Wrench, StickyNote, Plus, Upload, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type {
   LaborEntry, EquipmentEntry, OperationalNote,
@@ -36,8 +36,8 @@ function collectDates(
   const dateSet = new Set<string>();
   labor.forEach((e) => dateSet.add(e.log_date));
   equipment.forEach((_e) => {
-    // Equipment entries don't have a log_date — they use placed_at/removed_at timestamps.
-    // They'll be shown in all date views for now.
+    // Equipment entries use placed_at/removed_at timestamps, not log_date.
+    // Shown in all date views.
   });
   notes.forEach((e) => dateSet.add(e.log_date));
   attachments.forEach((e) => { if (e.log_date) dateSet.add(e.log_date); });
@@ -52,8 +52,8 @@ export default function DailyLogPanel({
 }: DailyLogPanelProps) {
   const dates = collectDates(labor_entries, equipment_entries, operational_notes, attachments);
   const [selectedDate, setSelectedDate] = useState<string | null>(dates[0] ?? null);
-  const [showLaborForm, setShowLaborForm] = useState(false);
-  const [showEquipmentForm, setShowEquipmentForm] = useState(false);
+  const [laborForm, setLaborForm] = useState<{ open: boolean; entry?: LaborEntry }>({ open: false });
+  const [equipmentForm, setEquipmentForm] = useState<{ open: boolean; entry?: EquipmentEntry }>({ open: false });
   const [showNoteForm, setShowNoteForm] = useState(false);
   const [showAttachmentForm, setShowAttachmentForm] = useState(false);
 
@@ -79,7 +79,6 @@ export default function DailyLogPanel({
     ? attachments.filter((e) => e.log_date === selectedDate)
     : attachments;
   // Equipment doesn't have log_date — show all when a date is selected
-  // (they'll be filtered by the Daily Log service later, for now show all)
   const filteredEquipment = equipment_entries;
 
   return (
@@ -96,7 +95,6 @@ export default function DailyLogPanel({
             All Dates
           </Button>
           {dates.map((d) => {
-            // Find the label from any entry with this date
             const label =
               labor_entries.find((e) => e.log_date === d)?.log_date_label ??
               operational_notes.find((e) => e.log_date === d)?.log_date_label ??
@@ -125,11 +123,15 @@ export default function DailyLogPanel({
           icon={<Clock className="h-4 w-4" />}
           count={filteredLabor.length}
           showAdd={can_manage_labor}
-          onAdd={() => setShowLaborForm(true)}
+          onAdd={() => setLaborForm({ open: true })}
           addLabel="Add Labor"
         >
           {filteredLabor.map((entry) => (
-            <LaborEntryRow key={entry.id} entry={entry} />
+            <LaborEntryRow
+              key={entry.id}
+              entry={entry}
+              onEdit={() => setLaborForm({ open: true, entry })}
+            />
           ))}
         </LogSection>
 
@@ -139,11 +141,15 @@ export default function DailyLogPanel({
           icon={<Wrench className="h-4 w-4" />}
           count={filteredEquipment.length}
           showAdd={can_manage_equipment}
-          onAdd={() => setShowEquipmentForm(true)}
+          onAdd={() => setEquipmentForm({ open: true })}
           addLabel="Add Equipment"
         >
           {filteredEquipment.map((entry) => (
-            <EquipmentEntryRow key={entry.id} entry={entry} />
+            <EquipmentEntryRow
+              key={entry.id}
+              entry={entry}
+              onEdit={() => setEquipmentForm({ open: true, entry })}
+            />
           ))}
         </LogSection>
 
@@ -178,18 +184,20 @@ export default function DailyLogPanel({
       </div>
 
       {/* Forms */}
-      {showLaborForm && (
+      {laborForm.open && (
         <LaborForm
           path={labor_entries_path}
           users={assignable_labor_users}
-          onClose={() => setShowLaborForm(false)}
+          entry={laborForm.entry}
+          onClose={() => setLaborForm({ open: false })}
         />
       )}
-      {showEquipmentForm && (
+      {equipmentForm.open && (
         <EquipmentForm
           path={equipment_entries_path}
           equipment_types={equipment_types}
-          onClose={() => setShowEquipmentForm(false)}
+          entry={equipmentForm.entry}
+          onClose={() => setEquipmentForm({ open: false })}
         />
       )}
       {showNoteForm && (
@@ -250,15 +258,27 @@ function LogSection({
 
 // --- Row components ---
 
-function LaborEntryRow({ entry }: { entry: LaborEntry }) {
+function LaborEntryRow({ entry, onEdit }: { entry: LaborEntry; onEdit: () => void }) {
   return (
-    <div className="bg-muted rounded p-2.5 text-sm">
+    <div className="group bg-muted rounded p-2.5 text-sm">
       <div className="flex items-center justify-between">
         <span className="font-medium">
           {entry.role_label}
           {entry.user_name && <span className="text-muted-foreground font-normal"> &middot; {entry.user_name}</span>}
         </span>
-        <span className="text-xs font-medium">{entry.hours}h</span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs font-medium">{entry.hours}h</span>
+          {entry.edit_path && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={onEdit}
+            >
+              <Pencil className="h-3 w-3" />
+            </Button>
+          )}
+        </div>
       </div>
       {(entry.started_at_label || entry.notes) && (
         <div className="text-xs text-muted-foreground mt-1">
@@ -273,9 +293,9 @@ function LaborEntryRow({ entry }: { entry: LaborEntry }) {
   );
 }
 
-function EquipmentEntryRow({ entry }: { entry: EquipmentEntry }) {
+function EquipmentEntryRow({ entry, onEdit }: { entry: EquipmentEntry; onEdit: () => void }) {
   return (
-    <div className="bg-muted rounded p-2.5 text-sm">
+    <div className="group bg-muted rounded p-2.5 text-sm">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5">
           {entry.active ? (
@@ -288,16 +308,28 @@ function EquipmentEntryRow({ entry }: { entry: EquipmentEntry }) {
             <span className="text-muted-foreground text-xs">#{entry.equipment_identifier}</span>
           )}
         </div>
-        {entry.active && entry.remove_path && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 text-xs text-muted-foreground hover:text-destructive"
-            onClick={() => router.patch(entry.remove_path!)}
-          >
-            Remove
-          </Button>
-        )}
+        <div className="flex items-center gap-1">
+          {entry.edit_path && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={onEdit}
+            >
+              <Pencil className="h-3 w-3" />
+            </Button>
+          )}
+          {entry.active && entry.remove_path && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 text-xs text-muted-foreground hover:text-destructive"
+              onClick={() => router.patch(entry.remove_path!)}
+            >
+              Remove
+            </Button>
+          )}
+        </div>
       </div>
       <div className="text-xs text-muted-foreground mt-1">
         {entry.active ? "Placed" : "Removed"} {entry.active ? entry.placed_at_label : entry.removed_at_label}

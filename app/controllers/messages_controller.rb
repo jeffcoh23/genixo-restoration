@@ -2,10 +2,22 @@ class MessagesController < ApplicationController
   before_action :set_incident
 
   def create
-    @incident.messages.create!(
+    message = @incident.messages.create!(
       user: current_user,
       body: params.require(:message).require(:body)
     )
+
+    if params[:message][:files].present?
+      Array(params[:message][:files]).each do |file|
+        attachment = message.attachments.new(
+          uploaded_by_user: current_user,
+          category: "general"
+        )
+        attachment.file.attach(file)
+        attachment.save!
+      end
+    end
+
     @incident.touch(:last_activity_at)
 
     redirect_to incident_path(@incident), notice: "Message sent."

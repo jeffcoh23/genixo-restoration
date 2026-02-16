@@ -3,29 +3,34 @@ import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SharedProps } from "@/types";
-import type { AssignableUser } from "../types";
+import type { AssignableUser, LaborEntry } from "../types";
 
 interface LaborFormProps {
   path: string;
   users: AssignableUser[];
   onClose: () => void;
+  entry?: LaborEntry;
 }
 
-export default function LaborForm({ path, users, onClose }: LaborFormProps) {
+export default function LaborForm({ path, users, onClose, entry }: LaborFormProps) {
   const { today } = usePage<SharedProps>().props;
-  const { data, setData, post, processing, errors } = useForm({
-    role_label: "",
-    hours: "",
-    started_at: "",
-    ended_at: "",
-    log_date: today,
-    notes: "",
-    user_id: users.length === 1 ? String(users[0].id) : "",
+  const editing = !!entry;
+
+  const { data, setData, post, patch, processing, errors } = useForm({
+    role_label: entry?.role_label ?? "",
+    hours: entry ? String(entry.hours) : "",
+    started_at: entry?.started_at ?? "",
+    ended_at: entry?.ended_at ?? "",
+    log_date: entry?.log_date ?? today,
+    notes: entry?.notes ?? "",
+    user_id: entry?.user_id ? String(entry.user_id) : (users.length === 1 ? String(users[0].id) : ""),
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    post(path, { onSuccess: () => onClose() });
+    const submit = editing ? patch : post;
+    const url = editing ? entry!.edit_path! : path;
+    submit(url, { onSuccess: () => onClose() });
   };
 
   return (
@@ -33,7 +38,7 @@ export default function LaborForm({ path, users, onClose }: LaborFormProps) {
       <div className="fixed inset-0 bg-black opacity-40" onClick={onClose} />
       <div className="relative bg-background border border-border rounded-t sm:rounded w-full sm:max-w-md p-4 shadow-lg">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold">Add Labor Entry</h3>
+          <h3 className="text-sm font-semibold">{editing ? "Edit Labor Entry" : "Add Labor Entry"}</h3>
           <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={onClose}>
             <X className="h-4 w-4" />
           </Button>
@@ -126,7 +131,7 @@ export default function LaborForm({ path, users, onClose }: LaborFormProps) {
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
             <Button type="submit" size="sm" disabled={processing}>
-              {processing ? "Saving..." : "Add Labor"}
+              {processing ? "Saving..." : editing ? "Update" : "Add Labor"}
             </Button>
           </div>
         </form>

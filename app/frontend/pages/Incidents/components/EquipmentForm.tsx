@@ -4,24 +4,27 @@ import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SharedProps } from "@/types";
-import type { EquipmentType } from "../types";
+import type { EquipmentType, EquipmentEntry } from "../types";
 
 interface EquipmentFormProps {
   path: string;
   equipment_types: EquipmentType[];
   onClose: () => void;
+  entry?: EquipmentEntry;
 }
 
-export default function EquipmentForm({ path, equipment_types, onClose }: EquipmentFormProps) {
-  const [useOther, setUseOther] = useState(false);
+export default function EquipmentForm({ path, equipment_types, onClose, entry }: EquipmentFormProps) {
+  const editing = !!entry;
+  const hasOtherType = editing && !entry.equipment_type_id && !!entry.equipment_type_other;
+  const [useOther, setUseOther] = useState(hasOtherType);
 
   const { now_datetime } = usePage<SharedProps>().props;
-  const { data, setData, post, processing, errors } = useForm({
-    equipment_type_id: "",
-    equipment_type_other: "",
-    equipment_identifier: "",
-    placed_at: now_datetime,
-    location_notes: "",
+  const { data, setData, post, patch, processing, errors } = useForm({
+    equipment_type_id: entry?.equipment_type_id ? String(entry.equipment_type_id) : "",
+    equipment_type_other: entry?.equipment_type_other ?? "",
+    equipment_identifier: entry?.equipment_identifier ?? "",
+    placed_at: entry?.placed_at ?? now_datetime,
+    location_notes: entry?.location_notes ?? "",
   });
 
   const handleTypeChange = (value: string) => {
@@ -36,7 +39,9 @@ export default function EquipmentForm({ path, equipment_types, onClose }: Equipm
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    post(path, { onSuccess: () => onClose() });
+    const submit = editing ? patch : post;
+    const url = editing ? entry!.edit_path! : path;
+    submit(url, { onSuccess: () => onClose() });
   };
 
   return (
@@ -44,7 +49,7 @@ export default function EquipmentForm({ path, equipment_types, onClose }: Equipm
       <div className="fixed inset-0 bg-black opacity-40" onClick={onClose} />
       <div className="relative bg-background border border-border rounded-t sm:rounded w-full sm:max-w-md p-4 shadow-lg">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold">Place Equipment</h3>
+          <h3 className="text-sm font-semibold">{editing ? "Edit Equipment" : "Place Equipment"}</h3>
           <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={onClose}>
             <X className="h-4 w-4" />
           </Button>
@@ -115,7 +120,7 @@ export default function EquipmentForm({ path, equipment_types, onClose }: Equipm
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
             <Button type="submit" size="sm" disabled={processing}>
-              {processing ? "Saving..." : "Place Equipment"}
+              {processing ? "Saving..." : editing ? "Update" : "Place Equipment"}
             </Button>
           </div>
         </form>

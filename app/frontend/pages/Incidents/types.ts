@@ -50,6 +50,10 @@ export interface LaborEntry {
   user_name: string | null;
   created_by_name: string;
   edit_path: string | null;
+  // Raw values for edit form (only present when editable)
+  started_at?: string | null;
+  ended_at?: string | null;
+  user_id?: number | null;
 }
 
 export interface EquipmentEntry {
@@ -63,6 +67,10 @@ export interface EquipmentEntry {
   logged_by_name: string;
   edit_path: string | null;
   remove_path: string | null;
+  // Raw values for edit form (only present when editable)
+  equipment_type_id?: number | null;
+  equipment_type_other?: string | null;
+  placed_at?: string;
 }
 
 export interface OperationalNote {
