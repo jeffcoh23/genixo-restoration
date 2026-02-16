@@ -69,11 +69,20 @@ class ApplicationController < ActionController::Base
   }
 
   inertia_share today: -> {
-    Date.current.iso8601
+    in_user_zone { Time.current.to_date.iso8601 }
+  }
+
+  inertia_share now_datetime: -> {
+    in_user_zone { Time.current.strftime("%Y-%m-%dT%H:%M") }
   }
 
 
   private
+
+  def in_user_zone(&block)
+    zone = current_user&.timezone || "UTC"
+    Time.use_zone(zone, &block)
+  end
 
   # Server-side nav filtering — the client just renders what it receives
   def nav_items_for_user(user)

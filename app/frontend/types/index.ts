@@ -37,6 +37,7 @@ export interface SharedProps extends Record<string, unknown> {
   };
   permissions: Permissions;
   today: string;
+  now_datetime: string;
   nav_items: NavItem[];
   routes: {
     dashboard: string;

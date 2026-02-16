@@ -15,12 +15,12 @@ interface EquipmentFormProps {
 export default function EquipmentForm({ path, equipment_types, onClose }: EquipmentFormProps) {
   const [useOther, setUseOther] = useState(false);
 
-  const { today } = usePage<SharedProps>().props;
+  const { now_datetime } = usePage<SharedProps>().props;
   const { data, setData, post, processing, errors } = useForm({
     equipment_type_id: "",
     equipment_type_other: "",
     equipment_identifier: "",
-    placed_at: today + "T09:00",
+    placed_at: now_datetime,
     location_notes: "",
   });
 
