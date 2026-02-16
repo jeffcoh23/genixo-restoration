@@ -260,7 +260,21 @@ new → acknowledged → active → on_hold → completed → completed_billed �
 
 ---
 
-## 8. Labor Tracking Rules
+## 8. Incident Activity Rules (Daily Log)
+
+- Daily Log is activity-first. Work is logged as an `activity_entry` (not separate "equipment step + note step").
+- **Who can create/edit activities:** Technicians and managers. PM-side users are read-only in Daily Log.
+- Required activity fields: `title`, `occurred_at`, `status` (`active` or `completed`).
+- Optional activity fields: `units_affected`, `units_affected_description`, `details`.
+- Each activity can include zero or more optional equipment actions.
+- Equipment action `action_type` options: `add`, `remove`, `move`, `other`.
+- Equipment action fields are optional (`quantity`, equipment type, specific equipment reference, note).
+- Activity rows are shown newest-to-oldest in Daily Log.
+- Creating/updating an activity generates an `activity_event` (`activity_logged` / `activity_updated`) and updates `last_activity_at`.
+
+---
+
+## 9. Labor Tracking Rules
 
 - Labor entries track time on an incident. Supports both user-specific and generic role-based entries.
 - **Who can create:** Technicians (for themselves), managers (for anyone — including generic labor not tied to a system user).
@@ -275,7 +289,7 @@ new → acknowledged → active → on_hold → completed → completed_billed �
 
 ---
 
-## 9. Equipment Tracking Rules
+## 10. Equipment Tracking Rules
 
 ### Equipment Types
 
@@ -286,7 +300,7 @@ new → acknowledged → active → on_hold → completed → completed_billed �
 
 ### Equipment Entries
 
-- Track individual physical equipment units placed at an incident.
+- Track individual physical equipment units placed at an incident (unit-level inventory/reference).
 - **Who can create:** Technicians, managers.
 - Each entry has either a predefined `equipment_type_id` OR a freeform `equipment_type_other` — never both, never neither (enforced by DB CHECK constraint).
 - `equipment_identifier` is a manually entered serial number or label (barcode scanning deferred to post-MVP).
@@ -294,10 +308,11 @@ new → acknowledged → active → on_hold → completed → completed_billed �
 - `removed_at` is null until the equipment is removed. Null means still in place.
 - `location_notes` describes where in the property (e.g., "Unit 238, bedroom").
 - Placing and removing equipment each generate an `activity_event`.
+- Daily log equipment chronology should be read from activity equipment actions attached to activity entries.
 
 ---
 
-## 10. Attachment Rules
+## 11. Attachment Rules
 
 - Polymorphic — can attach to `Incident` or `Message`.
 - **Who can upload:** Any user who can see the incident/message.
@@ -308,7 +323,7 @@ new → acknowledged → active → on_hold → completed → completed_billed �
 
 ---
 
-## 11. Read State / Unread Tracking
+## 12. Read State / Unread Tracking
 
 - Each user has an `incident_read_state` per incident they've viewed.
 - Two independent timestamps: `last_message_read_at` and `last_activity_read_at`.
@@ -321,7 +336,7 @@ new → acknowledged → active → on_hold → completed → completed_billed �
 
 ---
 
-## 12. Dashboard Rules
+## 13. Dashboard Rules
 
 ### Incident Grouping
 

@@ -11,24 +11,26 @@
   --color-primary-foreground: hsl(0 0% 100%);
 
   /* Secondary */
-  --color-secondary: hsl(0 0% 96%);
-  --color-secondary-foreground: hsl(0 0% 9%);
+  --color-secondary: hsl(210 8% 95%);
+  --color-secondary-foreground: hsl(210 10% 12%);
 
   /* Accent */
-  --color-accent: hsl(187 15% 95%);
+  --color-accent: hsl(187 15% 93%);
   --color-accent-foreground: hsl(187 70% 25%);
 
   /* Muted */
-  --color-muted: hsl(0 0% 96%);
-  --color-muted-foreground: hsl(0 0% 46%);
+  --color-muted: hsl(210 8% 93%);
+  --color-muted-foreground: hsl(210 5% 46%);
 
-  /* Neutrals */
-  --color-background: hsl(0 0% 99%);
-  --color-foreground: hsl(0 0% 9%);
+  /* Neutrals — cool-tinted grays for surface depth */
+  --color-background: hsl(210 12% 96.5%);
+  --color-foreground: hsl(210 10% 12%);
   --color-card: hsl(0 0% 100%);
-  --color-card-foreground: hsl(0 0% 9%);
-  --color-border: hsl(0 0% 90%);
-  --color-input: hsl(0 0% 90%);
+  --color-card-foreground: hsl(210 10% 12%);
+  --color-popover: hsl(0 0% 100%);
+  --color-popover-foreground: hsl(210 10% 12%);
+  --color-border: hsl(210 10% 87%);
+  --color-input: hsl(210 10% 87%);
   --color-ring: hsl(187 70% 34%);
 
   /* Semantic */

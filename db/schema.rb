@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_02_16_015957) do
+ActiveRecord::Schema[8.0].define(version: 2026_02_16_071100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -40,6 +40,41 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_16_015957) do
     t.bigint "blob_id", null: false
     t.string "variation_digest", null: false
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
+  end
+
+  create_table "activity_entries", force: :cascade do |t|
+    t.bigint "incident_id", null: false
+    t.bigint "performed_by_user_id", null: false
+    t.string "title", null: false
+    t.text "details"
+    t.integer "units_affected"
+    t.text "units_affected_description"
+    t.string "status", default: "active", null: false
+    t.datetime "occurred_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["incident_id", "occurred_at"], name: "index_activity_entries_on_incident_id_and_occurred_at"
+    t.index ["incident_id"], name: "index_activity_entries_on_incident_id"
+    t.index ["performed_by_user_id"], name: "index_activity_entries_on_performed_by_user_id"
+    t.index ["status"], name: "index_activity_entries_on_status"
+  end
+
+  create_table "activity_equipment_actions", force: :cascade do |t|
+    t.bigint "activity_entry_id", null: false
+    t.bigint "equipment_type_id"
+    t.bigint "equipment_entry_id"
+    t.string "equipment_type_other"
+    t.string "action_type", null: false
+    t.integer "quantity"
+    t.text "note"
+    t.integer "position", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["action_type"], name: "index_activity_equipment_actions_on_action_type"
+    t.index ["activity_entry_id", "position"], name: "index_act_eq_actions_on_entry_and_position"
+    t.index ["activity_entry_id"], name: "index_activity_equipment_actions_on_activity_entry_id"
+    t.index ["equipment_entry_id"], name: "index_activity_equipment_actions_on_equipment_entry_id"
+    t.index ["equipment_type_id"], name: "index_activity_equipment_actions_on_equipment_type_id"
   end
 
   create_table "activity_events", force: :cascade do |t|
@@ -469,6 +504,11 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_16_015957) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "activity_entries", "incidents"
+  add_foreign_key "activity_entries", "users", column: "performed_by_user_id"
+  add_foreign_key "activity_equipment_actions", "activity_entries"
+  add_foreign_key "activity_equipment_actions", "equipment_entries"
+  add_foreign_key "activity_equipment_actions", "equipment_types"
   add_foreign_key "activity_events", "incidents"
   add_foreign_key "activity_events", "users", column: "performed_by_user_id"
   add_foreign_key "attachments", "users", column: "uploaded_by_user_id"

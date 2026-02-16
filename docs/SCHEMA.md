@@ -33,6 +33,8 @@ Incident
 ├── has_many :incident_contacts
 ├── has_many :messages
 ├── has_many :activity_events
+├── has_many :activity_entries
+│   └── has_many :activity_equipment_actions
 ├── has_many :labor_entries
 ├── has_many :equipment_entries
 ├── has_many :operational_notes
@@ -339,6 +341,8 @@ Append-only audit log. Generated for every meaningful action on an incident.
 - `user_unassigned` — metadata: `{ user_id, user_name, user_type }`
 - `labor_created` — metadata: `{ labor_entry_id, hours, role_label }`
 - `labor_updated` — metadata: `{ labor_entry_id, changes }`
+- `activity_logged` — metadata: `{ title, status, equipment_action_count }`
+- `activity_updated` — metadata: `{ title, status, equipment_action_count }`
 - `equipment_placed` — metadata: `{ equipment_entry_id, equipment_type, identifier }`
 - `equipment_removed` — metadata: `{ equipment_entry_id }`
 - `equipment_updated` — metadata: `{ equipment_entry_id, changes }`
@@ -352,6 +356,54 @@ Append-only audit log. Generated for every meaningful action on an incident.
 - `index_activity_events_on_incident_id_and_created_at`
 - `index_activity_events_on_performed_by_user_id`
 - `index_activity_events_on_event_type`
+
+---
+
+### activity_entries
+
+Primary day-log records for incident work. This is the activity-first model used by the Daily Log panel.
+
+| Column | Type | Constraints | Notes |
+|--------|------|-------------|-------|
+| id | bigint | PK | |
+| incident_id | bigint | NOT NULL, FK | |
+| performed_by_user_id | bigint | NOT NULL, FK → users | Who logged the activity |
+| title | string | NOT NULL | e.g., "Extract water", "Move fans for final dry pass" |
+| details | text | | Why the work was done / context |
+| units_affected | integer | | Optional count |
+| units_affected_description | text | | Optional freeform descriptor |
+| status | string | NOT NULL, DEFAULT `'active'` | `active` or `completed` |
+| occurred_at | datetime | NOT NULL | When the activity happened |
+| created_at | datetime | NOT NULL | |
+| updated_at | datetime | NOT NULL | |
+
+**Indexes:**
+- `index_activity_entries_on_incident_id_and_occurred_at`
+- `index_activity_entries_on_status`
+
+---
+
+### activity_equipment_actions
+
+Optional equipment actions attached to an `activity_entry`.
+
+| Column | Type | Constraints | Notes |
+|--------|------|-------------|-------|
+| id | bigint | PK | |
+| activity_entry_id | bigint | NOT NULL, FK | Parent activity |
+| equipment_type_id | bigint | FK → equipment_types | Optional predefined type |
+| equipment_entry_id | bigint | FK → equipment_entries | Optional specific unit reference |
+| equipment_type_other | string | | Optional freeform type |
+| action_type | string | NOT NULL | `add`, `remove`, `move`, `other` |
+| quantity | integer | | Optional |
+| note | text | | Optional reasoning/context |
+| position | integer | NOT NULL, DEFAULT `0` | Ordering within activity |
+| created_at | datetime | NOT NULL | |
+| updated_at | datetime | NOT NULL | |
+
+**Indexes:**
+- `index_act_eq_actions_on_entry_and_position`
+- `index_activity_equipment_actions_on_action_type`
 
 ---
 
@@ -415,7 +467,7 @@ Predefined equipment types scoped to a mitigation org. Managers can add to this 
 
 ### equipment_entries
 
-Individual physical equipment pieces placed at an incident. Each unit logged separately.
+Individual physical equipment units. Still used for optional specific-unit references and active deployment tracking.
 
 | Column | Type | Constraints | Notes |
 |--------|------|-------------|-------|

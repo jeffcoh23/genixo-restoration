@@ -7,12 +7,18 @@ class EquipmentEntriesController < ApplicationController
     entry.logged_by_user = current_user
 
     entry.save!
+    context = equipment_action_context(params[:equipment_entry], default_action: "add")
 
     ActivityLogger.log(
       incident: @incident,
       event_type: "equipment_placed",
       user: current_user,
       metadata: {
+        equipment_entry_id: entry.id,
+        action_type: context[:action_type],
+        reason: context[:reason],
+        action_notes: context[:action_notes],
+        action_at: context[:action_at]&.iso8601,
         type_name: entry.type_name,
         equipment_identifier: entry.equipment_identifier,
         location_notes: entry.location_notes
@@ -32,12 +38,18 @@ class EquipmentEntriesController < ApplicationController
     entry.assign_attributes(equipment_entry_params)
 
     entry.save!
+    context = equipment_action_context(params[:equipment_entry], default_action: "other")
 
     ActivityLogger.log(
       incident: @incident,
       event_type: "equipment_updated",
       user: current_user,
       metadata: {
+        equipment_entry_id: entry.id,
+        action_type: context[:action_type],
+        reason: context[:reason],
+        action_notes: context[:action_notes],
+        action_at: context[:action_at]&.iso8601,
         type_name: entry.type_name,
         equipment_identifier: entry.equipment_identifier,
         location_notes: entry.location_notes
@@ -54,13 +66,20 @@ class EquipmentEntriesController < ApplicationController
   def remove
     entry = find_editable_entry!
 
-    entry.update!(removed_at: Time.current)
+    removal_time = params[:removed_at].present? ? Time.zone.parse(params[:removed_at]) : Time.current
+    entry.update!(removed_at: removal_time)
+    context = equipment_action_context(params, default_action: "remove")
 
     ActivityLogger.log(
       incident: @incident,
       event_type: "equipment_removed",
       user: current_user,
       metadata: {
+        equipment_entry_id: entry.id,
+        action_type: context[:action_type],
+        reason: context[:reason],
+        action_notes: context[:action_notes],
+        action_at: context[:action_at]&.iso8601,
         type_name: entry.type_name,
         equipment_identifier: entry.equipment_identifier,
         location_notes: entry.location_notes
@@ -93,5 +112,25 @@ class EquipmentEntriesController < ApplicationController
       :equipment_type_id, :equipment_type_other, :equipment_identifier,
       :placed_at, :location_notes
     )
+  end
+
+  def equipment_action_context(raw_params, default_action:)
+    params_hash = raw_params.is_a?(ActionController::Parameters) ? raw_params : ActionController::Parameters.new(raw_params || {})
+    permitted = params_hash.permit(:action_type, :reason, :action_notes, :action_at)
+
+    {
+      action_type: permitted[:action_type].presence || default_action,
+      reason: permitted[:reason].presence,
+      action_notes: permitted[:action_notes].presence,
+      action_at: parse_action_time(permitted[:action_at])
+    }
+  end
+
+  def parse_action_time(raw_value)
+    return nil if raw_value.blank?
+
+    Time.zone.parse(raw_value)
+  rescue ArgumentError, TypeError
+    nil
   end
 end

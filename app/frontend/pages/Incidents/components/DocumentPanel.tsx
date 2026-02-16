@@ -76,7 +76,7 @@ export default function DocumentPanel({ attachments, attachments_path }: Documen
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-4">
+      <div className="flex-1 overflow-y-auto p-3 pb-8 space-y-4">
         {/* Photo grid */}
         {photos.length > 0 && (
           <div>

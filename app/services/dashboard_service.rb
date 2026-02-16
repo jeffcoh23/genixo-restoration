@@ -9,7 +9,7 @@ class DashboardService
     {
       emergency: scope.where(emergency: true, status: %w[new acknowledged active]),
       active: scope.where(status: "active", emergency: false),
-      needs_attention: scope.where(status: %w[new acknowledged], emergency: false),
+      needs_attention: scope.where(status: %w[new acknowledged quote_requested], emergency: false),
       on_hold: scope.where(status: "on_hold"),
       recent_completed: scope.where(status: %w[completed completed_billed paid closed]).limit(20)
     }

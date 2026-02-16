@@ -1,12 +1,13 @@
 import { Link, router, usePage } from "@inertiajs/react";
 import { useState } from "react";
-import { AlertTriangle, ChevronDown, Clock, User as UserIcon } from "lucide-react";
+import { AlertTriangle, ChevronDown, Clock, Timer, User as UserIcon, Wrench } from "lucide-react";
 import AppLayout from "@/layout/AppLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SharedProps } from "@/types";
 import OverviewPanel from "./components/OverviewPanel";
 import RightPanelShell from "./components/RightPanelShell";
+import ActivityPanel from "./components/ActivityPanel";
 import MessagePanel from "./components/MessagePanel";
 import DailyLogPanel from "./components/DailyLogPanel";
 import DocumentPanel from "./components/DocumentPanel";
@@ -32,14 +33,30 @@ function statusColor(status: string): string {
 
 export default function IncidentShow() {
   const {
-    incident, messages, labor_entries, equipment_entries, operational_notes, attachments,
-    can_transition, can_assign, can_manage_contacts, can_manage_labor, can_manage_equipment,
-    can_create_notes, assignable_users, assignable_labor_users, equipment_types, back_path,
+    incident,
+    activity_entries = [],
+    daily_activities = [],
+    daily_log_dates = [],
+    messages = [],
+    labor_entries = [],
+    operational_notes = [],
+    attachments = [],
+    can_transition,
+    can_assign,
+    can_manage_contacts,
+    can_manage_activities = false,
+    can_manage_labor,
+    can_create_notes,
+    assignable_users = [],
+    assignable_labor_users = [],
+    equipment_types = [],
+    attachable_equipment_entries = [],
+    back_path,
   } = usePage<SharedProps & ShowProps>().props;
 
   const [statusOpen, setStatusOpen] = useState(false);
   const [transitioning, setTransitioning] = useState(false);
-  const [activeTab, setActiveTab] = useState("messages");
+  const [activeTab, setActiveTab] = useState("daily_log");
 
   const handleTransition = (newStatus: string) => {
     setTransitioning(true);
@@ -95,8 +112,8 @@ export default function IncidentShow() {
 
             {statusOpen && (
               <>
-                <div className="fixed inset-0 z-10" onClick={() => setStatusOpen(false)} />
-                <div className="absolute left-0 top-full mt-1 z-20 bg-popover border border-border rounded shadow-md py-1 min-w-[180px]">
+                <div className="fixed inset-0 z-30" onClick={() => setStatusOpen(false)} />
+                <div className="absolute left-0 top-full mt-1 z-40 bg-popover border border-border rounded shadow-md py-1 min-w-[180px]">
                   {incident.valid_transitions.map((t) => (
                     <Button
                       key={t.value}
@@ -158,41 +175,52 @@ export default function IncidentShow() {
               <span className="text-xs ml-1">{incident.assigned_summary.count} assigned</span>
             </div>
           )}
+
+          {incident.show_stats && (
+            <>
+              <Badge variant="secondary" className="text-xs gap-1 font-normal">
+                <Timer className="h-3 w-3" />
+                {incident.stats.total_labor_hours}h logged
+              </Badge>
+              <Badge variant="secondary" className="text-xs gap-1 font-normal">
+                <Wrench className="h-3 w-3" />
+                {incident.stats.active_equipment} active equip
+              </Badge>
+            </>
+          )}
         </div>
       </div>
 
-      {/* Split panel layout */}
-      <div className="flex flex-col lg:flex-row gap-6 min-h-[calc(100vh-280px)]">
-        <OverviewPanel
-          incident={incident}
-          can_assign={can_assign}
-          can_manage_contacts={can_manage_contacts}
-          assignable_users={assignable_users}
-        />
-
-        <div className="lg:w-[35%] lg:min-w-[35%] lg:border-l lg:border-border lg:pl-6">
+      {/* Split panel layout — tabs left (65%), details sidebar right (35%) */}
+      <div className="flex flex-col lg:flex-row gap-6 lg:h-[calc(100vh-240px)] lg:overflow-hidden">
+        <div className="order-2 lg:order-1 lg:w-[65%] lg:min-w-[65%] h-full overflow-hidden">
           <RightPanelShell activeTab={activeTab} onTabChange={setActiveTab}>
-            {activeTab === "messages" && (
-              <MessagePanel
-                messages={messages}
-                messages_path={incident.messages_path}
-              />
+            {activeTab === "activity" && (
+              <ActivityPanel entries={activity_entries} />
             )}
             {activeTab === "daily_log" && (
               <DailyLogPanel
+                daily_activities={daily_activities}
+                daily_log_dates={daily_log_dates}
                 labor_entries={labor_entries}
-                equipment_entries={equipment_entries}
                 operational_notes={operational_notes}
                 attachments={attachments}
+                can_manage_activities={can_manage_activities}
                 can_manage_labor={can_manage_labor}
-                can_manage_equipment={can_manage_equipment}
                 can_create_notes={can_create_notes}
+                activity_entries_path={incident.activity_entries_path}
                 labor_entries_path={incident.labor_entries_path}
-                equipment_entries_path={incident.equipment_entries_path}
                 operational_notes_path={incident.operational_notes_path}
                 attachments_path={incident.attachments_path}
                 assignable_labor_users={assignable_labor_users}
                 equipment_types={equipment_types}
+                attachable_equipment_entries={attachable_equipment_entries}
+              />
+            )}
+            {activeTab === "messages" && (
+              <MessagePanel
+                messages={messages}
+                messages_path={incident.messages_path}
               />
             )}
             {activeTab === "documents" && (
@@ -202,6 +230,15 @@ export default function IncidentShow() {
               />
             )}
           </RightPanelShell>
+        </div>
+
+        <div className="order-1 lg:order-2 lg:w-[35%] lg:min-w-[35%] lg:border-l lg:border-border lg:pl-6 h-full lg:overflow-y-auto pb-6">
+          <OverviewPanel
+            incident={incident}
+            can_assign={can_assign}
+            can_manage_contacts={can_manage_contacts}
+            assignable_users={assignable_users}
+          />
         </div>
       </div>
     </AppLayout>

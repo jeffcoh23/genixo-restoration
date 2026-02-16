@@ -50,7 +50,7 @@ export default function NewIncident() {
     <AppLayout>
       <PageHeader title="New Incident" backLink={{ href: routes.incidents, label: "Incidents" }} />
 
-      <form onSubmit={handleSubmit} className="max-w-lg space-y-5">
+      <form onSubmit={handleSubmit} className="max-w-lg mx-auto bg-card border border-border rounded shadow-sm p-6 space-y-5">
         {/* Property */}
         <div className="space-y-2">
           <Label htmlFor="property_id">Property *</Label>
@@ -58,7 +58,7 @@ export default function NewIncident() {
             id="property_id"
             value={data.property_id}
             onChange={(e) => setData("property_id", e.target.value)}
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
             <option value="">Select a property...</option>
             {properties.map((p) => (
@@ -118,7 +118,7 @@ export default function NewIncident() {
             id="damage_type"
             value={data.damage_type}
             onChange={(e) => setData("damage_type", e.target.value)}
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
             <option value="">Select damage type...</option>
             {damage_types.map((dt) => (
@@ -137,7 +137,7 @@ export default function NewIncident() {
             value={data.description}
             onChange={(e) => setData("description", e.target.value)}
             placeholder="Describe the damage and situation..."
-            className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="flex w-full rounded-md border border-input bg-muted px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           />
           {errors.description && <p className="text-sm text-destructive">{errors.description}</p>}
         </div>
@@ -151,7 +151,7 @@ export default function NewIncident() {
             value={data.cause}
             onChange={(e) => setData("cause", e.target.value)}
             placeholder="Known cause of the damage, if any..."
-            className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="flex w-full rounded-md border border-input bg-muted px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           />
           {errors.cause && <p className="text-sm text-destructive">{errors.cause}</p>}
         </div>
@@ -165,7 +165,7 @@ export default function NewIncident() {
             value={data.requested_next_steps}
             onChange={(e) => setData("requested_next_steps", e.target.value)}
             placeholder="What would you like us to do first?"
-            className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="flex w-full rounded-md border border-input bg-muted px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           />
           {errors.requested_next_steps && <p className="text-sm text-destructive">{errors.requested_next_steps}</p>}
         </div>

@@ -176,7 +176,7 @@ Incident lifecycle, dashboard, detail page, assignments.
 
 ### Incident Detail — Right Panel Shell
 
-- [x] Tab bar — Messages, Daily Log, Documents
+- [x] Tab bar — Activity, Daily Log, Messages, Documents
 - [x] Compose area pinned to viewport bottom on Messages tab
 
 **Done when:** Create incident → dashboard → detail → change status → assign users → add contacts. All role scoping works.
@@ -194,13 +194,13 @@ Messages, labor, equipment, notes, attachments, daily log, documents panel.
 
 ### Labor Entries
 
-- [x] Labor entries controller + tests (see BUSINESS_RULES.md §8)
+- [x] Labor entries controller + tests (see BUSINESS_RULES.md §9)
 - [x] Add/edit labor forms — role permissions per BUSINESS_RULES.md
 - [x] Activity events on create/update
 
 ### Equipment Entries
 
-- [x] Equipment entries controller + tests (see BUSINESS_RULES.md §9)
+- [x] Equipment entries controller + tests (see BUSINESS_RULES.md §10)
 - [x] Add/edit equipment form with type dropdown + "Other" freeform
 - [x] Remove equipment (set removed_at)
 - [x] Activity events on place/remove
@@ -212,15 +212,15 @@ Messages, labor, equipment, notes, attachments, daily log, documents panel.
 
 ### Attachments
 
-- [x] Attachments controller + tests (see BUSINESS_RULES.md §10)
+- [x] Attachments controller + tests (see BUSINESS_RULES.md §11)
 - [x] Active Storage config — local dev, S3 production
 - [x] Upload form — file, description, category, log_date
 - [x] Message attachment support
 
 ### Daily Log Panel
 
-- [x] `DailyActivityService` (see ARCHITECTURE.md §4 Day-by-Day Activity)
-- [x] Daily log UI — date selector, all sections (see VIEWS.md §Right Panel: Daily Log)
+- [x] Activity-first data model: `activity_entries` + `activity_equipment_actions`
+- [x] Daily log UI — date selector, activities/labor/notes/documents (see VIEWS.md §Left Panel: Daily Log)
 - [x] "All Dates" timeline mode
 - [x] PM users see read-only (no add buttons except documents)
 
@@ -318,6 +318,19 @@ Complete the app for production use.
 ### Empty States
 
 - [x] Empty states for all lists and panels (see VIEWS.md §Empty States)
+
+### UI Audit & Composable Design System Cleanup
+
+- [x] Full-site UI ugliness/composability audit documented in `docs/UI_AUDIT.md`
+- [ ] Build missing primitives: `Select`, `Textarea`, `Tabs`, `Dialog/Sheet`, reusable `EmptyStateCard`
+- [ ] Add composable layout primitives: `SectionCard`, `CardTable`, `EntityHeader`, standardized section actions
+- [ ] Refactor `DataTable`, `DetailList`, and `StatusBadge` to match DESIGN.md surface + hierarchy rules
+- [ ] Replace page-level raw control styling (`<select>`, `<textarea>`, custom tab buttons) with shared primitives
+- [ ] Centralize status + relative time presentation (`statusColor` + `timeAgo`) into shared UI helpers
+- [ ] Migrate high-traffic pages first: Dashboard, Incidents Index, Incident Show (all right-panel tabs)
+- [ ] Migrate remaining CRUD/detail pages to the composable system (Organizations, Properties, Users, Settings, Invitations)
+- [ ] Accessibility + polish pass: focus states, keyboard nav, contrast, tap targets, spacing consistency
+- [ ] Visual QA sign-off across mobile/tablet/desktop for all six roles
 
 ### Final QA
 

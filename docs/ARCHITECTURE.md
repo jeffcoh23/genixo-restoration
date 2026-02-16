@@ -358,51 +358,21 @@ class StatusTransitionService
 end
 ```
 
-### 4. Day-by-Day Activity View
+### 4. Activity-First Daily Log
 
-Not a separate model — it's a query that groups existing data by date.
+Daily log operations are backed by first-class activity records:
 
-```ruby
-# app/services/daily_activity_service.rb
-class DailyActivityService
-  def initialize(incident:, date: nil)
-    @incident = incident
-    @date = date
-  end
+- `activity_entries` — one row per operational activity (`title`, `status`, `occurred_at`, optional units context)
+- `activity_equipment_actions` — optional child rows per activity (`add/remove/move/other`, quantity, optional note)
 
-  # Returns all dates that have activity
-  def activity_dates
-    @incident.activity_events
-             .select("DATE(created_at) as activity_date")
-             .distinct
-             .order("activity_date DESC")
-             .pluck("activity_date")
-  end
+Controller flow:
 
-  # Returns all activity for a specific date
-  def activity_for_date(date)
-    range = date.all_day
-
-    {
-      activity_events: @incident.activity_events.where(created_at: range).order(:created_at),
-      labor_entries: @incident.labor_entries.where(started_at: range)
-                       .or(@incident.labor_entries.where(created_at: range, started_at: nil)),
-      equipment_entries: equipment_activity(range),
-      operational_notes: @incident.operational_notes.where(created_at: range).order(:created_at),
-      attachments: @incident.attachments.where(created_at: range),
-      messages: @incident.messages.where(created_at: range).order(:created_at)
-    }
-  end
-
-  private
-
-  def equipment_activity(range)
-    placed = @incident.equipment_entries.where(placed_at: range)
-    removed = @incident.equipment_entries.where(removed_at: range)
-    (placed + removed).uniq.sort_by { |e| e.placed_at || e.removed_at }
-  end
-end
-```
+1. `ActivityEntriesController#create/update` validates and stores activity + child equipment actions.
+2. Controller logs `activity_event` (`activity_logged` / `activity_updated`) via `ActivityLogger`.
+3. `IncidentsController#show` serializes:
+   - `daily_activities` (newest-first)
+   - `daily_log_dates` (precomputed server-side date filters)
+   - `deployed_equipment` summary derived from equipment actions.
 
 ### 5. Dashboard Queries
 
@@ -482,7 +452,6 @@ All business logic lives in `app/services/`. Controllers are thin — they valid
 | `IncidentCreationService` | Creates incident, auto-transitions status, triggers escalation, sends confirmation |
 | `StatusTransitionService` | Validates and executes status changes, resolves escalation, notifies |
 | `EscalationService` | Contacts on-call manager, manages escalation chain |
-| `DailyActivityService` | Aggregates incident activity by date |
 | `DashboardService` | Compiles dashboard data with unread counts |
 | `NotificationDispatchService` | Provider-agnostic notification delivery (email, SMS, voice) |
 | `ActivityLogger` | Creates activity events + touches `last_activity_at` (used by all services) |
@@ -749,10 +718,10 @@ app/frontend/pages/
 │   ├── New.tsx                # Intake form
 │   └── components/
 │       ├── StatusBadge.tsx
-│       ├── OverviewPanel.tsx  # Left panel: description, team, contacts, stats
-│       ├── MessagePanel.tsx   # Right panel: chat thread
-│       ├── DailyLogPanel.tsx  # Right panel: day-by-day activity
-│       ├── DocumentPanel.tsx  # Right panel: all attachments
+│       ├── OverviewPanel.tsx  # Detail rail: description, deployed equipment, team, contacts
+│       ├── MessagePanel.tsx   # Tab panel: chat thread
+│       ├── DailyLogPanel.tsx  # Tab panel: activity-first daily log
+│       ├── DocumentPanel.tsx  # Tab panel: all attachments
 │       ├── LaborEntryForm.tsx
 │       ├── EquipmentLog.tsx
 │       ├── OperationalNotes.tsx

@@ -29,6 +29,7 @@ class Incident < ApplicationRecord
   has_many :incident_contacts, dependent: :destroy
   has_many :messages, dependent: :destroy
   has_many :activity_events, dependent: :destroy
+  has_many :activity_entries, dependent: :destroy
   has_many :labor_entries, dependent: :destroy
   has_many :equipment_entries, dependent: :destroy
   has_many :operational_notes, dependent: :destroy

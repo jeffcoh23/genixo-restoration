@@ -223,7 +223,7 @@ The primary workspace for an incident. Split-panel layout on desktop so users ca
 
 ### Desktop Layout (lg+)
 
-Left panel ~65% width (incident info — the primary content), right panel ~35% (messages/daily log/documents). Both scroll independently.
+Left panel ~65% width (incident workspace tabs), right panel ~35% (incident details). Both scroll independently.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────┐
@@ -233,7 +233,7 @@ Left panel ~65% width (incident info — the primary content), right panel ~35% 
 │  Created by Jane Doe · Feb 12, 2026              [JD] [MK] [ST] +2 assigned│
 ├─────────────────────────────────────────────────┬────────────────────────────┤
 │                                                 │                            │
-│  DESCRIPTION                                    │ [Messages] [Daily Log]     │
+│  [Activity] [Daily Log] [Messages] [Documents] │ DESCRIPTION                 │
 │  Water pipe burst in unit 238, flooding         │ [Documents]                │
 │  bedroom and hallway. Standing water ~2 in.     │ ────────────────────────   │
 │                                                 │                            │
@@ -247,7 +247,10 @@ Left panel ~65% width (incident info — the primary content), right panel ~35% 
 │  ROOMS: Bedroom, Hallway, Kitchen               │ Mike Kim · Genixo · Mgr   │
 │                                                 │ Tech team dispatched.      │
 │  ───────────────────────────────────────        │ Sarah en route. ETA 30     │
-│  ASSIGNED TEAM                                  │ min.                       │
+│  DEPLOYED EQUIPMENT                             │ min.                       │
+│   Air Mover x6                                  │                            │
+│   Dehumidifier x2                               │                            │
+│  ASSIGNED TEAM                                  │                            │
 │                                                 │              10:35 AM      │
 │  Genixo Construction                            │                            │
 │   Mike Kim · Manager                            │ Sarah Torres · Tech        │
@@ -274,13 +277,14 @@ Left panel ~65% width (incident info — the primary content), right panel ~35% 
 ```
 
 - Left panel is wider — incident details, assignments, contacts, and summary stats have room to breathe.
-- Right panel is narrower — messages, daily log, and documents are mostly text and don't need wide columns.
+- Left panel tabs order: **Activity → Daily Log → Messages → Documents**.
+- Right panel is narrower — description, deployed equipment, assigned team, and contacts.
 - Both panels scroll independently.
 - **Messages compose area is pinned to the bottom of the viewport** (not the bottom of the scroll content), so it's always visible regardless of how many messages exist above.
 
 ### Tablet / Mobile Layout (< lg)
 
-Single column. Overview at top, then tab bar for Messages, Daily Log, Documents below.
+Single column. Overview at top, then tab bar for Activity, Daily Log, Messages, Documents below.
 
 ```
 ┌────────────────────────────────────┐
@@ -300,7 +304,8 @@ Single column. Overview at top, then tab bar for Messages, Daily Log, Documents 
 │  │12.5hr│ │6 equp│ │8 plcd│      │
 │  └──────┘ └──────┘ └──────┘      │
 │                                    │
-│  [Messages] [Daily Log] [Docs]    │
+│  [Activity] [Daily Log] [Messages]│
+│  [Documents]                      │
 │  ──────────────────────────────── │
 │  (selected tab content here)      │
 │                                    │
@@ -325,11 +330,11 @@ Sticky at the top:
 3. **Contacts** — non-user contacts (insurance, owners). Add/remove by managers and PM-side.
 4. **Quick Stats** — total labor hours by role, active equipment, total placed, last status change.
 
-### Right Panel: Messages (default)
+### Left Panel: Activity (default)
 
 ```
 ┌────────────────────────────────────┐
-│  [Messages•] [Daily Log] [Docs]   │
+│  [Activity•] [Daily Log] [Messages] [Docs] │
 │  ──────────────────────────────── │
 │                                    │
 │  Jane Doe · Greystar · PM         │
@@ -355,20 +360,29 @@ Sticky at the top:
 └────────────────────────────────────┘
 ```
 
-- Chronological, oldest first.
-- Compose pinned at bottom.
-- Viewing marks messages as read.
+- Chronological feed of all incident activity (status changes, assignments, activity entries, labor, equipment, notes, documents, messages).
+- Newest entries at top.
 
-### Right Panel: Daily Log
+### Left Panel: Daily Log
+
+### Left Panel: Daily Log
 
 ```
 ┌──────────────────────────────────────────────────────┐
-│  [Messages] [Daily Log•] [Docs]                      │
+│  [Activity] [Daily Log•] [Messages] [Docs]           │
 │  ──────────────────────────────────────────────────  │
 │                                                      │
 │  ┌─────────────────────────────────────────┐        │
 │  │ Feb 14 │ Feb 13 │ Feb 12               │        │
 │  └─────────────────────────────────────────┘        │
+│                                                      │
+│  ACTIVITIES                         [+ Add Activity] │
+│  ┌────────────────────────────────────────────────┐ │
+│  │ Extract water  [Completed] · Feb 14 9:00 AM    │ │
+│  │ Units affected: 3 · Units 237, 238, 239        │ │
+│  │ ▲ Add 6 Air Movers · initial dry-down pass     │ │
+│  │ ▲ Add 2 Dehumidifiers · reduce humidity        │ │
+│  └────────────────────────────────────────────────┘ │
 │                                                      │
 │  LABOR                                 [+ Add Labor] │
 │  ┌────────────────────────────────────────────────┐ │
@@ -378,16 +392,6 @@ Sticky at the top:
 │  │   9:00 AM – 11:00 AM · On-site oversight       │ │
 │  │ General Labor · 1.0 hrs                        │ │
 │  │   Debris removal                               │ │
-│  └────────────────────────────────────────────────┘ │
-│                                                      │
-│  EQUIPMENT                         [+ Add Equipment] │
-│  ┌────────────────────────────────────────────────┐ │
-│  │ ▲ Dehumidifier #DH-042 — placed 9:15 AM       │ │
-│  │   Unit 238, bedroom                            │ │
-│  │ ▲ Air Mover #AM-018 — placed 9:20 AM          │ │
-│  │   Unit 238, hallway                            │ │
-│  │ ▲ Air Mover #AM-019 — placed 9:20 AM          │ │
-│  │   Unit 238, bedroom                            │ │
 │  └────────────────────────────────────────────────┘ │
 │                                                      │
 │  NOTES                                  [+ Add Note] │
@@ -405,14 +409,6 @@ Sticky at the top:
 │  │ 📷 photo_before_2.jpg · Photo                  │ │
 │  └────────────────────────────────────────────────┘ │
 │                                                      │
-│  EVENTS                                              │
-│  ┌────────────────────────────────────────────────┐ │
-│  │ Status: acknowledged → active                  │ │
-│  │   by Mike Kim · 9:00 AM                        │ │
-│  │ Sarah Torres assigned                          │ │
-│  │   by Mike Kim · 9:05 AM                        │ │
-│  └────────────────────────────────────────────────┘ │
-│                                                      │
 └──────────────────────────────────────────────────────┘
 ```
 
@@ -421,8 +417,8 @@ Sticky at the top:
 - When "All Dates" is selected, entries are grouped by date with date headers, scrollable top to bottom (oldest to newest) so you can see how the project has progressed over time.
 
 **Add buttons** (inline forms or slide-up modals):
+- "Add Activity" — title, occurred_at, status, units affected, units affected description, details, and optional equipment action rows (`add/remove/move/other`, quantity, type, optional note).
 - "Add Labor" — role_label, hours (or start/end time), log_date, notes, user picker (managers only). Visible to technicians and managers.
-- "Add Equipment" — equipment type dropdown (with "other" freeform option), identifier, placed_at, location notes. Visible to technicians and managers.
 - "Add Note" — note text, log_date. Visible to technicians and managers.
 - "Upload Document" — file picker, name/description (editable, defaults to filename), category dropdown, log_date (defaults to today). Visible to anyone who can see the incident.
 

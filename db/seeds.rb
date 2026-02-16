@@ -330,6 +330,69 @@ if Incident.count.zero?
       logged_by_user: users[:henry])
   end
 
+  # Activity entries (activity-first daily log)
+  extract_water = ActivityEntry.create!(
+    incident: incident1,
+    performed_by_user: users[:henry],
+    title: "Extract water",
+    details: "Pulled standing water from hallway and unit 238. Started structural drying setup.",
+    units_affected: 3,
+    units_affected_description: "Units 237, 238, 239 plus hallway",
+    status: "completed",
+    occurred_at: now - 3.days + 1.hour
+  )
+
+  ActivityEquipmentAction.create!(
+    activity_entry: extract_water,
+    action_type: "add",
+    quantity: 6,
+    equipment_type: equipment_types["Air Mover"],
+    note: "Increase airflow for primary dry-down pass"
+  )
+
+  ActivityEquipmentAction.create!(
+    activity_entry: extract_water,
+    action_type: "add",
+    quantity: 2,
+    equipment_type: equipment_types["Dehumidifier"],
+    note: "Lower ambient humidity to reduce drying time"
+  )
+
+  ActivityEvent.create!(
+    incident: incident1,
+    event_type: "activity_logged",
+    performed_by_user: users[:henry],
+    metadata: { title: extract_water.title, status: extract_water.status },
+    created_at: extract_water.occurred_at
+  )
+
+  move_fans = ActivityEntry.create!(
+    incident: incident1,
+    performed_by_user: users[:henry],
+    title: "Move fans for final dry pass",
+    details: "Moisture improved in unit 237; moved two fans to unit 238 kitchen wall.",
+    units_affected: 1,
+    units_affected_description: "Unit 238 kitchen wall",
+    status: "completed",
+    occurred_at: now - 2.days + 2.hours
+  )
+
+  ActivityEquipmentAction.create!(
+    activity_entry: move_fans,
+    action_type: "move",
+    quantity: 2,
+    equipment_type: equipment_types["Air Mover"],
+    note: "Redirect airflow to remaining wet section"
+  )
+
+  ActivityEvent.create!(
+    incident: incident1,
+    event_type: "activity_logged",
+    performed_by_user: users[:henry],
+    metadata: { title: move_fans.title, status: move_fans.status },
+    created_at: move_fans.occurred_at
+  )
+
   # Operational notes
   OperationalNote.create!(incident: incident1, created_by_user: users[:henry],
     note_text: "Extracted approximately 80 gallons of standing water from hallway and units. Set up 6 air movers and 2 dehumidifiers. Carpet in unit 238 may need replacement — pad is saturated. Drywall moisture readings: 238 kitchen 45%, 237 shared wall 28%, 239 shared wall 22%.",

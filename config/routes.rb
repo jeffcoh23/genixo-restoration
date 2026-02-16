@@ -17,6 +17,7 @@ Rails.application.routes.draw do
     resources :assignments, controller: "incident_assignments", only: %i[create destroy]
     resources :contacts, controller: "incident_contacts", only: %i[create destroy]
     resources :messages, only: %i[create]
+    resources :activity_entries, only: %i[create update]
     resources :labor_entries, only: %i[create update]
     resources :equipment_entries, only: %i[create update] do
       member do

@@ -71,6 +71,60 @@ export interface EquipmentEntry {
   equipment_type_id?: number | null;
   equipment_type_other?: string | null;
   placed_at?: string;
+  action_type?: "add" | "remove" | "move" | "other";
+  reason?: string | null;
+  action_notes?: string | null;
+  action_at?: string | null;
+}
+
+export interface EquipmentLogEntry {
+  id: string;
+  equipment_entry_id: number | null;
+  action: "add" | "remove" | "move" | "other";
+  action_label: string;
+  occurred_at: string;
+  occurred_at_label: string;
+  date_key: string;
+  date_label: string;
+  type_name: string;
+  equipment_identifier: string | null;
+  location_notes: string | null;
+  reason: string | null;
+  action_notes: string | null;
+  actor_name: string;
+  edit_path: string | null;
+  remove_path: string | null;
+  active: boolean;
+}
+
+export interface DailyActivityEquipmentAction {
+  id: number;
+  action_type: "add" | "remove" | "move" | "other";
+  action_label: string;
+  quantity: number | null;
+  type_name: string | null;
+  note: string | null;
+  equipment_type_id: number | null;
+  equipment_type_other: string | null;
+  equipment_entry_id: number | null;
+}
+
+export interface DailyActivity {
+  id: number;
+  title: string;
+  details: string | null;
+  status: "active" | "completed";
+  status_label: string;
+  occurred_at: string;
+  occurred_at_value: string;
+  occurred_at_label: string;
+  date_key: string;
+  date_label: string;
+  units_affected: number | null;
+  units_affected_description: string | null;
+  created_by_name: string;
+  edit_path: string | null;
+  equipment_actions: DailyActivityEquipmentAction[];
 }
 
 export interface OperationalNote {
@@ -102,6 +156,16 @@ export interface EquipmentType {
   name: string;
 }
 
+export interface AttachableEquipmentEntry {
+  id: number;
+  label: string;
+}
+
+export interface DailyLogDate {
+  key: string;
+  label: string;
+}
+
 export interface IncidentDetail {
   id: number;
   path: string;
@@ -116,6 +180,7 @@ export interface IncidentDetail {
   assignments_path: string;
   contacts_path: string;
   messages_path: string;
+  activity_entries_path: string;
   labor_entries_path: string;
   equipment_entries_path: string;
   operational_notes_path: string;
@@ -141,6 +206,15 @@ export interface IncidentDetail {
     address: string | null;
     path: string;
   };
+  deployed_equipment: {
+    id: string;
+    type_name: string;
+    quantity: number;
+    last_event_label: string | null;
+    last_event_at_label: string | null;
+    note: string | null;
+    actor_name: string | null;
+  }[];
   assigned_team: TeamGroup[];
   assigned_summary: AssignedSummary;
   contacts: Contact[];
@@ -171,21 +245,39 @@ export interface Message {
   attachments?: MessageAttachment[];
 }
 
+export interface ActivityEntry {
+  id: string;
+  occurred_at: string;
+  timestamp_label: string;
+  date_label: string;
+  show_date_separator: boolean;
+  actor_name: string;
+  actor_initials: string;
+  actor_role_label: string | null;
+  actor_org_name: string | null;
+  category: "message" | "status" | "assignment" | "labor" | "equipment" | "document" | "note" | "contact" | "system";
+  title: string;
+  detail: string | null;
+}
+
 export interface ShowProps {
   incident: IncidentDetail;
+  activity_entries: ActivityEntry[];
+  daily_activities: DailyActivity[];
+  daily_log_dates: DailyLogDate[];
   messages: Message[];
   labor_entries: LaborEntry[];
-  equipment_entries: EquipmentEntry[];
   operational_notes: OperationalNote[];
   attachments: IncidentAttachment[];
   can_transition: boolean;
   can_assign: boolean;
   can_manage_contacts: boolean;
+  can_manage_activities: boolean;
   can_manage_labor: boolean;
-  can_manage_equipment: boolean;
   can_create_notes: boolean;
   assignable_users: AssignableUser[];
   assignable_labor_users: AssignableUser[];
   equipment_types: EquipmentType[];
+  attachable_equipment_entries: AttachableEquipmentEntry[];
   back_path: string;
 }

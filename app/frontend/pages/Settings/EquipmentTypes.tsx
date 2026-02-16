@@ -41,13 +41,26 @@ export default function EquipmentTypesSettings() {
     <AppLayout>
       <PageHeader title="Equipment Types" />
 
+      <form onSubmit={handleAdd} className="flex items-center gap-2 mb-6">
+        <Input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="New equipment type name..."
+          className="max-w-xs"
+        />
+        <Button type="submit" size="sm" disabled={!name.trim() || submitting} className="gap-1">
+          <Plus className="h-3.5 w-3.5" />
+          Add
+        </Button>
+      </form>
+
       {active_types.length === 0 && inactive_types.length === 0 ? (
         <div className="rounded border border-border bg-card p-8 text-center">
           <div className="mx-auto h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">
             <Wrench className="h-6 w-6 text-muted-foreground" />
           </div>
           <p className="text-muted-foreground">No equipment types defined yet.</p>
-          <p className="text-sm text-muted-foreground mt-1">Add your first type below.</p>
+          <p className="text-sm text-muted-foreground mt-1">Add your first type above.</p>
         </div>
       ) : (
         <div className="space-y-6">
@@ -98,19 +111,6 @@ export default function EquipmentTypesSettings() {
           )}
         </div>
       )}
-
-      <form onSubmit={handleAdd} className="flex items-center gap-2 mt-6">
-        <Input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="New equipment type name..."
-          className="max-w-xs"
-        />
-        <Button type="submit" size="sm" disabled={!name.trim() || submitting} className="gap-1">
-          <Plus className="h-3.5 w-3.5" />
-          Add
-        </Button>
-      </form>
     </AppLayout>
   );
 }

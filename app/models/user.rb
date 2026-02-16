@@ -29,6 +29,7 @@ class User < ApplicationRecord
   has_many :assigned_properties, through: :property_assignments, source: :property
   has_many :incident_assignments, dependent: :destroy
   has_many :assigned_incidents, through: :incident_assignments, source: :incident
+  has_many :activity_entries, foreign_key: :performed_by_user_id
 
   validates :email_address, presence: true, uniqueness: { case_sensitive: false }
   validates :first_name, presence: true
