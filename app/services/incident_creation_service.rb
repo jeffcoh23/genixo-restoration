@@ -50,17 +50,17 @@ class IncidentCreationService
     users_to_assign = Set.new
 
     # PM-side: property assignees (property_managers, area_managers on this property)
-    @property.assigned_users.active.where(user_type: %w[property_manager area_manager]).find_each do |u|
+    @property.assigned_users.active.where(user_type: [User::PROPERTY_MANAGER, User::AREA_MANAGER]).find_each do |u|
       users_to_assign << u
     end
 
     # PM-side: all pm_managers in the property's PM org
-    @property.property_management_org.users.active.where(user_type: "pm_manager").find_each do |u|
+    @property.property_management_org.users.active.where(user_type: User::PM_MANAGER).find_each do |u|
       users_to_assign << u
     end
 
     # Mitigation-side: managers + office_sales (NOT technicians)
-    @property.mitigation_org.users.active.where(user_type: %w[manager office_sales]).find_each do |u|
+    @property.mitigation_org.users.active.where(user_type: [User::MANAGER, User::OFFICE_SALES]).find_each do |u|
       users_to_assign << u
     end
 

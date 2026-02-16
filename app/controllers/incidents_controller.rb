@@ -198,12 +198,12 @@ class IncidentsController < ApplicationController
   end
 
   def can_manage_labor?
-    current_user.user_type.in?(%w[manager technician])
+    can_create_labor?
   end
 
   def can_edit_labor_entry?(entry)
-    return true if current_user.user_type == "manager"
-    current_user.user_type == "technician" && entry.created_by_user_id == current_user.id
+    return true if mitigation_admin?
+    can_create_labor? && entry.created_by_user_id == current_user.id
   end
 
   def can_assign_to_incident?
@@ -305,7 +305,7 @@ class IncidentsController < ApplicationController
   end
 
   def assignable_labor_users(incident)
-    if current_user.user_type == "manager"
+    if mitigation_admin?
       User.where(active: true, organization_id: incident.property.mitigation_org_id)
         .order(:last_name, :first_name)
         .map { |u| { id: u.id, full_name: u.full_name, role_label: User::ROLE_LABELS[u.user_type] } }

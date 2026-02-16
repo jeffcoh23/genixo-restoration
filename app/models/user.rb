@@ -1,15 +1,23 @@
 class User < ApplicationRecord
-  MITIGATION_TYPES = %w[manager technician office_sales].freeze
-  PM_TYPES = %w[property_manager area_manager pm_manager].freeze
+  # --- User type constants ---
+  MANAGER           = "manager"
+  TECHNICIAN        = "technician"
+  OFFICE_SALES      = "office_sales"
+  PROPERTY_MANAGER  = "property_manager"
+  AREA_MANAGER      = "area_manager"
+  PM_MANAGER        = "pm_manager"
+
+  MITIGATION_TYPES = [MANAGER, TECHNICIAN, OFFICE_SALES].freeze
+  PM_TYPES = [PROPERTY_MANAGER, AREA_MANAGER, PM_MANAGER].freeze
   ALL_TYPES = (MITIGATION_TYPES + PM_TYPES).freeze
 
   ROLE_LABELS = {
-    "manager" => "Manager",
-    "technician" => "Technician",
-    "office_sales" => "Office/Sales",
-    "property_manager" => "Property Manager",
-    "area_manager" => "Area Manager",
-    "pm_manager" => "PM Manager"
+    MANAGER => "Manager",
+    TECHNICIAN => "Technician",
+    OFFICE_SALES => "Office/Sales",
+    PROPERTY_MANAGER => "Property Manager",
+    AREA_MANAGER => "Area Manager",
+    PM_MANAGER => "PM Manager"
   }.freeze
 
   has_secure_password validations: false

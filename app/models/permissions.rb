@@ -8,27 +8,31 @@ class Permissions
   MANAGE_USERS          = :manage_users
   MANAGE_ON_CALL        = :manage_on_call
   MANAGE_EQUIPMENT_TYPES = :manage_equipment_types
+  CREATE_LABOR          = :create_labor
 
   # --- Role → permissions map ---
   # Single source of truth. To grant a new permission to a role, add it here.
   # When we move to a database-backed system, this becomes the default fallback.
   ROLE_PERMISSIONS = {
-    "manager" => [
+    User::MANAGER => [
       CREATE_INCIDENT, TRANSITION_STATUS, CREATE_PROPERTY, VIEW_PROPERTIES,
-      MANAGE_ORGANIZATIONS, MANAGE_USERS, MANAGE_ON_CALL, MANAGE_EQUIPMENT_TYPES
+      MANAGE_ORGANIZATIONS, MANAGE_USERS, MANAGE_ON_CALL, MANAGE_EQUIPMENT_TYPES,
+      CREATE_LABOR
     ],
-    "office_sales" => [
+    User::OFFICE_SALES => [
       CREATE_INCIDENT, CREATE_PROPERTY, VIEW_PROPERTIES,
       MANAGE_ORGANIZATIONS, MANAGE_USERS
     ],
-    "technician" => [],
-    "property_manager" => [
+    User::TECHNICIAN => [
+      CREATE_LABOR
+    ],
+    User::PROPERTY_MANAGER => [
       CREATE_INCIDENT, VIEW_PROPERTIES
     ],
-    "area_manager" => [
+    User::AREA_MANAGER => [
       CREATE_INCIDENT, VIEW_PROPERTIES
     ],
-    "pm_manager" => [
+    User::PM_MANAGER => [
       VIEW_PROPERTIES
     ]
   }.freeze

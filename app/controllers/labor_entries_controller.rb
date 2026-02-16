@@ -65,16 +65,12 @@ class LaborEntriesController < ApplicationController
     raise ActiveRecord::RecordNotFound unless can_create_labor?
   end
 
-  def can_create_labor?
-    current_user.user_type.in?(%w[manager technician])
-  end
-
   def technician?
-    current_user.user_type == "technician"
+    current_user.user_type == User::TECHNICIAN
   end
 
   def find_editable_entry!
-    if current_user.user_type == "manager"
+    if mitigation_admin?
       @incident.labor_entries.find(params[:id])
     else
       @incident.labor_entries.where(created_by_user_id: current_user.id).find(params[:id])

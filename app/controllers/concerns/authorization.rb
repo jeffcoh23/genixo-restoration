@@ -7,13 +7,13 @@ module Authorization
 
   def visible_properties
     case current_user.user_type
-    when "manager", "office_sales"
+    when User::MANAGER, User::OFFICE_SALES
       Property.where(mitigation_org_id: current_user.organization_id)
-    when "technician"
+    when User::TECHNICIAN
       Property.joins(incidents: :incident_assignments)
               .where(incident_assignments: { user_id: current_user.id })
               .distinct
-    when "property_manager", "area_manager", "pm_manager"
+    when *User::PM_TYPES
       Property.joins(:property_assignments)
               .where(property_assignments: { user_id: current_user.id })
     end
@@ -21,13 +21,13 @@ module Authorization
 
   def visible_incidents
     case current_user.user_type
-    when "manager", "office_sales"
+    when User::MANAGER, User::OFFICE_SALES
       Incident.joins(:property)
               .where(properties: { mitigation_org_id: current_user.organization_id })
-    when "technician"
+    when User::TECHNICIAN
       Incident.joins(:incident_assignments)
               .where(incident_assignments: { user_id: current_user.id })
-    when "property_manager", "area_manager", "pm_manager"
+    when *User::PM_TYPES
       property_ids = PropertyAssignment.where(user_id: current_user.id).select(:property_id)
       incident_ids = IncidentAssignment.where(user_id: current_user.id).select(:incident_id)
       Incident.where(property_id: property_ids).or(Incident.where(id: incident_ids))
@@ -68,6 +68,10 @@ module Authorization
 
   def can_manage_users?
     current_user.can?(Permissions::MANAGE_USERS)
+  end
+
+  def can_create_labor?
+    current_user.can?(Permissions::CREATE_LABOR)
   end
 
   # --- Resource-scoped checks (need a specific record) ---
