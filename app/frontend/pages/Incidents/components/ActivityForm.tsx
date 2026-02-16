@@ -206,10 +206,10 @@ export default function ActivityForm({
                 const usingOtherType = action.equipment_type_id === "__other__";
 
                 return (
-                  <div key={`equipment-action-${index}`} className="rounded border border-border bg-muted/40 p-2.5 space-y-2">
+                  <div key={`equipment-action-${index}`} className="rounded border border-border bg-muted p-2.5 space-y-2">
                     <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
                       <div>
-                        <label className="text-[11px] font-medium text-muted-foreground">Action</label>
+                        <label className="text-xs font-medium text-muted-foreground">Action</label>
                         <select
                           value={action.action_type}
                           onChange={(e) => updateAction(index, { action_type: e.target.value as EquipmentActionType })}
@@ -223,7 +223,7 @@ export default function ActivityForm({
                       </div>
 
                       <div>
-                        <label className="text-[11px] font-medium text-muted-foreground">Quantity</label>
+                        <label className="text-xs font-medium text-muted-foreground">Quantity</label>
                         <Input
                           type="number"
                           min="1"
@@ -235,7 +235,7 @@ export default function ActivityForm({
                       </div>
 
                       <div className="sm:col-span-2">
-                        <label className="text-[11px] font-medium text-muted-foreground">Equipment Type</label>
+                        <label className="text-xs font-medium text-muted-foreground">Equipment Type</label>
                         <select
                           value={action.equipment_type_id || ""}
                           onChange={(e) => {
@@ -258,7 +258,7 @@ export default function ActivityForm({
 
                     {usingOtherType && (
                       <div>
-                        <label className="text-[11px] font-medium text-muted-foreground">Other Equipment Type</label>
+                        <label className="text-xs font-medium text-muted-foreground">Other Equipment Type</label>
                         <Input
                           value={action.equipment_type_other}
                           onChange={(e) => updateAction(index, { equipment_type_other: e.target.value })}
@@ -270,7 +270,7 @@ export default function ActivityForm({
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       <div>
-                        <label className="text-[11px] font-medium text-muted-foreground">Specific Equipment (optional)</label>
+                        <label className="text-xs font-medium text-muted-foreground">Specific Equipment (optional)</label>
                         <select
                           value={action.equipment_entry_id}
                           onChange={(e) => updateAction(index, { equipment_entry_id: e.target.value })}
@@ -285,7 +285,7 @@ export default function ActivityForm({
                         </select>
                       </div>
                       <div>
-                        <label className="text-[11px] font-medium text-muted-foreground">Note (optional)</label>
+                        <label className="text-xs font-medium text-muted-foreground">Note (optional)</label>
                         <Input
                           value={action.note}
                           onChange={(e) => updateAction(index, { note: e.target.value })}

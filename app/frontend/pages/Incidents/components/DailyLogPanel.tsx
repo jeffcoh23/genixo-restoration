@@ -251,7 +251,7 @@ function ActivityEntryRow({
   onEdit?: () => void;
 }) {
   return (
-    <div className="bg-muted rounded border border-border/60 p-2.5 text-sm">
+    <div className="bg-muted rounded border border-border p-2.5 text-sm">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-1.5">

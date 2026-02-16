@@ -78,20 +78,21 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
         </div>
       )}
 
-      <div className="border-t border-border/60" />
+      <div className="border-t border-border" />
 
       {/* Deployed Equipment — collapsible, default open */}
       <div>
-        <button
+        <Button
+          variant="ghost"
           onClick={() => setEquipmentOpen(!equipmentOpen)}
-          className="flex items-center gap-1.5 w-full text-left -mx-1.5 px-1.5 py-1 rounded hover:bg-muted/50 transition-colors"
+          className="flex items-center gap-1.5 w-full justify-start -mx-1.5 px-1.5 py-1 h-auto rounded hover:bg-muted transition-colors"
         >
           <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${equipmentOpen ? "" : "-rotate-90"}`} />
           <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Deployed Equipment
           </h3>
-          <span className="text-[11px] text-muted-foreground tabular-nums ml-auto">{incident.deployed_equipment.length}</span>
-        </button>
+          <span className="text-xs text-muted-foreground tabular-nums ml-auto">{incident.deployed_equipment.length}</span>
+        </Button>
 
         {equipmentOpen && (
           <div className="mt-2 ml-5">
@@ -100,19 +101,19 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
             ) : (
               <div className="space-y-1.5">
                 {incident.deployed_equipment.map((item) => (
-                  <div key={item.id} className="bg-muted/60 rounded border border-border p-2">
+                  <div key={item.id} className="bg-muted rounded border border-border p-2">
                     <div className="flex items-center gap-1.5">
                       <Wrench className="h-3.5 w-3.5 text-muted-foreground" />
                       <span className="text-xs font-medium text-foreground">{item.type_name}</span>
-                      <span className="text-[11px] text-muted-foreground">x{item.quantity}</span>
+                      <span className="text-xs text-muted-foreground">x{item.quantity}</span>
                     </div>
                     {item.last_event_label && item.last_event_at_label && (
-                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                      <p className="text-xs text-muted-foreground mt-0.5">
                         Last action: {item.last_event_label} · {item.last_event_at_label}
                       </p>
                     )}
-                    {item.note && <p className="text-[11px] text-muted-foreground">{item.note}</p>}
-                    {item.actor_name && <p className="text-[11px] text-muted-foreground">{item.actor_name}</p>}
+                    {item.note && <p className="text-xs text-muted-foreground">{item.note}</p>}
+                    {item.actor_name && <p className="text-xs text-muted-foreground">{item.actor_name}</p>}
                   </div>
                 ))}
               </div>
@@ -123,16 +124,17 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
 
       {/* Assigned Team — collapsible, default open */}
       <div>
-        <button
+        <Button
+          variant="ghost"
           onClick={() => setTeamOpen(!teamOpen)}
-          className="flex items-center gap-1.5 w-full text-left -mx-1.5 px-1.5 py-1 rounded hover:bg-muted/50 transition-colors"
+          className="flex items-center gap-1.5 w-full justify-start -mx-1.5 px-1.5 py-1 h-auto rounded hover:bg-muted transition-colors"
         >
           <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${teamOpen ? "" : "-rotate-90"}`} />
           <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Assigned Team
           </h3>
-          <span className="text-[11px] text-muted-foreground tabular-nums ml-auto">{incident.assigned_summary.count}</span>
-        </button>
+          <span className="text-xs text-muted-foreground tabular-nums ml-auto">{incident.assigned_summary.count}</span>
+        </Button>
 
         {teamOpen && (
           <div className="mt-2 ml-5">
@@ -148,20 +150,22 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
                     </div>
                     <div className="space-y-0.5 ml-5">
                       {group.users.map((u) => (
-                        <div key={u.id} className="flex items-center gap-1.5 text-xs -mx-1 px-1 py-0.5 rounded hover:bg-muted/40 transition-colors">
+                        <div key={u.id} className="flex items-center gap-1.5 text-xs -mx-1 px-1 py-0.5 rounded hover:bg-muted transition-colors">
                           <div className="h-5 w-5 rounded-full bg-muted flex items-center justify-center text-[9px] font-medium text-muted-foreground shrink-0">
                             {u.initials}
                           </div>
                           <span className="text-foreground">{u.full_name}</span>
                           <span className="text-muted-foreground">&middot; {u.role_label}</span>
                           {u.remove_path && (
-                            <button
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               onClick={() => handleRemove(u.remove_path!)}
-                              className="ml-auto text-muted-foreground hover:text-destructive transition-colors"
+                              className="ml-auto h-5 w-5 p-0 text-muted-foreground hover:text-destructive transition-colors"
                               title={`Remove ${u.full_name}`}
                             >
                               <X className="h-3 w-3" />
-                            </button>
+                            </Button>
                           )}
                         </div>
                       ))}
@@ -181,16 +185,17 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
                 {assignOpen && (
                   <>
                     <div className="fixed inset-0 z-10" onClick={() => setAssignOpen(false)} />
-                    <div className="absolute left-0 top-full mt-1 z-20 bg-popover border border-border rounded-md shadow-md py-1 min-w-[220px] max-h-[200px] overflow-y-auto">
+                    <div className="absolute left-0 top-full mt-1 z-20 bg-popover border border-border rounded shadow-md py-1 min-w-[220px] max-h-[200px] overflow-y-auto">
                       {assignable_users.map((u) => (
-                        <button
+                        <Button
                           key={u.id}
+                          variant="ghost"
                           onClick={() => handleAssign(u.id)}
-                          className="w-full px-3 py-1.5 text-left text-xs hover:bg-muted transition-colors flex items-center justify-between"
+                          className="w-full justify-between px-3 py-1.5 h-auto text-xs hover:bg-muted transition-colors rounded-none"
                         >
                           <span>{u.full_name}</span>
                           <span className="text-muted-foreground">{u.role_label}</span>
-                        </button>
+                        </Button>
                       ))}
                     </div>
                   </>
@@ -203,16 +208,17 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
 
       {/* Contacts — collapsible, default closed */}
       <div>
-        <button
+        <Button
+          variant="ghost"
           onClick={() => setContactsOpen(!contactsOpen)}
-          className="flex items-center gap-1.5 w-full text-left -mx-1.5 px-1.5 py-1 rounded hover:bg-muted/50 transition-colors"
+          className="flex items-center gap-1.5 w-full justify-start -mx-1.5 px-1.5 py-1 h-auto rounded hover:bg-muted transition-colors"
         >
           <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${contactsOpen ? "" : "-rotate-90"}`} />
           <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Contacts
           </h3>
-          <span className="text-[11px] text-muted-foreground tabular-nums ml-auto">{incident.contacts.length}</span>
-        </button>
+          <span className="text-xs text-muted-foreground tabular-nums ml-auto">{incident.contacts.length}</span>
+        </Button>
 
         {contactsOpen && (
           <div className="mt-2 ml-5">
@@ -229,7 +235,7 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
                             {c.name}
                             {c.title && <span className="text-muted-foreground font-normal"> &middot; {c.title}</span>}
                           </div>
-                          <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-0.5">
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
                             {c.email && (
                               <span className="flex items-center gap-1">
                                 <Mail className="h-2.5 w-2.5" />
@@ -245,13 +251,15 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
                           </div>
                         </div>
                         {c.remove_path && (
-                          <button
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => handleRemoveContact(c.remove_path!)}
-                            className="text-muted-foreground hover:text-destructive transition-colors mt-0.5"
+                            className="h-5 w-5 p-0 text-muted-foreground hover:text-destructive transition-colors mt-0.5"
                             title={`Remove ${c.name}`}
                           >
                             <X className="h-3 w-3" />
-                          </button>
+                          </Button>
                         )}
                       </div>
                     ))}
@@ -261,7 +269,7 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
                 {can_manage_contacts && (
                   <div className="mt-2">
                     {contactFormOpen ? (
-                      <form onSubmit={handleAddContact} className="space-y-2 rounded-md border border-border p-3">
+                      <form onSubmit={handleAddContact} className="space-y-2 rounded border border-border p-3">
                         <Input
                           type="text"
                           placeholder="Name *"

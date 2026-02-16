@@ -5,6 +5,7 @@ import AppLayout from "@/layout/AppLayout";
 import PageHeader from "@/components/PageHeader";
 import FormField from "@/components/FormField";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SharedProps } from "@/types";
 
@@ -58,7 +59,7 @@ export default function NewIncident() {
             id="property_id"
             value={data.property_id}
             onChange={(e) => setData("property_id", e.target.value)}
-            className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="flex h-10 w-full rounded border border-input bg-muted px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
             <option value="">Select a property...</option>
             {properties.map((p) => (
@@ -75,13 +76,13 @@ export default function NewIncident() {
             {project_types.map((pt) => (
               <label
                 key={pt.value}
-                className={`flex items-center gap-2 rounded-md border px-3 py-2.5 text-sm cursor-pointer transition-colors ${
+                className={`flex items-center gap-2 rounded border px-3 py-2.5 text-sm cursor-pointer transition-colors ${
                   data.project_type === pt.value
                     ? "border-primary bg-accent text-accent-foreground"
                     : "border-input bg-background text-foreground hover:bg-muted"
                 }`}
               >
-                <input
+                <Input
                   type="radio"
                   name="project_type"
                   value={pt.value}
@@ -105,7 +106,7 @@ export default function NewIncident() {
 
         {/* Emergency warning */}
         {isEmergency && (
-          <div className="flex items-start gap-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+          <div className="flex items-start gap-3 rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
             <AlertTriangle className="h-5 w-5 flex-shrink-0 text-amber-600 mt-0.5" />
             <p>This will trigger the emergency escalation chain and notify the on-call team immediately.</p>
           </div>
@@ -118,7 +119,7 @@ export default function NewIncident() {
             id="damage_type"
             value={data.damage_type}
             onChange={(e) => setData("damage_type", e.target.value)}
-            className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="flex h-10 w-full rounded border border-input bg-muted px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
             <option value="">Select damage type...</option>
             {damage_types.map((dt) => (
@@ -137,7 +138,7 @@ export default function NewIncident() {
             value={data.description}
             onChange={(e) => setData("description", e.target.value)}
             placeholder="Describe the damage and situation..."
-            className="flex w-full rounded-md border border-input bg-muted px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="flex w-full rounded border border-input bg-muted px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           />
           {errors.description && <p className="text-sm text-destructive">{errors.description}</p>}
         </div>
@@ -151,7 +152,7 @@ export default function NewIncident() {
             value={data.cause}
             onChange={(e) => setData("cause", e.target.value)}
             placeholder="Known cause of the damage, if any..."
-            className="flex w-full rounded-md border border-input bg-muted px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="flex w-full rounded border border-input bg-muted px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           />
           {errors.cause && <p className="text-sm text-destructive">{errors.cause}</p>}
         </div>
@@ -165,7 +166,7 @@ export default function NewIncident() {
             value={data.requested_next_steps}
             onChange={(e) => setData("requested_next_steps", e.target.value)}
             placeholder="What would you like us to do first?"
-            className="flex w-full rounded-md border border-input bg-muted px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="flex w-full rounded border border-input bg-muted px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           />
           {errors.requested_next_steps && <p className="text-sm text-destructive">{errors.requested_next_steps}</p>}
         </div>
