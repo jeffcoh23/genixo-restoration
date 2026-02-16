@@ -151,7 +151,7 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
                     <div className="space-y-0.5 ml-5">
                       {group.users.map((u) => (
                         <div key={u.id} className="flex items-center gap-1.5 text-xs -mx-1 px-1 py-0.5 rounded hover:bg-muted transition-colors">
-                          <div className="h-5 w-5 rounded-full bg-muted flex items-center justify-center text-[9px] font-medium text-muted-foreground shrink-0">
+                          <div className="h-5 w-5 rounded-full bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground shrink-0">
                             {u.initials}
                           </div>
                           <span className="text-foreground">{u.full_name}</span>
