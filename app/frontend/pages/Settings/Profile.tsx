@@ -61,7 +61,7 @@ function ProfileForm({ user, timezoneOptions, updatePath }: {
           id="timezone"
           value={data.timezone}
           onChange={(e) => setData("timezone", e.target.value)}
-          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs"
+          className="flex h-9 w-full rounded border border-input bg-transparent px-3 py-1 text-sm shadow-xs"
         >
           {timezoneOptions.map((tz) => (
             <option key={tz.value} value={tz.value}>{tz.label}</option>
