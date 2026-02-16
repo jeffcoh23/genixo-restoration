@@ -38,6 +38,62 @@ export interface Transition {
   label: string;
 }
 
+export interface LaborEntry {
+  id: number;
+  role_label: string;
+  hours: number;
+  log_date: string;
+  log_date_label: string;
+  started_at_label: string | null;
+  ended_at_label: string | null;
+  notes: string | null;
+  user_name: string | null;
+  created_by_name: string;
+  edit_path: string | null;
+}
+
+export interface EquipmentEntry {
+  id: number;
+  type_name: string;
+  equipment_identifier: string | null;
+  placed_at_label: string;
+  removed_at_label: string | null;
+  active: boolean;
+  location_notes: string | null;
+  logged_by_name: string;
+  edit_path: string | null;
+  remove_path: string | null;
+}
+
+export interface OperationalNote {
+  id: number;
+  note_text: string;
+  log_date: string;
+  log_date_label: string;
+  created_at_label: string;
+  created_by_name: string;
+}
+
+export interface IncidentAttachment {
+  id: number;
+  filename: string;
+  category: string;
+  category_label: string;
+  description: string | null;
+  log_date: string | null;
+  log_date_label: string | null;
+  created_at_label: string;
+  uploaded_by_name: string;
+  content_type: string;
+  byte_size: number;
+  url: string;
+}
+
+export interface EquipmentType {
+  id: number;
+  name: string;
+}
+
 export interface IncidentDetail {
   id: number;
   path: string;
@@ -52,6 +108,10 @@ export interface IncidentDetail {
   assignments_path: string;
   contacts_path: string;
   messages_path: string;
+  labor_entries_path: string;
+  equipment_entries_path: string;
+  operational_notes_path: string;
+  attachments_path: string;
   description: string;
   cause: string | null;
   requested_next_steps: string | null;
@@ -106,9 +166,18 @@ export interface Message {
 export interface ShowProps {
   incident: IncidentDetail;
   messages: Message[];
+  labor_entries: LaborEntry[];
+  equipment_entries: EquipmentEntry[];
+  operational_notes: OperationalNote[];
+  attachments: IncidentAttachment[];
   can_transition: boolean;
   can_assign: boolean;
   can_manage_contacts: boolean;
+  can_manage_labor: boolean;
+  can_manage_equipment: boolean;
+  can_create_notes: boolean;
   assignable_users: AssignableUser[];
+  assignable_labor_users: AssignableUser[];
+  equipment_types: EquipmentType[];
   back_path: string;
 }

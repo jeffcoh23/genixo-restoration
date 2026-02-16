@@ -7,6 +7,8 @@ import { SharedProps } from "@/types";
 import OverviewPanel from "./components/OverviewPanel";
 import RightPanelShell from "./components/RightPanelShell";
 import MessagePanel from "./components/MessagePanel";
+import DailyLogPanel from "./components/DailyLogPanel";
+import DocumentPanel from "./components/DocumentPanel";
 import type { ShowProps } from "./types";
 
 function statusColor(status: string): string {
@@ -28,8 +30,11 @@ function statusColor(status: string): string {
 }
 
 export default function IncidentShow() {
-  const { incident, messages, can_transition, can_assign, can_manage_contacts, assignable_users, back_path } =
-    usePage<SharedProps & ShowProps>().props;
+  const {
+    incident, messages, labor_entries, equipment_entries, operational_notes, attachments,
+    can_transition, can_assign, can_manage_contacts, can_manage_labor, can_manage_equipment,
+    can_create_notes, assignable_users, assignable_labor_users, equipment_types, back_path,
+  } = usePage<SharedProps & ShowProps>().props;
 
   const [statusOpen, setStatusOpen] = useState(false);
   const [transitioning, setTransitioning] = useState(false);
@@ -170,14 +175,27 @@ export default function IncidentShow() {
               />
             )}
             {activeTab === "daily_log" && (
-              <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm py-12">
-                Daily log coming in Phase 4.
-              </div>
+              <DailyLogPanel
+                labor_entries={labor_entries}
+                equipment_entries={equipment_entries}
+                operational_notes={operational_notes}
+                attachments={attachments}
+                can_manage_labor={can_manage_labor}
+                can_manage_equipment={can_manage_equipment}
+                can_create_notes={can_create_notes}
+                labor_entries_path={incident.labor_entries_path}
+                equipment_entries_path={incident.equipment_entries_path}
+                operational_notes_path={incident.operational_notes_path}
+                attachments_path={incident.attachments_path}
+                assignable_labor_users={assignable_labor_users}
+                equipment_types={equipment_types}
+              />
             )}
             {activeTab === "documents" && (
-              <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm py-12">
-                Documents coming in Phase 4.
-              </div>
+              <DocumentPanel
+                attachments={attachments}
+                attachments_path={incident.attachments_path}
+              />
             )}
           </RightPanelShell>
         </div>
