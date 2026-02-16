@@ -54,8 +54,13 @@ Rails.application.routes.draw do
 
   # Settings
   get "settings", to: "settings#show", as: :settings
+  patch "settings", to: "settings#update"
+  patch "settings/password", to: "settings#update_password", as: :settings_password
   get "settings/on-call", to: "settings#on_call", as: :on_call_settings
   get "settings/equipment-types", to: "settings#equipment_types", as: :equipment_types_settings
+  post "settings/equipment-types", to: "settings#create_equipment_type", as: :create_equipment_type
+  patch "settings/equipment-types/:id/deactivate", to: "settings#deactivate_equipment_type", as: :deactivate_equipment_type
+  patch "settings/equipment-types/:id/reactivate", to: "settings#reactivate_equipment_type", as: :reactivate_equipment_type
 
   root "sessions#new"
 end

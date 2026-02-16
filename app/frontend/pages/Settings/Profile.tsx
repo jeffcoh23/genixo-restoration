@@ -1,10 +1,169 @@
+import { FormEvent } from "react";
+import { useForm, usePage } from "@inertiajs/react";
 import AppLayout from "@/layout/AppLayout";
+import PageHeader from "@/components/PageHeader";
+import FormField from "@/components/FormField";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { SharedProps } from "@/types";
+
+interface UserProfile {
+  first_name: string;
+  last_name: string;
+  email_address: string;
+  timezone: string;
+  role_label: string;
+  organization_name: string;
+}
+
+interface TimezoneOption {
+  value: string;
+  label: string;
+}
+
+interface Props {
+  user: UserProfile;
+  timezone_options: TimezoneOption[];
+  update_path: string;
+  password_path: string;
+}
+
+function ProfileForm({ user, timezoneOptions, updatePath }: {
+  user: UserProfile;
+  timezoneOptions: TimezoneOption[];
+  updatePath: string;
+}) {
+  const { data, setData, patch, processing, errors } = useForm({
+    first_name: user.first_name,
+    last_name: user.last_name,
+    email_address: user.email_address,
+    timezone: user.timezone,
+  });
+
+  function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    patch(updatePath);
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="max-w-lg space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <FormField id="first_name" label="First Name" value={data.first_name} onChange={(v) => setData("first_name", v)} error={errors.first_name} required />
+        <FormField id="last_name" label="Last Name" value={data.last_name} onChange={(v) => setData("last_name", v)} error={errors.last_name} required />
+      </div>
+
+      <FormField id="email_address" label="Email" type="email" value={data.email_address} onChange={(v) => setData("email_address", v)} error={errors.email_address} required />
+
+      <div className="space-y-2">
+        <Label htmlFor="timezone">Timezone *</Label>
+        <select
+          id="timezone"
+          value={data.timezone}
+          onChange={(e) => setData("timezone", e.target.value)}
+          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs"
+        >
+          {timezoneOptions.map((tz) => (
+            <option key={tz.value} value={tz.value}>{tz.label}</option>
+          ))}
+        </select>
+        {errors.timezone && <p className="text-sm text-destructive">{errors.timezone}</p>}
+      </div>
+
+      <div className="pt-2">
+        <Button type="submit" disabled={processing}>
+          {processing ? "Saving..." : "Save Profile"}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+function PasswordForm({ passwordPath }: { passwordPath: string }) {
+  const { data, setData, patch, processing, errors, reset } = useForm({
+    current_password: "",
+    password: "",
+    password_confirmation: "",
+  });
+
+  function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    patch(passwordPath, {
+      onSuccess: () => reset(),
+    });
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="max-w-lg space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="current_password">Current Password *</Label>
+        <Input
+          id="current_password"
+          type="password"
+          value={data.current_password}
+          onChange={(e) => setData("current_password", e.target.value)}
+        />
+        {errors.current_password && <p className="text-sm text-destructive">{errors.current_password}</p>}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="password">New Password *</Label>
+        <Input
+          id="password"
+          type="password"
+          value={data.password}
+          onChange={(e) => setData("password", e.target.value)}
+        />
+        {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="password_confirmation">Confirm New Password *</Label>
+        <Input
+          id="password_confirmation"
+          type="password"
+          value={data.password_confirmation}
+          onChange={(e) => setData("password_confirmation", e.target.value)}
+        />
+        {errors.password_confirmation && <p className="text-sm text-destructive">{errors.password_confirmation}</p>}
+      </div>
+
+      <div className="pt-2">
+        <Button type="submit" disabled={processing}>
+          {processing ? "Updating..." : "Update Password"}
+        </Button>
+      </div>
+    </form>
+  );
+}
 
 export default function SettingsProfile() {
+  const { user, timezone_options, update_path, password_path } = usePage<SharedProps & Props>().props;
+
   return (
     <AppLayout>
-      <h1 className="text-2xl font-semibold text-foreground">Settings</h1>
-      <p className="mt-2 text-muted-foreground">Coming in Phase 6.</p>
+      <PageHeader title="Settings" />
+
+      <div className="space-y-10">
+        {/* Read-only info */}
+        <div className="rounded border border-border bg-card px-4 py-3">
+          <p className="text-sm text-muted-foreground">
+            {user.role_label} at {user.organization_name}
+          </p>
+        </div>
+
+        {/* Profile form */}
+        <section>
+          <h2 className="text-lg font-semibold text-foreground mb-4">Profile</h2>
+          <ProfileForm user={user} timezoneOptions={timezone_options} updatePath={update_path} />
+        </section>
+
+        {/* Password form */}
+        <section>
+          <h2 className="text-lg font-semibold text-foreground mb-4">Change Password</h2>
+          <PasswordForm passwordPath={password_path} />
+        </section>
+      </div>
     </AppLayout>
   );
 }
