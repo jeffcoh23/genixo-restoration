@@ -177,7 +177,7 @@ Incident lifecycle, dashboard, detail page, assignments.
 ### Incident Detail — Right Panel Shell
 
 - [x] Tab bar — Messages, Daily Log, Documents
-- [ ] Compose area pinned to viewport bottom on Messages tab
+- [x] Compose area pinned to viewport bottom on Messages tab
 
 **Done when:** Create incident → dashboard → detail → change status → assign users → add contacts. All role scoping works.
 
@@ -195,39 +195,39 @@ Messages, labor, equipment, notes, attachments, daily log, documents panel.
 ### Labor Entries
 
 - [x] Labor entries controller + tests (see BUSINESS_RULES.md §8)
-- [ ] Add/edit labor forms — role permissions per BUSINESS_RULES.md
+- [x] Add/edit labor forms — role permissions per BUSINESS_RULES.md
 - [x] Activity events on create/update
 
 ### Equipment Entries
 
 - [x] Equipment entries controller + tests (see BUSINESS_RULES.md §9)
-- [ ] Add equipment form with type dropdown + "Other" freeform
+- [x] Add/edit equipment form with type dropdown + "Other" freeform
 - [x] Remove equipment (set removed_at)
 - [x] Activity events on place/remove
 
 ### Operational Notes
 
 - [x] Operational notes controller + tests (see BUSINESS_RULES.md §7 Operational Notes)
-- [ ] Add note form — techs + managers only
+- [x] Add note form — techs + managers only
 
 ### Attachments
 
 - [x] Attachments controller + tests (see BUSINESS_RULES.md §10)
 - [x] Active Storage config — local dev, S3 production
-- [ ] Upload form — file, description, category, log_date
-- [ ] Message attachment support
+- [x] Upload form — file, description, category, log_date
+- [x] Message attachment support
 
 ### Daily Log Panel
 
-- [ ] `DailyActivityService` (see ARCHITECTURE.md §4 Day-by-Day Activity)
-- [ ] Daily log UI — date selector, all sections (see VIEWS.md §Right Panel: Daily Log)
-- [ ] "All Dates" timeline mode
-- [ ] PM users see read-only (no add buttons except documents)
+- [x] `DailyActivityService` (see ARCHITECTURE.md §4 Day-by-Day Activity)
+- [x] Daily log UI — date selector, all sections (see VIEWS.md §Right Panel: Daily Log)
+- [x] "All Dates" timeline mode
+- [x] PM users see read-only (no add buttons except documents)
 
 ### Documents Panel
 
-- [ ] Documents panel UI — photo grid + document list (see VIEWS.md §Right Panel: Documents)
-- [ ] Category filter
+- [x] Documents panel UI — photo grid + document list (see VIEWS.md §Right Panel: Documents)
+- [x] Category filter
 
 **Done when:** Labor, equipment, notes, files, messages all work. Everything appears in daily log. Documents panel shows all attachments with filtering.
 
