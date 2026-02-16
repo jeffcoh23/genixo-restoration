@@ -76,6 +76,8 @@ bin/rails console    # Rails console
 - Business logic: Always in `app/services/`, never in controllers or models
 - Activity logging: Always use `ActivityLogger.log()` — never create activity_events or touch `last_activity_at` directly
 - Authorization: Always scope through `visible_incidents` / `visible_properties` — never `Incident.find(id)` directly
+- Permissions: Always add to `Permissions` model + `Authorization` concern — never inline `user_type` checks in controllers
+- User types: Always use `User::MANAGER`, `User::TECHNICIAN`, etc. — never raw strings. Type-check helpers (`current_user.technician?`) live on the User model, not in controllers.
 - Timestamps: Stored UTC, displayed in user's timezone via `Time.use_zone`
 
 ### Inertia Conventions (see [docs/INERTIA_RAILS.md](docs/INERTIA_RAILS.md) for full reference)

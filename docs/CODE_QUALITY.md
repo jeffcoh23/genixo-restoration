@@ -45,6 +45,9 @@
 
 - **Think in scopes, not permissions.** Don't ask "can this user do this action?" — narrow the query to only return records the user can see, then operate on the result. If the record isn't in the scope, it doesn't exist to that user.
 - **In multi-tenant systems, test isolation relentlessly.** The scariest bug is tenant A seeing tenant B's data. Every endpoint that returns data should have a test proving this can't happen.
+- **Never check `user_type` directly in controllers or services for permission gating.** Use `current_user.can?(Permissions::X)` via the `Authorization` concern. For new features: add a constant to `Permissions`, add it to the correct roles in `ROLE_PERMISSIONS`, add a `can_x?` helper to the `Authorization` concern.
+- **Type-check helpers live on the User model.** Use `current_user.technician?`, `current_user.manager?`, etc. — never define private `technician?` or similar methods in controllers.
+- **Use constants for domain strings.** User types (`User::MANAGER`), statuses, project types — anything referenced in more than one place should be a constant on the model, not a string literal.
 
 ---
 
