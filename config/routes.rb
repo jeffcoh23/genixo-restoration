@@ -23,6 +23,7 @@ Rails.application.routes.draw do
         patch :remove
       end
     end
+    resources :operational_notes, only: %i[create]
   end
 
   # Properties

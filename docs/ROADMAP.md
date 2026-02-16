@@ -200,10 +200,10 @@ Messages, labor, equipment, notes, attachments, daily log, documents panel.
 
 ### Equipment Entries
 
-- [ ] Equipment entries controller + tests (see BUSINESS_RULES.md §9)
+- [x] Equipment entries controller + tests (see BUSINESS_RULES.md §9)
 - [ ] Add equipment form with type dropdown + "Other" freeform
-- [ ] Remove equipment (set removed_at)
-- [ ] Activity events on place/remove
+- [x] Remove equipment (set removed_at)
+- [x] Activity events on place/remove
 
 ### Operational Notes
 

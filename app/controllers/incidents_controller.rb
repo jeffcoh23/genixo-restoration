@@ -141,6 +141,7 @@ class IncidentsController < ApplicationController
         messages_path: incident_messages_path(@incident),
         labor_entries_path: incident_labor_entries_path(@incident),
         equipment_entries_path: incident_equipment_entries_path(@incident),
+        operational_notes_path: incident_operational_notes_path(@incident),
         valid_transitions: can_transition_status? ? (StatusTransitionService::ALLOWED_TRANSITIONS[@incident.status] || []).map { |s|
           { value: s, label: Incident::STATUS_LABELS[s] }
         } : []
@@ -148,11 +149,13 @@ class IncidentsController < ApplicationController
       messages: serialize_messages(messages),
       labor_entries: serialize_labor_entries(@incident),
       equipment_entries: serialize_equipment_entries(@incident),
+      operational_notes: serialize_operational_notes(@incident),
       can_transition: can_transition_status?,
       can_assign: can_assign_to_incident?,
       can_manage_contacts: can_manage_contacts?,
       can_manage_labor: can_manage_labor?,
       can_manage_equipment: can_manage_equipment?,
+      can_create_notes: can_create_operational_note?,
       assignable_users: can_assign_to_incident? ? assignable_incident_users(@incident) : [],
       assignable_labor_users: can_manage_labor? ? assignable_labor_users(@incident) : [],
       equipment_types: can_manage_equipment? ? equipment_types_for_incident(@incident) : [],
@@ -341,6 +344,20 @@ class IncidentsController < ApplicationController
         logged_by_name: entry.logged_by_user.full_name,
         edit_path: can_edit_equipment_entry?(entry) ? incident_equipment_entry_path(incident, entry) : nil,
         remove_path: can_edit_equipment_entry?(entry) && entry.removed_at.nil? ? remove_incident_equipment_entry_path(incident, entry) : nil
+      }
+    end
+  end
+
+  def serialize_operational_notes(incident)
+    incident.operational_notes.includes(:created_by_user)
+      .order(log_date: :desc, created_at: :desc).map do |note|
+      {
+        id: note.id,
+        note_text: note.note_text,
+        log_date: note.log_date.iso8601,
+        log_date_label: note.log_date.strftime("%b %-d, %Y"),
+        created_at_label: note.created_at.strftime("%-I:%M %p"),
+        created_by_name: note.created_by_user.full_name
       }
     end
   end

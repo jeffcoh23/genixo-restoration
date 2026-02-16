@@ -78,6 +78,10 @@ module Authorization
     current_user.can?(Permissions::CREATE_EQUIPMENT)
   end
 
+  def can_create_operational_note?
+    current_user.can?(Permissions::CREATE_OPERATIONAL_NOTE)
+  end
+
   # --- Resource-scoped checks (need a specific record) ---
 
   def mitigation_admin?
