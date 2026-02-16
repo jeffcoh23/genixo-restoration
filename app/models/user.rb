@@ -49,6 +49,14 @@ class User < ApplicationRecord
     "#{first_name[0]}#{last_name[0]}".upcase
   end
 
+  def manager?
+    user_type == MANAGER
+  end
+
+  def technician?
+    user_type == TECHNICIAN
+  end
+
   def mitigation_user?
     MITIGATION_TYPES.include?(user_type)
   end
