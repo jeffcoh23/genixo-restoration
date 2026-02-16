@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { useForm } from "@inertiajs/react";
+import { useForm, usePage } from "@inertiajs/react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SharedProps } from "@/types";
 import type { EquipmentType } from "../types";
 
 interface EquipmentFormProps {
@@ -14,11 +15,12 @@ interface EquipmentFormProps {
 export default function EquipmentForm({ path, equipment_types, onClose }: EquipmentFormProps) {
   const [useOther, setUseOther] = useState(false);
 
+  const { today } = usePage<SharedProps>().props;
   const { data, setData, post, processing, errors } = useForm({
     equipment_type_id: "",
     equipment_type_other: "",
     equipment_identifier: "",
-    placed_at: new Date().toISOString().slice(0, 16),
+    placed_at: today + "T09:00",
     location_notes: "",
   });
 
@@ -39,7 +41,7 @@ export default function EquipmentForm({ path, equipment_types, onClose }: Equipm
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-      <div className="fixed inset-0 bg-black/40" onClick={onClose} />
+      <div className="fixed inset-0 bg-black opacity-40" onClick={onClose} />
       <div className="relative bg-background border border-border rounded-t sm:rounded w-full sm:max-w-md p-4 shadow-lg">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-semibold">Place Equipment</h3>

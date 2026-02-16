@@ -18,11 +18,25 @@ export interface NavItem {
   icon: string;
 }
 
+export interface Permissions {
+  can_create_incident: boolean;
+  can_transition_status: boolean;
+  can_create_property: boolean;
+  can_view_properties: boolean;
+  can_manage_organizations: boolean;
+  can_manage_users: boolean;
+  can_create_labor: boolean;
+  can_create_equipment: boolean;
+  can_create_operational_note: boolean;
+}
+
 export interface SharedProps extends Record<string, unknown> {
   auth: {
     user: AuthUser | null;
     authenticated: boolean;
   };
+  permissions: Permissions;
+  today: string;
   nav_items: NavItem[];
   routes: {
     dashboard: string;

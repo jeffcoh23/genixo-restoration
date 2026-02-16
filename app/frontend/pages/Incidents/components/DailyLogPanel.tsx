@@ -87,16 +87,14 @@ export default function DailyLogPanel({
       {/* Date selector */}
       {dates.length > 0 && (
         <div className="flex gap-1 p-3 border-b border-border overflow-x-auto shrink-0">
-          <button
+          <Button
+            variant={selectedDate === null ? "default" : "ghost"}
+            size="sm"
             onClick={() => setSelectedDate(null)}
-            className={`px-3 py-1.5 text-xs font-medium rounded whitespace-nowrap transition-colors ${
-              selectedDate === null
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted text-muted-foreground hover:text-foreground"
-            }`}
+            className="h-7 text-xs whitespace-nowrap"
           >
             All Dates
-          </button>
+          </Button>
           {dates.map((d) => {
             // Find the label from any entry with this date
             const label =
@@ -105,17 +103,15 @@ export default function DailyLogPanel({
               attachments.find((e) => e.log_date === d)?.log_date_label ??
               d;
             return (
-              <button
+              <Button
                 key={d}
+                variant={selectedDate === d ? "default" : "ghost"}
+                size="sm"
                 onClick={() => setSelectedDate(d)}
-                className={`px-3 py-1.5 text-xs font-medium rounded whitespace-nowrap transition-colors ${
-                  selectedDate === d
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground hover:text-foreground"
-                }`}
+                className="h-7 text-xs whitespace-nowrap"
               >
                 {label}
-              </button>
+              </Button>
             );
           })}
         </div>
@@ -256,7 +252,7 @@ function LogSection({
 
 function LaborEntryRow({ entry }: { entry: LaborEntry }) {
   return (
-    <div className="bg-muted/50 rounded p-2.5 text-sm">
+    <div className="bg-muted rounded p-2.5 text-sm">
       <div className="flex items-center justify-between">
         <span className="font-medium">
           {entry.role_label}
@@ -279,7 +275,7 @@ function LaborEntryRow({ entry }: { entry: LaborEntry }) {
 
 function EquipmentEntryRow({ entry }: { entry: EquipmentEntry }) {
   return (
-    <div className="bg-muted/50 rounded p-2.5 text-sm">
+    <div className="bg-muted rounded p-2.5 text-sm">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5">
           {entry.active ? (
@@ -313,7 +309,7 @@ function EquipmentEntryRow({ entry }: { entry: EquipmentEntry }) {
 
 function NoteRow({ note }: { note: OperationalNote }) {
   return (
-    <div className="bg-muted/50 rounded p-2.5 text-sm">
+    <div className="bg-muted rounded p-2.5 text-sm">
       <p className="text-sm">{note.note_text}</p>
       <p className="text-xs text-muted-foreground mt-1">
         &mdash; {note.created_by_name} &middot; {note.created_at_label}
@@ -324,9 +320,10 @@ function NoteRow({ note }: { note: OperationalNote }) {
 
 function AttachmentRow({ attachment }: { attachment: IncidentAttachment }) {
   return (
-    <button
+    <Button
+      variant="ghost"
       onClick={() => window.open(attachment.url, "_blank")}
-      className="w-full text-left bg-muted/50 rounded p-2.5 text-sm hover:bg-muted transition-colors"
+      className="w-full justify-start text-left bg-muted rounded p-2.5 text-sm hover:bg-accent h-auto"
     >
       <div className="flex items-center gap-2">
         <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -339,6 +336,6 @@ function AttachmentRow({ attachment }: { attachment: IncidentAttachment }) {
           </p>
         </div>
       </div>
-    </button>
+    </Button>
   );
 }

@@ -1,7 +1,8 @@
-import { useForm } from "@inertiajs/react";
+import { useForm, usePage } from "@inertiajs/react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SharedProps } from "@/types";
 
 interface NoteFormProps {
   path: string;
@@ -9,9 +10,10 @@ interface NoteFormProps {
 }
 
 export default function NoteForm({ path, onClose }: NoteFormProps) {
+  const { today } = usePage<SharedProps>().props;
   const { data, setData, post, processing, errors } = useForm({
     note_text: "",
-    log_date: new Date().toISOString().split("T")[0],
+    log_date: today,
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -21,7 +23,7 @@ export default function NoteForm({ path, onClose }: NoteFormProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-      <div className="fixed inset-0 bg-black/40" onClick={onClose} />
+      <div className="fixed inset-0 bg-black opacity-40" onClick={onClose} />
       <div className="relative bg-background border border-border rounded-t sm:rounded w-full sm:max-w-md p-4 shadow-lg">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-semibold">Add Note</h3>

@@ -85,22 +85,25 @@ export default function DocumentPanel({ attachments, attachments_path }: Documen
             </p>
             <div className="grid grid-cols-2 gap-2">
               {photos.map((att) => (
-                <button
+                <Button
                   key={att.id}
+                  variant="ghost"
                   onClick={() => window.open(att.url, "_blank")}
-                  className="text-left rounded border border-border overflow-hidden hover:border-primary transition-colors"
+                  className="h-auto p-0 text-left rounded border border-border overflow-hidden hover:border-primary"
                 >
-                  <div className="aspect-square bg-muted flex items-center justify-center">
-                    <Image className="h-8 w-8 text-muted-foreground" />
+                  <div className="w-full">
+                    <div className="aspect-square bg-muted flex items-center justify-center">
+                      <Image className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                    <div className="p-2">
+                      <p className="text-xs font-medium truncate">{att.description || att.filename}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {att.log_date_label ?? att.created_at_label}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{att.uploaded_by_name}</p>
+                    </div>
                   </div>
-                  <div className="p-2">
-                    <p className="text-xs font-medium truncate">{att.description || att.filename}</p>
-                    <p className="text-[11px] text-muted-foreground">
-                      {att.log_date_label ?? att.created_at_label}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground">{att.uploaded_by_name}</p>
-                  </div>
-                </button>
+                </Button>
               ))}
             </div>
           </div>
@@ -116,10 +119,11 @@ export default function DocumentPanel({ attachments, attachments_path }: Documen
             )}
             <div className="space-y-1.5">
               {documents.map((att) => (
-                <button
+                <Button
                   key={att.id}
+                  variant="ghost"
                   onClick={() => window.open(att.url, "_blank")}
-                  className="w-full text-left bg-muted/50 rounded p-2.5 hover:bg-muted transition-colors"
+                  className="w-full justify-start text-left bg-muted rounded p-2.5 hover:bg-accent h-auto"
                 >
                   <div className="flex items-start gap-2">
                     <FileText className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
@@ -129,19 +133,19 @@ export default function DocumentPanel({ attachments, attachments_path }: Documen
                         <p className="text-xs text-muted-foreground">{att.description}</p>
                       )}
                       <div className="flex items-center gap-1.5 mt-1">
-                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                        <Badge variant="secondary" className="text-xs px-1.5 py-0">
                           {att.category_label}
                         </Badge>
-                        <span className="text-[11px] text-muted-foreground">
+                        <span className="text-xs text-muted-foreground">
                           {att.log_date_label ?? att.created_at_label}
                         </span>
-                        <span className="text-[11px] text-muted-foreground">
+                        <span className="text-xs text-muted-foreground">
                           &middot; {att.uploaded_by_name}
                         </span>
                       </div>
                     </div>
                   </div>
-                </button>
+                </Button>
               ))}
             </div>
           </div>

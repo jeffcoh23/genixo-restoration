@@ -53,6 +53,25 @@ class ApplicationController < ActionController::Base
     nav_items_for_user(current_user)
   }
 
+  inertia_share permissions: -> {
+    return {} unless current_user
+    {
+      can_create_incident: can_create_incident?,
+      can_transition_status: can_transition_status?,
+      can_create_property: can_create_property?,
+      can_view_properties: can_view_properties?,
+      can_manage_organizations: can_manage_organizations?,
+      can_manage_users: can_manage_users?,
+      can_create_labor: can_create_labor?,
+      can_create_equipment: can_create_equipment?,
+      can_create_operational_note: can_create_operational_note?
+    }
+  }
+
+  inertia_share today: -> {
+    Date.current.iso8601
+  }
+
 
   private
 

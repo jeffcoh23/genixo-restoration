@@ -3,6 +3,7 @@ import { useState } from "react";
 import { AlertTriangle, ChevronDown, Clock, User as UserIcon } from "lucide-react";
 import AppLayout from "@/layout/AppLayout";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { SharedProps } from "@/types";
 import OverviewPanel from "./components/OverviewPanel";
 import RightPanelShell from "./components/RightPanelShell";
@@ -15,17 +16,17 @@ function statusColor(status: string): string {
   switch (status) {
     case "new":
     case "acknowledged":
-      return "bg-[hsl(199_89%_48%)] text-white";
+      return "bg-blue-500 text-white";
     case "quote_requested":
-      return "bg-[hsl(270_50%_60%)] text-white";
+      return "bg-purple-500 text-white";
     case "active":
-      return "bg-[hsl(142_76%_36%)] text-white";
+      return "bg-green-600 text-white";
     case "on_hold":
-      return "bg-[hsl(38_92%_50%)] text-white";
+      return "bg-amber-500 text-white";
     case "completed":
-      return "bg-[hsl(142_40%_50%)] text-white";
+      return "bg-green-500 text-white";
     default:
-      return "bg-[hsl(0_0%_55%)] text-white";
+      return "bg-gray-500 text-white";
   }
 }
 
@@ -76,14 +77,16 @@ export default function IncidentShow() {
         <div className="flex flex-wrap items-center gap-3 mb-2">
           <div className="relative">
             {can_transition && incident.valid_transitions.length > 0 ? (
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => setStatusOpen(!statusOpen)}
                 disabled={transitioning}
-                className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium ${statusColor(incident.status)} hover:opacity-90 transition-opacity`}
+                className={`inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-sm font-medium ${statusColor(incident.status)} hover:opacity-90 transition-opacity`}
               >
                 {incident.status_label}
                 <ChevronDown className="h-3.5 w-3.5" />
-              </button>
+              </Button>
             ) : (
               <Badge className={`text-sm px-3 py-1.5 ${statusColor(incident.status)}`}>
                 {incident.status_label}
@@ -93,15 +96,16 @@ export default function IncidentShow() {
             {statusOpen && (
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setStatusOpen(false)} />
-                <div className="absolute left-0 top-full mt-1 z-20 bg-popover border border-border rounded-md shadow-md py-1 min-w-[180px]">
+                <div className="absolute left-0 top-full mt-1 z-20 bg-popover border border-border rounded shadow-md py-1 min-w-[180px]">
                   {incident.valid_transitions.map((t) => (
-                    <button
+                    <Button
                       key={t.value}
+                      variant="ghost"
                       onClick={() => handleTransition(t.value)}
-                      className="w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors"
+                      className="w-full justify-start px-3 py-2 text-sm hover:bg-muted rounded-none h-auto"
                     >
                       {t.label}
-                    </button>
+                    </Button>
                   ))}
                 </div>
               </>
@@ -140,7 +144,7 @@ export default function IncidentShow() {
                   <div
                     key={u.id}
                     title={u.full_name}
-                    className="h-6 w-6 rounded-full bg-muted border-2 border-background flex items-center justify-center text-[10px] font-medium text-muted-foreground"
+                    className="h-6 w-6 rounded-full bg-muted border-2 border-background flex items-center justify-center text-xs font-medium text-muted-foreground"
                   >
                     {u.initials}
                   </div>
