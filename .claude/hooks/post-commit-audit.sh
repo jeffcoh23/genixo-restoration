@@ -1,7 +1,7 @@
 #!/bin/bash
 # Post-commit quality audit hook for Claude Code
-# Runs linters + custom design system checks on committed files.
-# Claude must fix any FAILs before moving to the next task.
+# Runs linters + design system checks on committed files.
+# Returns results via additionalContext so Claude actually sees them.
 
 INPUT=$(cat)
 COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty')
@@ -25,6 +25,8 @@ RB_FILES=$(echo "$FILES" | grep '\.rb$' || true)
 
 FAILURES=0
 PASSES=0
+FAILURE_DETAILS=""
+PASS_DETAILS=""
 
 check() {
   local label="$1"
@@ -33,30 +35,18 @@ check() {
 
   if [ "$result" = "PASS" ]; then
     PASSES=$((PASSES + 1))
-    echo "  ✅ $label"
+    PASS_DETAILS="${PASS_DETAILS}  ✅ ${label}\n"
   else
     FAILURES=$((FAILURES + 1))
-    echo "  ❌ $label"
+    FAILURE_DETAILS="${FAILURE_DETAILS}  ❌ ${label}\n"
     if [ -n "$detail" ]; then
-      echo "$detail" | head -20 | sed 's/^/     /'
+      FAILURE_DETAILS="${FAILURE_DETAILS}$(echo "$detail" | head -10 | sed 's/^/     /')\n"
     fi
   fi
 }
 
-echo ""
-echo "═══════════════════════════════════════════════════════"
-echo " POST-COMMIT QUALITY AUDIT"
-echo "═══════════════════════════════════════════════════════"
-echo ""
-echo "Files committed:"
-echo "$FILES" | sed 's/^/  /'
-echo ""
-
 # ─── Linters ─────────────────────────────────────────────
-echo "─── Linters ──────────────────────────────────────────"
-echo ""
 
-# ESLint (on committed .tsx/.ts files)
 if [ -n "$ALL_TS" ]; then
   ESLINT_OUT=$(echo "$ALL_TS" | xargs npx eslint --no-warn-ignored 2>&1 || true)
   if echo "$ESLINT_OUT" | grep -q "error"; then
@@ -68,10 +58,8 @@ else
   check "ESLint (no .ts/.tsx files)" "PASS"
 fi
 
-# TypeScript (full project — fast with incremental, filters to committed files)
 if [ -n "$ALL_TS" ]; then
   TSC_OUT=$(npx tsc --noEmit 2>&1 || true)
-  # Filter to only errors in committed files
   TSC_RELEVANT=""
   for f in $ALL_TS; do
     MATCH=$(echo "$TSC_OUT" | grep "^$f" || true)
@@ -88,7 +76,6 @@ else
   check "TypeScript (no .ts/.tsx files)" "PASS"
 fi
 
-# RuboCop (on committed .rb files)
 if [ -n "$RB_FILES" ]; then
   RUBOCOP_OUT=$(echo "$RB_FILES" | xargs bundle exec rubocop --force-exclusion --format simple 2>&1 || true)
   if echo "$RUBOCOP_OUT" | grep -q "no offenses detected"; then
@@ -102,133 +89,82 @@ else
   check "RuboCop (no .rb files)" "PASS"
 fi
 
-echo ""
-
 # ─── Design System Checks (.tsx files) ───────────────────
+
 if [ -n "$TSX_FILES" ]; then
-  echo "─── Design System (.tsx) ───────────────────────────"
-  echo ""
-
-  # Hardcoded HSL colors
   HITS=$(echo "$TSX_FILES" | xargs grep -n '\(bg\|text\|border\|shadow\)-\[hsl' 2>/dev/null || true)
-  if [ -z "$HITS" ]; then
-    check "No hardcoded HSL colors" "PASS"
-  else
-    check "No hardcoded HSL — use design tokens" "FAIL" "$HITS"
-  fi
+  [ -z "$HITS" ] && check "No hardcoded HSL colors" "PASS" || check "No hardcoded HSL — use design tokens" "FAIL" "$HITS"
 
-  # Hardcoded shadows
   HITS=$(echo "$TSX_FILES" | xargs grep -n 'shadow-\[' 2>/dev/null || true)
-  if [ -z "$HITS" ]; then
-    check "No hardcoded shadows" "PASS"
-  else
-    check "No hardcoded shadows — use shadow-sm/md" "FAIL" "$HITS"
-  fi
+  [ -z "$HITS" ] && check "No hardcoded shadows" "PASS" || check "No hardcoded shadows — use shadow-sm/md" "FAIL" "$HITS"
 
-  # Wrong border radius
   HITS=$(echo "$TSX_FILES" | xargs grep -n 'rounded-\(xl\|lg\|md\|2xl\|3xl\)' 2>/dev/null || true)
-  if [ -z "$HITS" ]; then
-    check "Border radius = rounded (4px)" "PASS"
-  else
-    check "Border radius must be rounded (4px)" "FAIL" "$HITS"
-  fi
+  [ -z "$HITS" ] && check "Border radius = rounded (4px)" "PASS" || check "Border radius must be rounded (4px)" "FAIL" "$HITS"
 
-  # Sub-12px text
   HITS=$(echo "$TSX_FILES" | xargs grep -n 'text-\[[0-9]*px\]' 2>/dev/null | grep -v 'text-\[1[2-9]px\]\|text-\[[2-9][0-9]px\]' || true)
-  if [ -z "$HITS" ]; then
-    check "No text below 12px" "PASS"
-  else
-    check "Text below 12px minimum" "FAIL" "$HITS"
-  fi
+  [ -z "$HITS" ] && check "No text below 12px" "PASS" || check "Text below 12px minimum" "FAIL" "$HITS"
 
-  # Opacity modifiers on tokens
   HITS=$(echo "$TSX_FILES" | xargs grep -n '\(bg\|text\|border\)-[a-z-]*/[0-9]' 2>/dev/null || true)
-  if [ -z "$HITS" ]; then
-    check "No opacity modifiers on tokens" "PASS"
-  else
-    check "No opacity modifiers on tokens" "FAIL" "$HITS"
-  fi
+  [ -z "$HITS" ] && check "No opacity modifiers on tokens" "PASS" || check "No opacity modifiers on tokens" "FAIL" "$HITS"
 
-  # Raw <button> or <input>
   HITS=$(echo "$TSX_FILES" | xargs grep -n '<button\b\|<input\b' 2>/dev/null || true)
-  if [ -z "$HITS" ]; then
-    check "No raw <button>/<input>" "PASS"
-  else
-    check "Raw HTML — use shadcn Button/Input" "FAIL" "$HITS"
-  fi
+  [ -z "$HITS" ] && check "No raw <button>/<input>" "PASS" || check "Raw HTML — use shadcn Button/Input" "FAIL" "$HITS"
 
-  # Frontend date formatting
   HITS=$(echo "$TSX_FILES" | xargs grep -n 'toLocaleDateString\|toLocaleTimeString\|\.toISOString\|new Date(' 2>/dev/null || true)
-  if [ -z "$HITS" ]; then
-    check "No frontend date formatting" "PASS"
-  else
-    check "Dates should come formatted from server" "FAIL" "$HITS"
-  fi
+  [ -z "$HITS" ] && check "No frontend date formatting" "PASS" || check "Dates should come formatted from server" "FAIL" "$HITS"
 
-  # .reduce() for display logic
   HITS=$(echo "$TSX_FILES" | xargs grep -n '\.reduce\s*(' 2>/dev/null || true)
-  if [ -z "$HITS" ]; then
-    check "No .reduce() display logic" "PASS"
-  else
-    check ".reduce() — aggregate on server" "FAIL" "$HITS"
-  fi
+  [ -z "$HITS" ] && check "No .reduce() display logic" "PASS" || check ".reduce() — aggregate on server" "FAIL" "$HITS"
 
-  # Hardcoded route construction
   HITS=$(echo "$TSX_FILES" | xargs grep -n '`/[a-z].*\${' 2>/dev/null || true)
-  if [ -z "$HITS" ]; then
-    check "No hardcoded routes" "PASS"
-  else
-    check "Hardcoded routes — use path props" "FAIL" "$HITS"
-  fi
-
-  echo ""
+  [ -z "$HITS" ] && check "No hardcoded routes" "PASS" || check "Hardcoded routes — use path props" "FAIL" "$HITS"
 fi
 
 # ─── Backend Checks (.rb files) ──────────────────────────
+
 if [ -n "$RB_FILES" ]; then
   CONTROLLER_FILES=$(echo "$RB_FILES" | grep 'controllers/' || true)
   if [ -n "$CONTROLLER_FILES" ]; then
-    echo "─── Backend Checks (.rb) ─────────────────────────"
-    echo ""
-
     HITS=$(echo "$CONTROLLER_FILES" | xargs grep -n '\(Incident\|Property\|User\)\.find\b' 2>/dev/null | grep -v 'find_visible\|find_by' || true)
-    if [ -z "$HITS" ]; then
-      check "No unscoped .find()" "PASS"
-    else
-      check "Unscoped .find() — use scoped query" "FAIL" "$HITS"
-    fi
+    [ -z "$HITS" ] && check "No unscoped .find()" "PASS" || check "Unscoped .find() — use scoped query" "FAIL" "$HITS"
 
     HITS=$(echo "$RB_FILES" | xargs grep -n '\.permit!' 2>/dev/null || true)
-    if [ -z "$HITS" ]; then
-      check "No .permit!" "PASS"
-    else
-      check ".permit! — whitelist attributes" "FAIL" "$HITS"
-    fi
-
-    echo ""
+    [ -z "$HITS" ] && check "No .permit!" "PASS" || check ".permit! — whitelist attributes" "FAIL" "$HITS"
   fi
 fi
 
-# ─── Manual Review ───────────────────────────────────────
-echo "─── Manual Review (Claude must verify) ───────────────"
-echo ""
-echo "  □ Server sends display-ready data (labels, not enums)"
-echo "  □ TypeScript types match controller props"
-echo "  □ Tests cover authorization (cross-org isolation)"
-echo ""
+# ─── Build output and return as JSON ─────────────────────
 
-# ─── Summary ─────────────────────────────────────────────
-echo "═══════════════════════════════════════════════════════"
+FILE_LIST=$(echo "$FILES" | sed 's/^/  /' | tr '\n' '|' | sed 's/|/\\n/g')
+
 if [ "$FAILURES" -gt 0 ]; then
-  echo " RESULT: ❌ $FAILURES FAIL / $PASSES PASS"
-  echo ""
-  echo " FIX ALL FAILURES BEFORE MOVING TO THE NEXT TASK."
-  echo "═══════════════════════════════════════════════════════"
+  CONTEXT="POST-COMMIT AUDIT: ❌ ${FAILURES} FAILED / ${PASSES} passed
+
+Files: $(echo "$FILES" | tr '\n' ', ' | sed 's/,$//')
+
+Failures:
+$(echo -e "$FAILURE_DETAILS")
+FIX ALL FAILURES before moving to next task. See docs/CODE_QUALITY.md."
+
+  jq -n --arg ctx "$CONTEXT" '{
+    "hookSpecificOutput": {
+      "hookEventName": "PostToolUse",
+      "additionalContext": $ctx
+    }
+  }'
 else
-  echo " RESULT: ✅ ALL $PASSES CHECKS PASSED"
-  echo ""
-  echo " Still verify manual review items above."
-  echo "═══════════════════════════════════════════════════════"
+  CONTEXT="POST-COMMIT AUDIT: ✅ ALL ${PASSES} CHECKS PASSED
+
+Files: $(echo "$FILES" | tr '\n' ', ' | sed 's/,$//')
+
+Manual review: server sends display-ready data? Types match props? Auth tests cover cross-org?"
+
+  jq -n --arg ctx "$CONTEXT" '{
+    "hookSpecificOutput": {
+      "hookEventName": "PostToolUse",
+      "additionalContext": $ctx
+    }
+  }'
 fi
 
 exit 0
