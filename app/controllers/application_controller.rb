@@ -1,8 +1,11 @@
 class ApplicationController < ActionController::Base
   include Authentication
   include Authorization
+  include TimeFormatting
 
   allow_browser versions: :modern
+
+  around_action :set_user_timezone
 
   inertia_share flash: -> {
     {
@@ -69,17 +72,17 @@ class ApplicationController < ActionController::Base
   }
 
   inertia_share today: -> {
-    in_user_zone { Time.current.to_date.iso8601 }
+    Time.current.to_date.iso8601
   }
 
   inertia_share now_datetime: -> {
-    in_user_zone { Time.current.strftime("%Y-%m-%dT%H:%M") }
+    format_datetime_value(Time.current)
   }
 
 
   private
 
-  def in_user_zone(&block)
+  def set_user_timezone(&block)
     zone = current_user&.timezone || "UTC"
     Time.use_zone(zone, &block)
   end

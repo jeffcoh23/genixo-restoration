@@ -110,7 +110,7 @@ class IncidentsController < ApplicationController
         damage_label: Incident::DAMAGE_LABELS[@incident.damage_type],
         emergency: @incident.emergency,
         created_at: @incident.created_at.iso8601,
-        created_at_label: @incident.created_at.strftime("%b %-d, %Y"),
+        created_at_label: format_date(@incident.created_at),
         created_by: @incident.created_by_user&.full_name,
         property: {
           id: property.id,
@@ -290,8 +290,8 @@ class IncidentsController < ApplicationController
     {
       id: message.id,
       body: message.body,
-      timestamp_label: message.created_at.strftime("%-I:%M %p"),
-      date_label: message.created_at.strftime("%b %-d, %Y"),
+      timestamp_label: format_time(message.created_at),
+      date_label: format_date(message.created_at),
       show_date_separator: show_date,
       grouped: same_sender,
       is_current_user: user.id == current_user.id,
@@ -312,17 +312,17 @@ class IncidentsController < ApplicationController
         role_label: entry.role_label,
         hours: entry.hours.to_f,
         log_date: entry.log_date.iso8601,
-        log_date_label: entry.log_date.strftime("%b %-d, %Y"),
-        started_at_label: entry.started_at&.strftime("%-I:%M %p"),
-        ended_at_label: entry.ended_at&.strftime("%-I:%M %p"),
+        log_date_label: format_date(entry.log_date),
+        started_at_label: format_time(entry.started_at),
+        ended_at_label: format_time(entry.ended_at),
         notes: entry.notes,
         user_name: entry.user&.full_name,
         created_by_name: entry.created_by_user.full_name,
         edit_path: editable ? incident_labor_entry_path(incident, entry) : nil
       }
       if editable
-        data[:started_at] = entry.started_at&.strftime("%H:%M")
-        data[:ended_at] = entry.ended_at&.strftime("%H:%M")
+        data[:started_at] = format_time_value(entry.started_at)
+        data[:ended_at] = format_time_value(entry.ended_at)
         data[:user_id] = entry.user_id
       end
       data
@@ -347,8 +347,8 @@ class IncidentsController < ApplicationController
         id: entry.id,
         type_name: entry.type_name,
         equipment_identifier: entry.equipment_identifier,
-        placed_at_label: entry.placed_at.strftime("%b %-d, %Y %-I:%M %p"),
-        removed_at_label: entry.removed_at&.strftime("%b %-d, %Y %-I:%M %p"),
+        placed_at_label: format_datetime(entry.placed_at),
+        removed_at_label: format_datetime(entry.removed_at),
         active: entry.removed_at.nil?,
         location_notes: entry.location_notes,
         logged_by_name: entry.logged_by_user.full_name,
@@ -358,7 +358,7 @@ class IncidentsController < ApplicationController
       if editable
         data[:equipment_type_id] = entry.equipment_type_id
         data[:equipment_type_other] = entry.equipment_type_other
-        data[:placed_at] = in_user_zone { entry.placed_at.strftime("%Y-%m-%dT%H:%M") }
+        data[:placed_at] = format_datetime_value(entry.placed_at)
       end
       data
     end
@@ -374,8 +374,8 @@ class IncidentsController < ApplicationController
         category_label: att.category.titleize,
         description: att.description,
         log_date: att.log_date&.iso8601,
-        log_date_label: att.log_date&.strftime("%b %-d, %Y"),
-        created_at_label: att.created_at.strftime("%b %-d, %Y %-I:%M %p"),
+        log_date_label: format_date(att.log_date),
+        created_at_label: format_datetime(att.created_at),
         uploaded_by_name: att.uploaded_by_user.full_name,
         content_type: att.file.content_type,
         byte_size: att.file.byte_size,
@@ -391,8 +391,8 @@ class IncidentsController < ApplicationController
         id: note.id,
         note_text: note.note_text,
         log_date: note.log_date.iso8601,
-        log_date_label: note.log_date.strftime("%b %-d, %Y"),
-        created_at_label: note.created_at.strftime("%-I:%M %p"),
+        log_date_label: format_date(note.log_date),
+        created_at_label: format_time(note.created_at),
         created_by_name: note.created_by_user.full_name
       }
     end
