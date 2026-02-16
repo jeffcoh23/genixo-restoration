@@ -18,6 +18,11 @@ Rails.application.routes.draw do
     resources :contacts, controller: "incident_contacts", only: %i[create destroy]
     resources :messages, only: %i[create]
     resources :labor_entries, only: %i[create update]
+    resources :equipment_entries, only: %i[create update] do
+      member do
+        patch :remove
+      end
+    end
   end
 
   # Properties

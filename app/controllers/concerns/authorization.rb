@@ -74,6 +74,10 @@ module Authorization
     current_user.can?(Permissions::CREATE_LABOR)
   end
 
+  def can_create_equipment?
+    current_user.can?(Permissions::CREATE_EQUIPMENT)
+  end
+
   # --- Resource-scoped checks (need a specific record) ---
 
   def mitigation_admin?

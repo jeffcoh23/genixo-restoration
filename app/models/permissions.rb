@@ -9,6 +9,7 @@ class Permissions
   MANAGE_ON_CALL        = :manage_on_call
   MANAGE_EQUIPMENT_TYPES = :manage_equipment_types
   CREATE_LABOR          = :create_labor
+  CREATE_EQUIPMENT      = :create_equipment
 
   # --- Role → permissions map ---
   # Single source of truth. To grant a new permission to a role, add it here.
@@ -17,14 +18,14 @@ class Permissions
     User::MANAGER => [
       CREATE_INCIDENT, TRANSITION_STATUS, CREATE_PROPERTY, VIEW_PROPERTIES,
       MANAGE_ORGANIZATIONS, MANAGE_USERS, MANAGE_ON_CALL, MANAGE_EQUIPMENT_TYPES,
-      CREATE_LABOR
+      CREATE_LABOR, CREATE_EQUIPMENT
     ],
     User::OFFICE_SALES => [
       CREATE_INCIDENT, CREATE_PROPERTY, VIEW_PROPERTIES,
       MANAGE_ORGANIZATIONS, MANAGE_USERS
     ],
     User::TECHNICIAN => [
-      CREATE_LABOR
+      CREATE_LABOR, CREATE_EQUIPMENT
     ],
     User::PROPERTY_MANAGER => [
       CREATE_INCIDENT, VIEW_PROPERTIES
