@@ -142,6 +142,7 @@ class IncidentsController < ApplicationController
         labor_entries_path: incident_labor_entries_path(@incident),
         equipment_entries_path: incident_equipment_entries_path(@incident),
         operational_notes_path: incident_operational_notes_path(@incident),
+        attachments_path: incident_attachments_path(@incident),
         valid_transitions: can_transition_status? ? (StatusTransitionService::ALLOWED_TRANSITIONS[@incident.status] || []).map { |s|
           { value: s, label: Incident::STATUS_LABELS[s] }
         } : []
@@ -150,6 +151,7 @@ class IncidentsController < ApplicationController
       labor_entries: serialize_labor_entries(@incident),
       equipment_entries: serialize_equipment_entries(@incident),
       operational_notes: serialize_operational_notes(@incident),
+      attachments: serialize_attachments(@incident),
       can_transition: can_transition_status?,
       can_assign: can_assign_to_incident?,
       can_manage_contacts: can_manage_contacts?,
@@ -344,6 +346,26 @@ class IncidentsController < ApplicationController
         logged_by_name: entry.logged_by_user.full_name,
         edit_path: can_edit_equipment_entry?(entry) ? incident_equipment_entry_path(incident, entry) : nil,
         remove_path: can_edit_equipment_entry?(entry) && entry.removed_at.nil? ? remove_incident_equipment_entry_path(incident, entry) : nil
+      }
+    end
+  end
+
+  def serialize_attachments(incident)
+    incident.attachments.includes(:uploaded_by_user, file_attachment: :blob)
+      .order(created_at: :desc).map do |att|
+      {
+        id: att.id,
+        filename: att.file.filename.to_s,
+        category: att.category,
+        category_label: att.category.titleize,
+        description: att.description,
+        log_date: att.log_date&.iso8601,
+        log_date_label: att.log_date&.strftime("%b %-d, %Y"),
+        created_at_label: att.created_at.strftime("%b %-d, %Y %-I:%M %p"),
+        uploaded_by_name: att.uploaded_by_user.full_name,
+        content_type: att.file.content_type,
+        byte_size: att.file.byte_size,
+        url: rails_blob_path(att.file, disposition: "inline")
       }
     end
   end

@@ -207,7 +207,7 @@ Messages, labor, equipment, notes, attachments, daily log, documents panel.
 
 ### Operational Notes
 
-- [ ] Operational notes controller + tests (see BUSINESS_RULES.md §7 Operational Notes)
+- [x] Operational notes controller + tests (see BUSINESS_RULES.md §7 Operational Notes)
 - [ ] Add note form — techs + managers only
 
 ### Attachments
