@@ -189,14 +189,14 @@ Messages, labor, equipment, notes, attachments, daily log, documents panel.
 
 ### Messages
 
-- [ ] Messages controller + tests (see BUSINESS_RULES.md §7 Messages)
-- [ ] Messages panel UI — thread + compose (see VIEWS.md §Right Panel: Messages)
+- [x] Messages controller + tests (see BUSINESS_RULES.md §7 Messages)
+- [x] Messages panel UI — thread + compose (see VIEWS.md §Right Panel: Messages)
 
 ### Labor Entries
 
-- [ ] Labor entries controller + tests (see BUSINESS_RULES.md §8)
+- [x] Labor entries controller + tests (see BUSINESS_RULES.md §8)
 - [ ] Add/edit labor forms — role permissions per BUSINESS_RULES.md
-- [ ] Activity events on create/update
+- [x] Activity events on create/update
 
 ### Equipment Entries
 
@@ -324,8 +324,23 @@ Complete the app for production use.
 - [ ] Loading states + user-friendly errors (see DESIGN.md §Tone & Voice)
 - [ ] 404 page
 - [ ] Responsive QA — mobile, tablet, desktop
-- [ ] E2E system tests — critical happy paths
+- [ ] E2E system tests — critical happy paths (see list below)
 - [ ] Cross-browser check
+
+### E2E Test Paths (Capybara + Playwright)
+
+Identify and write after features are UI-complete. Each test = one user flow in a real browser.
+
+- [ ] **Login flow** — valid credentials → dashboard; invalid → error; deactivated → blocked
+- [ ] **Incident lifecycle** — create incident → appears on dashboard → change status → verify transitions
+- [ ] **Assignment flow** — assign user to incident → appears in team panel → unassign
+- [ ] **Messages** — send message on incident → appears in thread → visible to assigned users
+- [ ] **Labor entry** — tech logs hours → appears in daily log → manager edits entry
+- [ ] **Equipment entry** — place equipment → appears in daily log → remove equipment
+- [ ] **Cross-org isolation** — PM user cannot see other PM org's incidents/properties
+- [ ] **Tech scoping** — unassigned tech cannot see incident; assigned tech can
+- [ ] **Invitation flow** — invite user → accept invitation → set password → login
+- [ ] **Property management** — create property → assign PM users → view property detail
 
 **Done when:** Fully usable by all six roles. No dead ends, no missing states. Ready for production.
 
