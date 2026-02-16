@@ -29,7 +29,7 @@ export default function MessagePanel({ messages, messages_path }: MessagePanelPr
     if (!trimmed || sending) return;
     setSending(true);
 
-    router.post(messages_path, { message: { body: trimmed, files } } as Record<string, unknown>, {
+    router.post(messages_path, { message: { body: trimmed, files } }, {
       forceFormData: files.length > 0,
       preserveScroll: true,
       onSuccess: () => {
