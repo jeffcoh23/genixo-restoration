@@ -12,7 +12,7 @@ interface LaborPanelProps {
   assignable_labor_users: AssignableUser[];
 }
 
-export default function LaborPanel({ labor_log, labor_entries, can_manage_labor, labor_entries_path, assignable_labor_users }: LaborPanelProps) {
+export default function LaborPanel({ labor_log, labor_entries: _labor_entries, can_manage_labor, labor_entries_path, assignable_labor_users }: LaborPanelProps) {
   const [showForm, setShowForm] = useState(false);
 
   const hasData = labor_log.employees.length > 0;
