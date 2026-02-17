@@ -235,6 +235,7 @@ export interface IncidentDetail {
   damage_label: string;
   emergency: boolean;
   job_id: string | null;
+  location_of_damage: string | null;
   created_at: string;
   created_at_label: string;
   created_by: string | null;

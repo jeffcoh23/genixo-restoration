@@ -1,6 +1,6 @@
 import { Link, router, usePage } from "@inertiajs/react";
 import { useState } from "react";
-import { AlertTriangle, ChevronDown, Clock, Hash, Pencil, Timer, User as UserIcon, Wrench } from "lucide-react";
+import { AlertTriangle, ChevronDown, Pencil } from "lucide-react";
 import AppLayout from "@/layout/AppLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -84,21 +84,20 @@ export default function IncidentShow() {
 
       {/* Sticky header */}
       <div className="sticky top-0 z-10 bg-background pb-4 border-b border-border mb-6">
-        {/* Property */}
-        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-          <Link href={incident.property.path} className="hover:text-foreground hover:underline">
-            {incident.property.name}
-          </Link>
-          {incident.property.address && (
-            <>
-              <span>&middot;</span>
-              <span>{incident.property.address}</span>
-            </>
-          )}
+        {/* Property name */}
+        <Link href={incident.property.path} className="text-sm text-muted-foreground hover:text-foreground hover:underline">
+          {incident.property.name}
+        </Link>
+
+        {/* Address + location of damage */}
+        <div className="text-sm text-muted-foreground mt-0.5">
+          {incident.property.address && <span>{incident.property.address}</span>}
+          {incident.property.address && incident.location_of_damage && <span> &middot; </span>}
+          {incident.location_of_damage && <span>{incident.location_of_damage}</span>}
         </div>
 
-        {/* Status + badges row */}
-        <div className="flex flex-wrap items-center gap-3 mb-2">
+        {/* Status + type row */}
+        <div className="flex flex-wrap items-center gap-3 mt-2">
           <div className="relative">
             {can_transition && incident.valid_transitions.length > 0 ? (
               <Button
@@ -147,13 +146,6 @@ export default function IncidentShow() {
             {incident.damage_label} &middot; {incident.project_type_label}
           </span>
 
-          {incident.job_id && (
-            <span className="flex items-center gap-1 text-sm text-muted-foreground">
-              <Hash className="h-3.5 w-3.5" />
-              {incident.job_id}
-            </span>
-          )}
-
           {can_edit && incident.edit_path && (
             <Button
               variant="ghost"
@@ -164,55 +156,6 @@ export default function IncidentShow() {
               <Pencil className="h-3 w-3" />
               Edit
             </Button>
-          )}
-        </div>
-
-        {/* Meta row */}
-        <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-          {incident.created_by && (
-            <span className="flex items-center gap-1">
-              <UserIcon className="h-3.5 w-3.5" />
-              {incident.created_by}
-            </span>
-          )}
-          <span className="flex items-center gap-1">
-            <Clock className="h-3.5 w-3.5" />
-            {incident.created_at_label}
-          </span>
-
-          {incident.assigned_summary.count > 0 && (
-            <div className="flex items-center gap-1">
-              <div className="flex -space-x-1.5">
-                {incident.assigned_summary.avatars.map((u) => (
-                  <div
-                    key={u.id}
-                    title={u.full_name}
-                    className="h-6 w-6 rounded-full bg-muted border-2 border-background flex items-center justify-center text-xs font-medium text-muted-foreground"
-                  >
-                    {u.initials}
-                  </div>
-                ))}
-              </div>
-              {incident.assigned_summary.overflow > 0 && (
-                <span className="text-xs text-muted-foreground ml-1">
-                  +{incident.assigned_summary.overflow}
-                </span>
-              )}
-              <span className="text-xs ml-1">{incident.assigned_summary.count} assigned</span>
-            </div>
-          )}
-
-          {incident.show_stats && (
-            <>
-              <Badge variant="secondary" className="text-xs gap-1 font-normal">
-                <Timer className="h-3 w-3" />
-                {incident.stats.total_labor_hours}h logged
-              </Badge>
-              <Badge variant="secondary" className="text-xs gap-1 font-normal">
-                <Wrench className="h-3 w-3" />
-                {incident.stats.active_equipment} active equip
-              </Badge>
-            </>
           )}
         </div>
       </div>

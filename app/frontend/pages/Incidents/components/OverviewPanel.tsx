@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { router } from "@inertiajs/react";
-import { Building2, ChevronDown, Mail, Pencil, Phone, Plus, UserPlus, X } from "lucide-react";
+import { Building2, ChevronDown, Clock, Hash, Mail, Pencil, Phone, Plus, Timer, UserPlus, Wrench, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -38,6 +38,42 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
 
   return (
     <div className="overflow-y-auto h-full px-3 py-3 space-y-4">
+      {/* Incident Details */}
+      <div className="space-y-1.5 text-sm">
+        <div className="flex items-center gap-4 text-muted-foreground">
+          {incident.created_by && (
+            <span className="flex items-center gap-1">
+              <Clock className="h-3.5 w-3.5" />
+              {incident.created_at_label} by {incident.created_by}
+            </span>
+          )}
+          {!incident.created_by && (
+            <span className="flex items-center gap-1">
+              <Clock className="h-3.5 w-3.5" />
+              {incident.created_at_label}
+            </span>
+          )}
+        </div>
+        {incident.job_id && (
+          <div className="flex items-center gap-1 text-muted-foreground">
+            <Hash className="h-3.5 w-3.5" />
+            <span>Job {incident.job_id}</span>
+          </div>
+        )}
+        {incident.show_stats && (
+          <div className="flex items-center gap-3 text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <Timer className="h-3.5 w-3.5" />
+              {incident.stats.total_labor_hours}h logged
+            </span>
+            <span className="flex items-center gap-1">
+              <Wrench className="h-3.5 w-3.5" />
+              {incident.stats.active_equipment} active equip
+            </span>
+          </div>
+        )}
+      </div>
+
       {/* Assigned Team — collapsible, default open */}
       <div>
         <div className="flex items-center">

@@ -144,6 +144,7 @@ class IncidentsController < ApplicationController
         damage_label: Incident::DAMAGE_LABELS[@incident.damage_type],
         emergency: @incident.emergency,
         job_id: @incident.job_id,
+        location_of_damage: @incident.location_of_damage,
         created_at: @incident.created_at.iso8601,
         created_at_label: format_date(@incident.created_at),
         created_by: @incident.created_by_user&.full_name,
@@ -320,18 +321,22 @@ class IncidentsController < ApplicationController
   def assignable_users_by_property
     properties = creatable_properties.includes(:mitigation_org, :property_management_org)
 
-    # Batch-load all users from relevant orgs
-    org_ids = properties.flat_map { |p| [ p.mitigation_org_id, p.property_management_org_id ] }.uniq
+    # PM users only assign within their own org; mitigation admins see both orgs
+    org_ids = if current_user.pm_user?
+      [ current_user.organization_id ]
+    else
+      properties.flat_map { |p| [ p.mitigation_org_id, p.property_management_org_id ] }.uniq
+    end
+
     all_users = User.where(active: true, organization_id: org_ids).includes(:organization).order(:last_name, :first_name)
     users_by_org = all_users.group_by(&:organization_id)
 
-    # Batch-load property assignments
     prop_assignments = PropertyAssignment.where(property: properties).pluck(:property_id, :user_id)
     assigned_by_property = prop_assignments.group_by(&:first).transform_values { |v| v.map(&:last).to_set }
 
     result = {}
     properties.each do |property|
-      mit_users = users_by_org[property.mitigation_org_id] || []
+      mit_users = current_user.pm_user? ? [] : (users_by_org[property.mitigation_org_id] || [])
       pm_users = users_by_org[property.property_management_org_id] || []
       prop_assigned_ids = assigned_by_property[property.id] || Set.new
 
