@@ -29,10 +29,12 @@ class DailyActivityServiceTest < ActiveSupport::TestCase
   test "returns dates from labor entries" do
     @incident.labor_entries.create!(
       role_label: "Technician", log_date: @today, hours: 4.0,
+      started_at: @today.beginning_of_day + 8.hours, ended_at: @today.beginning_of_day + 12.hours,
       user: @manager, created_by_user: @manager
     )
     @incident.labor_entries.create!(
       role_label: "Technician", log_date: @yesterday, hours: 2.0,
+      started_at: @yesterday.beginning_of_day + 8.hours, ended_at: @yesterday.beginning_of_day + 10.hours,
       user: @manager, created_by_user: @manager
     )
 
@@ -90,6 +92,7 @@ class DailyActivityServiceTest < ActiveSupport::TestCase
   test "deduplicates dates across sources" do
     @incident.labor_entries.create!(
       role_label: "Technician", log_date: @today, hours: 4.0,
+      started_at: @today.beginning_of_day + 8.hours, ended_at: @today.beginning_of_day + 12.hours,
       user: @manager, created_by_user: @manager
     )
     @incident.operational_notes.create!(
@@ -114,10 +117,12 @@ class DailyActivityServiceTest < ActiveSupport::TestCase
   test "returns labor entries for date" do
     @incident.labor_entries.create!(
       role_label: "Technician", log_date: @today, hours: 4.0,
+      started_at: @today.beginning_of_day + 8.hours, ended_at: @today.beginning_of_day + 12.hours,
       user: @manager, created_by_user: @manager
     )
     @incident.labor_entries.create!(
       role_label: "Technician", log_date: @yesterday, hours: 2.0,
+      started_at: @yesterday.beginning_of_day + 8.hours, ended_at: @yesterday.beginning_of_day + 10.hours,
       user: @manager, created_by_user: @manager
     )
 

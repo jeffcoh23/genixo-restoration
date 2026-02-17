@@ -33,6 +33,9 @@ class LaborEntriesControllerTest < ActionDispatch::IntegrationTest
     )
     IncidentAssignment.create!(incident: @incident, user: @tech, assigned_by_user: @manager)
     IncidentAssignment.create!(incident: @incident, user: @other_tech, assigned_by_user: @manager)
+
+    @started = Time.zone.parse("2026-02-15 08:00:00")
+    @ended = Time.zone.parse("2026-02-15 12:30:00")
   end
 
   # --- Create tests ---
@@ -41,7 +44,11 @@ class LaborEntriesControllerTest < ActionDispatch::IntegrationTest
     login_as @manager
     assert_difference "LaborEntry.count", 1 do
       post incident_labor_entries_path(@incident), params: {
-        labor_entry: { role_label: "Technician", log_date: Date.current, hours: 4.5, user_id: @tech.id }
+        labor_entry: {
+          role_label: "Technician", log_date: Date.current,
+          started_at: @started.iso8601, ended_at: @ended.iso8601,
+          user_id: @tech.id
+        }
       }
     end
     assert_redirected_to incident_path(@incident)
@@ -55,7 +62,10 @@ class LaborEntriesControllerTest < ActionDispatch::IntegrationTest
     login_as @manager
     assert_difference "LaborEntry.count", 1 do
       post incident_labor_entries_path(@incident), params: {
-        labor_entry: { role_label: "Helper", log_date: Date.current, hours: 2.0 }
+        labor_entry: {
+          role_label: "Helper", log_date: Date.current,
+          started_at: @started.iso8601, ended_at: @ended.iso8601
+        }
       }
     end
     assert_redirected_to incident_path(@incident)
@@ -66,7 +76,10 @@ class LaborEntriesControllerTest < ActionDispatch::IntegrationTest
     login_as @tech
     assert_difference "LaborEntry.count", 1 do
       post incident_labor_entries_path(@incident), params: {
-        labor_entry: { role_label: "Technician", log_date: Date.current, hours: 3.0 }
+        labor_entry: {
+          role_label: "Technician", log_date: Date.current,
+          started_at: @started.iso8601, ended_at: @ended.iso8601
+        }
       }
     end
     assert_redirected_to incident_path(@incident)
@@ -77,7 +90,11 @@ class LaborEntriesControllerTest < ActionDispatch::IntegrationTest
   test "tech cannot set user_id to another user" do
     login_as @tech
     post incident_labor_entries_path(@incident), params: {
-      labor_entry: { role_label: "Technician", log_date: Date.current, hours: 2.0, user_id: @other_tech.id }
+      labor_entry: {
+        role_label: "Technician", log_date: Date.current,
+        started_at: @started.iso8601, ended_at: @ended.iso8601,
+        user_id: @other_tech.id
+      }
     }
     assert_redirected_to incident_path(@incident)
     assert_equal @tech.id, LaborEntry.last.user_id
@@ -87,7 +104,10 @@ class LaborEntriesControllerTest < ActionDispatch::IntegrationTest
     login_as @office_sales
     assert_no_difference "LaborEntry.count" do
       post incident_labor_entries_path(@incident), params: {
-        labor_entry: { role_label: "Technician", log_date: Date.current, hours: 1.0 }
+        labor_entry: {
+          role_label: "Technician", log_date: Date.current,
+          started_at: @started.iso8601, ended_at: @ended.iso8601
+        }
       }
     end
     assert_response :not_found
@@ -97,7 +117,10 @@ class LaborEntriesControllerTest < ActionDispatch::IntegrationTest
     login_as @pm_user
     assert_no_difference "LaborEntry.count" do
       post incident_labor_entries_path(@incident), params: {
-        labor_entry: { role_label: "Technician", log_date: Date.current, hours: 1.0 }
+        labor_entry: {
+          role_label: "Technician", log_date: Date.current,
+          started_at: @started.iso8601, ended_at: @ended.iso8601
+        }
       }
     end
     assert_response :not_found
@@ -107,7 +130,10 @@ class LaborEntriesControllerTest < ActionDispatch::IntegrationTest
     login_as @cross_org_pm
     assert_no_difference "LaborEntry.count" do
       post incident_labor_entries_path(@incident), params: {
-        labor_entry: { role_label: "Technician", log_date: Date.current, hours: 1.0 }
+        labor_entry: {
+          role_label: "Technician", log_date: Date.current,
+          started_at: @started.iso8601, ended_at: @ended.iso8601
+        }
       }
     end
     assert_response :not_found
@@ -117,12 +143,10 @@ class LaborEntriesControllerTest < ActionDispatch::IntegrationTest
 
   test "manager can update any entry on visible incident" do
     login_as @manager
-    entry = @incident.labor_entries.create!(
-      role_label: "Technician", log_date: Date.current, hours: 2.0,
-      user: @tech, created_by_user: @tech
-    )
+    entry = create_labor_entry(user: @tech, created_by_user: @tech, hours: 2.0)
+    new_ended = Time.zone.parse("2026-02-15 13:00:00")
     patch incident_labor_entry_path(@incident, entry), params: {
-      labor_entry: { hours: 5.0 }
+      labor_entry: { ended_at: new_ended.iso8601 }
     }
     assert_redirected_to incident_path(@incident)
     assert_equal 5.0, entry.reload.hours.to_f
@@ -130,12 +154,10 @@ class LaborEntriesControllerTest < ActionDispatch::IntegrationTest
 
   test "tech can update own entry" do
     login_as @tech
-    entry = @incident.labor_entries.create!(
-      role_label: "Technician", log_date: Date.current, hours: 2.0,
-      user: @tech, created_by_user: @tech
-    )
+    entry = create_labor_entry(user: @tech, created_by_user: @tech, hours: 2.0)
+    new_ended = Time.zone.parse("2026-02-15 11:00:00")
     patch incident_labor_entry_path(@incident, entry), params: {
-      labor_entry: { hours: 3.0 }
+      labor_entry: { ended_at: new_ended.iso8601 }
     }
     assert_redirected_to incident_path(@incident)
     assert_equal 3.0, entry.reload.hours.to_f
@@ -143,12 +165,10 @@ class LaborEntriesControllerTest < ActionDispatch::IntegrationTest
 
   test "tech cannot update another users entry" do
     login_as @tech
-    entry = @incident.labor_entries.create!(
-      role_label: "Technician", log_date: Date.current, hours: 2.0,
-      user: @other_tech, created_by_user: @other_tech
-    )
+    entry = create_labor_entry(user: @other_tech, created_by_user: @other_tech, hours: 2.0)
+    new_ended = Time.zone.parse("2026-02-15 17:00:00")
     patch incident_labor_entry_path(@incident, entry), params: {
-      labor_entry: { hours: 99.0 }
+      labor_entry: { ended_at: new_ended.iso8601 }
     }
     assert_response :not_found
     assert_equal 2.0, entry.reload.hours.to_f
@@ -160,25 +180,29 @@ class LaborEntriesControllerTest < ActionDispatch::IntegrationTest
     login_as @manager
     assert_difference "ActivityEvent.count", 1 do
       post incident_labor_entries_path(@incident), params: {
-        labor_entry: { role_label: "Technician", log_date: Date.current, hours: 4.0, user_id: @tech.id }
+        labor_entry: {
+          role_label: "Technician", log_date: Date.current,
+          started_at: @started.iso8601, ended_at: @ended.iso8601,
+          user_id: @tech.id
+        }
       }
     end
     event = ActivityEvent.last
     assert_equal "labor_created", event.event_type
     assert_equal @manager.id, event.performed_by_user_id
     assert_equal "Technician", event.metadata["role_label"]
-    assert_equal 4.0, event.metadata["hours"]
+    assert_equal 4.5, event.metadata["hours"]
     assert_not_nil @incident.reload.last_activity_at
   end
 
-  test "hours calculated from started_at and ended_at when both provided" do
+  test "hours always calculated from started_at and ended_at" do
     login_as @manager
     started = Time.zone.parse("2026-02-15 08:00:00")
     ended = Time.zone.parse("2026-02-15 11:30:00")
     post incident_labor_entries_path(@incident), params: {
       labor_entry: {
         role_label: "Technician", log_date: Date.current,
-        hours: 1.0, started_at: started.iso8601, ended_at: ended.iso8601,
+        started_at: started.iso8601, ended_at: ended.iso8601,
         user_id: @tech.id
       }
     }
@@ -187,6 +211,15 @@ class LaborEntriesControllerTest < ActionDispatch::IntegrationTest
   end
 
   private
+
+  def create_labor_entry(user:, created_by_user:, hours:)
+    @incident.labor_entries.create!(
+      role_label: "Technician", log_date: Date.current,
+      started_at: @started, ended_at: @started + hours.hours,
+      hours: hours,
+      user: user, created_by_user: created_by_user
+    )
+  end
 
   def login_as(user)
     post login_path, params: { email_address: user.email_address, password: "password123" }

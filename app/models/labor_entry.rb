@@ -5,5 +5,7 @@ class LaborEntry < ApplicationRecord
 
   validates :role_label, presence: true
   validates :log_date, presence: true
+  validates :started_at, presence: true
+  validates :ended_at, presence: true
   validates :hours, presence: true, numericality: { greater_than: 0 }
 end

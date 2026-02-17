@@ -23,16 +23,6 @@ function sortedUsers(users: AssignableUser[]): AssignableUser[] {
   });
 }
 
-function calculateHours(startedAt: string, endedAt: string): string {
-  if (!startedAt || !endedAt) return "";
-  const [sh, sm] = startedAt.split(":").map(Number);
-  const [eh, em] = endedAt.split(":").map(Number);
-  const diff = (eh * 60 + em) - (sh * 60 + sm);
-  if (diff <= 0) return "";
-  const hours = Math.round((diff / 60) * 4) / 4; // round to nearest 0.25
-  return String(hours);
-}
-
 interface LaborFormProps {
   path: string;
   users: AssignableUser[];
@@ -51,7 +41,6 @@ export default function LaborForm({ path, users, onClose, entry }: LaborFormProp
   const { data, setData, post, patch, processing, errors } = useForm({
     user_id: initialUserId,
     role_label: initialRole,
-    hours: entry ? String(entry.hours) : "",
     started_at: entry?.started_at ?? "",
     ended_at: entry?.ended_at ?? "",
     log_date: entry?.log_date ?? today,
@@ -67,25 +56,12 @@ export default function LaborForm({ path, users, onClose, entry }: LaborFormProp
     }));
   };
 
-  const handleTimeChange = (field: "started_at" | "ended_at", value: string) => {
-    const newStarted = field === "started_at" ? value : data.started_at;
-    const newEnded = field === "ended_at" ? value : data.ended_at;
-    const computed = calculateHours(newStarted, newEnded);
-    setData((prev) => ({
-      ...prev,
-      [field]: value,
-      ...(computed ? { hours: computed } : {}),
-    }));
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const submit = editing ? patch : post;
     const url = editing ? entry!.edit_path! : path;
     submit(url, { onSuccess: () => onClose() });
   };
-
-  const hasComputedHours = !!(data.started_at && data.ended_at && calculateHours(data.started_at, data.ended_at));
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
@@ -150,42 +126,23 @@ export default function LaborForm({ path, users, onClose, entry }: LaborFormProp
               <Input
                 type="time"
                 value={data.started_at}
-                onChange={(e) => handleTimeChange("started_at", e.target.value)}
+                onChange={(e) => setData("started_at", e.target.value)}
                 className="mt-1"
                 required
               />
             </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground">
-                End Time <span className="text-muted-foreground font-normal">(optional)</span>
+                End Time <span className="text-destructive">*</span>
               </label>
               <Input
                 type="time"
                 value={data.ended_at}
-                onChange={(e) => handleTimeChange("ended_at", e.target.value)}
+                onChange={(e) => setData("ended_at", e.target.value)}
                 className="mt-1"
+                required
               />
             </div>
-          </div>
-
-          <div>
-            <label className="text-xs font-medium text-muted-foreground">
-              Hours <span className="text-destructive">*</span>
-            </label>
-            <Input
-              type="number"
-              step="0.25"
-              min="0"
-              value={data.hours}
-              onChange={(e) => setData("hours", e.target.value)}
-              className="mt-1"
-              required
-              readOnly={hasComputedHours}
-            />
-            {hasComputedHours && (
-              <p className="text-xs text-muted-foreground mt-1">Calculated from start/end time</p>
-            )}
-            {errors.hours && <p className="text-xs text-destructive mt-1">{errors.hours}</p>}
           </div>
 
           <div>

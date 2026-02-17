@@ -93,7 +93,7 @@ class LaborEntriesController < ApplicationController
 
   def labor_entry_params
     permitted = params.require(:labor_entry).permit(
-      :role_label, :log_date, :hours, :started_at, :ended_at, :notes, :user_id
+      :role_label, :log_date, :started_at, :ended_at, :notes, :user_id
     )
     permitted.delete(:user_id) if current_user.technician?
     permitted

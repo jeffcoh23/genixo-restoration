@@ -299,16 +299,22 @@ if Incident.count.zero?
   end
 
   # Labor entries
+  day3 = (now - 3.days).to_date
+  day2 = (now - 2.days).to_date
+
   LaborEntry.create!(incident: incident1, user: users[:henry], created_by_user: users[:henry],
-    role_label: "Technician", log_date: (now - 3.days).to_date, hours: 6.5,
+    role_label: "Technician", log_date: day3, hours: 6.5,
+    started_at: day3.beginning_of_day + 8.hours, ended_at: day3.beginning_of_day + 14.hours + 30.minutes,
     notes: "Water extraction, equipment setup across units 237-239")
 
   LaborEntry.create!(incident: incident1, user: users[:zachary], created_by_user: users[:zachary],
-    role_label: "Technician", log_date: (now - 3.days).to_date, hours: 5.0,
+    role_label: "Technician", log_date: day3, hours: 5.0,
+    started_at: day3.beginning_of_day + 9.hours, ended_at: day3.beginning_of_day + 14.hours,
     notes: "Assisted with extraction, set up containment barriers")
 
   LaborEntry.create!(incident: incident1, user: users[:henry], created_by_user: users[:henry],
-    role_label: "Technician", log_date: (now - 2.days).to_date, hours: 3.0,
+    role_label: "Technician", log_date: day2, hours: 3.0,
+    started_at: day2.beginning_of_day + 7.hours, ended_at: day2.beginning_of_day + 10.hours,
     notes: "Morning moisture readings, adjusted equipment positioning")
 
   # Equipment entries
@@ -496,20 +502,29 @@ if Incident.count.zero?
   end
 
   # Labor
+  d14 = (now - 14.days).to_date
+  d13 = (now - 13.days).to_date
+  d12 = (now - 12.days).to_date
+  d6 = (now - 6.days).to_date
+
   LaborEntry.create!(incident: incident3, user: users[:henry], created_by_user: users[:henry],
-    role_label: "Technician", log_date: (now - 14.days).to_date, hours: 4.0,
+    role_label: "Technician", log_date: d14, hours: 4.0,
+    started_at: d14.beginning_of_day + 8.hours, ended_at: d14.beginning_of_day + 12.hours,
     notes: "Initial assessment, air scrubber setup in 4 units")
 
   LaborEntry.create!(incident: incident3, user: users[:henry], created_by_user: users[:henry],
-    role_label: "Technician", log_date: (now - 13.days).to_date, hours: 8.0,
+    role_label: "Technician", log_date: d13, hours: 8.0,
+    started_at: d13.beginning_of_day + 7.hours, ended_at: d13.beginning_of_day + 15.hours,
     notes: "Smoke damage cleaning — unit 305 kitchen and living areas")
 
   LaborEntry.create!(incident: incident3, user: nil, created_by_user: users[:fred],
-    role_label: "General Labor", log_date: (now - 12.days).to_date, hours: 6.0,
+    role_label: "General Labor", log_date: d12, hours: 6.0,
+    started_at: d12.beginning_of_day + 8.hours, ended_at: d12.beginning_of_day + 14.hours,
     notes: "Surface cleaning units 303, 304, 306")
 
   LaborEntry.create!(incident: incident3, user: users[:henry], created_by_user: users[:henry],
-    role_label: "Technician", log_date: (now - 6.days).to_date, hours: 2.0,
+    role_label: "Technician", log_date: d6, hours: 2.0,
+    started_at: d6.beginning_of_day + 9.hours, ended_at: d6.beginning_of_day + 11.hours,
     notes: "Final air quality readings and equipment removal")
 
   # Equipment — air scrubbers (freeform type, since not in predefined list)

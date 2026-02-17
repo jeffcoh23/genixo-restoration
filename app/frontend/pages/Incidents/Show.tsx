@@ -42,6 +42,7 @@ export default function IncidentShow() {
     messages = [],
     equipment_log = [],
     labor_entries = [],
+    labor_log = { dates: [], date_labels: [], employees: [] },
     attachments = [],
     can_transition,
     can_edit = false,
@@ -271,6 +272,7 @@ export default function IncidentShow() {
           )}
           {activeTab === "labor" && (
             <LaborPanel
+              labor_log={labor_log}
               labor_entries={labor_entries}
               can_manage_labor={can_manage_labor}
               labor_entries_path={incident.labor_entries_path}
