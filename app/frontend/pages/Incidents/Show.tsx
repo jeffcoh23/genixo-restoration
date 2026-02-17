@@ -1,16 +1,18 @@
 import { Link, router, usePage } from "@inertiajs/react";
 import { useState } from "react";
-import { AlertTriangle, ChevronDown, Clock, Timer, User as UserIcon, Wrench } from "lucide-react";
+import { AlertTriangle, ChevronDown, Clock, Hash, Pencil, Timer, User as UserIcon, Wrench } from "lucide-react";
 import AppLayout from "@/layout/AppLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SharedProps } from "@/types";
-import OverviewPanel from "./components/OverviewPanel";
 import RightPanelShell from "./components/RightPanelShell";
-import ActivityPanel from "./components/ActivityPanel";
 import MessagePanel from "./components/MessagePanel";
 import DailyLogPanel from "./components/DailyLogPanel";
+import EquipmentPanel from "./components/EquipmentPanel";
+import LaborPanel from "./components/LaborPanel";
 import DocumentPanel from "./components/DocumentPanel";
+import OverviewPanel from "./components/OverviewPanel";
+import IncidentEditForm from "./components/IncidentEditForm";
 import type { ShowProps } from "./types";
 
 function statusColor(status: string): string {
@@ -34,29 +36,33 @@ function statusColor(status: string): string {
 export default function IncidentShow() {
   const {
     incident,
-    activity_entries = [],
     daily_activities = [],
     daily_log_dates = [],
+    daily_log_table_groups = [],
     messages = [],
+    equipment_log = [],
     labor_entries = [],
-    operational_notes = [],
     attachments = [],
     can_transition,
-    can_assign,
-    can_manage_contacts,
+    can_edit = false,
+    can_assign = false,
+    can_manage_contacts = false,
     can_manage_activities = false,
-    can_manage_labor,
-    can_create_notes,
+    can_manage_labor = false,
+    can_manage_equipment = false,
     assignable_users = [],
     assignable_labor_users = [],
     equipment_types = [],
     attachable_equipment_entries = [],
+    project_types = [],
+    damage_types = [],
     back_path,
   } = usePage<SharedProps & ShowProps>().props;
 
   const [statusOpen, setStatusOpen] = useState(false);
   const [transitioning, setTransitioning] = useState(false);
   const [activeTab, setActiveTab] = useState("daily_log");
+  const [editFormOpen, setEditFormOpen] = useState(false);
 
   const handleTransition = (newStatus: string) => {
     setTransitioning(true);
@@ -67,7 +73,7 @@ export default function IncidentShow() {
   };
 
   return (
-    <AppLayout>
+    <AppLayout wide>
       {/* Back link */}
       <div className="mb-4">
         <Link href={back_path} className="text-sm text-muted-foreground hover:text-foreground">
@@ -139,6 +145,25 @@ export default function IncidentShow() {
           <span className="text-sm text-muted-foreground">
             {incident.damage_label} &middot; {incident.project_type_label}
           </span>
+
+          {incident.job_id && (
+            <span className="flex items-center gap-1 text-sm text-muted-foreground">
+              <Hash className="h-3.5 w-3.5" />
+              {incident.job_id}
+            </span>
+          )}
+
+          {can_edit && incident.edit_path && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs gap-1 text-muted-foreground"
+              onClick={() => setEditFormOpen(true)}
+            >
+              <Pencil className="h-3 w-3" />
+              Edit
+            </Button>
+          )}
         </div>
 
         {/* Meta row */}
@@ -191,56 +216,98 @@ export default function IncidentShow() {
         </div>
       </div>
 
-      {/* Split panel layout — tabs left (65%), details sidebar right (35%) */}
-      <div className="flex flex-col lg:flex-row gap-6 lg:h-[calc(100vh-240px)] lg:overflow-hidden">
-        <div className="order-2 lg:order-1 lg:w-[65%] lg:min-w-[65%] h-full overflow-hidden">
-          <RightPanelShell activeTab={activeTab} onTabChange={setActiveTab}>
-            {activeTab === "activity" && (
-              <ActivityPanel entries={activity_entries} />
-            )}
-            {activeTab === "daily_log" && (
-              <DailyLogPanel
-                daily_activities={daily_activities}
-                daily_log_dates={daily_log_dates}
-                labor_entries={labor_entries}
-                operational_notes={operational_notes}
-                attachments={attachments}
-                can_manage_activities={can_manage_activities}
-                can_manage_labor={can_manage_labor}
-                can_create_notes={can_create_notes}
-                activity_entries_path={incident.activity_entries_path}
-                labor_entries_path={incident.labor_entries_path}
-                operational_notes_path={incident.operational_notes_path}
-                attachments_path={incident.attachments_path}
-                assignable_labor_users={assignable_labor_users}
-                equipment_types={equipment_types}
-                attachable_equipment_entries={attachable_equipment_entries}
-              />
-            )}
-            {activeTab === "messages" && (
-              <MessagePanel
-                messages={messages}
-                messages_path={incident.messages_path}
-              />
-            )}
-            {activeTab === "documents" && (
-              <DocumentPanel
-                attachments={attachments}
-                attachments_path={incident.attachments_path}
-              />
-            )}
-          </RightPanelShell>
+      {/* Incident details */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 mb-6">
+        <div>
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Description</h3>
+          <p className="text-sm text-foreground whitespace-pre-wrap">{incident.description}</p>
         </div>
 
-        <div className="order-1 lg:order-2 lg:w-[35%] lg:min-w-[35%] lg:border-l lg:border-border lg:pl-6 h-full lg:overflow-y-auto pb-6">
-          <OverviewPanel
-            incident={incident}
-            can_assign={can_assign}
-            can_manage_contacts={can_manage_contacts}
-            assignable_users={assignable_users}
-          />
-        </div>
+        {incident.cause && (
+          <div>
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Cause</h3>
+            <p className="text-sm text-foreground whitespace-pre-wrap">{incident.cause}</p>
+          </div>
+        )}
+
+        {incident.requested_next_steps && (
+          <div>
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Requested Next Steps</h3>
+            <p className="text-sm text-foreground whitespace-pre-wrap">{incident.requested_next_steps}</p>
+          </div>
+        )}
+
+        {(incident.units_affected || incident.affected_room_numbers) && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            {incident.units_affected && <span>{incident.units_affected} units affected</span>}
+            {incident.units_affected && incident.affected_room_numbers && <span>&middot;</span>}
+            {incident.affected_room_numbers && <span>Rooms: {incident.affected_room_numbers}</span>}
+          </div>
+        )}
+
       </div>
+
+      {/* Tabbed content — full width */}
+      <div className="h-[calc(100vh-400px)] overflow-hidden">
+        <RightPanelShell activeTab={activeTab} onTabChange={setActiveTab}>
+          {activeTab === "daily_log" && (
+            <DailyLogPanel
+              daily_activities={daily_activities}
+              daily_log_dates={daily_log_dates}
+              daily_log_table_groups={daily_log_table_groups}
+              can_manage_activities={can_manage_activities}
+              activity_entries_path={incident.activity_entries_path}
+              equipment_types={equipment_types}
+              attachable_equipment_entries={attachable_equipment_entries}
+            />
+          )}
+          {activeTab === "equipment" && (
+            <EquipmentPanel
+              equipment_log={equipment_log}
+              can_manage_equipment={can_manage_equipment}
+              equipment_entries_path={incident.equipment_entries_path}
+              equipment_types={equipment_types}
+            />
+          )}
+          {activeTab === "labor" && (
+            <LaborPanel
+              labor_entries={labor_entries}
+              can_manage_labor={can_manage_labor}
+              labor_entries_path={incident.labor_entries_path}
+              assignable_labor_users={assignable_labor_users}
+            />
+          )}
+          {activeTab === "messages" && (
+            <MessagePanel
+              messages={messages}
+              messages_path={incident.messages_path}
+            />
+          )}
+          {activeTab === "documents" && (
+            <DocumentPanel
+              attachments={attachments}
+              attachments_path={incident.attachments_path}
+            />
+          )}
+          {activeTab === "manage" && (
+            <OverviewPanel
+              incident={incident}
+              can_assign={can_assign}
+              can_manage_contacts={can_manage_contacts}
+              assignable_users={assignable_users}
+            />
+          )}
+        </RightPanelShell>
+      </div>
+
+      {editFormOpen && incident.edit_path && (
+        <IncidentEditForm
+          incident={incident}
+          project_types={project_types}
+          damage_types={damage_types}
+          onClose={() => setEditFormOpen(false)}
+        />
+      )}
     </AppLayout>
   );
 }

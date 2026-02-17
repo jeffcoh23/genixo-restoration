@@ -10,15 +10,15 @@ Rails.application.routes.draw do
   get "dashboard", to: "dashboard#show", as: :dashboard
 
   # Incidents
-  resources :incidents, only: %i[index new create show] do
+  resources :incidents, only: %i[index new create show update] do
     member do
       patch :transition
     end
     resources :assignments, controller: "incident_assignments", only: %i[create destroy]
-    resources :contacts, controller: "incident_contacts", only: %i[create destroy]
+    resources :contacts, controller: "incident_contacts", only: %i[create update destroy]
     resources :messages, only: %i[create]
     resources :activity_entries, only: %i[create update]
-    resources :labor_entries, only: %i[create update]
+    resources :labor_entries, only: %i[create update destroy]
     resources :equipment_entries, only: %i[create update] do
       member do
         patch :remove

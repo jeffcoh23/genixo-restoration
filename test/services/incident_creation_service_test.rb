@@ -136,6 +136,60 @@ class IncidentCreationServiceTest < ActiveSupport::TestCase
     end
   end
 
+  # --- Additional user assignment ---
+
+  test "assigns additional users by id" do
+    incident = create_incident(additional_user_ids: [ @tech.id ])
+    assigned_ids = incident.incident_assignments.pluck(:user_id)
+
+    assert_includes assigned_ids, @tech.id
+  end
+
+  test "does not duplicate auto-assigned users when passed as additional" do
+    incident = create_incident(additional_user_ids: [ @manager.id ])
+    assignment_count = incident.incident_assignments.where(user_id: @manager.id).count
+
+    assert_equal 1, assignment_count
+  end
+
+  test "skips inactive users in additional_user_ids" do
+    @tech.update!(active: false)
+    incident = create_incident(additional_user_ids: [ @tech.id ])
+    assigned_ids = incident.incident_assignments.pluck(:user_id)
+
+    assert_not_includes assigned_ids, @tech.id
+  end
+
+  # --- Contacts ---
+
+  test "creates contacts from params" do
+    incident = create_incident(contacts: [
+      { name: "John Doe", title: "Building Super", email: "john@example.com", phone: "555-0100" }
+    ])
+
+    assert_equal 1, incident.incident_contacts.count
+    contact = incident.incident_contacts.first
+    assert_equal "John Doe", contact.name
+    assert_equal "Building Super", contact.title
+    assert_equal "john@example.com", contact.email
+    assert_equal "555-0100", contact.phone
+  end
+
+  test "skips contacts with blank name" do
+    incident = create_incident(contacts: [
+      { name: "", title: "Nobody", email: "", phone: "" },
+      { name: "Real Contact", title: "", email: "", phone: "" }
+    ])
+
+    assert_equal 1, incident.incident_contacts.count
+    assert_equal "Real Contact", incident.incident_contacts.first.name
+  end
+
+  test "creates incident without additional_user_ids or contacts" do
+    incident = create_incident
+    assert incident.persisted?
+  end
+
   # --- Core attributes ---
 
   test "stores optional fields" do

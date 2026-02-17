@@ -5,6 +5,34 @@ import { Input } from "@/components/ui/input";
 import { SharedProps } from "@/types";
 import type { AssignableUser, LaborEntry } from "../types";
 
+const ROLE_SORT_ORDER: Record<string, number> = {
+  "Technician": 0,
+  "Manager": 1,
+  "Office/Sales": 2,
+  "Property Manager": 3,
+  "Area Manager": 4,
+  "PM Manager": 5,
+};
+
+function sortedUsers(users: AssignableUser[]): AssignableUser[] {
+  return [...users].sort((a, b) => {
+    const aOrder = ROLE_SORT_ORDER[a.role_label] ?? 99;
+    const bOrder = ROLE_SORT_ORDER[b.role_label] ?? 99;
+    if (aOrder !== bOrder) return aOrder - bOrder;
+    return a.full_name.localeCompare(b.full_name);
+  });
+}
+
+function calculateHours(startedAt: string, endedAt: string): string {
+  if (!startedAt || !endedAt) return "";
+  const [sh, sm] = startedAt.split(":").map(Number);
+  const [eh, em] = endedAt.split(":").map(Number);
+  let diff = (eh * 60 + em) - (sh * 60 + sm);
+  if (diff <= 0) return "";
+  const hours = Math.round((diff / 60) * 4) / 4; // round to nearest 0.25
+  return String(hours);
+}
+
 interface LaborFormProps {
   path: string;
   users: AssignableUser[];
@@ -15,16 +43,40 @@ interface LaborFormProps {
 export default function LaborForm({ path, users, onClose, entry }: LaborFormProps) {
   const { today } = usePage<SharedProps>().props;
   const editing = !!entry;
+  const sorted = sortedUsers(users);
+
+  const initialUserId = entry?.user_id ? String(entry.user_id) : (users.length === 1 ? String(users[0].id) : "");
+  const initialRole = entry?.role_label ?? (users.length === 1 ? users[0].role_label : "");
 
   const { data, setData, post, patch, processing, errors } = useForm({
-    role_label: entry?.role_label ?? "",
+    user_id: initialUserId,
+    role_label: initialRole,
     hours: entry ? String(entry.hours) : "",
     started_at: entry?.started_at ?? "",
     ended_at: entry?.ended_at ?? "",
     log_date: entry?.log_date ?? today,
     notes: entry?.notes ?? "",
-    user_id: entry?.user_id ? String(entry.user_id) : (users.length === 1 ? String(users[0].id) : ""),
   });
+
+  const handleUserChange = (userId: string) => {
+    const selected = users.find((u) => String(u.id) === userId);
+    setData((prev) => ({
+      ...prev,
+      user_id: userId,
+      role_label: selected ? selected.role_label : prev.role_label,
+    }));
+  };
+
+  const handleTimeChange = (field: "started_at" | "ended_at", value: string) => {
+    const newStarted = field === "started_at" ? value : data.started_at;
+    const newEnded = field === "ended_at" ? value : data.ended_at;
+    const computed = calculateHours(newStarted, newEnded);
+    setData((prev) => ({
+      ...prev,
+      [field]: value,
+      ...(computed ? { hours: computed } : {}),
+    }));
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,6 +84,8 @@ export default function LaborForm({ path, users, onClose, entry }: LaborFormProp
     const url = editing ? entry!.edit_path! : path;
     submit(url, { onSuccess: () => onClose() });
   };
+
+  const hasComputedHours = !!(data.started_at && data.ended_at && calculateHours(data.started_at, data.ended_at));
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
@@ -45,80 +99,99 @@ export default function LaborForm({ path, users, onClose, entry }: LaborFormProp
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3">
-          <div>
-            <label className="text-xs font-medium text-muted-foreground">Role Label</label>
-            <Input
-              value={data.role_label}
-              onChange={(e) => setData("role_label", e.target.value)}
-              placeholder="e.g. Technician, Supervisor"
-              className="mt-1"
-            />
-            {errors.role_label && <p className="text-xs text-destructive mt-1">{errors.role_label}</p>}
-          </div>
-
           {users.length > 1 && (
             <div>
               <label className="text-xs font-medium text-muted-foreground">Worker</label>
               <select
                 value={data.user_id}
-                onChange={(e) => setData("user_id", e.target.value)}
+                onChange={(e) => handleUserChange(e.target.value)}
                 className="mt-1 w-full rounded border border-input bg-background px-3 py-2 text-sm"
               >
                 <option value="">Unattributed</option>
-                {users.map((u) => (
+                {sorted.map((u) => (
                   <option key={u.id} value={u.id}>{u.full_name} ({u.role_label})</option>
                 ))}
               </select>
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">Hours</label>
-              <Input
-                type="number"
-                step="0.25"
-                min="0"
-                value={data.hours}
-                onChange={(e) => setData("hours", e.target.value)}
-                className="mt-1"
-              />
-              {errors.hours && <p className="text-xs text-destructive mt-1">{errors.hours}</p>}
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">Date</label>
-              <Input
-                type="date"
-                value={data.log_date}
-                onChange={(e) => setData("log_date", e.target.value)}
-                className="mt-1"
-              />
-            </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">
+              Role Label <span className="text-destructive">*</span>
+            </label>
+            <Input
+              value={data.role_label}
+              onChange={(e) => setData("role_label", e.target.value)}
+              placeholder="e.g. Technician, Supervisor"
+              className="mt-1"
+              required
+            />
+            {errors.role_label && <p className="text-xs text-destructive mt-1">{errors.role_label}</p>}
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">
+              Date <span className="text-destructive">*</span>
+            </label>
+            <Input
+              type="date"
+              value={data.log_date}
+              onChange={(e) => setData("log_date", e.target.value)}
+              className="mt-1"
+              required
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-medium text-muted-foreground">Start Time</label>
+              <label className="text-xs font-medium text-muted-foreground">
+                Start Time <span className="text-destructive">*</span>
+              </label>
               <Input
                 type="time"
                 value={data.started_at}
-                onChange={(e) => setData("started_at", e.target.value)}
+                onChange={(e) => handleTimeChange("started_at", e.target.value)}
                 className="mt-1"
+                required
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-muted-foreground">End Time</label>
+              <label className="text-xs font-medium text-muted-foreground">
+                End Time <span className="text-muted-foreground/60 font-normal">(optional)</span>
+              </label>
               <Input
                 type="time"
                 value={data.ended_at}
-                onChange={(e) => setData("ended_at", e.target.value)}
+                onChange={(e) => handleTimeChange("ended_at", e.target.value)}
                 className="mt-1"
               />
             </div>
           </div>
 
           <div>
-            <label className="text-xs font-medium text-muted-foreground">Notes</label>
+            <label className="text-xs font-medium text-muted-foreground">
+              Hours <span className="text-destructive">*</span>
+            </label>
+            <Input
+              type="number"
+              step="0.25"
+              min="0"
+              value={data.hours}
+              onChange={(e) => setData("hours", e.target.value)}
+              className="mt-1"
+              required
+              readOnly={hasComputedHours}
+            />
+            {hasComputedHours && (
+              <p className="text-xs text-muted-foreground mt-1">Calculated from start/end time</p>
+            )}
+            {errors.hours && <p className="text-xs text-destructive mt-1">{errors.hours}</p>}
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">
+              Notes <span className="text-muted-foreground/60 font-normal">(optional)</span>
+            </label>
             <textarea
               value={data.notes}
               onChange={(e) => setData("notes", e.target.value)}

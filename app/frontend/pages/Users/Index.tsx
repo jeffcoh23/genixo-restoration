@@ -42,7 +42,6 @@ const userColumns: Column<UserRow>[] = [
   { header: "Name", render: (u) => <LinkCell href={u.path}>{u.full_name}</LinkCell> },
   { header: "Email", render: (u) => <MutedCell>{u.email}</MutedCell> },
   { header: "Role", render: (u) => <MutedCell>{u.role_label}</MutedCell> },
-  { header: "Organization", render: (u) => <MutedCell>{u.organization_name}</MutedCell> },
   { header: "Phone", render: (u) => <MutedCell>{u.phone || "—"}</MutedCell> },
 ];
 
@@ -169,8 +168,20 @@ export default function UsersIndex() {
         </div>
       )}
 
-      {/* Active Users */}
-      <DataTable columns={userColumns} rows={active_users} keyFn={(u) => u.id} emptyMessage="No team members yet." />
+      {/* Active Users — grouped by organization */}
+      {Object.entries(
+        active_users.reduce<Record<string, UserRow[]>>((groups, user) => {
+          const org = user.organization_name;
+          if (!groups[org]) groups[org] = [];
+          groups[org].push(user);
+          return groups;
+        }, {})
+      ).map(([orgName, users]) => (
+        <div key={orgName} className="mb-6">
+          <h2 className="text-sm font-medium text-muted-foreground mb-2">{orgName}</h2>
+          <DataTable columns={userColumns} rows={users} keyFn={(u) => u.id} emptyMessage="No team members yet." />
+        </div>
+      ))}
 
       {/* Deactivated Users */}
       {deactivated_users.length > 0 && (

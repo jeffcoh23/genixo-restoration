@@ -194,6 +194,10 @@ The core work unit. Tracks a mitigation job from intake through payment.
 | requested_next_steps | text | | What the requester wants done |
 | units_affected | integer | | Number of units impacted |
 | affected_room_numbers | text | | Free text — e.g., "238, 239, 240" |
+| visitors | text | | People present on-site |
+| usable_rooms_returned | text | | Rooms returned to usable condition |
+| estimated_date_of_return | date | | Estimated date tenants can return |
+| job_id | string | | Optional external job/reference number |
 | last_activity_at | datetime | | Denormalized. Updated on any message, activity event, labor, equipment, note, or attachment. |
 | created_at | datetime | NOT NULL | |
 | updated_at | datetime | NOT NULL | |
@@ -270,6 +274,7 @@ Ad-hoc contacts for a specific incident who are not users in the system. For sto
 | title | string | | Role/position |
 | email | string | | |
 | phone | string | | |
+| onsite | boolean | NOT NULL, DEFAULT false | Whether this contact is on-site |
 | created_by_user_id | bigint | NOT NULL, FK → users | |
 | created_at | datetime | NOT NULL | |
 | updated_at | datetime | NOT NULL | |
@@ -544,6 +549,7 @@ Each attachment `has_one_attached :file` via Active Storage.
 - `moisture_readings`
 - `psychrometric_log`
 - `signed_document`
+- `sign_in_sheet`
 - `general`
 
 **Indexes:**

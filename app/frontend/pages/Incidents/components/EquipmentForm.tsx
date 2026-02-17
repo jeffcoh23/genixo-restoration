@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { router, useForm, usePage } from "@inertiajs/react";
+import { useForm, usePage } from "@inertiajs/react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,11 +24,8 @@ export default function EquipmentForm({ path, equipment_types, onClose, entry }:
     equipment_type_other: entry?.equipment_type_other ?? "",
     equipment_identifier: entry?.equipment_identifier ?? "",
     placed_at: entry?.placed_at ?? now_datetime,
+    removed_at: entry?.removed_at ?? "",
     location_notes: entry?.location_notes ?? "",
-    action_type: entry?.action_type ?? (editing ? "other" : "add"),
-    action_at: entry?.action_at ?? now_datetime,
-    reason: entry?.reason ?? "",
-    action_notes: entry?.action_notes ?? "",
   });
 
   const handleTypeChange = (value: string) => {
@@ -43,18 +40,6 @@ export default function EquipmentForm({ path, equipment_types, onClose, entry }:
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (editing && data.action_type === "remove" && entry?.remove_path) {
-      const removalTime = data.action_at || now_datetime;
-      router.patch(entry.remove_path, {
-        removed_at: removalTime,
-        action_type: "remove",
-        action_at: removalTime,
-        reason: data.reason || null,
-        action_notes: data.action_notes || null,
-      }, { onSuccess: () => onClose() });
-      return;
-    }
-
     const submit = editing ? patch : post;
     const url = editing ? entry!.edit_path! : path;
     submit(url, { onSuccess: () => onClose() });
@@ -72,31 +57,6 @@ export default function EquipmentForm({ path, equipment_types, onClose, entry }:
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">Action</label>
-              <select
-                value={data.action_type}
-                onChange={(e) => setData("action_type", e.target.value as "add" | "remove" | "move" | "other")}
-                className="mt-1 w-full rounded border border-input bg-background px-3 py-2 text-sm"
-              >
-                <option value="add">Add</option>
-                {editing && <option value="remove">Remove</option>}
-                <option value="move">Move</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">Action Time</label>
-              <Input
-                type="datetime-local"
-                value={data.action_at}
-                onChange={(e) => setData("action_at", e.target.value)}
-                className="mt-1"
-              />
-            </div>
-          </div>
-
           <div>
             <label className="text-xs font-medium text-muted-foreground">Equipment Type</label>
             <select
@@ -138,44 +98,57 @@ export default function EquipmentForm({ path, equipment_types, onClose, entry }:
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-muted-foreground">Placed At</label>
+              <label className="text-xs font-medium text-muted-foreground">Location</label>
               <Input
-                type="datetime-local"
-                value={data.placed_at}
-                onChange={(e) => setData("placed_at", e.target.value)}
+                value={data.location_notes}
+                onChange={(e) => setData("location_notes", e.target.value)}
+                placeholder="e.g. Unit 238, bedroom"
                 className="mt-1"
               />
             </div>
           </div>
 
-          <div>
-            <label className="text-xs font-medium text-muted-foreground">Location</label>
-            <Input
-              value={data.location_notes}
-              onChange={(e) => setData("location_notes", e.target.value)}
-              placeholder="e.g. Unit 238, bedroom"
-              className="mt-1"
-            />
-          </div>
-
-          <div>
-            <label className="text-xs font-medium text-muted-foreground">Reason (optional)</label>
-            <Input
-              value={data.reason}
-              onChange={(e) => setData("reason", e.target.value)}
-              placeholder="e.g. Drying complete"
-              className="mt-1"
-            />
-          </div>
-
-          <div>
-            <label className="text-xs font-medium text-muted-foreground">Note (optional)</label>
-            <Input
-              value={data.action_notes}
-              onChange={(e) => setData("action_notes", e.target.value)}
-              placeholder="Additional context"
-              className="mt-1"
-            />
+          <div className={editing ? "grid grid-cols-2 gap-3" : ""}>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Placed On</label>
+              <Input
+                type="date"
+                value={data.placed_at ? data.placed_at.split("T")[0] : ""}
+                onChange={(e) => setData("placed_at", e.target.value)}
+                className="mt-1"
+                required
+              />
+            </div>
+            {editing && (
+              <div>
+                <div className="flex items-baseline justify-between">
+                  <label className="text-xs font-medium text-muted-foreground">Removed On</label>
+                  {!data.removed_at ? (
+                    <button
+                      type="button"
+                      className="text-xs text-primary hover:underline"
+                      onClick={() => setData("removed_at", now_datetime.split("T")[0])}
+                    >
+                      Today
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="text-xs text-muted-foreground hover:underline"
+                      onClick={() => setData("removed_at", "")}
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+                <Input
+                  type="date"
+                  value={data.removed_at ? data.removed_at.split("T")[0] : ""}
+                  onChange={(e) => setData("removed_at", e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+            )}
           </div>
 
           <div className="flex justify-end gap-2 pt-2">

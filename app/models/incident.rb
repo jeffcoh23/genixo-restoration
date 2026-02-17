@@ -1,7 +1,7 @@
 class Incident < ApplicationRecord
   STATUSES = %w[new acknowledged quote_requested active on_hold completed completed_billed paid closed].freeze
-  PROJECT_TYPES = %w[emergency_response mitigation_rfq buildback_rfq other].freeze
-  DAMAGE_TYPES = %w[flood fire smoke mold odor other].freeze
+  PROJECT_TYPES = %w[emergency_response mitigation_rfq buildback_rfq capex_rfq other].freeze
+  DAMAGE_TYPES = %w[flood fire smoke mold odor other not_applicable].freeze
 
   STATUS_LABELS = {
     "new" => "New", "acknowledged" => "Acknowledged", "quote_requested" => "Quote Requested",
@@ -13,12 +13,14 @@ class Incident < ApplicationRecord
     "emergency_response" => "Emergency Response",
     "mitigation_rfq" => "Mitigation RFQ",
     "buildback_rfq" => "Buildback RFQ",
+    "capex_rfq" => "CapEx RFQ",
     "other" => "Other"
   }.freeze
 
   DAMAGE_LABELS = {
     "flood" => "Flood", "fire" => "Fire", "smoke" => "Smoke",
-    "mold" => "Mold", "odor" => "Odor", "other" => "Other"
+    "mold" => "Mold", "odor" => "Odor", "other" => "Other",
+    "not_applicable" => "Not Applicable"
   }.freeze
 
   belongs_to :property

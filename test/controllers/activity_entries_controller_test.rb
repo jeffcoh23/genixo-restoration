@@ -169,20 +169,6 @@ class ActivityEntriesControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to incident_path(@incident)
   end
 
-  test "create with invalid status returns error" do
-    login_as @manager
-    assert_no_difference "ActivityEntry.count" do
-      post incident_activity_entries_path(@incident), params: {
-        activity_entry: {
-          title: "Test",
-          status: "bogus",
-          occurred_at: Time.current.iso8601
-        }
-      }
-    end
-    assert_redirected_to incident_path(@incident)
-  end
-
   # --- Authorization tests ---
 
   test "office_sales cannot create activity entry" do

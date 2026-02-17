@@ -80,7 +80,7 @@ export default function Dashboard() {
     <AppLayout>
       <PageHeader
         title="Dashboard"
-        action={can_create_incident ? { href: routes.new_incident, label: "New Incident" } : undefined}
+        action={can_create_incident ? { href: routes.new_incident, label: "Create Request" } : undefined}
       />
 
       {totalCount === 0 ? (

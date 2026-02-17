@@ -10,6 +10,7 @@ const CATEGORIES = [
   { value: "moisture_readings", label: "Moisture Readings" },
   { value: "psychrometric_log", label: "Psychrometric Log" },
   { value: "signed_document", label: "Signed Document" },
+  { value: "sign_in_sheet", label: "Sign-In Sheet" },
   { value: "general", label: "General" },
 ];
 

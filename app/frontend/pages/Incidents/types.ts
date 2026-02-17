@@ -30,6 +30,8 @@ export interface Contact {
   title: string | null;
   email: string | null;
   phone: string | null;
+  onsite: boolean;
+  update_path: string | null;
   remove_path: string | null;
 }
 
@@ -44,6 +46,9 @@ export interface LaborEntry {
   hours: number;
   log_date: string;
   log_date_label: string;
+  created_at: string;
+  occurred_at: string;
+  time_label: string | null;
   started_at_label: string | null;
   ended_at_label: string | null;
   notes: string | null;
@@ -71,10 +76,7 @@ export interface EquipmentEntry {
   equipment_type_id?: number | null;
   equipment_type_other?: string | null;
   placed_at?: string;
-  action_type?: "add" | "remove" | "move" | "other";
-  reason?: string | null;
-  action_notes?: string | null;
-  action_at?: string | null;
+  removed_at?: string | null;
 }
 
 export interface EquipmentLogEntry {
@@ -113,8 +115,7 @@ export interface DailyActivity {
   id: number;
   title: string;
   details: string | null;
-  status: "active" | "completed";
-  status_label: string;
+  status: string;
   occurred_at: string;
   occurred_at_value: string;
   occurred_at_label: string;
@@ -122,6 +123,9 @@ export interface DailyActivity {
   date_label: string;
   units_affected: number | null;
   units_affected_description: string | null;
+  visitors: string | null;
+  usable_rooms_returned: string | null;
+  estimated_date_of_return: string | null;
   created_by_name: string;
   edit_path: string | null;
   equipment_actions: DailyActivityEquipmentAction[];
@@ -132,6 +136,8 @@ export interface OperationalNote {
   note_text: string;
   log_date: string;
   log_date_label: string;
+  created_at: string;
+  time_label: string | null;
   created_at_label: string;
   created_by_name: string;
 }
@@ -144,6 +150,8 @@ export interface IncidentAttachment {
   description: string | null;
   log_date: string | null;
   log_date_label: string | null;
+  created_at: string;
+  time_label: string | null;
   created_at_label: string;
   uploaded_by_name: string;
   content_type: string;
@@ -166,9 +174,34 @@ export interface DailyLogDate {
   label: string;
 }
 
+export interface DailyLogTableRow {
+  id: string;
+  occurred_at: string;
+  time_label: string;
+  row_type: "activity" | "labor" | "note" | "document";
+  row_type_label: string;
+  primary_label: string;
+  status_label: string;
+  units_label: string;
+  detail_label: string;
+  actor_name: string;
+  edit_path: string | null;
+  url?: string;
+  visitors?: string | null;
+  usable_rooms_returned?: string | null;
+  estimated_date_of_return?: string | null;
+}
+
+export interface DailyLogTableGroup {
+  date_key: string;
+  date_label: string;
+  rows: DailyLogTableRow[];
+}
+
 export interface IncidentDetail {
   id: number;
   path: string;
+  edit_path: string | null;
   transition_path: string;
   show_stats: boolean;
   stats: {
@@ -190,6 +223,10 @@ export interface IncidentDetail {
   requested_next_steps: string | null;
   units_affected: number | null;
   affected_room_numbers: string | null;
+  visitors: string | null;
+  usable_rooms_returned: string | null;
+  estimated_date_of_return: string | null;
+  estimated_date_of_return_label: string | null;
   status: string;
   status_label: string;
   project_type: string;
@@ -197,6 +234,7 @@ export interface IncidentDetail {
   damage_type: string;
   damage_label: string;
   emergency: boolean;
+  job_id: string | null;
   created_at: string;
   created_at_label: string;
   created_by: string | null;
@@ -260,21 +298,74 @@ export interface ActivityEntry {
   detail: string | null;
 }
 
+export interface NewIncidentAssignableUser {
+  id: number;
+  full_name: string;
+  role_label: string;
+  organization_name: string;
+  auto_assign: boolean;
+}
+
+export interface NewIncidentProps {
+  properties: { id: number; name: string; address: string | null }[];
+  project_types: { value: string; label: string }[];
+  damage_types: { value: string; label: string }[];
+  can_assign: boolean;
+  can_manage_contacts: boolean;
+  property_users: Record<string, NewIncidentAssignableUser[]>;
+}
+
+export interface EquipmentLogItem {
+  id: number;
+  type_name: string;
+  equipment_identifier: string | null;
+  location_notes: string | null;
+  placed_at_label: string;
+  removed_at_label: string | null;
+  total_days: number;
+  edit_path: string | null;
+  remove_path: string | null;
+  // Raw values for edit form (only present when editable)
+  equipment_type_id?: number | null;
+  equipment_type_other?: string | null;
+  placed_at?: string;
+  removed_at?: string | null;
+}
+
+export interface LaborLogEmployee {
+  name: string;
+  title: string;
+  hours_by_date: Record<string, number>;
+}
+
+export interface LaborLog {
+  dates: string[];
+  date_labels: string[];
+  employees: LaborLogEmployee[];
+}
+
 export interface ShowProps {
   incident: IncidentDetail;
   activity_entries: ActivityEntry[];
   daily_activities: DailyActivity[];
   daily_log_dates: DailyLogDate[];
+  daily_log_table_groups: DailyLogTableGroup[];
   messages: Message[];
   labor_entries: LaborEntry[];
   operational_notes: OperationalNote[];
   attachments: IncidentAttachment[];
+  equipment_log: EquipmentLogItem[];
+  labor_log: LaborLog;
   can_transition: boolean;
   can_assign: boolean;
   can_manage_contacts: boolean;
+  can_edit: boolean;
   can_manage_activities: boolean;
   can_manage_labor: boolean;
+  can_manage_equipment: boolean;
   can_create_notes: boolean;
+  project_types: { value: string; label: string }[];
+  damage_types: { value: string; label: string }[];
   assignable_users: AssignableUser[];
   assignable_labor_users: AssignableUser[];
   equipment_types: EquipmentType[];

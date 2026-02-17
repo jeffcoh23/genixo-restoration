@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { router } from "@inertiajs/react";
-import { Building2, ChevronDown, Mail, Phone, Plus, Wrench, X } from "lucide-react";
+import { Building2, ChevronDown, Mail, Pencil, Phone, Plus, UserPlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { IncidentDetail, AssignableUser } from "../types";
+import type { Contact, IncidentDetail, AssignableUser } from "../types";
 
 interface OverviewPanelProps {
   incident: IncidentDetail;
@@ -15,37 +15,20 @@ interface OverviewPanelProps {
 export default function OverviewPanel({ incident, can_assign, can_manage_contacts, assignable_users }: OverviewPanelProps) {
   const [assignOpen, setAssignOpen] = useState(false);
   const [contactFormOpen, setContactFormOpen] = useState(false);
-  const [contactName, setContactName] = useState("");
-  const [contactTitle, setContactTitle] = useState("");
-  const [contactEmail, setContactEmail] = useState("");
-  const [contactPhone, setContactPhone] = useState("");
-  const [equipmentOpen, setEquipmentOpen] = useState(true);
+  const [editingContact, setEditingContact] = useState<Contact | null>(null);
+  const [confirmRemoveUser, setConfirmRemoveUser] = useState<{ name: string; path: string } | null>(null);
   const [teamOpen, setTeamOpen] = useState(true);
-  const [contactsOpen, setContactsOpen] = useState(false);
+  const [contactsOpen, setContactsOpen] = useState(true);
 
   const handleAssign = (userId: number) => {
     setAssignOpen(false);
     router.post(incident.assignments_path, { user_id: userId }, { preserveScroll: true });
   };
 
-  const handleRemove = (removePath: string) => {
-    router.delete(removePath, { preserveScroll: true });
-  };
-
-  const handleAddContact = (e: React.FormEvent) => {
-    e.preventDefault();
-    router.post(incident.contacts_path, {
-      contact: { name: contactName, title: contactTitle, email: contactEmail, phone: contactPhone }
-    }, {
-      preserveScroll: true,
-      onSuccess: () => {
-        setContactFormOpen(false);
-        setContactName("");
-        setContactTitle("");
-        setContactEmail("");
-        setContactPhone("");
-      },
-    });
+  const handleRemove = () => {
+    if (!confirmRemoveUser) return;
+    router.delete(confirmRemoveUser.path, { preserveScroll: true });
+    setConfirmRemoveUser(null);
   };
 
   const handleRemoveContact = (removePath: string) => {
@@ -53,88 +36,48 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
   };
 
   return (
-    <div className="space-y-4 pb-6">
-      <DetailSection title="Description">
-        <p className="text-sm text-foreground whitespace-pre-wrap">{incident.description}</p>
-      </DetailSection>
-
-      {incident.cause && (
-        <DetailSection title="Cause">
-          <p className="text-sm text-foreground whitespace-pre-wrap">{incident.cause}</p>
-        </DetailSection>
-      )}
-
-      {incident.requested_next_steps && (
-        <DetailSection title="Requested Next Steps">
-          <p className="text-sm text-foreground whitespace-pre-wrap">{incident.requested_next_steps}</p>
-        </DetailSection>
-      )}
-
-      {(incident.units_affected || incident.affected_room_numbers) && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          {incident.units_affected && <span>{incident.units_affected} units affected</span>}
-          {incident.units_affected && incident.affected_room_numbers && <span>&middot;</span>}
-          {incident.affected_room_numbers && <span>Rooms: {incident.affected_room_numbers}</span>}
-        </div>
-      )}
-
-      <div className="border-t border-border" />
-
-      {/* Deployed Equipment — collapsible, default open */}
-      <div>
-        <Button
-          variant="ghost"
-          onClick={() => setEquipmentOpen(!equipmentOpen)}
-          className="flex items-center gap-1.5 w-full justify-start -mx-1.5 px-1.5 py-1 h-auto rounded hover:bg-muted transition-colors"
-        >
-          <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${equipmentOpen ? "" : "-rotate-90"}`} />
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Deployed Equipment
-          </h3>
-          <span className="text-xs text-muted-foreground tabular-nums ml-auto">{incident.deployed_equipment.length}</span>
-        </Button>
-
-        {equipmentOpen && (
-          <div className="mt-2 ml-5">
-            {incident.deployed_equipment.length === 0 ? (
-              <p className="text-muted-foreground text-xs">No equipment currently deployed.</p>
-            ) : (
-              <div className="space-y-1.5">
-                {incident.deployed_equipment.map((item) => (
-                  <div key={item.id} className="bg-muted rounded border border-border p-2">
-                    <div className="flex items-center gap-1.5">
-                      <Wrench className="h-3.5 w-3.5 text-muted-foreground" />
-                      <span className="text-xs font-medium text-foreground">{item.type_name}</span>
-                      <span className="text-xs text-muted-foreground">x{item.quantity}</span>
-                    </div>
-                    {item.last_event_label && item.last_event_at_label && (
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Last action: {item.last_event_label} · {item.last_event_at_label}
-                      </p>
-                    )}
-                    {item.note && <p className="text-xs text-muted-foreground">{item.note}</p>}
-                    {item.actor_name && <p className="text-xs text-muted-foreground">{item.actor_name}</p>}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
+    <div className="overflow-y-auto h-full px-3 py-3 space-y-4">
       {/* Assigned Team — collapsible, default open */}
       <div>
-        <Button
-          variant="ghost"
-          onClick={() => setTeamOpen(!teamOpen)}
-          className="flex items-center gap-1.5 w-full justify-start -mx-1.5 px-1.5 py-1 h-auto rounded hover:bg-muted transition-colors"
-        >
-          <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${teamOpen ? "" : "-rotate-90"}`} />
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Assigned Team
-          </h3>
-          <span className="text-xs text-muted-foreground tabular-nums ml-auto">{incident.assigned_summary.count}</span>
-        </Button>
+        <div className="flex items-center">
+          <Button
+            variant="ghost"
+            onClick={() => setTeamOpen(!teamOpen)}
+            className="flex items-center gap-1.5 flex-1 justify-start -mx-1.5 px-1.5 py-1 h-auto rounded hover:bg-muted transition-colors"
+          >
+            <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${teamOpen ? "" : "-rotate-90"}`} />
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Assigned Team
+            </h3>
+            <span className="text-xs text-muted-foreground tabular-nums ml-auto">{incident.assigned_summary.count}</span>
+          </Button>
+          {can_assign && assignable_users.length > 0 && (
+            <div className="relative">
+              <Button variant="ghost" size="sm" className="h-6 text-xs gap-1 text-muted-foreground" onClick={() => setAssignOpen(!assignOpen)}>
+                <UserPlus className="h-3 w-3" />
+                Assign
+              </Button>
+              {assignOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setAssignOpen(false)} />
+                  <div className="absolute right-0 top-full mt-1 z-20 bg-popover border border-border rounded shadow-md py-1 min-w-[220px] max-h-[200px] overflow-y-auto">
+                    {assignable_users.map((u) => (
+                      <Button
+                        key={u.id}
+                        variant="ghost"
+                        onClick={() => handleAssign(u.id)}
+                        className="w-full justify-between px-3 py-1.5 h-auto text-xs hover:bg-muted transition-colors rounded-none"
+                      >
+                        <span>{u.full_name}</span>
+                        <span className="text-muted-foreground">{u.role_label}</span>
+                      </Button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </div>
 
         {teamOpen && (
           <div className="mt-2 ml-5">
@@ -160,8 +103,8 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleRemove(u.remove_path!)}
-                              className="ml-auto h-5 w-5 p-0 text-muted-foreground hover:text-destructive transition-colors"
+                              onClick={() => setConfirmRemoveUser({ name: u.full_name, path: u.remove_path! })}
+                              className="h-5 w-5 p-0 ml-1 text-muted-foreground hover:text-destructive transition-colors"
                               title={`Remove ${u.full_name}`}
                             >
                               <X className="h-3 w-3" />
@@ -174,162 +117,244 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
                 ))}
               </div>
             )}
-
-            {can_assign && assignable_users.length > 0 && (
-              <div className="relative mt-2">
-                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setAssignOpen(!assignOpen)}>
-                  <Plus className="h-3 w-3 mr-1" />
-                  Assign
-                </Button>
-
-                {assignOpen && (
-                  <>
-                    <div className="fixed inset-0 z-10" onClick={() => setAssignOpen(false)} />
-                    <div className="absolute left-0 top-full mt-1 z-20 bg-popover border border-border rounded shadow-md py-1 min-w-[220px] max-h-[200px] overflow-y-auto">
-                      {assignable_users.map((u) => (
-                        <Button
-                          key={u.id}
-                          variant="ghost"
-                          onClick={() => handleAssign(u.id)}
-                          className="w-full justify-between px-3 py-1.5 h-auto text-xs hover:bg-muted transition-colors rounded-none"
-                        >
-                          <span>{u.full_name}</span>
-                          <span className="text-muted-foreground">{u.role_label}</span>
-                        </Button>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
           </div>
         )}
       </div>
 
-      {/* Contacts — collapsible, default closed */}
+      {/* Contacts — collapsible, default open */}
       <div>
-        <Button
-          variant="ghost"
-          onClick={() => setContactsOpen(!contactsOpen)}
-          className="flex items-center gap-1.5 w-full justify-start -mx-1.5 px-1.5 py-1 h-auto rounded hover:bg-muted transition-colors"
-        >
-          <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${contactsOpen ? "" : "-rotate-90"}`} />
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Contacts
-          </h3>
-          <span className="text-xs text-muted-foreground tabular-nums ml-auto">{incident.contacts.length}</span>
-        </Button>
+        <div className="flex items-center">
+          <Button
+            variant="ghost"
+            onClick={() => setContactsOpen(!contactsOpen)}
+            className="flex items-center gap-1.5 flex-1 justify-start -mx-1.5 px-1.5 py-1 h-auto rounded hover:bg-muted transition-colors"
+          >
+            <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${contactsOpen ? "" : "-rotate-90"}`} />
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Contacts
+            </h3>
+            <span className="text-xs text-muted-foreground tabular-nums ml-auto">{incident.contacts.length}</span>
+          </Button>
+          {can_manage_contacts && (
+            <Button variant="ghost" size="sm" className="h-6 text-xs gap-1 text-muted-foreground" onClick={() => setContactFormOpen(true)}>
+              <Plus className="h-3 w-3" />
+              Add
+            </Button>
+          )}
+        </div>
 
         {contactsOpen && (
           <div className="mt-2 ml-5">
-            {incident.contacts.length === 0 && !can_manage_contacts ? (
+            {incident.contacts.length === 0 ? (
               <p className="text-muted-foreground text-xs">No contacts added.</p>
             ) : (
-              <>
-                {incident.contacts.length > 0 && (
-                  <div className="space-y-2">
-                    {incident.contacts.map((c) => (
-                      <div key={c.id} className="flex items-start justify-between pl-2 border-l-2 border-border">
-                        <div>
-                          <div className="text-xs font-medium text-foreground">
-                            {c.name}
-                            {c.title && <span className="text-muted-foreground font-normal"> &middot; {c.title}</span>}
-                          </div>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                            {c.email && (
-                              <span className="flex items-center gap-1">
-                                <Mail className="h-2.5 w-2.5" />
-                                {c.email}
-                              </span>
-                            )}
-                            {c.phone && (
-                              <span className="flex items-center gap-1">
-                                <Phone className="h-2.5 w-2.5" />
-                                {c.phone}
-                              </span>
-                            )}
-                          </div>
-                        </div>
+              <div className="space-y-2">
+                {incident.contacts.map((c) => (
+                  <div key={c.id} className="flex items-start gap-2 pl-2 border-l-2 border-border">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-medium text-foreground">
+                        {c.name}
+                        {c.title && <span className="text-muted-foreground font-normal"> &middot; {c.title}</span>}
+                        {c.onsite && <span className="ml-1.5 inline-flex items-center rounded bg-emerald-100 px-1.5 py-0.5 text-xs font-medium text-emerald-700">Onsite</span>}
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                        {c.email && (
+                          <span className="flex items-center gap-1">
+                            <Mail className="h-2.5 w-2.5" />
+                            {c.email}
+                          </span>
+                        )}
+                        {c.phone && (
+                          <span className="flex items-center gap-1">
+                            <Phone className="h-2.5 w-2.5" />
+                            {c.phone}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {can_manage_contacts && (
+                      <div className="flex items-center gap-0.5 shrink-0">
+                        {c.update_path && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setEditingContact(c)}
+                            className="h-5 w-5 p-0 text-muted-foreground hover:text-foreground transition-colors"
+                            title={`Edit ${c.name}`}
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                        )}
                         {c.remove_path && (
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => handleRemoveContact(c.remove_path!)}
-                            className="h-5 w-5 p-0 text-muted-foreground hover:text-destructive transition-colors mt-0.5"
+                            className="h-5 w-5 p-0 text-muted-foreground hover:text-destructive transition-colors"
                             title={`Remove ${c.name}`}
                           >
                             <X className="h-3 w-3" />
                           </Button>
                         )}
                       </div>
-                    ))}
-                  </div>
-                )}
-
-                {can_manage_contacts && (
-                  <div className="mt-2">
-                    {contactFormOpen ? (
-                      <form onSubmit={handleAddContact} className="space-y-2 rounded border border-border p-3">
-                        <Input
-                          type="text"
-                          placeholder="Name *"
-                          value={contactName}
-                          onChange={(e) => setContactName(e.target.value)}
-                          required
-                          className="h-8 text-xs"
-                        />
-                        <Input
-                          type="text"
-                          placeholder="Title"
-                          value={contactTitle}
-                          onChange={(e) => setContactTitle(e.target.value)}
-                          className="h-8 text-xs"
-                        />
-                        <div className="flex gap-2">
-                          <Input
-                            type="email"
-                            placeholder="Email"
-                            value={contactEmail}
-                            onChange={(e) => setContactEmail(e.target.value)}
-                            className="flex-1 h-8 text-xs"
-                          />
-                          <Input
-                            type="tel"
-                            placeholder="Phone"
-                            value={contactPhone}
-                            onChange={(e) => setContactPhone(e.target.value)}
-                            className="flex-1 h-8 text-xs"
-                          />
-                        </div>
-                        <div className="flex gap-2">
-                          <Button type="submit" size="sm" className="h-7 text-xs">Add Contact</Button>
-                          <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setContactFormOpen(false)}>Cancel</Button>
-                        </div>
-                      </form>
-                    ) : (
-                      <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setContactFormOpen(true)}>
-                        <Plus className="h-3 w-3 mr-1" />
-                        Add Contact
-                      </Button>
                     )}
                   </div>
-                )}
-              </>
+                ))}
+              </div>
             )}
           </div>
         )}
       </div>
+
+      {/* Confirm remove user */}
+      {confirmRemoveUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black opacity-40" onClick={() => setConfirmRemoveUser(null)} />
+          <div className="relative bg-background border border-border rounded w-full max-w-sm p-4 shadow-lg">
+            <p className="text-sm">
+              Remove <span className="font-medium">{confirmRemoveUser.name}</span> from this incident?
+            </p>
+            <div className="flex justify-end gap-2 mt-4">
+              <Button variant="ghost" size="sm" onClick={() => setConfirmRemoveUser(null)}>Cancel</Button>
+              <Button variant="destructive" size="sm" onClick={handleRemove}>Remove</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add contact modal */}
+      {contactFormOpen && (
+        <ContactFormModal
+          contacts_path={incident.contacts_path}
+          onClose={() => setContactFormOpen(false)}
+        />
+      )}
+
+      {/* Edit contact modal */}
+      {editingContact && editingContact.update_path && (
+        <ContactFormModal
+          contact={editingContact}
+          contacts_path={incident.contacts_path}
+          onClose={() => setEditingContact(null)}
+        />
+      )}
     </div>
   );
 }
 
-function DetailSection({ title, children }: { title: string; children: React.ReactNode }) {
+function ContactFormModal({ contact, contacts_path, onClose }: {
+  contact?: Contact;
+  contacts_path: string;
+  onClose: () => void;
+}) {
+  const editing = !!contact;
+  const [name, setName] = useState(contact?.name ?? "");
+  const [title, setTitle] = useState(contact?.title ?? "");
+  const [email, setEmail] = useState(contact?.email ?? "");
+  const [phone, setPhone] = useState(contact?.phone ?? "");
+  const [onsite, setOnsite] = useState(contact?.onsite ?? false);
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    const payload = { contact: { name, title, email, phone, onsite } };
+
+    if (editing && contact?.update_path) {
+      router.patch(contact.update_path, payload, {
+        preserveScroll: true,
+        onSuccess: onClose,
+        onFinish: () => setSubmitting(false),
+      });
+    } else {
+      router.post(contacts_path, payload, {
+        preserveScroll: true,
+        onSuccess: onClose,
+        onFinish: () => setSubmitting(false),
+      });
+    }
+  };
+
   return (
-    <div>
-      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
-        {title}
-      </h3>
-      {children}
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+      <div className="fixed inset-0 bg-black opacity-40" onClick={onClose} />
+      <div className="relative bg-background border border-border rounded-t sm:rounded w-full sm:max-w-md p-4 shadow-lg">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-semibold">{editing ? "Edit Contact" : "Add Contact"}</h3>
+          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">
+              Name <span className="text-destructive">*</span>
+            </label>
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Contact name"
+              className="mt-1"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">
+              Title <span className="text-muted-foreground/60 font-normal">(optional)</span>
+            </label>
+            <Input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g. Property Manager"
+              className="mt-1"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">
+                Email <span className="text-muted-foreground/60 font-normal">(optional)</span>
+              </label>
+              <Input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">
+                Phone <span className="text-muted-foreground/60 font-normal">(optional)</span>
+              </label>
+              <Input
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+          </div>
+
+          <label className="flex items-center gap-2 text-xs cursor-pointer">
+            <input
+              type="checkbox"
+              checked={onsite}
+              onChange={(e) => setOnsite(e.target.checked)}
+              className="rounded border-input"
+            />
+            Onsite contact
+          </label>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
+            <Button type="submit" size="sm" disabled={submitting}>
+              {submitting ? "Saving..." : editing ? "Save" : "Add Contact"}
+            </Button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

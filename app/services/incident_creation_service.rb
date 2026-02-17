@@ -10,6 +10,8 @@ class IncidentCreationService
       @incident = create_incident
       auto_transition_status
       auto_assign_users
+      assign_additional_users
+      create_contacts
       log_creation_events
       # TODO: Phase 5 — EscalationJob.perform_later(@incident) if @incident.emergency?
       # TODO: Phase 5 — IncidentMailer.incident_created(@incident).deliver_later
@@ -31,7 +33,10 @@ class IncidentCreationService
       cause: @params[:cause],
       requested_next_steps: @params[:requested_next_steps],
       units_affected: @params[:units_affected],
-      affected_room_numbers: @params[:affected_room_numbers]
+      affected_room_numbers: @params[:affected_room_numbers],
+      job_id: @params[:job_id],
+      do_not_exceed_limit: @params[:do_not_exceed_limit],
+      location_of_damage: @params[:location_of_damage]
     )
   end
 
@@ -39,7 +44,7 @@ class IncidentCreationService
     new_status = case @incident.project_type
     when "emergency_response", "other"
       "acknowledged"
-    when "mitigation_rfq", "buildback_rfq"
+    when "mitigation_rfq", "buildback_rfq", "capex_rfq"
       "quote_requested"
     end
 
@@ -66,6 +71,35 @@ class IncidentCreationService
 
     users_to_assign.each do |u|
       @incident.incident_assignments.create!(user: u, assigned_by_user: @user)
+    end
+  end
+
+  def assign_additional_users
+    additional_ids = Array(@params[:additional_user_ids]).map(&:to_i).reject(&:zero?)
+    return if additional_ids.empty?
+
+    already_assigned = @incident.assigned_user_ids
+    additional_ids.each do |user_id|
+      next if already_assigned.include?(user_id)
+
+      user = User.find_by(id: user_id, active: true)
+      next unless user
+
+      @incident.incident_assignments.create!(user: user, assigned_by_user: @user)
+    end
+  end
+
+  def create_contacts
+    contacts = Array(@params[:contacts]).select { |c| c[:name].present? }
+    contacts.each do |contact_data|
+      @incident.incident_contacts.create!(
+        name: contact_data[:name],
+        title: contact_data[:title],
+        email: contact_data[:email],
+        phone: contact_data[:phone],
+        onsite: contact_data[:onsite] || false,
+        created_by_user: @user
+      )
     end
   end
 

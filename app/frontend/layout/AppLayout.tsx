@@ -5,7 +5,7 @@ import { SharedProps } from "@/types";
 import RoleSidebar from "./RoleSidebar";
 import FlashMessages from "./FlashMessages";
 
-export default function AppLayout({ children }: { children: React.ReactNode }) {
+export default function AppLayout({ children, wide }: { children: React.ReactNode; wide?: boolean }) {
   const { flash } = usePage<SharedProps>().props;
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -60,7 +60,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </span>
         </div>
 
-        <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
+        <div className={`mx-auto ${wide ? "max-w-7xl" : "max-w-5xl"} px-4 py-6 sm:px-6`}>
           <FlashMessages flash={flash} />
           {children}
         </div>

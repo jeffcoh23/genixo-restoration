@@ -8,9 +8,11 @@ interface RightPanelShellProps {
 
 const tabs = [
   { key: "daily_log", label: "Daily Log" },
-  { key: "activity", label: "Activity" },
+  { key: "equipment", label: "Equipment" },
+  { key: "labor", label: "Labor" },
   { key: "messages", label: "Messages" },
   { key: "documents", label: "Documents" },
+  { key: "manage", label: "Manage" },
 ];
 
 export default function RightPanelShell({ activeTab, onTabChange, children }: RightPanelShellProps) {

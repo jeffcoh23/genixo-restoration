@@ -82,6 +82,9 @@ class ActivityEntriesController < ApplicationController
       :occurred_at,
       :units_affected,
       :units_affected_description,
+      :visitors,
+      :usable_rooms_returned,
+      :estimated_date_of_return,
       equipment_actions: [
         :action_type,
         :quantity,

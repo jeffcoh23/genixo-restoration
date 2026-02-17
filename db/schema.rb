@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_02_16_071100) do
+ActiveRecord::Schema[8.0].define(version: 2026_02_17_020821) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -53,6 +53,9 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_16_071100) do
     t.datetime "occurred_at", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.text "visitors"
+    t.string "usable_rooms_returned"
+    t.date "estimated_date_of_return"
     t.index ["incident_id", "occurred_at"], name: "index_activity_entries_on_incident_id_and_occurred_at"
     t.index ["incident_id"], name: "index_activity_entries_on_incident_id"
     t.index ["performed_by_user_id"], name: "index_activity_entries_on_performed_by_user_id"
@@ -182,6 +185,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_16_071100) do
     t.bigint "created_by_user_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.boolean "onsite", default: false, null: false
     t.index ["created_by_user_id"], name: "index_incident_contacts_on_created_by_user_id"
     t.index ["incident_id"], name: "index_incident_contacts_on_incident_id"
   end
@@ -213,6 +217,12 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_16_071100) do
     t.datetime "last_activity_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "job_id"
+    t.text "visitors"
+    t.text "usable_rooms_returned"
+    t.date "estimated_date_of_return"
+    t.decimal "do_not_exceed_limit"
+    t.text "location_of_damage"
     t.index ["created_by_user_id"], name: "index_incidents_on_created_by_user_id"
     t.index ["emergency"], name: "index_incidents_on_emergency", where: "(emergency = true)"
     t.index ["last_activity_at"], name: "index_incidents_on_last_activity_at"

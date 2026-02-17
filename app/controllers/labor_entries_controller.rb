@@ -55,6 +55,24 @@ class LaborEntriesController < ApplicationController
       alert: "Could not update labor entry."
   end
 
+  def destroy
+    entry = find_editable_entry!
+    entry.destroy!
+
+    ActivityLogger.log(
+      incident: @incident,
+      event_type: "labor_deleted",
+      user: current_user,
+      metadata: {
+        role_label: entry.role_label,
+        hours: entry.hours.to_f,
+        user_name: entry.user&.full_name
+      }
+    )
+
+    redirect_to incident_path(@incident), notice: "Labor entry deleted."
+  end
+
   private
 
   def set_incident

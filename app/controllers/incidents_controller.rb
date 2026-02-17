@@ -1,6 +1,7 @@
 class IncidentsController < ApplicationController
   before_action :authorize_creation!, only: %i[new create]
-  before_action :set_incident, only: %i[show transition]
+  before_action :set_incident, only: %i[show update transition]
+  before_action :authorize_edit!, only: %i[update]
   before_action :authorize_transition!, only: %i[transition]
 
   def index
@@ -59,9 +60,12 @@ class IncidentsController < ApplicationController
 
   def new
     render inertia: "Incidents/New", props: {
-      properties: creatable_properties.map { |p| { id: p.id, name: p.name } },
+      properties: creatable_properties.map { |p| { id: p.id, name: p.name, address: p.short_address } },
       project_types: Incident::PROJECT_TYPES.map { |t| { value: t, label: Incident::PROJECT_TYPE_LABELS[t] } },
-      damage_types: Incident::DAMAGE_TYPES.map { |t| { value: t, label: Incident::DAMAGE_LABELS[t] } }
+      damage_types: Incident::DAMAGE_TYPES.map { |t| { value: t, label: Incident::DAMAGE_LABELS[t] } },
+      can_assign: can_assign_to_incident?,
+      can_manage_contacts: can_manage_contacts?,
+      property_users: can_assign_to_incident? ? assignable_users_by_property : {}
     }
   end
 
@@ -82,6 +86,15 @@ class IncidentsController < ApplicationController
       alert: "Could not create incident."
   end
 
+  def update
+    @incident.update!(update_incident_params)
+    redirect_to incident_path(@incident), notice: "Incident updated."
+  rescue ActiveRecord::RecordInvalid => e
+    redirect_to incident_path(@incident),
+      inertia: { errors: e.record.errors.to_hash },
+      alert: "Could not update incident."
+  end
+
   def show
     property = @incident.property
     deployed_equipment = serialize_deployed_equipment(@incident)
@@ -90,6 +103,12 @@ class IncidentsController < ApplicationController
     operational_notes = serialize_operational_notes(@incident)
     attachments = serialize_attachments(@incident)
     daily_log_dates = serialize_daily_log_dates(
+      daily_activities: daily_activities,
+      labor_entries: labor_entries,
+      operational_notes: operational_notes,
+      attachments: attachments
+    )
+    daily_log_table_groups = serialize_daily_log_table_groups(
       daily_activities: daily_activities,
       labor_entries: labor_entries,
       operational_notes: operational_notes,
@@ -106,12 +125,17 @@ class IncidentsController < ApplicationController
       incident: {
         id: @incident.id,
         path: incident_path(@incident),
+        edit_path: can_edit_incident? ? incident_path(@incident) : nil,
         transition_path: transition_incident_path(@incident),
         description: @incident.description,
         cause: @incident.cause,
         requested_next_steps: @incident.requested_next_steps,
         units_affected: @incident.units_affected,
         affected_room_numbers: @incident.affected_room_numbers,
+        visitors: @incident.visitors,
+        usable_rooms_returned: @incident.usable_rooms_returned,
+        estimated_date_of_return: @incident.estimated_date_of_return&.iso8601,
+        estimated_date_of_return_label: format_date(@incident.estimated_date_of_return),
         status: @incident.status,
         status_label: Incident::STATUS_LABELS[@incident.status],
         project_type: @incident.project_type,
@@ -119,6 +143,7 @@ class IncidentsController < ApplicationController
         damage_type: @incident.damage_type,
         damage_label: Incident::DAMAGE_LABELS[@incident.damage_type],
         emergency: @incident.emergency,
+        job_id: @incident.job_id,
         created_at: @incident.created_at.iso8601,
         created_at_label: format_date(@incident.created_at),
         created_by: @incident.created_by_user&.full_name,
@@ -146,6 +171,8 @@ class IncidentsController < ApplicationController
             title: c.title,
             email: c.email,
             phone: c.phone,
+            onsite: c.onsite,
+            update_path: can_manage_contacts? ? incident_contact_path(@incident, c) : nil,
             remove_path: can_manage_contacts? ? incident_contact_path(@incident, c) : nil
           }
         },
@@ -162,20 +189,27 @@ class IncidentsController < ApplicationController
       activity_entries: serialize_activity_entries(@incident),
       daily_activities: daily_activities,
       daily_log_dates: daily_log_dates,
+      daily_log_table_groups: daily_log_table_groups,
       messages: serialize_messages(messages),
       labor_entries: labor_entries,
       operational_notes: operational_notes,
       attachments: attachments,
+      equipment_log: serialize_equipment_log(@incident),
+      labor_log: serialize_labor_log(@incident),
       can_transition: can_transition_status?,
       can_assign: can_assign_to_incident?,
       can_manage_contacts: can_manage_contacts?,
+      can_edit: can_edit_incident?,
       can_manage_activities: can_manage_activities?,
       can_manage_labor: can_manage_labor?,
+      can_manage_equipment: can_manage_equipment?,
       can_create_notes: can_create_operational_note?,
       assignable_users: can_assign_to_incident? ? assignable_incident_users(@incident) : [],
       assignable_labor_users: can_manage_labor? ? assignable_labor_users(@incident) : [],
       equipment_types: can_manage_equipment? ? equipment_types_for_incident(@incident) : [],
       attachable_equipment_entries: can_manage_activities? ? attachable_equipment_entries(@incident) : [],
+      project_types: Incident::PROJECT_TYPES.map { |t| { value: t, label: Incident::PROJECT_TYPE_LABELS[t] } },
+      damage_types: Incident::DAMAGE_TYPES.map { |t| { value: t, label: Incident::DAMAGE_LABELS[t] } },
       back_path: incidents_path
     }
   end
@@ -202,6 +236,10 @@ class IncidentsController < ApplicationController
     @incident = find_visible_incident!(params[:id])
   end
 
+  def authorize_edit!
+    raise ActiveRecord::RecordNotFound unless can_edit_incident?
+  end
+
   def authorize_transition!
     raise ActiveRecord::RecordNotFound unless can_transition_status?
   end
@@ -211,10 +249,31 @@ class IncidentsController < ApplicationController
   end
 
   def incident_params
-    params.require(:incident).permit(
+    permitted = params.require(:incident).permit(
       :project_type, :damage_type, :description, :cause,
-      :requested_next_steps, :units_affected, :affected_room_numbers
+      :requested_next_steps, :units_affected, :affected_room_numbers, :job_id,
+      :do_not_exceed_limit, :location_of_damage,
+      additional_user_ids: [],
+      contacts: [ :name, :title, :email, :phone, :onsite ]
     ).to_h.symbolize_keys
+
+    # Ensure contacts is an array of hashes with symbol keys
+    if permitted[:contacts].is_a?(Hash)
+      permitted[:contacts] = permitted[:contacts].values.map { |c| c.symbolize_keys }
+    elsif permitted[:contacts].is_a?(Array)
+      permitted[:contacts] = permitted[:contacts].map { |c| c.is_a?(Hash) ? c.symbolize_keys : c }
+    end
+
+    permitted
+  end
+
+  def update_incident_params
+    params.require(:incident).permit(
+      :description, :cause, :requested_next_steps,
+      :units_affected, :affected_room_numbers, :job_id,
+      :project_type, :damage_type,
+      :visitors, :usable_rooms_returned, :estimated_date_of_return
+    )
   end
 
   def can_manage_contacts?
@@ -244,6 +303,11 @@ class IncidentsController < ApplicationController
     can_create_labor? && entry.created_by_user_id == current_user.id
   end
 
+  def can_edit_equipment_entry?(entry)
+    return true if mitigation_admin?
+    can_create_equipment? && entry.logged_by_user_id == current_user.id
+  end
+
   def can_assign_to_incident?
     mitigation_admin? || current_user.pm_user?
   end
@@ -251,6 +315,44 @@ class IncidentsController < ApplicationController
   def can_remove_assignment?(user)
     return true if mitigation_admin?
     current_user.pm_user? && user.organization_id == current_user.organization_id
+  end
+
+  def assignable_users_by_property
+    properties = creatable_properties.includes(:mitigation_org, :property_management_org)
+
+    # Batch-load all users from relevant orgs
+    org_ids = properties.flat_map { |p| [ p.mitigation_org_id, p.property_management_org_id ] }.uniq
+    all_users = User.where(active: true, organization_id: org_ids).includes(:organization).order(:last_name, :first_name)
+    users_by_org = all_users.group_by(&:organization_id)
+
+    # Batch-load property assignments
+    prop_assignments = PropertyAssignment.where(property: properties).pluck(:property_id, :user_id)
+    assigned_by_property = prop_assignments.group_by(&:first).transform_values { |v| v.map(&:last).to_set }
+
+    result = {}
+    properties.each do |property|
+      mit_users = users_by_org[property.mitigation_org_id] || []
+      pm_users = users_by_org[property.property_management_org_id] || []
+      prop_assigned_ids = assigned_by_property[property.id] || Set.new
+
+      property_user_list = (mit_users + pm_users).map do |u|
+        auto = if u.mitigation_user? && !u.technician?
+          true # GenXO managers + office/sales
+        elsif u.user_type == User::PM_MANAGER
+          true # PM managers always auto-assigned
+        elsif prop_assigned_ids.include?(u.id) && [ User::PROPERTY_MANAGER, User::AREA_MANAGER ].include?(u.user_type)
+          true # PM-side property assignees
+        else
+          false
+        end
+
+        { id: u.id, full_name: u.full_name, role_label: User::ROLE_LABELS[u.user_type], organization_name: u.organization.name, auto_assign: auto }
+      end
+
+      result[property.id] = property_user_list
+    end
+
+    result
   end
 
   def assignable_incident_users(incident)
@@ -392,7 +494,6 @@ class IncidentsController < ApplicationController
         title: entry.title,
         details: entry.details,
         status: entry.status,
-        status_label: entry.status.titleize,
         occurred_at: entry.occurred_at.iso8601,
         occurred_at_value: format_datetime_value(entry.occurred_at),
         occurred_at_label: format_datetime(entry.occurred_at),
@@ -400,6 +501,9 @@ class IncidentsController < ApplicationController
         date_label: format_date(entry.occurred_at),
         units_affected: entry.units_affected,
         units_affected_description: entry.units_affected_description,
+        visitors: entry.visitors,
+        usable_rooms_returned: entry.usable_rooms_returned,
+        estimated_date_of_return: entry.estimated_date_of_return&.iso8601,
         created_by_name: entry.performed_by_user.full_name,
         edit_path: editable ? incident_activity_entry_path(incident, entry) : nil,
         equipment_actions: entry.equipment_actions.map do |action|
@@ -440,6 +544,127 @@ class IncidentsController < ApplicationController
     labels.keys.sort.reverse.map do |date_key|
       { key: date_key, label: labels[date_key] || date_key }
     end
+  end
+
+  def serialize_daily_log_table_groups(daily_activities:, labor_entries:, operational_notes:, attachments:)
+    groups = Hash.new { |hash, key| hash[key] = [] }
+
+    daily_activities.each do |activity|
+      groups[activity[:date_key]] << {
+        id: "activity-#{activity[:id]}",
+        occurred_at: activity[:occurred_at],
+        time_label: format_time(Time.zone.parse(activity[:occurred_at])),
+        row_type: "activity",
+        row_type_label: "Activity",
+        primary_label: activity[:title],
+        status_label: activity[:status],
+        units_label: daily_activity_units_label(activity),
+        detail_label: daily_activity_detail_label(activity),
+        actor_name: activity[:created_by_name],
+        edit_path: activity[:edit_path],
+        visitors: activity[:visitors],
+        usable_rooms_returned: activity[:usable_rooms_returned],
+        estimated_date_of_return: activity[:estimated_date_of_return].present? ? format_date(Time.zone.parse(activity[:estimated_date_of_return])) : nil
+      }
+    end
+
+    labor_entries.each do |entry|
+      groups[entry[:log_date]] << {
+        id: "labor-#{entry[:id]}",
+        occurred_at: entry[:occurred_at] || entry[:created_at],
+        time_label: entry[:time_label] || "—",
+        row_type: "labor",
+        row_type_label: "Labor",
+        primary_label: [ entry[:role_label], entry[:user_name] ].compact.join(" · "),
+        status_label: "#{entry[:hours]}h",
+        units_label: "—",
+        detail_label: entry[:notes].presence || labor_time_window_label(entry),
+        actor_name: entry[:created_by_name],
+        edit_path: entry[:edit_path]
+      }
+    end
+
+    operational_notes.each do |note|
+      groups[note[:log_date]] << {
+        id: "note-#{note[:id]}",
+        occurred_at: note[:created_at],
+        time_label: note[:time_label] || "—",
+        row_type: "note",
+        row_type_label: "Note",
+        primary_label: "Operational note",
+        status_label: "—",
+        units_label: "—",
+        detail_label: note[:note_text],
+        actor_name: note[:created_by_name],
+        edit_path: nil
+      }
+    end
+
+    attachments.each do |attachment|
+      date_key = attachment[:log_date].presence || Time.zone.parse(attachment[:created_at]).to_date.iso8601
+      groups[date_key] << {
+        id: "attachment-#{attachment[:id]}",
+        occurred_at: attachment[:created_at],
+        time_label: attachment[:time_label] || "—",
+        row_type: "document",
+        row_type_label: "Document",
+        primary_label: attachment[:filename],
+        status_label: attachment[:category_label],
+        units_label: "—",
+        detail_label: attachment[:description].presence || "Uploaded document",
+        actor_name: attachment[:uploaded_by_name],
+        edit_path: nil,
+        url: attachment[:url]
+      }
+    end
+
+    groups.keys.sort.reverse.map do |date_key|
+      rows = groups[date_key].sort_by do |row|
+        parsed = parse_metadata_time(row[:occurred_at]) || Time.zone.parse("#{date_key}T00:00:00")
+        -parsed.to_f
+      end
+
+      {
+        date_key: date_key,
+        date_label: format_date(Time.zone.parse("#{date_key}T00:00:00")),
+        rows: rows
+      }
+    end
+  end
+
+  def daily_activity_units_label(activity)
+    return "—" if activity[:units_affected].blank? && activity[:units_affected_description].blank?
+
+    [
+      activity[:units_affected].presence ? activity[:units_affected].to_s : nil,
+      activity[:units_affected_description].presence
+    ].compact.join(" · ")
+  end
+
+  def daily_activity_detail_label(activity)
+    detail_parts = []
+    detail_parts << activity[:details].presence
+
+    equipment_label = activity[:equipment_actions].map do |action|
+      pieces = [ action[:action_label], action[:quantity], action[:type_name], action[:note] ].compact
+      pieces.join(" ")
+    end.join(" | ")
+    detail_parts << equipment_label.presence
+
+    detail_parts.compact.join(" · ").presence || "—"
+  end
+
+  def labor_time_window_label(entry)
+    return nil if entry[:started_at_label].blank? || entry[:ended_at_label].blank?
+
+    "#{entry[:started_at_label]} - #{entry[:ended_at_label]}"
+  end
+
+  def parse_metadata_time(time_string)
+    return nil if time_string.blank?
+    Time.zone.parse(time_string)
+  rescue ArgumentError
+    nil
   end
 
   def serialize_messages(messages)
@@ -532,11 +757,11 @@ class IncidentsController < ApplicationController
       [ "labor", "Labor updated", detail.presence ]
     when "activity_logged"
       title = metadata_value(metadata, :title) || "Activity"
-      status = metadata_value(metadata, :status)&.to_s&.titleize
+      status = metadata_value(metadata, :status)&.to_s
       [ "note", "Activity logged", [ title, status ].compact.join(" · ").presence ]
     when "activity_updated"
       title = metadata_value(metadata, :title) || "Activity"
-      status = metadata_value(metadata, :status)&.to_s&.titleize
+      status = metadata_value(metadata, :status)&.to_s
       [ "note", "Activity updated", [ title, status ].compact.join(" · ").presence ]
     when "equipment_placed"
       type_name = metadata_value(metadata, :type_name) || metadata_value(metadata, :equipment_type)
@@ -617,6 +842,9 @@ class IncidentsController < ApplicationController
         hours: entry.hours.to_f,
         log_date: entry.log_date.iso8601,
         log_date_label: format_date(entry.log_date),
+        created_at: entry.created_at.iso8601,
+        occurred_at: (entry.started_at || entry.created_at).iso8601,
+        time_label: format_time(entry.started_at || entry.created_at),
         started_at_label: format_time(entry.started_at),
         ended_at_label: format_time(entry.ended_at),
         notes: entry.notes,
@@ -654,6 +882,8 @@ class IncidentsController < ApplicationController
         description: att.description,
         log_date: att.log_date&.iso8601,
         log_date_label: format_date(att.log_date),
+        created_at: att.created_at.iso8601,
+        time_label: format_time(att.created_at),
         created_at_label: format_datetime(att.created_at),
         uploaded_by_name: att.uploaded_by_user.full_name,
         content_type: att.file.content_type,
@@ -671,6 +901,8 @@ class IncidentsController < ApplicationController
         note_text: note.note_text,
         log_date: note.log_date.iso8601,
         log_date_label: format_date(note.log_date),
+        created_at: note.created_at.iso8601,
+        time_label: format_time(note.created_at),
         created_at_label: format_time(note.created_at),
         created_by_name: note.created_by_user.full_name
       }
@@ -697,6 +929,59 @@ class IncidentsController < ApplicationController
         label: label_parts.join(" · ")
       }
     end
+  end
+
+  def serialize_equipment_log(incident)
+    incident.equipment_entries.includes(:equipment_type, :logged_by_user)
+      .order(placed_at: :asc, created_at: :asc)
+      .map do |entry|
+      editable = can_edit_equipment_entry?(entry)
+      days = ((entry.removed_at || Time.current).to_date - entry.placed_at.to_date).to_i
+      data = {
+        id: entry.id,
+        type_name: entry.type_name,
+        equipment_identifier: entry.equipment_identifier,
+        location_notes: entry.location_notes,
+        placed_at_label: format_date(entry.placed_at),
+        removed_at_label: entry.removed_at ? format_date(entry.removed_at) : nil,
+        total_days: days,
+        edit_path: editable ? incident_equipment_entry_path(incident, entry) : nil,
+        remove_path: editable && entry.removed_at.nil? ? remove_incident_equipment_entry_path(incident, entry) : nil
+      }
+      if editable
+        data[:equipment_type_id] = entry.equipment_type_id
+        data[:equipment_type_other] = entry.equipment_type_other
+        data[:placed_at] = format_datetime_value(entry.placed_at)
+        data[:removed_at] = entry.removed_at ? format_datetime_value(entry.removed_at) : nil
+      end
+      data
+    end
+  end
+
+  def serialize_labor_log(incident)
+    entries = incident.labor_entries.includes(:user, :created_by_user).order(:log_date, :created_at)
+    dates = entries.map(&:log_date).uniq.sort
+    date_labels = dates.map { |d| format_date(d) }
+
+    # Group by employee identity: use user if present, fall back to role_label
+    employee_map = {}
+    entries.each do |entry|
+      key = entry.user_id ? "user-#{entry.user_id}" : "role-#{entry.role_label}"
+      employee_map[key] ||= {
+        name: entry.user&.full_name || entry.role_label,
+        title: entry.role_label,
+        hours_by_date: {}
+      }
+      date_key = entry.log_date.iso8601
+      employee_map[key][:hours_by_date][date_key] ||= 0
+      employee_map[key][:hours_by_date][date_key] += entry.hours.to_f
+    end
+
+    {
+      dates: dates.map(&:iso8601),
+      date_labels: date_labels,
+      employees: employee_map.values
+    }
   end
 
   def serialize_incident(incident)

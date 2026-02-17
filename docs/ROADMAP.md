@@ -322,6 +322,7 @@ Complete the app for production use.
 ### UI Audit & Composable Design System Cleanup
 
 - [x] Full-site UI ugliness/composability audit documented in `docs/UI_AUDIT.md`
+- [ ] Replace ugly default flash messages with a polished toast/notification component (auto-dismiss, styled per DESIGN.md)
 - [ ] Build missing primitives: `Select`, `Textarea`, `Tabs`, `Dialog/Sheet`, reusable `EmptyStateCard`
 - [ ] Add composable layout primitives: `SectionCard`, `CardTable`, `EntityHeader`, standardized section actions
 - [ ] Refactor `DataTable`, `DetailList`, and `StatusBadge` to match DESIGN.md surface + hierarchy rules

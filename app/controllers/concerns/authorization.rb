@@ -50,6 +50,10 @@ module Authorization
     current_user.can?(Permissions::CREATE_INCIDENT)
   end
 
+  def can_edit_incident?
+    current_user.can?(Permissions::EDIT_INCIDENT)
+  end
+
   def can_transition_status?
     current_user.can?(Permissions::TRANSITION_STATUS)
   end

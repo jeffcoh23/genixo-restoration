@@ -17,6 +17,14 @@ class IncidentContactsController < ApplicationController
     redirect_to incident_path(@incident), alert: "Could not add contact: #{e.record.errors.full_messages.join(', ')}"
   end
 
+  def update
+    contact = @incident.incident_contacts.find(params[:id])
+    contact.update!(contact_params)
+    redirect_to incident_path(@incident), notice: "Contact updated."
+  rescue ActiveRecord::RecordInvalid => e
+    redirect_to incident_path(@incident), alert: "Could not update contact: #{e.record.errors.full_messages.join(', ')}"
+  end
+
   def destroy
     contact = @incident.incident_contacts.find(params[:id])
     name = contact.name
@@ -46,6 +54,6 @@ class IncidentContactsController < ApplicationController
   end
 
   def contact_params
-    params.require(:contact).permit(:name, :title, :email, :phone)
+    params.require(:contact).permit(:name, :title, :email, :phone, :onsite)
   end
 end
