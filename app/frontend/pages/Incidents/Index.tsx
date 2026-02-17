@@ -19,7 +19,7 @@ interface Incident {
   project_type_label: string;
   damage_label: string;
   emergency: boolean;
-  last_activity_at: string | null;
+  last_activity_label: string | null;
   created_at: string;
 }
 
@@ -72,30 +72,18 @@ function statusColor(status: string): string {
   switch (status) {
     case "new":
     case "acknowledged":
-      return "bg-[hsl(199_89%_48%)] text-white";
+      return "bg-status-info text-white";
     case "quote_requested":
-      return "bg-[hsl(270_50%_60%)] text-white";
+      return "bg-status-quote text-white";
     case "active":
-      return "bg-[hsl(142_76%_36%)] text-white";
+      return "bg-status-success text-white";
     case "on_hold":
-      return "bg-[hsl(38_92%_50%)] text-white";
+      return "bg-status-warning text-white";
     case "completed":
-      return "bg-[hsl(142_40%_50%)] text-white";
+      return "bg-status-completed text-white";
     default:
-      return "bg-[hsl(0_0%_55%)] text-white";
+      return "bg-status-neutral text-white";
   }
-}
-
-function timeAgo(iso: string | null): string {
-  if (!iso) return "";
-  const seconds = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-  if (seconds < 60) return "just now";
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h`;
-  const days = Math.floor(hours / 24);
-  return `${days}d`;
 }
 
 export default function IncidentsIndex() {
@@ -188,14 +176,14 @@ export default function IncidentsIndex() {
 
       {/* Table */}
       {incidents.length === 0 ? (
-        <div className="rounded-md border border-border bg-card p-8 text-center">
+        <div className="rounded border border-border bg-card p-8 text-center">
           <p className="text-muted-foreground">No incidents match your filters.</p>
         </div>
       ) : (
-        <div className="rounded-md border border-border overflow-hidden">
+        <div className="rounded border border-border overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b bg-muted/50">
+              <tr className="border-b bg-muted">
                 <SortHeader label="Property" column="property" sort={sort} onSort={handleSort} />
                 <th className="px-4 py-3 font-medium text-left">Description</th>
                 <SortHeader label="Status" column="status" sort={sort} onSort={handleSort} />
@@ -207,7 +195,7 @@ export default function IncidentsIndex() {
               {incidents.map((incident) => (
                 <tr
                   key={incident.id}
-                  className={`border-b last:border-0 hover:bg-muted/30 transition-colors ${
+                  className={`border-b last:border-0 hover:bg-muted transition-colors ${
                     incident.emergency ? "bg-red-50" : ""
                   }`}
                 >
@@ -231,7 +219,7 @@ export default function IncidentsIndex() {
                     {incident.project_type_label}
                   </td>
                   <td className="px-4 py-3 text-right text-muted-foreground">
-                    {timeAgo(incident.last_activity_at)}
+                    {incident.last_activity_label}
                   </td>
                 </tr>
               ))}
@@ -285,7 +273,7 @@ function FilterSelect({
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+      className="h-9 rounded border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
     >
       <option value="">{placeholder}</option>
       {options.map((opt) => (
@@ -313,15 +301,17 @@ function SortHeader({
   const active = sort.column === column;
   return (
     <th className={`px-4 py-3 font-medium ${align === "right" ? "text-right" : "text-left"}`}>
-      <button
+      <Button
+        variant="ghost"
+        size="sm"
         onClick={() => onSort(column)}
-        className={`inline-flex items-center gap-1 hover:text-foreground transition-colors ${
+        className={`inline-flex items-center gap-1 hover:text-foreground h-auto p-0 ${
           active ? "text-foreground" : "text-muted-foreground"
         }`}
       >
         {label}
         <ArrowUpDown className="h-3.5 w-3.5" />
-      </button>
+      </Button>
     </th>
   );
 }

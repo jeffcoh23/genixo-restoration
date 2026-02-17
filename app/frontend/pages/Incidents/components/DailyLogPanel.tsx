@@ -44,10 +44,7 @@ export default function DailyLogPanel({
     return filtered.filter((group) => group.date_key === selectedDate);
   }, [daily_log_table_groups, selectedDate]);
 
-  const totalRows = daily_log_table_groups.reduce(
-    (sum, group) => sum + group.rows.filter((r) => r.row_type === "activity").length, 0
-  );
-  const hasNoActivity = totalRows === 0;
+  const hasNoActivity = daily_activities.length === 0;
 
   if (hasNoActivity && !can_manage_activities) {
     return (
@@ -165,19 +162,19 @@ export default function DailyLogPanel({
                                 <div className="flex gap-8 text-xs">
                                   {row.units_label !== "—" && (
                                     <div>
-                                      <div className="text-muted-foreground/50 uppercase tracking-wide text-[10px] leading-4">Units Affected</div>
+                                      <div className="text-muted-foreground uppercase tracking-wide text-xs">Units Affected</div>
                                       <div className="text-muted-foreground">{row.units_label}</div>
                                     </div>
                                   )}
                                   {row.usable_rooms_returned && (
                                     <div>
-                                      <div className="text-muted-foreground/50 uppercase tracking-wide text-[10px] leading-4">Usable Rooms Returned</div>
+                                      <div className="text-muted-foreground uppercase tracking-wide text-xs">Usable Rooms Returned</div>
                                       <div className="text-muted-foreground">{row.usable_rooms_returned}</div>
                                     </div>
                                   )}
                                   {row.estimated_date_of_return && (
                                     <div>
-                                      <div className="text-muted-foreground/50 uppercase tracking-wide text-[10px] leading-4">Est. Date of Return</div>
+                                      <div className="text-muted-foreground uppercase tracking-wide text-xs">Est. Date of Return</div>
                                       <div className="text-muted-foreground">{row.estimated_date_of_return}</div>
                                     </div>
                                   )}

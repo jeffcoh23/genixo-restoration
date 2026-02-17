@@ -4,6 +4,7 @@ import { useState } from "react";
 import AppLayout from "@/layout/AppLayout";
 import PageHeader from "@/components/PageHeader";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { SharedProps } from "@/types";
 
 interface IncidentCard {
@@ -16,7 +17,7 @@ interface IncidentCard {
   project_type_label: string;
   damage_label: string;
   emergency: boolean;
-  last_activity_at: string | null;
+  last_activity_label: string | null;
 }
 
 interface Groups {
@@ -29,6 +30,7 @@ interface Groups {
 
 interface DashboardProps {
   groups: Groups;
+  total_count: number;
   can_create_incident: boolean;
 }
 
@@ -40,41 +42,27 @@ const GROUP_CONFIG = [
   { key: "recent_completed" as const, label: "Recent Completed", defaultOpen: false },
 ];
 
-function timeAgo(iso: string | null): string {
-  if (!iso) return "";
-  const seconds = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-  if (seconds < 60) return "just now";
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-}
-
 function statusColor(status: string): string {
   switch (status) {
     case "new":
     case "acknowledged":
-      return "bg-[hsl(199_89%_48%)] text-white";
+      return "bg-status-info text-white";
     case "quote_requested":
-      return "bg-[hsl(270_50%_60%)] text-white";
+      return "bg-status-quote text-white";
     case "active":
-      return "bg-[hsl(142_76%_36%)] text-white";
+      return "bg-status-success text-white";
     case "on_hold":
-      return "bg-[hsl(38_92%_50%)] text-white";
+      return "bg-status-warning text-white";
     case "completed":
-      return "bg-[hsl(142_40%_50%)] text-white";
+      return "bg-status-completed text-white";
     default:
-      return "bg-[hsl(0_0%_55%)] text-white";
+      return "bg-status-neutral text-white";
   }
 }
 
 export default function Dashboard() {
-  const { groups, can_create_incident, routes } =
+  const { groups, total_count, can_create_incident, routes } =
     usePage<SharedProps & DashboardProps>().props;
-
-  const totalCount = Object.values(groups).reduce((sum, g) => sum + g.length, 0);
 
   return (
     <AppLayout>
@@ -83,8 +71,8 @@ export default function Dashboard() {
         action={can_create_incident ? { href: routes.new_incident, label: "Create Request" } : undefined}
       />
 
-      {totalCount === 0 ? (
-        <div className="rounded-md border border-border bg-card p-8 text-center">
+      {total_count === 0 ? (
+        <div className="rounded border border-border bg-card p-8 text-center">
           <p className="text-muted-foreground">No incidents to show.</p>
           {can_create_incident && (
             <p className="mt-2 text-sm text-muted-foreground">
@@ -123,21 +111,23 @@ function IncidentGroup({
 
   return (
     <div>
-      <button
+      <Button
+        variant="ghost"
+        size="sm"
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2 hover:text-foreground transition-colors"
+        className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2 hover:text-foreground h-auto p-0"
       >
         {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
         {label} ({incidents.length})
-      </button>
+      </Button>
 
       {open && (
-        <div className="rounded-md border border-border overflow-hidden divide-y divide-border">
+        <div className="rounded border border-border overflow-hidden divide-y divide-border">
           {incidents.map((incident) => (
             <Link
               key={incident.id}
               href={incident.path}
-              className={`block px-4 py-3 hover:bg-muted/50 transition-colors ${
+              className={`block px-4 py-3 hover:bg-muted transition-colors ${
                 incident.emergency ? "bg-red-50" : "bg-card"
               }`}
             >
@@ -156,10 +146,10 @@ function IncidentGroup({
                     <span>{incident.damage_label}</span>
                     <span>&middot;</span>
                     <span>{incident.project_type_label}</span>
-                    {incident.last_activity_at && (
+                    {incident.last_activity_label && (
                       <>
                         <span>&middot;</span>
-                        <span>{timeAgo(incident.last_activity_at)}</span>
+                        <span>{incident.last_activity_label}</span>
                       </>
                     )}
                   </div>

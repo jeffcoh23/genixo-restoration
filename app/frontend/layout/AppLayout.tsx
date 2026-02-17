@@ -1,6 +1,7 @@
 import { usePage } from "@inertiajs/react";
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { SharedProps } from "@/types";
 import RoleSidebar from "./RoleSidebar";
 import FlashMessages from "./FlashMessages";
@@ -14,7 +15,7 @@ export default function AppLayout({ children, wide }: { children: React.ReactNod
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          className="fixed inset-0 z-40 bg-black opacity-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -37,12 +38,14 @@ export default function AppLayout({ children, wide }: { children: React.ReactNod
               Genixo Restoration
             </span>
           </div>
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => setSidebarOpen(false)}
-            className="lg:hidden text-sidebar-foreground"
+            className="lg:hidden text-sidebar-foreground h-auto p-0"
           >
             <X className="h-5 w-5" />
-          </button>
+          </Button>
         </div>
 
         <RoleSidebar onNavigate={() => setSidebarOpen(false)} />
@@ -52,9 +55,9 @@ export default function AppLayout({ children, wide }: { children: React.ReactNod
       <main className="flex-1 overflow-auto">
         {/* Mobile header */}
         <div className="sticky top-0 z-30 flex items-center gap-3 border-b bg-background px-4 py-3 lg:hidden">
-          <button onClick={() => setSidebarOpen(true)}>
+          <Button variant="ghost" size="sm" className="h-auto p-0" onClick={() => setSidebarOpen(true)}>
             <Menu className="h-5 w-5 text-foreground" />
-          </button>
+          </Button>
           <span className="text-sm font-semibold text-foreground">
             Genixo Restoration
           </span>

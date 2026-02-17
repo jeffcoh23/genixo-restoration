@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { router } from "@inertiajs/react";
+import { router, usePage } from "@inertiajs/react";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { SharedProps } from "@/types";
 import type { EquipmentLogItem, EquipmentType } from "../types";
 import EquipmentForm from "./EquipmentForm";
 
@@ -13,12 +14,13 @@ interface EquipmentPanelProps {
 }
 
 export default function EquipmentPanel({ equipment_log = [], can_manage_equipment, equipment_entries_path, equipment_types }: EquipmentPanelProps) {
+  const { now_datetime } = usePage<SharedProps>().props;
   const [showForm, setShowForm] = useState(false);
   const [editingEntry, setEditingEntry] = useState<EquipmentLogItem | null>(null);
 
   const handleRemove = (item: EquipmentLogItem) => {
     if (!item.remove_path) return;
-    router.patch(item.remove_path, { removed_at: new Date().toISOString() }, { preserveScroll: true });
+    router.patch(item.remove_path, { removed_at: now_datetime.split("T")[0] }, { preserveScroll: true });
   };
 
   return (

@@ -27,7 +27,7 @@ function calculateHours(startedAt: string, endedAt: string): string {
   if (!startedAt || !endedAt) return "";
   const [sh, sm] = startedAt.split(":").map(Number);
   const [eh, em] = endedAt.split(":").map(Number);
-  let diff = (eh * 60 + em) - (sh * 60 + sm);
+  const diff = (eh * 60 + em) - (sh * 60 + sm);
   if (diff <= 0) return "";
   const hours = Math.round((diff / 60) * 4) / 4; // round to nearest 0.25
   return String(hours);

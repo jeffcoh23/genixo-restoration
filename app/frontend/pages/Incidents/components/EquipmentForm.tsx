@@ -124,21 +124,25 @@ export default function EquipmentForm({ path, equipment_types, onClose, entry }:
                 <div className="flex items-baseline justify-between">
                   <label className="text-xs font-medium text-muted-foreground">Removed On</label>
                   {!data.removed_at ? (
-                    <button
+                    <Button
                       type="button"
-                      className="text-xs text-primary hover:underline"
+                      variant="link"
+                      size="sm"
+                      className="h-auto p-0 text-xs"
                       onClick={() => setData("removed_at", now_datetime.split("T")[0])}
                     >
                       Today
-                    </button>
+                    </Button>
                   ) : (
-                    <button
+                    <Button
                       type="button"
-                      className="text-xs text-muted-foreground hover:underline"
+                      variant="link"
+                      size="sm"
+                      className="h-auto p-0 text-xs text-muted-foreground"
                       onClick={() => setData("removed_at", "")}
                     >
                       Clear
-                    </button>
+                    </Button>
                   )}
                 </div>
                 <Input

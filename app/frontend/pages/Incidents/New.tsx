@@ -5,6 +5,7 @@ import AppLayout from "@/layout/AppLayout";
 import PageHeader from "@/components/PageHeader";
 import FormField from "@/components/FormField";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SharedProps } from "@/types";
@@ -367,15 +368,13 @@ export default function NewIncident() {
                   />
                 </div>
                 <label className="flex items-center gap-2 text-sm cursor-pointer">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={contact.onsite}
-                    onChange={(e) => {
+                    onCheckedChange={(checked) => {
                       const updated = [...contacts];
-                      updated[index] = { ...updated[index], onsite: e.target.checked };
+                      updated[index] = { ...updated[index], onsite: checked === true };
                       setContacts(updated);
                     }}
-                    className="rounded border-input"
                   />
                   Onsite contact
                 </label>

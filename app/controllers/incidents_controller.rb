@@ -996,7 +996,7 @@ class IncidentsController < ApplicationController
       project_type_label: Incident::PROJECT_TYPE_LABELS[incident.project_type],
       damage_label: Incident::DAMAGE_LABELS[incident.damage_type],
       emergency: incident.emergency,
-      last_activity_at: incident.last_activity_at&.iso8601,
+      last_activity_label: format_relative_time(incident.last_activity_at),
       created_at: incident.created_at.iso8601
     }
   end

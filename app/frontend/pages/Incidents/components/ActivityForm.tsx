@@ -116,7 +116,7 @@ export default function ActivityForm({
             </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground">
-                Units Affected <span className="text-muted-foreground/60 font-normal">(optional)</span>
+                Units Affected <span className="text-muted-foreground font-normal">(optional)</span>
               </label>
               <Input
                 type="number"
@@ -131,7 +131,7 @@ export default function ActivityForm({
 
           <div>
             <label className="text-xs font-medium text-muted-foreground">
-              Units Affected Description <span className="text-muted-foreground/60 font-normal">(optional)</span>
+              Units Affected Description <span className="text-muted-foreground font-normal">(optional)</span>
             </label>
             <Input
               value={unitsAffectedDescription}
@@ -143,7 +143,7 @@ export default function ActivityForm({
 
           <div>
             <label className="text-xs font-medium text-muted-foreground">
-              Details / Reasoning <span className="text-muted-foreground/60 font-normal">(optional)</span>
+              Details / Reasoning <span className="text-muted-foreground font-normal">(optional)</span>
             </label>
             <textarea
               value={details}
@@ -156,7 +156,7 @@ export default function ActivityForm({
 
           <div>
             <label className="text-xs font-medium text-muted-foreground">
-              Visitors <span className="text-muted-foreground/60 font-normal">(optional)</span>
+              Visitors <span className="text-muted-foreground font-normal">(optional)</span>
             </label>
             <textarea
               value={visitors}
@@ -170,7 +170,7 @@ export default function ActivityForm({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-medium text-muted-foreground">
-                Usable Rooms Returned <span className="text-muted-foreground/60 font-normal">(optional)</span>
+                Usable Rooms Returned <span className="text-muted-foreground font-normal">(optional)</span>
               </label>
               <Input
                 value={usableRoomsReturned}
@@ -180,7 +180,7 @@ export default function ActivityForm({
             </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground">
-                Est. Date of Return <span className="text-muted-foreground/60 font-normal">(optional)</span>
+                Est. Date of Return <span className="text-muted-foreground font-normal">(optional)</span>
               </label>
               <Input
                 type="date"

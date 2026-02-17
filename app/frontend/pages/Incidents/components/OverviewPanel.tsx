@@ -2,6 +2,7 @@ import { useState } from "react";
 import { router } from "@inertiajs/react";
 import { Building2, ChevronDown, Mail, Pencil, Phone, Plus, UserPlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import type { Contact, IncidentDetail, AssignableUser } from "../types";
 
@@ -338,11 +339,9 @@ function ContactFormModal({ contact, contacts_path, onClose }: {
           </div>
 
           <label className="flex items-center gap-2 text-xs cursor-pointer">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={onsite}
-              onChange={(e) => setOnsite(e.target.checked)}
-              className="rounded border-input"
+              onCheckedChange={(checked) => setOnsite(checked === true)}
             />
             Onsite contact
           </label>
