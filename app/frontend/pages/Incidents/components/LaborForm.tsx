@@ -157,7 +157,7 @@ export default function LaborForm({ path, users, onClose, entry }: LaborFormProp
             </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground">
-                End Time <span className="text-muted-foreground/60 font-normal">(optional)</span>
+                End Time <span className="text-muted-foreground font-normal">(optional)</span>
               </label>
               <Input
                 type="time"
@@ -190,7 +190,7 @@ export default function LaborForm({ path, users, onClose, entry }: LaborFormProp
 
           <div>
             <label className="text-xs font-medium text-muted-foreground">
-              Notes <span className="text-muted-foreground/60 font-normal">(optional)</span>
+              Notes <span className="text-muted-foreground font-normal">(optional)</span>
             </label>
             <textarea
               value={data.notes}

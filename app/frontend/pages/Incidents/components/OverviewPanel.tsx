@@ -303,7 +303,7 @@ function ContactFormModal({ contact, contacts_path, onClose }: {
 
           <div>
             <label className="text-xs font-medium text-muted-foreground">
-              Title <span className="text-muted-foreground/60 font-normal">(optional)</span>
+              Title <span className="text-muted-foreground font-normal">(optional)</span>
             </label>
             <Input
               value={title}
@@ -316,7 +316,7 @@ function ContactFormModal({ contact, contacts_path, onClose }: {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-medium text-muted-foreground">
-                Email <span className="text-muted-foreground/60 font-normal">(optional)</span>
+                Email <span className="text-muted-foreground font-normal">(optional)</span>
               </label>
               <Input
                 type="email"
@@ -327,7 +327,7 @@ function ContactFormModal({ contact, contacts_path, onClose }: {
             </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground">
-                Phone <span className="text-muted-foreground/60 font-normal">(optional)</span>
+                Phone <span className="text-muted-foreground font-normal">(optional)</span>
               </label>
               <Input
                 type="tel"

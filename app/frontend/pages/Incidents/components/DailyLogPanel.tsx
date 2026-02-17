@@ -104,12 +104,12 @@ export default function DailyLogPanel({
         ) : (
           activityGroups.map((group) => (
             <div key={group.date_key} className="rounded border border-border overflow-hidden">
-              <div className="px-3 py-2 border-b border-border bg-muted/40 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <div className="px-3 py-2 border-b border-border bg-muted text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 {group.date_label}
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead className="bg-muted/30 border-b border-border">
+                  <thead className="bg-muted border-b border-border">
                     <tr>
                       <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground w-[90px]">Time</th>
                       <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Activity</th>

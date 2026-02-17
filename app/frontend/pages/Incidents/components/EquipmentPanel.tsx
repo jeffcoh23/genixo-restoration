@@ -42,7 +42,7 @@ export default function EquipmentPanel({ equipment_log = [], can_manage_equipmen
         <div className="flex-1 overflow-y-auto">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-muted/30 border-b border-border sticky top-0">
+              <thead className="bg-muted border-b border-border sticky top-0">
                 <tr>
                   <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Type</th>
                   <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground w-[100px]">ID #</th>
