@@ -1,0 +1,9 @@
+<h2 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: #1a2b33;">New Message</h2>
+
+<p style="margin: 0 0 16px 0; font-size: 14px; color: #3d5361; line-height: 1.5;">
+  <strong><%= @sender.full_name %></strong> posted a message on the incident at <strong><%= @property.name %></strong>.
+</p>
+
+<div style="background-color: #f0f4f5; border-radius: 6px; padding: 16px; margin: 0 0 24px 0;">
+  <p style="margin: 0; font-size: 14px; color: #1a2b33; line-height: 1.5; white-space: pre-wrap;"><%= @message.body %></p>
+</div>

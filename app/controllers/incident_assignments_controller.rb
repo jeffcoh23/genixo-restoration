@@ -11,6 +11,8 @@ class IncidentAssignmentsController < ApplicationController
       metadata: { assigned_user_id: user.id, assigned_user_name: user.full_name }
     )
 
+    AssignmentNotificationJob.perform_later(assignment.id)
+
     redirect_to incident_path(@incident), notice: "#{user.full_name} assigned."
   rescue ActiveRecord::RecordNotUnique, ActiveRecord::RecordInvalid
     redirect_to incident_path(@incident), alert: "User is already assigned."

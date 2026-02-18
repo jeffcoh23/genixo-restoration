@@ -337,6 +337,7 @@ export interface LaborLogEmployee {
   name: string;
   title: string;
   hours_by_date: Record<string, number>;
+  total_hours: number;
 }
 
 export interface LaborLog {

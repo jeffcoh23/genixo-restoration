@@ -1,0 +1,30 @@
+<h2 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: #c53030;">Emergency Incident</h2>
+
+<p style="margin: 0 0 16px 0; font-size: 14px; color: #3d5361; line-height: 1.5;">
+  An emergency incident at <strong><%= @property.name %></strong> requires your immediate attention.
+</p>
+
+<table style="width: 100%; border-collapse: collapse; margin: 0 0 24px 0;">
+  <tr>
+    <td style="padding: 8px 0; font-size: 13px; color: #8899a4; width: 120px;">Property</td>
+    <td style="padding: 8px 0; font-size: 13px; color: #1a2b33;"><%= @property.name %></td>
+  </tr>
+  <% if @property.short_address.present? %>
+  <tr>
+    <td style="padding: 8px 0; font-size: 13px; color: #8899a4;">Address</td>
+    <td style="padding: 8px 0; font-size: 13px; color: #1a2b33;"><%= @property.short_address %></td>
+  </tr>
+  <% end %>
+  <tr>
+    <td style="padding: 8px 0; font-size: 13px; color: #8899a4;">Damage</td>
+    <td style="padding: 8px 0; font-size: 13px; color: #1a2b33;"><%= Incident::DAMAGE_LABELS[@incident.damage_type] %></td>
+  </tr>
+  <tr>
+    <td style="padding: 8px 0; font-size: 13px; color: #8899a4;">Description</td>
+    <td style="padding: 8px 0; font-size: 13px; color: #1a2b33;"><%= truncate(@incident.description, length: 200) %></td>
+  </tr>
+</table>
+
+<p style="margin: 0; font-size: 13px; color: #c53030; font-weight: 600;">
+  Please mark this incident as Active once you've acknowledged and are responding.
+</p>

@@ -7,7 +7,7 @@ class ActivityEvent < ApplicationRecord
     equipment_placed equipment_removed equipment_updated
     attachment_uploaded
     operational_note_added
-    escalation_attempted
+    escalation_attempted escalation_skipped escalation_exhausted
     contact_added contact_removed
   ].freeze
 

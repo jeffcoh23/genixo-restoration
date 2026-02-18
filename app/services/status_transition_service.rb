@@ -31,7 +31,7 @@ class StatusTransitionService
 
       resolve_escalations if @new_status == "active"
 
-      # TODO: Phase 5 — NotificationDispatchService for status change notifications
+      StatusChangeNotificationJob.perform_later(@incident.id, old_status, @new_status)
     end
 
     @incident

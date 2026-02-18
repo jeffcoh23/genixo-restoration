@@ -5,24 +5,6 @@ import { Input } from "@/components/ui/input";
 import { SharedProps } from "@/types";
 import type { AssignableUser, LaborEntry } from "../types";
 
-const ROLE_SORT_ORDER: Record<string, number> = {
-  "Technician": 0,
-  "Manager": 1,
-  "Office/Sales": 2,
-  "Property Manager": 3,
-  "Area Manager": 4,
-  "PM Manager": 5,
-};
-
-function sortedUsers(users: AssignableUser[]): AssignableUser[] {
-  return [...users].sort((a, b) => {
-    const aOrder = ROLE_SORT_ORDER[a.role_label] ?? 99;
-    const bOrder = ROLE_SORT_ORDER[b.role_label] ?? 99;
-    if (aOrder !== bOrder) return aOrder - bOrder;
-    return a.full_name.localeCompare(b.full_name);
-  });
-}
-
 interface LaborFormProps {
   path: string;
   users: AssignableUser[];
@@ -33,8 +15,6 @@ interface LaborFormProps {
 export default function LaborForm({ path, users, onClose, entry }: LaborFormProps) {
   const { today } = usePage<SharedProps>().props;
   const editing = !!entry;
-  const sorted = sortedUsers(users);
-
   const initialUserId = entry?.user_id ? String(entry.user_id) : (users.length === 1 ? String(users[0].id) : "");
   const initialRole = entry?.role_label ?? (users.length === 1 ? users[0].role_label : "");
 
@@ -84,7 +64,7 @@ export default function LaborForm({ path, users, onClose, entry }: LaborFormProp
                 className="mt-1 w-full rounded border border-input bg-background px-3 py-2 text-sm"
               >
                 <option value="">Unattributed</option>
-                {sorted.map((u) => (
+                {users.map((u) => (
                   <option key={u.id} value={u.id}>{u.full_name} ({u.role_label})</option>
                 ))}
               </select>

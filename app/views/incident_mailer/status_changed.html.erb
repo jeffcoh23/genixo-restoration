@@ -1,0 +1,20 @@
+<h2 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: #1a2b33;">Status Changed</h2>
+
+<p style="margin: 0 0 16px 0; font-size: 14px; color: #3d5361; line-height: 1.5;">
+  An incident at <strong><%= @property.name %></strong> has been updated.
+</p>
+
+<table style="width: 100%; border-collapse: collapse; margin: 0 0 24px 0;">
+  <tr>
+    <td style="padding: 8px 0; font-size: 13px; color: #8899a4; width: 120px;">Previous</td>
+    <td style="padding: 8px 0; font-size: 13px; color: #1a2b33;"><%= @old_label %></td>
+  </tr>
+  <tr>
+    <td style="padding: 8px 0; font-size: 13px; color: #8899a4;">New Status</td>
+    <td style="padding: 8px 0; font-size: 14px; color: #1a7a7a; font-weight: 600;"><%= @new_label %></td>
+  </tr>
+  <tr>
+    <td style="padding: 8px 0; font-size: 13px; color: #8899a4;">Property</td>
+    <td style="padding: 8px 0; font-size: 13px; color: #1a2b33;"><%= @property.name %></td>
+  </tr>
+</table>

@@ -20,6 +20,9 @@ class User < ApplicationRecord
     PM_MANAGER => "PM Manager"
   }.freeze
 
+  # Sort order for labor-related dropdowns (technicians first)
+  LABOR_SORT_ORDER = [TECHNICIAN, MANAGER, OFFICE_SALES, PROPERTY_MANAGER, AREA_MANAGER, PM_MANAGER].freeze
+
   has_secure_password validations: false
 
   belongs_to :organization
@@ -68,6 +71,10 @@ class User < ApplicationRecord
 
   def can?(permission)
     Permissions.has?(user_type, permission)
+  end
+
+  def notification_preference(key)
+    notification_preferences.fetch(key.to_s, true)
   end
 
   private

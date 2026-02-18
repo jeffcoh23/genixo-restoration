@@ -1,0 +1,8 @@
+YOU'VE BEEN ASSIGNED
+
+You've been assigned to an incident at <%= @property.name %>.
+
+Property: <%= @property.name %>
+<%= "Address: #{@property.short_address}" if @property.short_address.present? %>
+Type: <%= Incident::DAMAGE_LABELS[@incident.damage_type] %> - <%= Incident::PROJECT_TYPE_LABELS[@incident.project_type] %>
+Status: <%= Incident::STATUS_LABELS[@incident.status] %>

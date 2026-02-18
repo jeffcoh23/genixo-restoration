@@ -55,13 +55,7 @@ export default function LaborPanel({ labor_log, labor_entries: _labor_entries, c
                 </tr>
               </thead>
               <tbody>
-                {labor_log.employees.map((emp, i) => {
-                  let total = 0;
-                  for (const dateKey of labor_log.dates) {
-                    total += emp.hours_by_date[dateKey] ?? 0;
-                  }
-
-                  return (
+                {labor_log.employees.map((emp, i) => (
                     <tr key={i} className="border-b border-border last:border-b-0">
                       <td className="px-3 py-2 text-sm font-medium text-foreground sticky left-0 bg-background z-10">
                         {emp.name}
@@ -78,11 +72,10 @@ export default function LaborPanel({ labor_log, labor_entries: _labor_entries, c
                         );
                       })}
                       <td className="px-3 py-2 text-sm font-medium text-foreground text-right tabular-nums">
-                        {total}
+                        {emp.total_hours}
                       </td>
                     </tr>
-                  );
-                })}
+                ))}
               </tbody>
             </table>
           </div>

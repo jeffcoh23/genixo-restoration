@@ -1,4 +1,6 @@
 Rails.application.routes.draw do
+  mount LetterOpenerWeb::Engine, at: "/letter_opener" if Rails.env.development?
+
   get "up" => "rails/health#show", as: :rails_health_check
 
   # Auth
@@ -58,6 +60,10 @@ Rails.application.routes.draw do
   patch "settings", to: "settings#update"
   patch "settings/password", to: "settings#update_password", as: :settings_password
   get "settings/on-call", to: "settings#on_call", as: :on_call_settings
+  patch "settings/on-call", to: "settings#update_on_call", as: :update_on_call_settings
+  post "settings/on-call/contacts", to: "settings#create_escalation_contact", as: :escalation_contacts
+  delete "settings/on-call/contacts/:id", to: "settings#destroy_escalation_contact", as: :escalation_contact
+  patch "settings/preferences", to: "settings#update_preferences", as: :settings_preferences
   get "settings/equipment-types", to: "settings#equipment_types", as: :equipment_types_settings
   post "settings/equipment-types", to: "settings#create_equipment_type", as: :create_equipment_type
   patch "settings/equipment-types/:id/deactivate", to: "settings#deactivate_equipment_type", as: :deactivate_equipment_type

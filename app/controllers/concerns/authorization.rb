@@ -86,6 +86,14 @@ module Authorization
     current_user.can?(Permissions::CREATE_OPERATIONAL_NOTE)
   end
 
+  def can_manage_on_call?
+    current_user.can?(Permissions::MANAGE_ON_CALL)
+  end
+
+  def can_manage_equipment_types?
+    current_user.can?(Permissions::MANAGE_EQUIPMENT_TYPES)
+  end
+
   # --- Resource-scoped checks (need a specific record) ---
 
   def mitigation_admin?

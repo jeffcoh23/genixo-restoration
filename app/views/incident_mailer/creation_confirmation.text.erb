@@ -1,0 +1,9 @@
+INCIDENT CREATED
+
+Property: <%= @property.name %>
+<%= "Address: #{@property.short_address}" if @property.short_address.present? %>
+Type: <%= Incident::DAMAGE_LABELS[@incident.damage_type] %> - <%= Incident::PROJECT_TYPE_LABELS[@incident.project_type] %>
+Status: <%= Incident::STATUS_LABELS[@incident.status] %>
+<%= "Priority: EMERGENCY" if @incident.emergency? %>
+
+Created by <%= @user.full_name %>

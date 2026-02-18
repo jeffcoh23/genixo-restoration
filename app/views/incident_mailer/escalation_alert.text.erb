@@ -1,0 +1,10 @@
+*** EMERGENCY INCIDENT ***
+
+An emergency incident at <%= @property.name %> requires your immediate attention.
+
+Property: <%= @property.name %>
+<%= "Address: #{@property.short_address}" if @property.short_address.present? %>
+Damage: <%= Incident::DAMAGE_LABELS[@incident.damage_type] %>
+Description: <%= truncate(@incident.description, length: 200) %>
+
+Please mark this incident as Active once you've acknowledged and are responding.

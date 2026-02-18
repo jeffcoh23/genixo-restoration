@@ -20,6 +20,8 @@ class MessagesController < ApplicationController
 
     @incident.touch(:last_activity_at)
 
+    MessageNotificationJob.perform_later(message.id)
+
     redirect_to incident_path(@incident), notice: "Message sent."
   rescue ActionController::ParameterMissing
     redirect_to incident_path(@incident), alert: "Message body can't be blank."

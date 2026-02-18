@@ -13,8 +13,7 @@ class IncidentCreationService
       assign_additional_users
       create_contacts
       log_creation_events
-      # TODO: Phase 5 — EscalationJob.perform_later(@incident) if @incident.emergency?
-      # TODO: Phase 5 — IncidentMailer.incident_created(@incident).deliver_later
+      send_notifications
       @incident
     end
   end
@@ -112,5 +111,10 @@ class IncidentCreationService
       incident: @incident, event_type: "status_changed", user: @user,
       metadata: { old_status: "new", new_status: @incident.status }
     )
+  end
+
+  def send_notifications
+    IncidentMailer.creation_confirmation(@incident).deliver_later
+    EscalationJob.perform_later(@incident.id) if @incident.emergency?
   end
 end

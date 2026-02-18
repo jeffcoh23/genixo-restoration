@@ -868,9 +868,10 @@ class IncidentsController < ApplicationController
 
   def assignable_labor_users(incident)
     if mitigation_admin?
-      User.where(active: true, organization_id: incident.property.mitigation_org_id)
+      users = User.where(active: true, organization_id: incident.property.mitigation_org_id)
         .order(:last_name, :first_name)
-        .map { |u| { id: u.id, full_name: u.full_name, role_label: User::ROLE_LABELS[u.user_type] } }
+      sorted = users.sort_by { |u| [User::LABOR_SORT_ORDER.index(u.user_type) || 99, u.last_name, u.first_name] }
+      sorted.map { |u| { id: u.id, full_name: u.full_name, role_label: User::ROLE_LABELS[u.user_type] } }
     else
       [ { id: current_user.id, full_name: current_user.full_name, role_label: User::ROLE_LABELS[current_user.user_type] } ]
     end
@@ -975,11 +976,13 @@ class IncidentsController < ApplicationController
       employee_map[key] ||= {
         name: entry.user&.full_name || entry.role_label,
         title: entry.role_label,
-        hours_by_date: {}
+        hours_by_date: {},
+        total_hours: 0
       }
       date_key = entry.log_date.iso8601
       employee_map[key][:hours_by_date][date_key] ||= 0
       employee_map[key][:hours_by_date][date_key] += entry.hours.to_f
+      employee_map[key][:total_hours] += entry.hours.to_f
     end
 
     {
