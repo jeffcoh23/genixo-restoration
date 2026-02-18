@@ -71,10 +71,10 @@ export default function PropertiesIndex() {
           {can_create ? 'No properties yet. Use "New Property" to add one.' : "No properties yet."}
         </p>
       ) : (
-        <div className="rounded-md border">
+        <div className="rounded border">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b bg-muted/50">
+              <tr className="border-b bg-muted">
                 {COLUMNS.map((col) => (
                   <th
                     key={col.key}
@@ -103,7 +103,7 @@ export default function PropertiesIndex() {
             </thead>
             <tbody>
               {sorted.map((p) => (
-                <tr key={p.id} className="border-b last:border-0 hover:bg-muted/30">
+                <tr key={p.id} className="border-b last:border-0 hover:bg-muted">
                   <td className="px-4 py-3">
                     <Link href={p.path} className="font-medium text-primary hover:underline">
                       {p.name}
