@@ -1,12 +1,18 @@
 class Incident < ApplicationRecord
-  STATUSES = %w[new acknowledged quote_requested active on_hold completed completed_billed paid closed].freeze
+  STATUSES = %w[
+    new acknowledged active on_hold completed completed_billed paid closed
+    proposal_requested proposal_submitted proposal_signed
+  ].freeze
   PROJECT_TYPES = %w[emergency_response mitigation_rfq buildback_rfq capex_rfq other].freeze
   DAMAGE_TYPES = %w[flood fire smoke mold odor other not_applicable].freeze
+  QUOTE_PROJECT_TYPES = %w[mitigation_rfq buildback_rfq capex_rfq].freeze
 
   STATUS_LABELS = {
-    "new" => "New", "acknowledged" => "Acknowledged", "quote_requested" => "Quote Requested",
+    "new" => "New", "acknowledged" => "Acknowledged",
     "active" => "Active", "on_hold" => "On Hold", "completed" => "Completed",
-    "completed_billed" => "Billed", "paid" => "Paid", "closed" => "Closed"
+    "completed_billed" => "Billed", "paid" => "Paid", "closed" => "Closed",
+    "proposal_requested" => "Proposal Requested", "proposal_submitted" => "Proposal Submitted",
+    "proposal_signed" => "Proposal Signed"
   }.freeze
 
   PROJECT_TYPE_LABELS = {
@@ -43,4 +49,16 @@ class Incident < ApplicationRecord
   validates :project_type, presence: true, inclusion: { in: PROJECT_TYPES }
   validates :damage_type, presence: true, inclusion: { in: DAMAGE_TYPES }
   validates :description, presence: true
+
+  def quote?
+    QUOTE_PROJECT_TYPES.include?(project_type)
+  end
+
+  def display_status_label
+    if emergency && %w[new acknowledged].include?(status)
+      "Emergency"
+    else
+      STATUS_LABELS[status]
+    end
+  end
 end

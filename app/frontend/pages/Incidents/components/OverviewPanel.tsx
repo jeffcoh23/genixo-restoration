@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { router } from "@inertiajs/react";
-import { Building2, ChevronDown, Clock, Hash, Mail, Pencil, Phone, Plus, Timer, UserPlus, Wrench, X } from "lucide-react";
+import { Building2, ChevronDown, Mail, Pencil, Phone, Plus, UserPlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -38,42 +38,6 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
 
   return (
     <div className="overflow-y-auto h-full px-3 py-3 space-y-4">
-      {/* Incident Details */}
-      <div className="space-y-1.5 text-sm">
-        <div className="flex items-center gap-4 text-muted-foreground">
-          {incident.created_by && (
-            <span className="flex items-center gap-1">
-              <Clock className="h-3.5 w-3.5" />
-              {incident.created_at_label} by {incident.created_by}
-            </span>
-          )}
-          {!incident.created_by && (
-            <span className="flex items-center gap-1">
-              <Clock className="h-3.5 w-3.5" />
-              {incident.created_at_label}
-            </span>
-          )}
-        </div>
-        {incident.job_id && (
-          <div className="flex items-center gap-1 text-muted-foreground">
-            <Hash className="h-3.5 w-3.5" />
-            <span>Job {incident.job_id}</span>
-          </div>
-        )}
-        {incident.show_stats && (
-          <div className="flex items-center gap-3 text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <Timer className="h-3.5 w-3.5" />
-              {incident.stats.total_labor_hours}h logged
-            </span>
-            <span className="flex items-center gap-1">
-              <Wrench className="h-3.5 w-3.5" />
-              {incident.stats.active_equipment} active equip
-            </span>
-          </div>
-        )}
-      </div>
-
       {/* Assigned Team — collapsible, default open */}
       <div>
         <div className="flex items-center">
@@ -157,6 +121,41 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
           </div>
         )}
       </div>
+
+      {/* PM Contacts — always visible if present */}
+      {incident.pm_contacts.length > 0 && (
+        <div>
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+            Property Management
+          </h3>
+          <div className="ml-1 space-y-2">
+            {incident.pm_contacts.map((c) => (
+              <div key={c.id} className="flex items-start gap-2 pl-2 border-l-2 border-border">
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-medium text-foreground">
+                    {c.name}
+                    {c.title && <span className="text-muted-foreground font-normal"> &middot; {c.title}</span>}
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                    {c.email && (
+                      <span className="flex items-center gap-1">
+                        <Mail className="h-2.5 w-2.5" />
+                        {c.email}
+                      </span>
+                    )}
+                    {c.phone && (
+                      <span className="flex items-center gap-1">
+                        <Phone className="h-2.5 w-2.5" />
+                        {c.phone}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Contacts — collapsible, default open */}
       <div>

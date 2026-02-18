@@ -37,17 +37,17 @@ class IncidentCreationServiceTest < ActiveSupport::TestCase
     assert incident.emergency
   end
 
-  test "mitigation_rfq creates incident with quote_requested status" do
+  test "mitigation_rfq creates incident with proposal_requested status" do
     incident = create_incident(project_type: "mitigation_rfq")
 
-    assert_equal "quote_requested", incident.status
+    assert_equal "proposal_requested", incident.status
     assert_not incident.emergency
   end
 
-  test "buildback_rfq creates incident with quote_requested status" do
+  test "buildback_rfq creates incident with proposal_requested status" do
     incident = create_incident(project_type: "buildback_rfq")
 
-    assert_equal "quote_requested", incident.status
+    assert_equal "proposal_requested", incident.status
     assert_not incident.emergency
   end
 

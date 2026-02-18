@@ -1,5 +1,5 @@
 import { Link, usePage } from "@inertiajs/react";
-import { ChevronDown, ChevronRight, AlertTriangle } from "lucide-react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import AppLayout from "@/layout/AppLayout";
 import PageHeader from "@/components/PageHeader";
@@ -11,6 +11,7 @@ interface IncidentCard {
   id: number;
   path: string;
   property_name: string;
+  organization_name: string;
   description: string;
   status: string;
   status_label: string;
@@ -47,7 +48,9 @@ function statusColor(status: string): string {
     case "new":
     case "acknowledged":
       return "bg-status-info text-white";
-    case "quote_requested":
+    case "proposal_requested":
+    case "proposal_submitted":
+    case "proposal_signed":
       return "bg-status-quote text-white";
     case "active":
       return "bg-status-success text-white";
@@ -127,21 +130,15 @@ function IncidentGroup({
             <Link
               key={incident.id}
               href={incident.path}
-              className={`block px-4 py-3 hover:bg-muted transition-colors ${
-                incident.emergency ? "bg-red-50" : "bg-card"
-              }`}
+              className="block px-4 py-3 hover:bg-muted transition-colors bg-card"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    {incident.emergency && (
-                      <AlertTriangle className="h-4 w-4 text-destructive flex-shrink-0" />
-                    )}
-                    <span className="font-medium text-foreground truncate">
-                      {incident.property_name}
-                    </span>
-                  </div>
-                  <p className="text-sm text-muted-foreground truncate">{incident.description}</p>
+                  <span className="font-medium text-foreground truncate block">
+                    {incident.property_name}
+                  </span>
+                  <span className="text-xs text-muted-foreground">{incident.organization_name}</span>
+                  <p className="text-sm text-muted-foreground truncate mt-0.5">{incident.description}</p>
                   <div className="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground">
                     <span>{incident.damage_label}</span>
                     <span>&middot;</span>
@@ -154,16 +151,9 @@ function IncidentGroup({
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  {incident.emergency && (
-                    <Badge className="bg-destructive text-destructive-foreground text-xs">
-                      Emergency
-                    </Badge>
-                  )}
-                  <Badge className={`text-xs ${statusColor(incident.status)}`}>
-                    {incident.status_label}
-                  </Badge>
-                </div>
+                <Badge className={`text-xs flex-shrink-0 ${statusColor(incident.status)}`}>
+                  {incident.status_label}
+                </Badge>
               </div>
             </Link>
           ))}

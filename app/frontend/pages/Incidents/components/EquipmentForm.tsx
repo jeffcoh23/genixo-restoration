@@ -22,6 +22,7 @@ export default function EquipmentForm({ path, equipment_types, onClose, entry }:
   const { data, setData, post, patch, processing, errors } = useForm({
     equipment_type_id: entry?.equipment_type_id ? String(entry.equipment_type_id) : "",
     equipment_type_other: entry?.equipment_type_other ?? "",
+    equipment_model: entry?.equipment_model ?? "",
     equipment_identifier: entry?.equipment_identifier ?? "",
     placed_at: entry?.placed_at ?? now_datetime,
     removed_at: entry?.removed_at ?? "",
@@ -86,6 +87,16 @@ export default function EquipmentForm({ path, equipment_types, onClose, entry }:
               />
             </div>
           )}
+
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">Model</label>
+            <Input
+              value={data.equipment_model}
+              onChange={(e) => setData("equipment_model", e.target.value)}
+              placeholder="e.g. LGR 7000XLi"
+              className="mt-1"
+            />
+          </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>

@@ -5,7 +5,7 @@ class IncidentsController < ApplicationController
   before_action :authorize_transition!, only: %i[transition]
 
   def index
-    scope = visible_incidents.includes(:property)
+    scope = visible_incidents.includes(property: :property_management_org)
 
     # Filters
     scope = scope.where(status: params[:status]) if params[:status].present?
@@ -59,8 +59,10 @@ class IncidentsController < ApplicationController
   end
 
   def new
+    properties = creatable_properties.includes(:property_management_org)
     render inertia: "Incidents/New", props: {
-      properties: creatable_properties.map { |p| { id: p.id, name: p.name, address: p.short_address } },
+      properties: properties.map { |p| { id: p.id, name: p.name, address: p.short_address, organization_id: p.property_management_org_id, organization_name: p.property_management_org.name } },
+      organizations: properties.map(&:property_management_org).uniq.sort_by(&:name).map { |o| { id: o.id, name: o.name } },
       project_types: Incident::PROJECT_TYPES.map { |t| { value: t, label: Incident::PROJECT_TYPE_LABELS[t] } },
       damage_types: Incident::DAMAGE_TYPES.map { |t| { value: t, label: Incident::DAMAGE_LABELS[t] } },
       can_assign: can_assign_to_incident?,
@@ -137,7 +139,7 @@ class IncidentsController < ApplicationController
         estimated_date_of_return: @incident.estimated_date_of_return&.iso8601,
         estimated_date_of_return_label: format_date(@incident.estimated_date_of_return),
         status: @incident.status,
-        status_label: Incident::STATUS_LABELS[@incident.status],
+        status_label: @incident.display_status_label,
         project_type: @incident.project_type,
         project_type_label: Incident::PROJECT_TYPE_LABELS[@incident.project_type],
         damage_type: @incident.damage_type,
@@ -177,13 +179,14 @@ class IncidentsController < ApplicationController
             remove_path: can_manage_contacts? ? incident_contact_path(@incident, c) : nil
           }
         },
+        pm_contacts: serialize_pm_contacts(@incident),
         messages_path: incident_messages_path(@incident),
         activity_entries_path: incident_activity_entries_path(@incident),
         labor_entries_path: incident_labor_entries_path(@incident),
         equipment_entries_path: incident_equipment_entries_path(@incident),
         operational_notes_path: incident_operational_notes_path(@incident),
         attachments_path: incident_attachments_path(@incident),
-        valid_transitions: can_transition_status? ? (StatusTransitionService::ALLOWED_TRANSITIONS[@incident.status] || []).map { |s|
+        valid_transitions: can_transition_status? ? (StatusTransitionService.transitions_for(@incident)[@incident.status] || []).map { |s|
           { value: s, label: Incident::STATUS_LABELS[s] }
         } : []
       },
@@ -915,6 +918,24 @@ class IncidentsController < ApplicationController
     end
   end
 
+  def serialize_pm_contacts(incident)
+    property = incident.property
+    pm_org = property.property_management_org
+    pm_user_ids = PropertyAssignment.where(property: property)
+      .joins(:user).where(users: { active: true, organization_id: pm_org.id })
+      .pluck(:user_id)
+
+    User.where(id: pm_user_ids).order(:last_name, :first_name).map do |u|
+      {
+        id: u.id,
+        name: u.full_name,
+        title: User::ROLE_LABELS[u.user_type],
+        email: u.email_address,
+        phone: u.phone
+      }
+    end
+  end
+
   def equipment_types_for_incident(incident)
     EquipmentType.where(organization_id: incident.property.mitigation_org_id)
       .active.order(:name)
@@ -946,6 +967,7 @@ class IncidentsController < ApplicationController
       data = {
         id: entry.id,
         type_name: entry.type_name,
+        equipment_model: entry.equipment_model,
         equipment_identifier: entry.equipment_identifier,
         location_notes: entry.location_notes,
         placed_at_label: format_date(entry.placed_at),
@@ -997,9 +1019,10 @@ class IncidentsController < ApplicationController
       id: incident.id,
       path: incident_path(incident),
       property_name: incident.property.name,
+      organization_name: incident.property.property_management_org.name,
       description: incident.description.truncate(80),
       status: incident.status,
-      status_label: Incident::STATUS_LABELS[incident.status],
+      status_label: incident.display_status_label,
       project_type: incident.project_type,
       project_type_label: Incident::PROJECT_TYPE_LABELS[incident.project_type],
       damage_label: Incident::DAMAGE_LABELS[incident.damage_type],

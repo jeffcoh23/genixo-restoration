@@ -20,8 +20,18 @@ interface ContactRow {
 }
 
 export default function NewIncident() {
-  const { properties, project_types, damage_types, can_assign, can_manage_contacts, property_users = {}, routes } =
+  const { properties, organizations = [], project_types, damage_types, can_assign, can_manage_contacts, property_users = {}, routes } =
     usePage<SharedProps & NewIncidentProps>().props;
+
+  const [selectedOrgId, setSelectedOrgId] = useState(() => {
+    if (organizations.length === 1) return String(organizations[0].id);
+    if (properties.length === 1) return String(properties[0].organization_id);
+    return "";
+  });
+
+  const filteredProperties = selectedOrgId
+    ? properties.filter((p) => String(p.organization_id) === selectedOrgId)
+    : properties;
 
   const { data, setData, post, processing, errors, transform } = useForm({
     property_id: properties.length === 1 ? String(properties[0].id) : "",
@@ -53,6 +63,17 @@ export default function NewIncident() {
     if (!usersByOrg[org]) usersByOrg[org] = [];
     usersByOrg[org].push(user);
   }
+
+  const handleOrgChange = (orgId: string) => {
+    setSelectedOrgId(orgId);
+    // Clear property selection when org changes
+    setData((prev) => ({
+      ...prev,
+      property_id: "",
+      additional_user_ids: [],
+      location_of_damage: "",
+    }));
+  };
 
   const handlePropertyChange = (propertyId: string) => {
     const users = propertyId ? (property_users[propertyId] || []) : [];
@@ -109,6 +130,24 @@ export default function NewIncident() {
       <PageHeader title="Create Request" backLink={{ href: routes.incidents, label: "Incidents" }} />
 
       <form onSubmit={handleSubmit} className="max-w-2xl mx-auto bg-card border border-border rounded shadow-sm p-6 space-y-5">
+        {/* Organization */}
+        {organizations.length > 1 && (
+          <div className="space-y-2">
+            <Label htmlFor="organization_id">Organization *</Label>
+            <select
+              id="organization_id"
+              value={selectedOrgId}
+              onChange={(e) => handleOrgChange(e.target.value)}
+              className="flex h-10 w-full rounded border border-input bg-muted px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            >
+              <option value="">Select an organization...</option>
+              {organizations.map((o) => (
+                <option key={o.id} value={o.id}>{o.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
         {/* Property */}
         <div className="space-y-2">
           <Label htmlFor="property_id">Property *</Label>
@@ -119,7 +158,7 @@ export default function NewIncident() {
             className="flex h-10 w-full rounded border border-input bg-muted px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
             <option value="">Select a property...</option>
-            {properties.map((p) => (
+            {filteredProperties.map((p) => (
               <option key={p.id} value={p.id}>{p.name}</option>
             ))}
           </select>
@@ -225,7 +264,7 @@ export default function NewIncident() {
           <Label htmlFor="description">Description *</Label>
           <textarea
             id="description"
-            rows={4}
+            rows={6}
             value={data.description}
             onChange={(e) => setData("description", e.target.value)}
             placeholder="Describe the damage and situation..."
@@ -239,7 +278,7 @@ export default function NewIncident() {
           <Label htmlFor="cause">Cause</Label>
           <textarea
             id="cause"
-            rows={2}
+            rows={4}
             value={data.cause}
             onChange={(e) => setData("cause", e.target.value)}
             placeholder="Known cause of the damage, if any..."
@@ -253,7 +292,7 @@ export default function NewIncident() {
           <Label htmlFor="requested_next_steps">Requested Next Steps</Label>
           <textarea
             id="requested_next_steps"
-            rows={2}
+            rows={4}
             value={data.requested_next_steps}
             onChange={(e) => setData("requested_next_steps", e.target.value)}
             placeholder="What would you like us to do first?"

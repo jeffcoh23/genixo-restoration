@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_02_17_020821) do
+ActiveRecord::Schema[8.0].define(version: 2026_02_18_190119) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -118,6 +118,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_17_020821) do
     t.bigint "logged_by_user_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "equipment_model"
     t.index ["equipment_identifier"], name: "index_equipment_entries_on_equipment_identifier"
     t.index ["equipment_type_id"], name: "index_equipment_entries_on_equipment_type_id"
     t.index ["incident_id"], name: "index_equipment_entries_on_incident_id"
@@ -500,7 +501,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_17_020821) do
     t.string "first_name", null: false
     t.string "last_name", null: false
     t.string "phone"
-    t.string "timezone", default: "America/New_York", null: false
+    t.string "timezone", default: "America/Chicago", null: false
     t.string "user_type", null: false
     t.jsonb "notification_preferences", default: {}, null: false
     t.boolean "active", default: true, null: false

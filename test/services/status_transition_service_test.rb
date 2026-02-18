@@ -17,28 +17,36 @@ class StatusTransitionServiceTest < ActiveSupport::TestCase
     assert_equal "active", incident.reload.status
   end
 
-  test "acknowledged to quote_requested" do
-    incident = create_incident(status: "acknowledged")
-    transition(incident, "quote_requested")
-    assert_equal "quote_requested", incident.reload.status
-  end
-
   test "acknowledged to on_hold" do
     incident = create_incident(status: "acknowledged")
     transition(incident, "on_hold")
     assert_equal "on_hold", incident.reload.status
   end
 
-  test "quote_requested to active" do
-    incident = create_incident(status: "quote_requested")
+  # --- Quote-type transitions ---
+
+  test "proposal_requested to proposal_submitted" do
+    incident = create_quote_incident(status: "proposal_requested")
+    transition(incident, "proposal_submitted")
+    assert_equal "proposal_submitted", incident.reload.status
+  end
+
+  test "proposal_submitted to proposal_signed" do
+    incident = create_quote_incident(status: "proposal_submitted")
+    transition(incident, "proposal_signed")
+    assert_equal "proposal_signed", incident.reload.status
+  end
+
+  test "proposal_signed to active" do
+    incident = create_quote_incident(status: "proposal_signed")
     transition(incident, "active")
     assert_equal "active", incident.reload.status
   end
 
-  test "quote_requested to closed" do
-    incident = create_incident(status: "quote_requested")
-    transition(incident, "closed")
-    assert_equal "closed", incident.reload.status
+  test "quote active to completed" do
+    incident = create_quote_incident(status: "active")
+    transition(incident, "completed")
+    assert_equal "completed", incident.reload.status
   end
 
   test "active to on_hold" do
@@ -212,6 +220,14 @@ class StatusTransitionServiceTest < ActiveSupport::TestCase
       property: @property, created_by_user: @manager,
       status: status, project_type: "emergency_response",
       damage_type: "flood", description: "Test incident", emergency: emergency
+    )
+  end
+
+  def create_quote_incident(status:)
+    Incident.create!(
+      property: @property, created_by_user: @manager,
+      status: status, project_type: "mitigation_rfq",
+      damage_type: "flood", description: "Test quote incident"
     )
   end
 

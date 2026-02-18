@@ -1,15 +1,25 @@
 class StatusTransitionService
   class InvalidTransitionError < StandardError; end
 
+  # Single transition map — standard and quote paths converge at "active"
   ALLOWED_TRANSITIONS = {
-    "acknowledged" => %w[active quote_requested on_hold],
-    "quote_requested" => %w[active closed],
+    # Standard path
+    "acknowledged" => %w[active on_hold],
+    # Quote path
+    "proposal_requested" => %w[proposal_submitted],
+    "proposal_submitted" => %w[proposal_signed],
+    "proposal_signed" => %w[active],
+    # Shared from active onward
     "active" => %w[on_hold completed],
     "on_hold" => %w[active completed],
     "completed" => %w[completed_billed active],
     "completed_billed" => %w[paid active],
     "paid" => %w[closed]
   }.freeze
+
+  def self.transitions_for(incident)
+    ALLOWED_TRANSITIONS
+  end
 
   def initialize(incident:, new_status:, user:)
     @incident = incident
@@ -40,7 +50,8 @@ class StatusTransitionService
   private
 
   def validate_transition!
-    allowed = ALLOWED_TRANSITIONS[@incident.status]
+    transitions = self.class.transitions_for(@incident)
+    allowed = transitions[@incident.status]
     unless allowed&.include?(@new_status)
       raise InvalidTransitionError,
         "Cannot transition from '#{@incident.status}' to '#{@new_status}'"

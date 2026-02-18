@@ -73,7 +73,9 @@ function statusColor(status: string): string {
     case "new":
     case "acknowledged":
       return "bg-status-info text-white";
-    case "quote_requested":
+    case "proposal_requested":
+    case "proposal_submitted":
+    case "proposal_signed":
       return "bg-status-quote text-white";
     case "active":
       return "bg-status-success text-white";

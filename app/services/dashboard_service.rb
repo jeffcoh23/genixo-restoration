@@ -9,9 +9,9 @@ class DashboardService
     {
       emergency: scope.where(emergency: true, status: %w[new acknowledged active]),
       active: scope.where(status: "active", emergency: false),
-      needs_attention: scope.where(status: %w[new acknowledged quote_requested], emergency: false),
+      needs_attention: scope.where(status: %w[new acknowledged proposal_requested proposal_submitted proposal_signed], emergency: false),
       on_hold: scope.where(status: "on_hold"),
-      recent_completed: scope.where(status: %w[completed completed_billed paid closed]).limit(20)
+      recent_completed: scope.where(status: %w[completed completed_billed paid closed proposal_completed]).limit(20)
     }
   end
 
@@ -19,7 +19,7 @@ class DashboardService
 
   def base_scope
     visible_incidents
-      .includes(:property)
+      .includes(property: :property_management_org)
       .order(last_activity_at: :desc)
   end
 

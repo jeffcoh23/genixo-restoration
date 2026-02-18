@@ -45,6 +45,7 @@ export default function EquipmentPanel({ equipment_log = [], can_manage_equipmen
               <thead className="bg-muted border-b border-border sticky top-0">
                 <tr>
                   <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Type</th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Model</th>
                   <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground w-[100px]">ID #</th>
                   <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Location</th>
                   <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground w-[110px]">Date Set</th>
@@ -59,6 +60,7 @@ export default function EquipmentPanel({ equipment_log = [], can_manage_equipmen
                 {equipment_log.map((item) => (
                   <tr key={item.id} className="border-b border-border last:border-b-0 group">
                     <td className="px-3 py-2 text-sm font-medium text-foreground">{item.type_name}</td>
+                    <td className="px-3 py-2 text-sm text-muted-foreground">{item.equipment_model || "—"}</td>
                     <td className="px-3 py-2 text-sm text-muted-foreground">{item.equipment_identifier || "—"}</td>
                     <td className="px-3 py-2 text-sm text-muted-foreground">{item.location_notes || "—"}</td>
                     <td className="px-3 py-2 text-sm text-muted-foreground">{item.placed_at_label}</td>
@@ -116,6 +118,7 @@ export default function EquipmentPanel({ equipment_log = [], can_manage_equipmen
           entry={{
             id: editingEntry.id,
             type_name: editingEntry.type_name,
+            equipment_model: editingEntry.equipment_model,
             equipment_identifier: editingEntry.equipment_identifier,
             placed_at_label: editingEntry.placed_at_label,
             removed_at_label: editingEntry.removed_at_label,

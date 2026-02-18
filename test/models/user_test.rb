@@ -80,9 +80,9 @@ class UserTest < ActiveSupport::TestCase
     assert user.active
   end
 
-  test "defaults timezone to America/New_York" do
+  test "defaults timezone to America/Chicago" do
     user = User.new
-    assert_equal "America/New_York", user.timezone
+    assert_equal "America/Chicago", user.timezone
   end
 
   test "active scope excludes deactivated users" do

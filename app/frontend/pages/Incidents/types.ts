@@ -64,6 +64,7 @@ export interface LaborEntry {
 export interface EquipmentEntry {
   id: number;
   type_name: string;
+  equipment_model: string | null;
   equipment_identifier: string | null;
   placed_at_label: string;
   removed_at_label: string | null;
@@ -257,6 +258,7 @@ export interface IncidentDetail {
   assigned_team: TeamGroup[];
   assigned_summary: AssignedSummary;
   contacts: Contact[];
+  pm_contacts: { id: number; name: string; title: string | null; email: string | null; phone: string | null }[];
   valid_transitions: Transition[];
 }
 
@@ -307,8 +309,22 @@ export interface NewIncidentAssignableUser {
   auto_assign: boolean;
 }
 
+export interface NewIncidentProperty {
+  id: number;
+  name: string;
+  address: string | null;
+  organization_id: number;
+  organization_name: string;
+}
+
+export interface NewIncidentOrganization {
+  id: number;
+  name: string;
+}
+
 export interface NewIncidentProps {
-  properties: { id: number; name: string; address: string | null }[];
+  properties: NewIncidentProperty[];
+  organizations: NewIncidentOrganization[];
   project_types: { value: string; label: string }[];
   damage_types: { value: string; label: string }[];
   can_assign: boolean;
@@ -319,6 +335,7 @@ export interface NewIncidentProps {
 export interface EquipmentLogItem {
   id: number;
   type_name: string;
+  equipment_model: string | null;
   equipment_identifier: string | null;
   location_notes: string | null;
   placed_at_label: string;

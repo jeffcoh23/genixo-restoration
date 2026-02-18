@@ -1,6 +1,6 @@
 import { Link, router, usePage } from "@inertiajs/react";
 import { useState } from "react";
-import { AlertTriangle, ChevronDown, Pencil } from "lucide-react";
+import { ChevronDown, Pencil } from "lucide-react";
 import AppLayout from "@/layout/AppLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,9 @@ function statusColor(status: string): string {
     case "new":
     case "acknowledged":
       return "bg-blue-500 text-white";
-    case "quote_requested":
+    case "proposal_requested":
+    case "proposal_submitted":
+    case "proposal_signed":
       return "bg-purple-500 text-white";
     case "active":
       return "bg-green-600 text-white";
@@ -135,16 +137,19 @@ export default function IncidentShow() {
             )}
           </div>
 
-          {incident.emergency && (
-            <Badge className="bg-destructive text-destructive-foreground text-sm">
-              <AlertTriangle className="h-3.5 w-3.5 mr-1" />
-              Emergency
-            </Badge>
-          )}
-
           <span className="text-sm text-muted-foreground">
             {incident.damage_label} &middot; {incident.project_type_label}
           </span>
+
+          <span className="text-sm text-muted-foreground">
+            {incident.created_at_label}{incident.created_by && ` by ${incident.created_by}`}
+          </span>
+
+          {incident.job_id && (
+            <span className="text-sm text-muted-foreground">
+              Job #{incident.job_id}
+            </span>
+          )}
 
           {can_edit && incident.edit_path && (
             <Button

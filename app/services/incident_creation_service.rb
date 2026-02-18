@@ -40,11 +40,10 @@ class IncidentCreationService
   end
 
   def auto_transition_status
-    new_status = case @incident.project_type
-    when "emergency_response", "other"
+    new_status = if @incident.quote?
+      "proposal_requested"
+    else
       "acknowledged"
-    when "mitigation_rfq", "buildback_rfq", "capex_rfq"
-      "quote_requested"
     end
 
     @incident.update!(status: new_status)
