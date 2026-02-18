@@ -870,7 +870,7 @@ class IncidentsController < ApplicationController
     if mitigation_admin?
       users = User.where(active: true, organization_id: incident.property.mitigation_org_id)
         .order(:last_name, :first_name)
-      sorted = users.sort_by { |u| [User::LABOR_SORT_ORDER.index(u.user_type) || 99, u.last_name, u.first_name] }
+      sorted = users.sort_by { |u| [ User::LABOR_SORT_ORDER.index(u.user_type) || 99, u.last_name, u.first_name ] }
       sorted.map { |u| { id: u.id, full_name: u.full_name, role_label: User::ROLE_LABELS[u.user_type] } }
     else
       [ { id: current_user.id, full_name: current_user.full_name, role_label: User::ROLE_LABELS[current_user.user_type] } ]

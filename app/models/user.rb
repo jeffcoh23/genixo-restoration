@@ -21,7 +21,7 @@ class User < ApplicationRecord
   }.freeze
 
   # Sort order for labor-related dropdowns (technicians first)
-  LABOR_SORT_ORDER = [TECHNICIAN, MANAGER, OFFICE_SALES, PROPERTY_MANAGER, AREA_MANAGER, PM_MANAGER].freeze
+  LABOR_SORT_ORDER = [ TECHNICIAN, MANAGER, OFFICE_SALES, PROPERTY_MANAGER, AREA_MANAGER, PM_MANAGER ].freeze
 
   has_secure_password validations: false
 

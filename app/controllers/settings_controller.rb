@@ -54,7 +54,7 @@ class SettingsController < ApplicationController
 
     org = current_user.organization
     config = org.on_call_configuration
-    managers = org.users.active.where(user_type: [User::MANAGER, User::OFFICE_SALES]).order(:last_name, :first_name)
+    managers = org.users.active.where(user_type: [ User::MANAGER, User::OFFICE_SALES ]).order(:last_name, :first_name)
 
     existing_contact_ids = config ? config.escalation_contacts.pluck(:user_id) : []
     available_escalation = managers.where.not(id: existing_contact_ids)
