@@ -6,6 +6,7 @@ import FormField from "@/components/FormField";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { SharedProps } from "@/types";
 
 interface NotificationPreferences {
@@ -167,18 +168,18 @@ function NotificationPreferencesForm({ preferences, preferencesPath }: {
         { key: "new_message" as const, label: "New messages", description: "Get notified when someone sends a message on your incidents" },
         { key: "daily_digest" as const, label: "Daily digest email", description: "Receive a daily summary of activity across your incidents" },
       ].map((pref) => (
-        <label key={pref.key} className="flex items-start gap-3 cursor-pointer">
-          <input
-            type="checkbox"
+        <div key={pref.key} className="flex items-start gap-3">
+          <Checkbox
+            id={pref.key}
             checked={data[pref.key]}
-            onChange={(e) => setData(pref.key, e.target.checked)}
-            className="mt-0.5 h-4 w-4 rounded border-input accent-primary"
+            onCheckedChange={(checked) => setData(pref.key, checked === true)}
+            className="mt-0.5"
           />
-          <div>
+          <label htmlFor={pref.key} className="cursor-pointer">
             <div className="text-sm font-medium text-foreground">{pref.label}</div>
             <div className="text-xs text-muted-foreground">{pref.description}</div>
-          </div>
-        </label>
+          </label>
+        </div>
       ))}
 
       <div className="pt-2">
