@@ -1,5 +1,5 @@
 import { Link, router, usePage } from "@inertiajs/react";
-import { AlertTriangle, Search, ChevronLeft, ChevronRight, ArrowUpDown } from "lucide-react";
+import { AlertTriangle, Search, ChevronLeft, ChevronRight, ArrowUpDown, MessageSquare, Activity } from "lucide-react";
 import { useState, useCallback } from "react";
 import AppLayout from "@/layout/AppLayout";
 import PageHeader from "@/components/PageHeader";
@@ -21,6 +21,8 @@ interface Incident {
   emergency: boolean;
   last_activity_label: string | null;
   created_at: string;
+  unread_messages: number;
+  unread_activity: number;
 }
 
 interface Pagination {
@@ -222,8 +224,22 @@ export default function IncidentsIndex() {
                   <td className="px-4 py-3 text-muted-foreground">
                     {incident.project_type_label}
                   </td>
-                  <td className="px-4 py-3 text-right text-muted-foreground">
-                    {incident.last_activity_label}
+                  <td className="px-4 py-3 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      {incident.unread_messages > 0 && (
+                        <span className="inline-flex items-center gap-0.5 text-xs font-medium text-blue-600">
+                          <MessageSquare className="h-3 w-3" />
+                          {incident.unread_messages}
+                        </span>
+                      )}
+                      {incident.unread_activity > 0 && (
+                        <span className="inline-flex items-center gap-0.5 text-xs font-medium text-amber-600">
+                          <Activity className="h-3 w-3" />
+                          {incident.unread_activity}
+                        </span>
+                      )}
+                      <span className="text-muted-foreground">{incident.last_activity_label}</span>
+                    </div>
                   </td>
                 </tr>
                 );

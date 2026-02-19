@@ -1,5 +1,5 @@
 import { Link, usePage } from "@inertiajs/react";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, MessageSquare, Activity } from "lucide-react";
 import { useState } from "react";
 import AppLayout from "@/layout/AppLayout";
 import PageHeader from "@/components/PageHeader";
@@ -19,6 +19,8 @@ interface IncidentCard {
   damage_label: string;
   emergency: boolean;
   last_activity_label: string | null;
+  unread_messages: number;
+  unread_activity: number;
 }
 
 interface Groups {
@@ -151,9 +153,23 @@ function IncidentGroup({
                     )}
                   </div>
                 </div>
-                <Badge className={`text-xs flex-shrink-0 ${statusColor(incident.status)}`}>
-                  {incident.status_label}
-                </Badge>
+                <div className="flex items-center gap-2 shrink-0">
+                  {incident.unread_messages > 0 && (
+                    <span className="inline-flex items-center gap-0.5 text-xs font-medium text-blue-600">
+                      <MessageSquare className="h-3 w-3" />
+                      {incident.unread_messages}
+                    </span>
+                  )}
+                  {incident.unread_activity > 0 && (
+                    <span className="inline-flex items-center gap-0.5 text-xs font-medium text-amber-600">
+                      <Activity className="h-3 w-3" />
+                      {incident.unread_activity}
+                    </span>
+                  )}
+                  <Badge className={`text-xs ${statusColor(incident.status)}`}>
+                    {incident.status_label}
+                  </Badge>
+                </div>
               </div>
             </Link>
           ))}

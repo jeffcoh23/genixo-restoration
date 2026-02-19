@@ -321,6 +321,49 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "acknowledged", incident.reload.status
   end
 
+  # --- Mark read ---
+
+  test "mark_read creates read state for messages" do
+    incident = create_test_incident(status: "active")
+    login_as @manager
+    assert_difference "IncidentReadState.count", 1 do
+      patch mark_read_incident_path(incident), params: { tab: "messages" }
+    end
+    assert_response :no_content
+    rs = IncidentReadState.last
+    assert_not_nil rs.last_message_read_at
+    assert_nil rs.last_activity_read_at
+  end
+
+  test "mark_read creates read state for activity" do
+    incident = create_test_incident(status: "active")
+    login_as @manager
+    patch mark_read_incident_path(incident), params: { tab: "activity" }
+    assert_response :no_content
+    rs = IncidentReadState.last
+    assert_nil rs.last_message_read_at
+    assert_not_nil rs.last_activity_read_at
+  end
+
+  test "mark_read updates existing read state" do
+    incident = create_test_incident(status: "active")
+    IncidentReadState.create!(incident: incident, user: @manager, last_message_read_at: 1.day.ago)
+    login_as @manager
+    assert_no_difference "IncidentReadState.count" do
+      patch mark_read_incident_path(incident), params: { tab: "messages" }
+    end
+    assert_response :no_content
+    rs = IncidentReadState.find_by(incident: incident, user: @manager)
+    assert rs.last_message_read_at > 1.minute.ago
+  end
+
+  test "mark_read returns 404 for invisible incident" do
+    incident = create_test_incident(status: "active", property: @other_property)
+    login_as @pm_user
+    patch mark_read_incident_path(incident), params: { tab: "messages" }
+    assert_response :not_found
+  end
+
   private
 
   def login_as(user)

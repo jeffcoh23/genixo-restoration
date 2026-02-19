@@ -36,6 +36,7 @@ export interface SharedProps extends Record<string, unknown> {
     authenticated: boolean;
   };
   permissions: Permissions;
+  has_unread_incidents: boolean;
   today: string;
   now_datetime: string;
   nav_items: NavItem[];

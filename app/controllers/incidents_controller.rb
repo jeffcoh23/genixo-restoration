@@ -1,6 +1,6 @@
 class IncidentsController < ApplicationController
   before_action :authorize_creation!, only: %i[new create]
-  before_action :set_incident, only: %i[show update transition dfr]
+  before_action :set_incident, only: %i[show update transition mark_read dfr]
   before_action :authorize_edit!, only: %i[update]
   before_action :authorize_transition!, only: %i[transition]
 
@@ -38,8 +38,10 @@ class IncidentsController < ApplicationController
     total = scope.count
     incidents = scope.offset((page - 1) * per_page).limit(per_page)
 
+    unread = DashboardService.new(user: current_user).unread_counts
+
     render inertia: "Incidents/Index", props: {
-      incidents: incidents.map { |i| serialize_incident(i) },
+      incidents: incidents.map { |i| serialize_incident(i, unread) },
       pagination: { page: page, per_page: per_page, total: total, total_pages: (total.to_f / per_page).ceil },
       filters: {
         search: params[:search],
@@ -99,6 +101,7 @@ class IncidentsController < ApplicationController
 
   def show
     property = @incident.property
+    unread = compute_show_unread_counts(@incident)
     deployed_equipment = serialize_deployed_equipment(@incident)
     daily_activities = serialize_daily_activities(@incident)
     labor_entries = serialize_labor_entries(@incident)
@@ -189,6 +192,9 @@ class IncidentsController < ApplicationController
         operational_notes_path: incident_operational_notes_path(@incident),
         attachments_path: incident_attachments_path(@incident),
         dfr_path: dfr_incident_path(@incident),
+        mark_read_path: mark_read_incident_path(@incident),
+        unread_messages: unread[:messages],
+        unread_activity: unread[:activity],
         valid_transitions: can_transition_status? ? (StatusTransitionService.transitions_for(@incident)[@incident.status] || []).map { |s|
           { value: s, label: Incident::STATUS_LABELS[s] }
         } : []
@@ -232,6 +238,20 @@ class IncidentsController < ApplicationController
     redirect_to incident_path(@incident), notice: "Status updated."
   rescue StatusTransitionService::InvalidTransitionError => e
     redirect_to incident_path(@incident), alert: e.message
+  end
+
+  def mark_read
+    read_state = @incident.incident_read_states.find_or_initialize_by(user: current_user)
+
+    case params[:tab]
+    when "messages"
+      read_state.last_message_read_at = Time.current
+    when "activity"
+      read_state.last_activity_read_at = Time.current
+    end
+
+    read_state.save!
+    head :no_content
   end
 
   def dfr
@@ -1073,7 +1093,24 @@ class IncidentsController < ApplicationController
     }
   end
 
-  def serialize_incident(incident)
+  def compute_show_unread_counts(incident)
+    read_state = incident.incident_read_states.find_by(user: current_user)
+
+    msg_threshold = read_state&.last_message_read_at
+    unread_messages = incident.messages.where.not(user_id: current_user.id)
+    unread_messages = unread_messages.where("created_at > ?", msg_threshold) if msg_threshold
+    msg_count = unread_messages.count
+
+    act_threshold = read_state&.last_activity_read_at
+    unread_activity = incident.activity_events.where.not(performed_by_user_id: current_user.id)
+    unread_activity = unread_activity.where("created_at > ?", act_threshold) if act_threshold
+    act_count = unread_activity.count
+
+    { messages: msg_count, activity: act_count }
+  end
+
+  def serialize_incident(incident, unread = {})
+    counts = unread[incident.id]
     {
       id: incident.id,
       path: incident_path(incident),
@@ -1087,7 +1124,9 @@ class IncidentsController < ApplicationController
       damage_label: Incident::DAMAGE_LABELS[incident.damage_type],
       emergency: incident.emergency,
       last_activity_label: format_relative_time(incident.last_activity_at),
-      created_at: incident.created_at.iso8601
+      created_at: incident.created_at.iso8601,
+      unread_messages: counts&.dig(:messages) || 0,
+      unread_activity: counts&.dig(:activity) || 0
     }
   end
 end

@@ -221,6 +221,9 @@ export interface IncidentDetail {
   operational_notes_path: string;
   attachments_path: string;
   dfr_path: string;
+  mark_read_path: string;
+  unread_messages: number;
+  unread_activity: number;
   description: string;
   cause: string | null;
   requested_next_steps: string | null;

@@ -11,6 +11,7 @@ import {
   Settings,
   LogOut,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { SharedProps, NavItem } from "@/types";
 
 const iconMap: Record<string, React.ReactNode> = {
@@ -25,7 +26,7 @@ const iconMap: Record<string, React.ReactNode> = {
 };
 
 export default function RoleSidebar({ onNavigate }: { onNavigate: () => void }) {
-  const { auth, routes, nav_items } = usePage<SharedProps>().props;
+  const { auth, routes, nav_items, has_unread_incidents } = usePage<SharedProps>().props;
   const user = auth.user;
   if (!user) return null;
 
@@ -49,16 +50,19 @@ export default function RoleSidebar({ onNavigate }: { onNavigate: () => void }) 
               href={item.href}
               onClick={onNavigate}
               className={`
-                flex items-center gap-3 rounded-md px-3 py-2 text-sm
+                flex items-center gap-3 rounded px-3 py-2 text-sm
                 transition-colors
                 ${isActive
                   ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+                  : "text-sidebar-foreground hover:bg-muted"
                 }
               `}
             >
               {iconMap[item.icon]}
               {item.label}
+              {item.label === "Incidents" && has_unread_incidents && (
+                <span className="ml-auto h-2 w-2 rounded-full bg-primary" />
+              )}
             </Link>
           );
         })}
@@ -75,13 +79,15 @@ export default function RoleSidebar({ onNavigate }: { onNavigate: () => void }) 
         <div className="text-xs text-muted-foreground">
           {user.role_label}
         </div>
-        <button
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={handleLogout}
-          className="mt-2 flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          className="mt-2 h-auto p-0 flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground"
         >
           <LogOut className="h-3 w-3" />
           Log out
-        </button>
+        </Button>
       </div>
     </div>
   );

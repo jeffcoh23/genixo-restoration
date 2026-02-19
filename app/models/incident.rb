@@ -45,6 +45,19 @@ class Incident < ApplicationRecord
   has_many :escalation_events, dependent: :destroy
   has_many :incident_read_states, dependent: :destroy
 
+  scope :visible_to, ->(user) {
+    case user.user_type
+    when User::MANAGER, User::OFFICE_SALES
+      joins(:property).where(properties: { mitigation_org_id: user.organization_id })
+    when User::TECHNICIAN
+      joins(:incident_assignments).where(incident_assignments: { user_id: user.id })
+    when *User::PM_TYPES
+      property_ids = PropertyAssignment.where(user_id: user.id).select(:property_id)
+      incident_ids = IncidentAssignment.where(user_id: user.id).select(:incident_id)
+      where(property_id: property_ids).or(where(id: incident_ids))
+    end
+  }
+
   validates :status, presence: true, inclusion: { in: STATUSES }
   validates :project_type, presence: true, inclusion: { in: PROJECT_TYPES }
   validates :damage_type, presence: true, inclusion: { in: DAMAGE_TYPES }

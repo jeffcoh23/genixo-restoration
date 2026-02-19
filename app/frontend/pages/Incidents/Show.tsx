@@ -1,5 +1,5 @@
 import { Link, router, usePage } from "@inertiajs/react";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { ChevronDown, ChevronRight, Mail, Pencil, Phone } from "lucide-react";
 import AppLayout from "@/layout/AppLayout";
 import { Badge } from "@/components/ui/badge";
@@ -67,6 +67,38 @@ export default function IncidentShow() {
   const [transitioning, setTransitioning] = useState(false);
   const [activeTab, setActiveTab] = useState("daily_log");
   const [editFormOpen, setEditFormOpen] = useState(false);
+  const [markedTabs, setMarkedTabs] = useState<Set<string>>(new Set());
+
+  const displayUnreadMessages = markedTabs.has("messages") ? 0 : incident.unread_messages;
+  const displayUnreadActivity = markedTabs.has("activity") ? 0 : incident.unread_activity;
+
+  const handleTabChange = useCallback((tab: string) => {
+    setActiveTab(tab);
+
+    const tabToType: Record<string, string> = { messages: "messages", daily_log: "activity" };
+    const readType = tabToType[tab];
+    if (!readType) return;
+
+    setMarkedTabs((prev) => {
+      if (prev.has(readType)) return prev;
+
+      const hasUnread = readType === "messages" ? incident.unread_messages > 0 : incident.unread_activity > 0;
+      if (!hasUnread) return prev;
+
+      // Fire-and-forget PATCH
+      const csrfToken = document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content;
+      fetch(incident.mark_read_path, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRF-Token": csrfToken || "",
+        },
+        body: JSON.stringify({ tab: readType }),
+      });
+
+      return new Set([...prev, readType]);
+    });
+  }, [incident.mark_read_path, incident.unread_messages, incident.unread_activity]);
 
   const handleTransition = (newStatus: string) => {
     setTransitioning(true);
@@ -221,7 +253,7 @@ export default function IncidentShow() {
 
       {/* Tabbed content — full width */}
       <div className="h-[calc(100vh-400px)] overflow-hidden">
-        <RightPanelShell activeTab={activeTab} onTabChange={setActiveTab}>
+        <RightPanelShell activeTab={activeTab} onTabChange={handleTabChange} unreadMessages={displayUnreadMessages} unreadActivity={displayUnreadActivity}>
           {activeTab === "daily_log" && (
             <DailyLogPanel
               daily_activities={daily_activities}

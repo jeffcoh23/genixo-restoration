@@ -109,6 +109,74 @@ class DashboardServiceTest < ActiveSupport::TestCase
     assert_equal 20, groups[:recent_completed].count
   end
 
+  # --- Unread counts ---
+
+  test "unread_counts returns empty hash when no messages or events" do
+    counts = DashboardService.new(user: @manager).unread_counts
+    assert_equal({}, counts)
+  end
+
+  test "unread_counts includes unread messages" do
+    # Tech sends a message the manager hasn't read
+    Message.create!(incident: @active, user: @tech, body: "Hello")
+
+    counts = DashboardService.new(user: @manager).unread_counts
+    assert_equal 1, counts.dig(@active.id, :messages)
+  end
+
+  test "unread_counts excludes own messages" do
+    Message.create!(incident: @active, user: @manager, body: "My own message")
+
+    counts = DashboardService.new(user: @manager).unread_counts
+    assert_empty counts
+  end
+
+  test "unread_counts respects last_message_read_at" do
+    msg1 = Message.create!(incident: @active, user: @tech, body: "Old", created_at: 1.hour.ago)
+    msg2 = Message.create!(incident: @active, user: @tech, body: "New", created_at: 1.minute.ago)
+
+    # Mark as read 30 minutes ago — msg1 is read, msg2 is unread
+    IncidentReadState.create!(incident: @active, user: @manager, last_message_read_at: 30.minutes.ago)
+
+    counts = DashboardService.new(user: @manager).unread_counts
+    assert_equal 1, counts.dig(@active.id, :messages)
+  end
+
+  test "unread_counts includes unread activity events" do
+    ActivityEvent.create!(
+      incident: @active, performed_by_user: @tech,
+      event_type: "status_changed", metadata: {}
+    )
+
+    counts = DashboardService.new(user: @manager).unread_counts
+    assert_equal 1, counts.dig(@active.id, :activity)
+  end
+
+  test "unread_counts respects last_activity_read_at" do
+    ActivityEvent.create!(
+      incident: @active, performed_by_user: @tech,
+      event_type: "status_changed", metadata: {}, created_at: 1.hour.ago
+    )
+    ActivityEvent.create!(
+      incident: @active, performed_by_user: @tech,
+      event_type: "user_assigned", metadata: {}, created_at: 1.minute.ago
+    )
+
+    IncidentReadState.create!(incident: @active, user: @manager, last_activity_read_at: 30.minutes.ago)
+
+    counts = DashboardService.new(user: @manager).unread_counts
+    assert_equal 1, counts.dig(@active.id, :activity)
+  end
+
+  test "technician only sees unread counts for assigned incidents" do
+    Message.create!(incident: @active, user: @manager, body: "For tech")
+    Message.create!(incident: @needs_attention, user: @manager, body: "Not for tech")
+
+    counts = DashboardService.new(user: @tech).unread_counts
+    assert counts.key?(@active.id)
+    assert_not counts.key?(@needs_attention.id)
+  end
+
   private
 
   def create_incident(property, status:, emergency:, last_activity_at: Time.current)

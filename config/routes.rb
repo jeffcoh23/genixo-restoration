@@ -15,6 +15,7 @@ Rails.application.routes.draw do
   resources :incidents, only: %i[index new create show update] do
     member do
       patch :transition
+      patch :mark_read
       get :dfr, defaults: { format: :pdf }
     end
     resources :assignments, controller: "incident_assignments", only: %i[create destroy]

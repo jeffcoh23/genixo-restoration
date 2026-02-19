@@ -20,18 +20,7 @@ module Authorization
   end
 
   def visible_incidents
-    case current_user.user_type
-    when User::MANAGER, User::OFFICE_SALES
-      Incident.joins(:property)
-              .where(properties: { mitigation_org_id: current_user.organization_id })
-    when User::TECHNICIAN
-      Incident.joins(:incident_assignments)
-              .where(incident_assignments: { user_id: current_user.id })
-    when *User::PM_TYPES
-      property_ids = PropertyAssignment.where(user_id: current_user.id).select(:property_id)
-      incident_ids = IncidentAssignment.where(user_id: current_user.id).select(:incident_id)
-      Incident.where(property_id: property_ids).or(Incident.where(id: incident_ids))
-    end
+    Incident.visible_to(current_user)
   end
 
   # --- Record finders (404 if not in scope) ---

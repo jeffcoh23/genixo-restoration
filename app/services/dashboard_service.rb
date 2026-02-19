@@ -15,26 +15,67 @@ class DashboardService
     }
   end
 
+  # Returns { incident_id => { messages: N, activity: N } } for incidents with unread content
+  def unread_counts
+    visible_ids = Incident.visible_to(@user).select(:id)
+
+    read_states = IncidentReadState.where(user: @user, incident_id: visible_ids)
+      .index_by(&:incident_id)
+
+    counts = {}
+
+    # Unread messages: messages created after user's last_message_read_at
+    Message.where(incident_id: visible_ids)
+      .where.not(user_id: @user.id)
+      .group(:incident_id)
+      .select("incident_id, MAX(created_at) AS latest, COUNT(*) AS total")
+      .each do |row|
+      rs = read_states[row.incident_id]
+      threshold = rs&.last_message_read_at
+      counts[row.incident_id] ||= { messages: 0, activity: 0 }
+      if threshold.nil? || row.latest > threshold
+        # Need exact count after threshold
+        unread = if threshold
+          Message.where(incident_id: row.incident_id)
+            .where.not(user_id: @user.id)
+            .where("created_at > ?", threshold).count
+        else
+          row.total
+        end
+        counts[row.incident_id][:messages] = unread if unread > 0
+      end
+    end
+
+    # Unread activity: activity_events created after user's last_activity_read_at
+    ActivityEvent.where(incident_id: visible_ids)
+      .where.not(performed_by_user_id: @user.id)
+      .group(:incident_id)
+      .select("incident_id, MAX(created_at) AS latest, COUNT(*) AS total")
+      .each do |row|
+      rs = read_states[row.incident_id]
+      threshold = rs&.last_activity_read_at
+      counts[row.incident_id] ||= { messages: 0, activity: 0 }
+      if threshold.nil? || row.latest > threshold
+        unread = if threshold
+          ActivityEvent.where(incident_id: row.incident_id)
+            .where.not(performed_by_user_id: @user.id)
+            .where("created_at > ?", threshold).count
+        else
+          row.total
+        end
+        counts[row.incident_id][:activity] = unread if unread > 0
+      end
+    end
+
+    # Only return incidents that actually have unread content
+    counts.select { |_, v| v[:messages] > 0 || v[:activity] > 0 }
+  end
+
   private
 
   def base_scope
-    visible_incidents
+    Incident.visible_to(@user)
       .includes(property: :property_management_org)
       .order(last_activity_at: :desc)
-  end
-
-  def visible_incidents
-    case @user.user_type
-    when User::MANAGER, User::OFFICE_SALES
-      Incident.joins(:property)
-              .where(properties: { mitigation_org_id: @user.organization_id })
-    when User::TECHNICIAN
-      Incident.joins(:incident_assignments)
-              .where(incident_assignments: { user_id: @user.id })
-    when *User::PM_TYPES
-      property_ids = PropertyAssignment.where(user_id: @user.id).select(:property_id)
-      incident_ids = IncidentAssignment.where(user_id: @user.id).select(:incident_id)
-      Incident.where(property_id: property_ids).or(Incident.where(id: incident_ids))
-    end
   end
 end
