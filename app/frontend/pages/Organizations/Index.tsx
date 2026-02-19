@@ -26,7 +26,7 @@ export default function OrganizationsIndex() {
   const { organizations, routes } = usePage<SharedProps & { organizations: Organization[] }>().props;
 
   return (
-    <AppLayout>
+    <AppLayout wide>
       <PageHeader title="Organizations" action={{ href: routes.new_organization, label: "New Organization" }} />
       <DataTable
         columns={columns}

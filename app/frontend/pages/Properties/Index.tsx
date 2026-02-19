@@ -61,7 +61,7 @@ export default function PropertiesIndex() {
   const sorted = sortProperties(properties, sortKey, sortDir);
 
   return (
-    <AppLayout>
+    <AppLayout wide>
       <PageHeader
         title="Properties"
         action={can_create ? { href: routes.new_property, label: "New Property" } : undefined}

@@ -131,7 +131,7 @@ export default function IncidentsIndex() {
   };
 
   return (
-    <AppLayout>
+    <AppLayout wide>
       <PageHeader
         title="Incidents"
         action={can_create ? { href: routes.new_incident, label: "Create Request" } : undefined}

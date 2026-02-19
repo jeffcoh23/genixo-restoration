@@ -82,7 +82,7 @@ export default function UsersIndex() {
   }
 
   return (
-    <AppLayout>
+    <AppLayout wide>
       <PageHeader
         title="Users"
         action={{ label: showInviteForm ? "Cancel" : "Invite User", onClick: () => setShowInviteForm(!showInviteForm) }}

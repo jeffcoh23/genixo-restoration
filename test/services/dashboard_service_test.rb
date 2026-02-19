@@ -19,29 +19,31 @@ class DashboardServiceTest < ActiveSupport::TestCase
     PropertyAssignment.create!(user: @pm_user, property: @property)
 
     # Create incidents in different states
-    @emergency = create_incident(@property, status: "active", emergency: true, last_activity_at: 1.minute.ago)
+    @new_emergency = create_incident(@property, status: "new", emergency: true, last_activity_at: 30.seconds.ago)
+    @active_emergency = create_incident(@property, status: "active", emergency: true, last_activity_at: 1.minute.ago)
     @active = create_incident(@property, status: "active", emergency: false, last_activity_at: 5.minutes.ago)
     @needs_attention = create_incident(@property, status: "acknowledged", emergency: false, last_activity_at: 10.minutes.ago)
     @on_hold = create_incident(@property, status: "on_hold", emergency: false, last_activity_at: 1.hour.ago)
     @completed = create_incident(@property, status: "completed", emergency: false, last_activity_at: 1.day.ago)
 
     # Assign tech to some incidents
-    IncidentAssignment.create!(incident: @emergency, user: @tech, assigned_by_user: @manager)
+    IncidentAssignment.create!(incident: @new_emergency, user: @tech, assigned_by_user: @manager)
+    IncidentAssignment.create!(incident: @active_emergency, user: @tech, assigned_by_user: @manager)
     IncidentAssignment.create!(incident: @active, user: @tech, assigned_by_user: @manager)
   end
 
   # --- Grouping ---
 
-  test "groups emergency incidents correctly" do
+  test "groups emergency incidents — only new/acknowledged, not active" do
     groups = DashboardService.new(user: @manager).grouped_incidents
-    assert_includes groups[:emergency].to_a, @emergency
-    assert_not_includes groups[:emergency].to_a, @active
+    assert_includes groups[:emergency].to_a, @new_emergency
+    assert_not_includes groups[:emergency].to_a, @active_emergency
   end
 
-  test "groups active non-emergency incidents" do
+  test "groups active incidents — includes former emergencies" do
     groups = DashboardService.new(user: @manager).grouped_incidents
     assert_includes groups[:active].to_a, @active
-    assert_not_includes groups[:active].to_a, @emergency
+    assert_includes groups[:active].to_a, @active_emergency
   end
 
   test "groups needs_attention incidents" do
@@ -78,7 +80,7 @@ class DashboardServiceTest < ActiveSupport::TestCase
     groups = DashboardService.new(user: @tech).grouped_incidents
     all_ids = groups.values.flat_map { |scope| scope.pluck(:id) }
 
-    assert_includes all_ids, @emergency.id
+    assert_includes all_ids, @active_emergency.id
     assert_includes all_ids, @active.id
     assert_not_includes all_ids, @needs_attention.id
     assert_not_includes all_ids, @on_hold.id
@@ -88,7 +90,7 @@ class DashboardServiceTest < ActiveSupport::TestCase
     groups = DashboardService.new(user: @pm_user).grouped_incidents
     all_ids = groups.values.flat_map { |scope| scope.pluck(:id) }
 
-    assert_includes all_ids, @emergency.id
+    assert_includes all_ids, @active_emergency.id
     assert_includes all_ids, @active.id
     assert_includes all_ids, @needs_attention.id
   end

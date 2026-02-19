@@ -7,8 +7,8 @@ class DashboardService
     scope = base_scope
 
     {
-      emergency: scope.where(emergency: true, status: %w[new acknowledged active]),
-      active: scope.where(status: "active", emergency: false),
+      emergency: scope.where(emergency: true, status: %w[new acknowledged]),
+      active: scope.where(status: "active"),
       needs_attention: scope.where(status: %w[new acknowledged proposal_requested proposal_submitted proposal_signed], emergency: false),
       on_hold: scope.where(status: "on_hold"),
       recent_completed: scope.where(status: %w[completed completed_billed paid closed proposal_completed]).limit(20)

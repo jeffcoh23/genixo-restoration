@@ -70,7 +70,7 @@ export default function Dashboard() {
     usePage<SharedProps & DashboardProps>().props;
 
   return (
-    <AppLayout>
+    <AppLayout wide>
       <PageHeader
         title="Dashboard"
         action={can_create_incident ? { href: routes.new_incident, label: "Create Request" } : undefined}
