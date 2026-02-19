@@ -10,12 +10,13 @@ interface FlashMessages {
   notice?: string;
 }
 
-interface Props {
+interface Props extends Record<string, unknown> {
+  flash: FlashMessages;
   forgot_password_path: string;
 }
 
 export default function Login() {
-  const { flash, forgot_password_path } = usePage<{ flash: FlashMessages } & Props>().props;
+  const { flash, forgot_password_path } = usePage<Props>().props;
   const { data, setData, post, processing, errors } = useForm({
     email_address: "",
     password: "",
@@ -39,12 +40,12 @@ export default function Login() {
         </CardHeader>
         <CardContent>
           {flash.alert && (
-            <div className="mb-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <div className="mb-4 rounded bg-destructive-foreground px-3 py-2 text-sm text-destructive">
               {flash.alert}
             </div>
           )}
           {flash.notice && (
-            <div className="mb-4 rounded-md bg-primary/10 px-3 py-2 text-sm text-primary">
+            <div className="mb-4 rounded bg-muted px-3 py-2 text-sm text-primary">
               {flash.notice}
             </div>
           )}
