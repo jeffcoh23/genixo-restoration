@@ -16,7 +16,7 @@ class DfrPdfService
   private
 
   def build_pdf
-    pdf = Prawn::Document.new(page_size: "LETTER", margin: [50, 50, 50, 50])
+    pdf = Prawn::Document.new(page_size: "LETTER", margin: [ 50, 50, 50, 50 ])
 
     render_header(pdf)
     render_info_grid(pdf)
@@ -41,7 +41,7 @@ class DfrPdfService
     superintendent = assigned_by_role("technician").first
 
     data = [
-      [label_cell("Site Name:"), property.name, label_cell("Job Name:"), property.name],
+      [ label_cell("Site Name:"), property.name, label_cell("Job Name:"), property.name ],
       [label_cell("Job Number:"), @incident.job_id || "—", label_cell("Date:"), @date.strftime("%-m/%-d/%y")],
       [label_cell("Project Manager:"), manager&.full_name || "—", label_cell("Superintendent:"), superintendent&.full_name || "—"],
       [label_cell("Visitors:"), visitors_for_date || "—", label_cell("Status:"), @incident.display_status_label]

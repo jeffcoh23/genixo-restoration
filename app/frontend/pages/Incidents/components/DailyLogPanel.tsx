@@ -87,18 +87,10 @@ export default function DailyLogPanel({
         hours: Math.round(data.hours * 10) / 10,
       }));
 
-      const totalLaborHours = Math.round(
-        dateLaborEntries.reduce((sum, e) => sum + e.hours, 0) * 10,
-      ) / 10;
-
-      const totalEquipCount = group.equipment_summary.reduce((sum, e) => sum + e.count, 0);
-
       return {
         ...group,
         activityRows: group.rows.filter((row) => row.row_type === "activity"),
         laborByRole,
-        totalLaborHours,
-        totalEquipCount,
       };
     }).filter((g) => g.activityRows.length > 0 || g.laborByRole.length > 0);
 
@@ -175,16 +167,16 @@ export default function DailyLogPanel({
                   <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     {group.date_label}
                   </span>
-                  {(group.totalLaborHours > 0 || group.totalEquipCount > 0) && (
+                  {(group.total_labor_hours > 0 || group.total_equip_count > 0) && (
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      {group.totalLaborHours > 0 && (
-                        <span>{group.totalLaborHours}h labor</span>
+                      {group.total_labor_hours > 0 && (
+                        <span>{group.total_labor_hours}h labor</span>
                       )}
-                      {group.totalLaborHours > 0 && group.totalEquipCount > 0 && (
+                      {group.total_labor_hours > 0 && group.total_equip_count > 0 && (
                         <span>·</span>
                       )}
-                      {group.totalEquipCount > 0 && (
-                        <span>{group.totalEquipCount} equip</span>
+                      {group.total_equip_count > 0 && (
+                        <span>{group.total_equip_count} equip</span>
                       )}
                     </div>
                   )}
@@ -208,7 +200,7 @@ export default function DailyLogPanel({
                       return (
                         <div
                           key={row.id}
-                          className={isExpandable ? "cursor-pointer hover:bg-muted/50 transition-colors" : ""}
+                          className={isExpandable ? "cursor-pointer hover:bg-muted transition-colors" : ""}
                           onClick={isExpandable ? () => toggleRow(row.id) : undefined}
                         >
                           {/* Row header */}
@@ -285,7 +277,7 @@ export default function DailyLogPanel({
 
                 {/* Group-level resource summary */}
                 {(hasEquipment || hasLabor) && (
-                  <div className="border-t border-border bg-muted/30 px-3 py-2.5">
+                  <div className="border-t border-border bg-muted px-3 py-2.5">
                     <div className="flex flex-wrap gap-x-10 gap-y-2 text-xs">
                       {hasEquipment && (
                         <div>

@@ -207,6 +207,8 @@ export interface DailyLogTableGroup {
   date_label: string;
   rows: DailyLogTableRow[];
   equipment_summary: DailyLogEquipmentSummary[];
+  total_labor_hours: number;
+  total_equip_count: number;
 }
 
 export interface IncidentDetail {

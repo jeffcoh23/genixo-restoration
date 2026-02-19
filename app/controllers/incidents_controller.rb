@@ -580,7 +580,7 @@ class IncidentsController < ApplicationController
         usable_rooms_returned: activity[:usable_rooms_returned],
         estimated_date_of_return: activity[:estimated_date_of_return].present? ? format_date(Time.zone.parse(activity[:estimated_date_of_return])) : nil,
         equipment_actions: activity[:equipment_actions].map { |ea|
-          label_parts = [ea[:action_label], ea[:quantity], ea[:type_name]].compact
+          label_parts = [ ea[:action_label], ea[:quantity], ea[:type_name] ].compact
           { label: label_parts.join(" "), note: ea[:note] }
         }
       }
@@ -638,6 +638,11 @@ class IncidentsController < ApplicationController
 
     equip_summary = @incident ? equipment_summary_for_incident(@incident) : []
 
+    # Precompute labor hours per date for the group header
+    labor_hours_by_date = labor_entries.each_with_object(Hash.new(0.0)) do |entry, map|
+      map[entry[:log_date]] += entry[:hours].to_f
+    end
+
     groups.keys.sort.reverse.map do |date_key|
       rows = groups[date_key].sort_by do |row|
         parsed = parse_metadata_time(row[:occurred_at]) || Time.zone.parse("#{date_key}T00:00:00")
@@ -648,7 +653,9 @@ class IncidentsController < ApplicationController
         date_key: date_key,
         date_label: format_date(Time.zone.parse("#{date_key}T00:00:00")),
         rows: rows,
-        equipment_summary: equip_summary
+        equipment_summary: equip_summary,
+        total_labor_hours: labor_hours_by_date[date_key].round(1),
+        total_equip_count: equip_summary.sum { |e| e[:count] }
       }
     end
   end
@@ -669,7 +676,7 @@ class IncidentsController < ApplicationController
     end
 
     buckets.values
-      .sort_by { |b| [-b[:count], b[:type_name]] }
+      .sort_by { |b| [ -b[:count], b[:type_name] ] }
       .map { |b| { type_name: b[:type_name], count: b[:count], hours: b[:hours].round(1) } }
   end
 
