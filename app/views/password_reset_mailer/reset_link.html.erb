@@ -1,0 +1,15 @@
+<h2 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: #1a2b33;">Reset Your Password</h2>
+
+<p style="margin: 0 0 16px 0; font-size: 14px; color: #3d5361; line-height: 1.5;">
+  Hi <%= @user.first_name %>, we received a request to reset your password.
+</p>
+
+<p style="margin: 0 0 24px 0;">
+  <a href="<%= @reset_url %>" style="display: inline-block; padding: 10px 24px; background-color: #1a7a7a; color: #ffffff; font-size: 14px; font-weight: 600; text-decoration: none; border-radius: 6px;">
+    Reset Password
+  </a>
+</p>
+
+<p style="margin: 0 0 8px 0; font-size: 13px; color: #8899a4; line-height: 1.5;">
+  This link will expire in 2 hours. If you didn't request a password reset, you can safely ignore this email.
+</p>

@@ -1,9 +1,9 @@
+import { FormEvent } from "react";
 import { Link, useForm, usePage } from "@inertiajs/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { FormEvent } from "react";
 
 interface FlashMessages {
   alert?: string;
@@ -11,19 +11,19 @@ interface FlashMessages {
 }
 
 interface Props {
-  forgot_password_path: string;
+  create_path: string;
+  login_path: string;
 }
 
-export default function Login() {
-  const { flash, forgot_password_path } = usePage<{ flash: FlashMessages } & Props>().props;
-  const { data, setData, post, processing, errors } = useForm({
+export default function ForgotPassword() {
+  const { flash, create_path, login_path } = usePage<{ flash: FlashMessages } & Props>().props;
+  const { data, setData, post, processing } = useForm({
     email_address: "",
-    password: "",
   });
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    post("/login");
+    post(create_path);
   }
 
   return (
@@ -34,8 +34,11 @@ export default function Login() {
             G
           </div>
           <h1 className="text-xl font-semibold text-foreground">
-            Genixo Restoration
+            Reset Password
           </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Enter your email and we'll send you a reset link.
+          </p>
         </CardHeader>
         <CardContent>
           {flash.alert && (
@@ -60,33 +63,16 @@ export default function Login() {
                 value={data.email_address}
                 onChange={(e) => setData("email_address", e.target.value)}
               />
-              {errors.email_address && (
-                <p className="text-sm text-destructive">{errors.email_address}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                autoComplete="current-password"
-                value={data.password}
-                onChange={(e) => setData("password", e.target.value)}
-              />
-              {errors.password && (
-                <p className="text-sm text-destructive">{errors.password}</p>
-              )}
             </div>
 
             <Button type="submit" className="w-full" disabled={processing}>
-              {processing ? "Signing in..." : "Sign In"}
+              {processing ? "Sending..." : "Send Reset Link"}
             </Button>
           </form>
 
           <div className="mt-4 text-center">
-            <Link href={forgot_password_path} className="text-sm text-muted-foreground hover:text-foreground">
-              Forgot password?
+            <Link href={login_path} className="text-sm text-muted-foreground hover:text-foreground">
+              Back to sign in
             </Link>
           </div>
         </CardContent>

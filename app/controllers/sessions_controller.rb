@@ -3,7 +3,9 @@ class SessionsController < ApplicationController
 
   def new
     redirect_to dashboard_path if authenticated?
-    render inertia: "Login"
+    render inertia: "Login", props: {
+      forgot_password_path: forgot_password_path
+    }
   end
 
   def create
