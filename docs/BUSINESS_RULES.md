@@ -118,15 +118,22 @@ Email is globally unique across all organizations. One email address = one user 
 
 ### Status Lifecycle
 
+Two paths diverge from intake, then converge at `active`:
+
 ```
-new → acknowledged → active → on_hold → completed → completed_billed → paid → closed
-                   ↘ proposal_requested → proposal_submitted → proposal_signed → active
+EMERGENCY / STANDARD:
+  new → acknowledged → active → completed → completed_billed → paid → closed
+                     ↘ on_hold ↗
+
+QUOTE / PROPOSAL (RFQ):
+  new → proposal_requested → proposal_submitted → proposal_signed → active → (same)
 ```
 
 **Allowed transitions:**
 
 | From | To |
 |------|----|
+| `new` | `acknowledged`, `proposal_requested` |
 | `acknowledged` | `active`, `on_hold` |
 | `proposal_requested` | `proposal_submitted` |
 | `proposal_submitted` | `proposal_signed` |
@@ -137,8 +144,8 @@ new → acknowledged → active → on_hold → completed → completed_billed �
 | `completed_billed` | `paid`, `active` (reopen) |
 | `paid` | `closed` |
 
-- `new` is transient — exists only momentarily during creation before auto-transitioning.
-- **All status changes are manual.** No automatic transitions except during incident creation.
+- `new` is auto-transitioned during creation by `IncidentCreationService` based on project type (emergency/standard → `acknowledged`, RFQ → `proposal_requested`). Manual transition from `new` is also allowed.
+- **All status changes after creation are manual.** No automatic transitions.
 - Status changes are **not reversible** in general, but `active` can be reached from `completed` and `completed_billed` as a reopen path.
 - Every status change creates an `activity_event` with `old_status` and `new_status` in metadata.
 

@@ -3,9 +3,11 @@ class StatusTransitionService
 
   # Single transition map — standard and quote paths converge at "active"
   ALLOWED_TRANSITIONS = {
-    # Standard path
+    # Intake — user picks the path
+    "new" => %w[acknowledged proposal_requested],
+    # Emergency/standard path
     "acknowledged" => %w[active on_hold],
-    # Quote path
+    # Quote/proposal path
     "proposal_requested" => %w[proposal_submitted],
     "proposal_submitted" => %w[proposal_signed],
     "proposal_signed" => %w[active],

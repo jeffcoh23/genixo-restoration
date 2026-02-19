@@ -299,9 +299,11 @@ EscalationJob (Solid Queue)
 # app/services/status_transition_service.rb
 class StatusTransitionService
   ALLOWED_TRANSITIONS = {
-    # Standard path
+    # Intake — user picks the path
+    "new"                => %w[acknowledged proposal_requested],
+    # Emergency/standard path
     "acknowledged"       => %w[active on_hold],
-    # Quote path
+    # Quote/proposal path
     "proposal_requested" => %w[proposal_submitted],
     "proposal_submitted" => %w[proposal_signed],
     "proposal_signed"    => %w[active],

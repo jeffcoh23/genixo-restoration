@@ -103,13 +103,27 @@ class StatusTransitionServiceTest < ActiveSupport::TestCase
     assert_equal "closed", incident.reload.status
   end
 
-  # --- Invalid transitions ---
+  # --- Transitions from new ---
 
-  test "cannot transition from new" do
+  test "new to acknowledged" do
+    incident = create_incident(status: "new")
+    transition(incident, "acknowledged")
+    assert_equal "acknowledged", incident.reload.status
+  end
+
+  test "new to proposal_requested" do
+    incident = create_incident(status: "new")
+    transition(incident, "proposal_requested")
+    assert_equal "proposal_requested", incident.reload.status
+  end
+
+  test "cannot transition from new to active" do
     incident = create_incident(status: "new")
     assert_raises(StatusTransitionService::InvalidTransitionError) { transition(incident, "active") }
     assert_equal "new", incident.reload.status
   end
+
+  # --- Invalid transitions ---
 
   test "cannot transition from closed" do
     incident = create_incident(status: "closed")
