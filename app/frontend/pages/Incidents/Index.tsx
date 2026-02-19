@@ -194,16 +194,18 @@ export default function IncidentsIndex() {
               </tr>
             </thead>
             <tbody>
-              {incidents.map((incident) => (
+              {incidents.map((incident) => {
+                const showEmergency = incident.emergency && (incident.status === "new" || incident.status === "acknowledged");
+                return (
                 <tr
                   key={incident.id}
                   className={`border-b last:border-0 hover:bg-muted transition-colors ${
-                    incident.emergency ? "bg-red-50" : ""
+                    showEmergency ? "bg-red-50" : ""
                   }`}
                 >
                   <td className="px-4 py-3">
                     <Link href={incident.path} className="font-medium text-primary hover:underline flex items-center gap-1.5">
-                      {incident.emergency && (
+                      {showEmergency && (
                         <AlertTriangle className="h-3.5 w-3.5 text-destructive flex-shrink-0" />
                       )}
                       {incident.property_name}
@@ -224,7 +226,8 @@ export default function IncidentsIndex() {
                     {incident.last_activity_label}
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
