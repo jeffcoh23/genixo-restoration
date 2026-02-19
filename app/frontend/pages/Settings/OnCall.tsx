@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { router, usePage } from "@inertiajs/react";
-import { Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
 import AppLayout from "@/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,10 +33,11 @@ interface OnCallProps {
   available_escalation_managers: Manager[];
   update_path: string;
   contacts_path: string;
+  reorder_path: string;
 }
 
 export default function OnCallSettings() {
-  const { config, managers, available_escalation_managers, update_path, contacts_path } = usePage<SharedProps & OnCallProps>().props;
+  const { config, managers, available_escalation_managers, update_path, contacts_path, reorder_path } = usePage<SharedProps & OnCallProps>().props;
 
   const [primaryUserId, setPrimaryUserId] = useState(config?.primary_user_id ?? "");
   const [timeoutMinutes, setTimeoutMinutes] = useState(config?.escalation_timeout_minutes ?? 10);
@@ -73,6 +74,18 @@ export default function OnCallSettings() {
 
   const handleRemoveContact = (removePath: string) => {
     router.delete(removePath, { preserveScroll: true });
+  };
+
+  const handleMoveContact = (index: number, direction: "up" | "down") => {
+    if (!config) return;
+    const contacts = [...config.contacts];
+    const swapIdx = direction === "up" ? index - 1 : index + 1;
+    if (swapIdx < 0 || swapIdx >= contacts.length) return;
+
+    [contacts[index], contacts[swapIdx]] = [contacts[swapIdx], contacts[index]];
+    const contactIds = contacts.map((c) => c.id);
+
+    router.patch(reorder_path, { contact_ids: contactIds }, { preserveScroll: true });
   };
 
   // Server pre-filters managers not already in escalation contacts; only exclude current primary selection
@@ -145,15 +158,37 @@ export default function OnCallSettings() {
                   <span className="text-xs font-medium text-muted-foreground w-5 tabular-nums">{idx + 1}.</span>
                   <span className="text-sm text-foreground">{contact.full_name}</span>
                   <span className="text-xs text-muted-foreground">{contact.role_label}</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="ml-auto h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
-                    onClick={() => handleRemoveContact(contact.remove_path)}
-                    title={`Remove ${contact.full_name}`}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
+                  <div className="ml-auto flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                      onClick={() => handleMoveContact(idx, "up")}
+                      disabled={idx === 0}
+                      title="Move up"
+                    >
+                      <ArrowUp className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                      onClick={() => handleMoveContact(idx, "down")}
+                      disabled={idx === config.contacts.length - 1}
+                      title="Move down"
+                    >
+                      <ArrowDown className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                      onClick={() => handleRemoveContact(contact.remove_path)}
+                      title={`Remove ${contact.full_name}`}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>

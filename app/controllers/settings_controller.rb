@@ -64,7 +64,8 @@ class SettingsController < ApplicationController
       managers: managers.map { |u| { id: u.id, full_name: u.full_name, role_label: User::ROLE_LABELS[u.user_type] } },
       available_escalation_managers: available_escalation.map { |u| { id: u.id, full_name: u.full_name, role_label: User::ROLE_LABELS[u.user_type] } },
       update_path: update_on_call_settings_path,
-      contacts_path: escalation_contacts_path
+      contacts_path: escalation_contacts_path,
+      reorder_path: reorder_escalation_contacts_path
     }
   end
 
@@ -123,6 +124,33 @@ class SettingsController < ApplicationController
     end
 
     redirect_to on_call_settings_path, notice: "Escalation contact removed."
+  end
+
+  def reorder_escalation_contacts
+    authorize_manage_on_call!
+
+    config = current_user.organization.on_call_configuration
+    raise ActiveRecord::RecordNotFound unless config
+
+    contact_ids = Array(params[:contact_ids]).map(&:to_i)
+    config_contact_ids = config.escalation_contacts.pluck(:id).sort
+
+    if contact_ids.sort != config_contact_ids
+      redirect_to on_call_settings_path, alert: "Invalid contact list."
+      return
+    end
+
+    # Two-pass update to avoid unique constraint violations on position
+    ActiveRecord::Base.transaction do
+      contact_ids.each_with_index do |id, idx|
+        config.escalation_contacts.where(id: id).update_all(position: -(idx + 1))
+      end
+      contact_ids.each_with_index do |id, idx|
+        config.escalation_contacts.where(id: id).update_all(position: idx + 1)
+      end
+    end
+
+    redirect_to on_call_settings_path, notice: "Escalation order updated."
   end
 
   def update_preferences

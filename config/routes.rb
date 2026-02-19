@@ -71,6 +71,7 @@ Rails.application.routes.draw do
   patch "settings/on-call", to: "settings#update_on_call", as: :update_on_call_settings
   post "settings/on-call/contacts", to: "settings#create_escalation_contact", as: :escalation_contacts
   delete "settings/on-call/contacts/:id", to: "settings#destroy_escalation_contact", as: :escalation_contact
+  patch "settings/on-call/contacts/reorder", to: "settings#reorder_escalation_contacts", as: :reorder_escalation_contacts
   patch "settings/preferences", to: "settings#update_preferences", as: :settings_preferences
   get "settings/equipment-types", to: "settings#equipment_types", as: :equipment_types_settings
   post "settings/equipment-types", to: "settings#create_equipment_type", as: :create_equipment_type
