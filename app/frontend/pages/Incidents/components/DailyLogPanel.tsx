@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ChevronDown, Pencil, Plus } from "lucide-react";
+import { ChevronDown, Download, Pencil, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type {
   AttachableEquipmentEntry,
@@ -21,6 +21,7 @@ interface DailyLogPanelProps {
   activity_entries_path: string;
   equipment_types: EquipmentType[];
   attachable_equipment_entries: AttachableEquipmentEntry[];
+  dfr_path: string;
 }
 
 export default function DailyLogPanel({
@@ -32,6 +33,7 @@ export default function DailyLogPanel({
   activity_entries_path,
   equipment_types,
   attachable_equipment_entries,
+  dfr_path,
 }: DailyLogPanelProps) {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [activityForm, setActivityForm] = useState<{ open: boolean; entry?: DailyActivity }>({ open: false });
@@ -174,11 +176,21 @@ export default function DailyLogPanel({
 
             return (
               <div key={group.date_key} className="rounded border border-border overflow-hidden">
-                {/* Date header with summary stats */}
-                <div className="px-3 py-2 border-b border-border bg-muted">
+                {/* Date header */}
+                <div className="px-3 py-2 border-b border-border bg-muted flex items-center justify-between">
                   <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     {group.date_label}
                   </span>
+                  <a
+                    href={`${dfr_path}?date=${group.date_key}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    title="Download Daily Field Report"
+                  >
+                    <Download className="h-3 w-3" />
+                    DFR
+                  </a>
                 </div>
 
                 {/* Activity rows */}

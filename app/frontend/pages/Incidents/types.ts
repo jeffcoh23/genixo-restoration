@@ -220,6 +220,7 @@ export interface IncidentDetail {
   equipment_entries_path: string;
   operational_notes_path: string;
   attachments_path: string;
+  dfr_path: string;
   description: string;
   cause: string | null;
   requested_next_steps: string | null;

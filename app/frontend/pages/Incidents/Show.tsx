@@ -232,6 +232,7 @@ export default function IncidentShow() {
               activity_entries_path={incident.activity_entries_path}
               equipment_types={equipment_types}
               attachable_equipment_entries={attachable_equipment_entries}
+              dfr_path={incident.dfr_path}
             />
           )}
           {activeTab === "equipment" && (

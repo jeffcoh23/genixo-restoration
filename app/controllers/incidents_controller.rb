@@ -1,6 +1,6 @@
 class IncidentsController < ApplicationController
   before_action :authorize_creation!, only: %i[new create]
-  before_action :set_incident, only: %i[show update transition]
+  before_action :set_incident, only: %i[show update transition dfr]
   before_action :authorize_edit!, only: %i[update]
   before_action :authorize_transition!, only: %i[transition]
 
@@ -188,6 +188,7 @@ class IncidentsController < ApplicationController
         equipment_entries_path: incident_equipment_entries_path(@incident),
         operational_notes_path: incident_operational_notes_path(@incident),
         attachments_path: incident_attachments_path(@incident),
+        dfr_path: dfr_incident_path(@incident),
         valid_transitions: can_transition_status? ? (StatusTransitionService.transitions_for(@incident)[@incident.status] || []).map { |s|
           { value: s, label: Incident::STATUS_LABELS[s] }
         } : []
@@ -231,6 +232,14 @@ class IncidentsController < ApplicationController
     redirect_to incident_path(@incident), notice: "Status updated."
   rescue StatusTransitionService::InvalidTransitionError => e
     redirect_to incident_path(@incident), alert: e.message
+  end
+
+  def dfr
+    date = params[:date].presence || Date.current.to_s
+    pdf_data = DfrPdfService.new(incident: @incident, date: date, timezone: current_user.timezone).generate
+    filename = "DFR-#{@incident.property.name.parameterize}-#{date}.pdf"
+
+    send_data pdf_data, filename: filename, type: "application/pdf", disposition: "inline"
   end
 
   private
