@@ -90,7 +90,7 @@ export default function IncidentShow() {
         <div className="flex items-center justify-between gap-4">
           <div className="min-w-0 flex items-center gap-1 text-sm">
             <span className="text-muted-foreground">{incident.property.organization_name}</span>
-            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
+            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
             <Link href={incident.property.path} className="font-medium text-foreground hover:underline truncate">
               {incident.property.name}
             </Link>
