@@ -9,17 +9,6 @@ export interface TeamUser {
   remove_path: string | null;
 }
 
-export interface TeamGroup {
-  organization_name: string;
-  users: TeamUser[];
-}
-
-export interface AssignedSummary {
-  count: number;
-  avatars: { id: number; initials: string; full_name: string }[];
-  overflow: number;
-}
-
 export interface AssignableUser {
   id: number;
   full_name: string;
@@ -269,8 +258,8 @@ export interface IncidentDetail {
     note: string | null;
     actor_name: string | null;
   }[];
-  assigned_team: TeamGroup[];
-  assigned_summary: AssignedSummary;
+  mitigation_team: TeamUser[];
+  pm_team: TeamUser[];
   contacts: Contact[];
   pm_contacts: { id: number; name: string; title: string | null; email: string | null; phone: string | null }[];
   valid_transitions: Transition[];
@@ -399,7 +388,8 @@ export interface ShowProps {
   can_create_notes: boolean;
   project_types: { value: string; label: string }[];
   damage_types: { value: string; label: string }[];
-  assignable_users: AssignableUser[];
+  assignable_mitigation_users: AssignableUser[];
+  assignable_pm_users: AssignableUser[];
   assignable_labor_users: AssignableUser[];
   equipment_types: EquipmentType[];
   attachable_equipment_entries: AttachableEquipmentEntry[];

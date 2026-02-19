@@ -1,27 +1,28 @@
 import { useState } from "react";
 import { router } from "@inertiajs/react";
-import { Building2, Mail, Pencil, Phone, Plus, UserPlus, X } from "lucide-react";
+import { Mail, Pencil, Phone, Plus, UserPlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import type { Contact, IncidentDetail, AssignableUser } from "../types";
+import type { Contact, IncidentDetail, AssignableUser, TeamUser } from "../types";
 
 interface OverviewPanelProps {
   incident: IncidentDetail;
   can_assign: boolean;
   can_manage_contacts: boolean;
-  assignable_users: AssignableUser[];
+  assignable_mitigation_users: AssignableUser[];
+  assignable_pm_users: AssignableUser[];
 }
 
-export default function OverviewPanel({ incident, can_assign, can_manage_contacts, assignable_users }: OverviewPanelProps) {
-  const [assignOpen, setAssignOpen] = useState(false);
+export default function OverviewPanel({ incident, can_assign, can_manage_contacts, assignable_mitigation_users, assignable_pm_users }: OverviewPanelProps) {
+  const [assignOpenFor, setAssignOpenFor] = useState<"mitigation" | "pm" | null>(null);
   const [contactFormOpen, setContactFormOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [confirmRemoveUser, setConfirmRemoveUser] = useState<{ name: string; path: string } | null>(null);
   const [expandedUserId, setExpandedUserId] = useState<number | null>(null);
 
   const handleAssign = (userId: number) => {
-    setAssignOpen(false);
+    setAssignOpenFor(null);
     router.post(incident.assignments_path, { user_id: userId }, { preserveScroll: true });
   };
 
@@ -38,137 +39,98 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
   return (
     <div className="overflow-y-auto h-full px-3 py-3">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Column 1: Assigned Team */}
+        {/* Column 1: Mitigation Team */}
         <div>
           <div className="flex items-center mb-2">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex-1">
-              Assigned Team
-              <span className="text-muted-foreground tabular-nums ml-1.5">{incident.assigned_summary.count}</span>
+              Mitigation Team
+              <span className="text-muted-foreground tabular-nums ml-1.5">{incident.mitigation_team.length}</span>
             </h3>
-            {can_assign && assignable_users.length > 0 && (
-              <div className="relative">
-                <Button variant="ghost" size="sm" className="h-6 text-xs gap-1 text-muted-foreground" onClick={() => setAssignOpen(!assignOpen)}>
-                  <UserPlus className="h-3 w-3" />
-                  Assign
-                </Button>
-                {assignOpen && (
-                  <>
-                    <div className="fixed inset-0 z-10" onClick={() => setAssignOpen(false)} />
-                    <div className="absolute right-0 top-full mt-1 z-20 bg-popover border border-border rounded shadow-md py-1 min-w-[220px] max-h-[200px] overflow-y-auto">
-                      {assignable_users.map((u) => (
-                        <Button
-                          key={u.id}
-                          variant="ghost"
-                          onClick={() => handleAssign(u.id)}
-                          className="w-full justify-between px-3 py-1.5 h-auto text-xs hover:bg-muted transition-colors rounded-none"
-                        >
-                          <span>{u.full_name}</span>
-                          <span className="text-muted-foreground">{u.role_label}</span>
-                        </Button>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
+            {can_assign && assignable_mitigation_users.length > 0 && (
+              <AssignDropdown
+                users={assignable_mitigation_users}
+                open={assignOpenFor === "mitigation"}
+                onToggle={() => setAssignOpenFor(assignOpenFor === "mitigation" ? null : "mitigation")}
+                onAssign={handleAssign}
+                onClose={() => setAssignOpenFor(null)}
+              />
             )}
           </div>
 
-          {incident.assigned_team.length === 0 ? (
-            <p className="text-muted-foreground text-xs">No users assigned yet.</p>
+          {incident.mitigation_team.length === 0 ? (
+            <p className="text-muted-foreground text-xs">No team members assigned.</p>
           ) : (
-            <div className="space-y-3">
-              {incident.assigned_team.map((group) => (
-                <div key={group.organization_name}>
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span className="font-medium text-xs">{group.organization_name}</span>
-                  </div>
-                  <div className="space-y-0.5 ml-5">
-                    {group.users.map((u) => {
-                      const isExpanded = expandedUserId === u.id;
-                      const hasContact = u.email || u.phone;
-                      return (
-                        <div key={u.id}>
-                          <div
-                            className={`flex items-center gap-1.5 text-xs -mx-1 px-1 py-0.5 rounded hover:bg-muted transition-colors ${hasContact ? "cursor-pointer" : ""}`}
-                            onClick={hasContact ? () => setExpandedUserId(isExpanded ? null : u.id) : undefined}
-                          >
-                            <div className="h-5 w-5 rounded-full bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground shrink-0">
-                              {u.initials}
-                            </div>
-                            <span className="text-foreground">{u.full_name}</span>
-                            <span className="text-muted-foreground">&middot; {u.role_label}</span>
-                            {u.remove_path && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={(e) => { e.stopPropagation(); setConfirmRemoveUser({ name: u.full_name, path: u.remove_path! }); }}
-                                className="h-5 w-5 p-0 ml-1 text-muted-foreground hover:text-destructive transition-colors"
-                                title={`Remove ${u.full_name}`}
-                              >
-                                <X className="h-3 w-3" />
-                              </Button>
-                            )}
-                          </div>
-                          {isExpanded && (
-                            <div className="flex items-center gap-3 text-xs text-muted-foreground ml-6 mt-0.5 mb-1 pl-1">
-                              {u.email && (
-                                <a href={`mailto:${u.email}`} className="flex items-center gap-1 hover:text-foreground transition-colors" onClick={(e) => e.stopPropagation()}>
-                                  <Mail className="h-2.5 w-2.5" />
-                                  {u.email}
-                                </a>
-                              )}
-                              {u.phone && (
-                                <a href={`tel:${u.phone}`} className="flex items-center gap-1 hover:text-foreground transition-colors" onClick={(e) => e.stopPropagation()}>
-                                  <Phone className="h-2.5 w-2.5" />
-                                  {u.phone}
-                                </a>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <UserList
+              users={incident.mitigation_team}
+              expandedUserId={expandedUserId}
+              onToggleExpand={setExpandedUserId}
+              onRemove={(name, path) => setConfirmRemoveUser({ name, path })}
+            />
           )}
         </div>
 
         {/* Column 2: Property Management */}
         <div>
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
-            Property Management
-          </h3>
-          {incident.pm_contacts.length === 0 ? (
-            <p className="text-muted-foreground text-xs">No PM contacts.</p>
+          <div className="flex items-center mb-2">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex-1">
+              Property Management
+              <span className="text-muted-foreground tabular-nums ml-1.5">{incident.pm_team.length}</span>
+            </h3>
+            {can_assign && assignable_pm_users.length > 0 && (
+              <AssignDropdown
+                users={assignable_pm_users}
+                open={assignOpenFor === "pm"}
+                onToggle={() => setAssignOpenFor(assignOpenFor === "pm" ? null : "pm")}
+                onAssign={handleAssign}
+                onClose={() => setAssignOpenFor(null)}
+              />
+            )}
+          </div>
+
+          {incident.pm_team.length === 0 && incident.pm_contacts.length === 0 ? (
+            <p className="text-muted-foreground text-xs">No PM team members.</p>
           ) : (
-            <div className="space-y-2">
-              {incident.pm_contacts.map((c) => (
-                <div key={c.id} className="flex items-start gap-2 pl-2 border-l-2 border-border">
-                  <div className="flex-1 min-w-0">
-                    <div className="text-xs font-medium text-foreground">
-                      {c.name}
-                      {c.title && <span className="text-muted-foreground font-normal"> &middot; {c.title}</span>}
+            <div className="space-y-3">
+              {incident.pm_team.length > 0 && (
+                <UserList
+                  users={incident.pm_team}
+                  expandedUserId={expandedUserId}
+                  onToggleExpand={setExpandedUserId}
+                  onRemove={(name, path) => setConfirmRemoveUser({ name, path })}
+                />
+              )}
+
+              {incident.pm_contacts.length > 0 && (
+                <div className="space-y-2">
+                  {incident.pm_team.length > 0 && (
+                    <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide pt-1">Contacts</div>
+                  )}
+                  {incident.pm_contacts.map((c) => (
+                    <div key={c.id} className="flex items-start gap-2 pl-2 border-l-2 border-border">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-medium text-foreground">
+                          {c.name}
+                          {c.title && <span className="text-muted-foreground font-normal"> &middot; {c.title}</span>}
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                          {c.email && (
+                            <span className="flex items-center gap-1">
+                              <Mail className="h-2.5 w-2.5" />
+                              {c.email}
+                            </span>
+                          )}
+                          {c.phone && (
+                            <span className="flex items-center gap-1">
+                              <Phone className="h-2.5 w-2.5" />
+                              {c.phone}
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                      {c.email && (
-                        <span className="flex items-center gap-1">
-                          <Mail className="h-2.5 w-2.5" />
-                          {c.email}
-                        </span>
-                      )}
-                      {c.phone && (
-                        <span className="flex items-center gap-1">
-                          <Phone className="h-2.5 w-2.5" />
-                          {c.phone}
-                        </span>
-                      )}
-                    </div>
-                  </div>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
           )}
         </div>
@@ -280,6 +242,115 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
           onClose={() => setEditingContact(null)}
         />
       )}
+    </div>
+  );
+}
+
+function AssignDropdown({ users, open, onToggle, onAssign, onClose }: {
+  users: AssignableUser[];
+  open: boolean;
+  onToggle: () => void;
+  onAssign: (userId: number) => void;
+  onClose: () => void;
+}) {
+  return (
+    <div className="relative">
+      <Button variant="ghost" size="sm" className="h-6 text-xs gap-1 text-muted-foreground" onClick={onToggle}>
+        <UserPlus className="h-3 w-3" />
+        Assign
+      </Button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={onClose} />
+          <div className="absolute right-0 top-full mt-1 z-20 bg-popover border border-border rounded shadow-md py-1 min-w-[220px] max-h-[200px] overflow-y-auto">
+            {users.map((u) => (
+              <Button
+                key={u.id}
+                variant="ghost"
+                onClick={() => onAssign(u.id)}
+                className="w-full justify-between px-3 py-1.5 h-auto text-xs hover:bg-muted transition-colors rounded-none"
+              >
+                <span>{u.full_name}</span>
+                <span className="text-muted-foreground">{u.role_label}</span>
+              </Button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function UserList({ users, expandedUserId, onToggleExpand, onRemove }: {
+  users: TeamUser[];
+  expandedUserId: number | null;
+  onToggleExpand: (id: number | null) => void;
+  onRemove: (name: string, path: string) => void;
+}) {
+  // Group users by role, preserving backend sort order
+  const groups: { role: string; users: TeamUser[] }[] = [];
+  for (const u of users) {
+    const last = groups[groups.length - 1];
+    if (last && last.role === u.role_label) {
+      last.users.push(u);
+    } else {
+      groups.push({ role: u.role_label, users: [u] });
+    }
+  }
+
+  return (
+    <div className="space-y-2">
+      {groups.map((group) => (
+        <div key={group.role}>
+          <div className="text-xs font-medium text-muted-foreground mb-0.5">{group.role}s</div>
+          <div className="space-y-0.5">
+            {group.users.map((u) => {
+              const isExpanded = expandedUserId === u.id;
+              const hasContact = u.email || u.phone;
+              return (
+                <div key={u.id}>
+                  <div
+                    className={`flex items-center gap-1.5 text-xs -mx-1 px-1 py-0.5 rounded hover:bg-muted transition-colors ${hasContact ? "cursor-pointer" : ""}`}
+                    onClick={hasContact ? () => onToggleExpand(isExpanded ? null : u.id) : undefined}
+                  >
+                    <div className="h-5 w-5 rounded-full bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground shrink-0">
+                      {u.initials}
+                    </div>
+                    <span className="text-foreground">{u.full_name}</span>
+                    {u.remove_path && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => { e.stopPropagation(); onRemove(u.full_name, u.remove_path!); }}
+                        className="h-5 w-5 p-0 ml-1 text-muted-foreground hover:text-destructive transition-colors"
+                        title={`Remove ${u.full_name}`}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
+                  {isExpanded && (
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground ml-6 mt-0.5 mb-1 pl-1">
+                      {u.email && (
+                        <a href={`mailto:${u.email}`} className="flex items-center gap-1 hover:text-foreground transition-colors" onClick={(e) => e.stopPropagation()}>
+                          <Mail className="h-2.5 w-2.5" />
+                          {u.email}
+                        </a>
+                      )}
+                      {u.phone && (
+                        <a href={`tel:${u.phone}`} className="flex items-center gap-1 hover:text-foreground transition-colors" onClick={(e) => e.stopPropagation()}>
+                          <Phone className="h-2.5 w-2.5" />
+                          {u.phone}
+                        </a>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

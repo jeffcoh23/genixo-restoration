@@ -164,12 +164,8 @@ class IncidentsController < ApplicationController
         },
         deployed_equipment: deployed_equipment,
         assignments_path: incident_assignments_path(@incident),
-        assigned_team: assigned_team_groups(assigned),
-        assigned_summary: {
-          count: assigned.size,
-          avatars: assigned.first(4).map { |a| { id: a.user.id, initials: a.user.initials, full_name: a.user.full_name } },
-          overflow: [ assigned.size - 4, 0 ].max
-        },
+        mitigation_team: serialize_team_users(assigned.select { |a| a.user.mitigation_user? }),
+        pm_team: serialize_team_users(assigned.select { |a| a.user.pm_user? }),
         show_stats: @incident.labor_entries.any? || deployed_equipment.any?,
         stats: incident_stats(@incident, deployed_equipment),
         contacts_path: incident_contacts_path(@incident),
@@ -214,7 +210,8 @@ class IncidentsController < ApplicationController
       can_manage_labor: can_manage_labor?,
       can_manage_equipment: can_manage_equipment?,
       can_create_notes: can_create_operational_note?,
-      assignable_users: can_assign_to_incident? ? assignable_incident_users(@incident) : [],
+      assignable_mitigation_users: can_assign_to_incident? ? assignable_incident_users(@incident, :mitigation) : [],
+      assignable_pm_users: can_assign_to_incident? ? assignable_incident_users(@incident, :pm) : [],
       assignable_labor_users: can_manage_labor? ? assignable_labor_users(@incident) : [],
       equipment_types: can_manage_equipment? ? equipment_types_for_incident(@incident) : [],
       attachable_equipment_entries: can_manage_activities? ? attachable_equipment_entries(@incident) : [],
@@ -369,34 +366,31 @@ class IncidentsController < ApplicationController
     result
   end
 
-  def assignable_incident_users(incident)
-    scope = if mitigation_admin?
-      User.where(active: true, organization_id: [ incident.property.mitigation_org_id, incident.property.property_management_org_id ])
-    else
-      User.where(active: true, organization_id: current_user.organization_id)
-    end
+  def assignable_incident_users(incident, org_type)
+    org_id = org_type == :mitigation ? incident.property.mitigation_org_id : incident.property.property_management_org_id
 
-    scope.where.not(id: incident.assigned_user_ids)
+    # PM users can only assign within their own org
+    return [] if current_user.pm_user? && current_user.organization_id != org_id
+
+    User.where(active: true, organization_id: org_id)
+      .where.not(id: incident.assigned_user_ids)
       .order(:last_name, :first_name)
       .map { |u| { id: u.id, full_name: u.full_name, role_label: User::ROLE_LABELS[u.user_type] } }
   end
 
-  def assigned_team_groups(assignments)
-    assignments.group_by { |a| a.user.organization.name }.map do |org_name, group|
+  TEAM_SORT_ORDER = [ User::MANAGER, User::OFFICE_SALES, User::TECHNICIAN, User::PM_MANAGER, User::AREA_MANAGER, User::PROPERTY_MANAGER ].freeze
+
+  def serialize_team_users(assignments)
+    assignments.sort_by { |a| [ TEAM_SORT_ORDER.index(a.user.user_type) || 99, a.user.last_name ] }.map do |a|
       {
-        organization_name: org_name,
-        users: group.map { |a|
-          {
-            id: a.user.id,
-            assignment_id: a.id,
-            full_name: a.user.full_name,
-            initials: a.user.initials,
-            role_label: User::ROLE_LABELS[a.user.user_type],
-            email: a.user.email_address,
-            phone: a.user.phone,
-            remove_path: can_remove_assignment?(a.user) ? incident_assignment_path(@incident, a) : nil
-          }
-        }
+        id: a.user.id,
+        assignment_id: a.id,
+        full_name: a.user.full_name,
+        initials: a.user.initials,
+        role_label: User::ROLE_LABELS[a.user.user_type],
+        email: a.user.email_address,
+        phone: a.user.phone,
+        remove_path: can_remove_assignment?(a.user) ? incident_assignment_path(@incident, a) : nil
       }
     end
   end

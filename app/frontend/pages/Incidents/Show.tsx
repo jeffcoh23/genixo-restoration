@@ -53,7 +53,8 @@ export default function IncidentShow() {
     can_manage_activities = false,
     can_manage_labor = false,
     can_manage_equipment = false,
-    assignable_users = [],
+    assignable_mitigation_users = [],
+    assignable_pm_users = [],
     assignable_labor_users = [],
     equipment_types = [],
     attachable_equipment_entries = [],
@@ -267,7 +268,8 @@ export default function IncidentShow() {
               incident={incident}
               can_assign={can_assign}
               can_manage_contacts={can_manage_contacts}
-              assignable_users={assignable_users}
+              assignable_mitigation_users={assignable_mitigation_users}
+              assignable_pm_users={assignable_pm_users}
             />
           )}
         </RightPanelShell>
