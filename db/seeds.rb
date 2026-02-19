@@ -62,9 +62,10 @@ genixo_user_data = [
   { key: :john,     first_name: "John",     last_name: "Tucker",  email_address: "jtucker@genixoconstruction.com", user_type: "manager",   phone: "657-414-9166" },
   { key: :anthony,  first_name: "Anthony",  last_name: "Wagner",  email_address: "awagner@genixoconstruction.com", user_type: "manager",   phone: "405-742-7066" },
   { key: :gordon,   first_name: "Gordon",   last_name: "Ward",    email_address: "gward@genixoconstruction.com",   user_type: "manager",   phone: "210-777-8686" },
-  # Technicians (2)
-  { key: :henry,    first_name: "Henry",    last_name: "Tello",   email_address: "htello@genixoconstruction.com",  user_type: "technician", phone: "346-412-8623" },
-  { key: :zachary,  first_name: "Zachary",  last_name: "Meyer",   email_address: "zmeyer@genixoconstruction.com",  user_type: "technician", phone: "512-308-8872" },
+  # Technicians (3)
+  { key: :henry,    first_name: "Henry",    last_name: "Tello",     email_address: "htello@genixoconstruction.com",    user_type: "technician", phone: "346-412-8623" },
+  { key: :zachary,  first_name: "Zachary",  last_name: "Meyer",     email_address: "zmeyer@genixoconstruction.com",    user_type: "technician", phone: "512-308-8872" },
+  { key: :salvador, first_name: "Salvador", last_name: "Galdamez",  email_address: "sgaldamez@genixoconstruction.com", user_type: "technician", phone: "210-555-0188" },
   # Office/Sales (5)
   { key: :chrystie, first_name: "Chrystie", last_name: "Butler",  email_address: "cbutler@genixoconstruction.com", user_type: "office_sales", phone: "281-825-1725" },
   { key: :emily,    first_name: "Emily",    last_name: "Northern", email_address: "enorthern@genixoconstruction.com", user_type: "office_sales", phone: "512-364-2369" },
@@ -585,6 +586,191 @@ if Incident.count.zero?
   # Note: Operational notes are not used — all DFR content is captured in activity entry details.
 
   puts "  Incident 3 (Smoke Damage — Completed): created"
+
+  # --------------------------------------------------------------------------
+  # Incident 4: DFR-scale flood at Townhomes at Double Creek (8 units)
+  # Matches the sample Daily Field Report reference document.
+  # --------------------------------------------------------------------------
+
+  double_creek = Property.find_or_create_by!(name: "Townhomes at Double Creek") do |p|
+    p.property_management_org = greystar
+    p.mitigation_org = genixo
+    p.street_address = "3801 Timberloch Place"
+    p.city = "The Woodlands"
+    p.state = "TX"
+    p.zip = "77380"
+    p.unit_count = 120
+  end
+
+  PropertyAssignment.find_or_create_by!(user: users[:jane], property: double_creek)
+  PropertyAssignment.find_or_create_by!(user: users[:tom], property: double_creek)
+
+  incident4 = Incident.create!(
+    property: double_creek,
+    created_by_user: users[:jane],
+    status: "active",
+    project_type: "emergency_response",
+    emergency: true,
+    damage_type: "flood",
+    job_id: "GCM-2026-051",
+    description: "Major water damage affecting 8 units across multiple floors. Initial flood from supply line break has caused cascading water intrusion. Some units have experienced multiple reflooding events. Microbial growth discovered in several units after baseboard removal. Third-party environmental assessment underway.",
+    cause: "Supply line break with cascading water intrusion across floors",
+    requested_next_steps: "Continue drying operations. Awaiting protocol from Protean Services for microbial remediation in affected units. Maintain dehumidifiers in units awaiting protocol.",
+    units_affected: 8,
+    affected_room_numbers: "704, 803, 804, 805, 806, 1502, 2601, 3103",
+    last_activity_at: now - 6.hours,
+    created_at: now - 10.days
+  )
+
+  auto_assign.call(incident4, users[:jane], double_creek)
+  IncidentAssignment.create!(incident: incident4, user: users[:salvador], assigned_by_user: users[:gordon])
+
+  # Activity timeline
+  ActivityEvent.create!(incident: incident4, event_type: "incident_created", performed_by_user: users[:jane],
+    metadata: { project_type: "emergency_response", damage_type: "flood" }, created_at: now - 10.days)
+  ActivityEvent.create!(incident: incident4, event_type: "status_changed", performed_by_user: users[:gordon],
+    metadata: { old_status: "new", new_status: "active" }, created_at: now - 10.days + 1.hour)
+
+  # Equipment — fans and dehumidifiers per unit matching DFR
+  equipment_placements = [
+    # Unit 704: 1 dehumidifier (fans removed pending protocol)
+    { type: "Dehumidifier", id_prefix: "DH-704", count: 1, location: "Unit 704, maintaining moisture levels", placed_days_ago: 8 },
+    # Unit 804: 1 dehumidifier
+    { type: "Dehumidifier", id_prefix: "DH-804", count: 1, location: "Unit 804, lowering moisture levels", placed_days_ago: 8 },
+    # Unit 3103: dry, fans moved to 2601 — removed equipment
+    # Unit 803: dry, equipment moved to 2601 — removed equipment
+    # Unit 1502: 5 fans, 2 dehumidifiers
+    { type: "Air Mover", id_prefix: "AM-1502", count: 5, location: "Unit 1502, drying process", placed_days_ago: 7 },
+    { type: "Dehumidifier", id_prefix: "DH-1502", count: 2, location: "Unit 1502, drying process", placed_days_ago: 7 },
+    # Unit 2601: 8 fans, 2 dehumidifiers (received extras from 803 and 3103)
+    { type: "Air Mover", id_prefix: "AM-2601", count: 8, location: "Unit 2601, multiple reflooding events", placed_days_ago: 7 },
+    { type: "Dehumidifier", id_prefix: "DH-2601", count: 2, location: "Unit 2601, multiple reflooding events", placed_days_ago: 7 },
+    # Unit 806: 4 fans, 1 dehumidifier
+    { type: "Air Mover", id_prefix: "AM-806", count: 4, location: "Unit 806, kitchen/hall/dining/living/bedroom", placed_days_ago: 1 },
+    { type: "Dehumidifier", id_prefix: "DH-806", count: 1, location: "Unit 806, kitchen area", placed_days_ago: 1 },
+    # Unit 805: 5 fans, 1 dehumidifier
+    { type: "Air Mover", id_prefix: "AM-805", count: 5, location: "Unit 805, reflooded overnight", placed_days_ago: 5 },
+    { type: "Dehumidifier", id_prefix: "DH-805", count: 1, location: "Unit 805, bathroom area", placed_days_ago: 5 }
+  ]
+
+  equipment_placements.each do |ep|
+    et = equipment_types[ep[:type]]
+    ep[:count].times do |i|
+      EquipmentEntry.create!(
+        incident: incident4,
+        equipment_type: et,
+        equipment_identifier: "#{ep[:id_prefix]}-#{i + 1}",
+        placed_at: now - ep[:placed_days_ago].days,
+        location_notes: ep[:location],
+        logged_by_user: users[:salvador]
+      )
+    end
+  end
+
+  # Removed equipment from dry units (803 and 3103)
+  [ "803", "3103" ].each do |unit|
+    2.times do |i|
+      EquipmentEntry.create!(
+        incident: incident4,
+        equipment_type: equipment_types["Air Mover"],
+        equipment_identifier: "AM-#{unit}-#{i + 1}",
+        placed_at: now - 8.days, removed_at: now - 1.day,
+        location_notes: "Unit #{unit} — moved to 2601",
+        logged_by_user: users[:salvador]
+      )
+    end
+    EquipmentEntry.create!(
+      incident: incident4,
+      equipment_type: equipment_types["Dehumidifier"],
+      equipment_identifier: "DH-#{unit}-1",
+      placed_at: now - 8.days, removed_at: now - 1.day,
+      location_notes: "Unit #{unit} — moved to 2601",
+      logged_by_user: users[:salvador]
+    )
+  end
+
+  # Labor entries matching DFR: 1 PM 8h, 1 Supervisor 8h, 3 Laborers 8h per day
+  [ 1, 2, 3 ].each do |days_ago|
+    log_date = (now - days_ago.days).to_date
+    LaborEntry.create!(incident: incident4, user: users[:gordon], created_by_user: users[:gordon],
+      role_label: "Project Manager", log_date: log_date, hours: 8.0,
+      started_at: log_date.beginning_of_day + 7.hours, ended_at: log_date.beginning_of_day + 15.hours,
+      notes: "On-site supervision and client coordination")
+    LaborEntry.create!(incident: incident4, user: users[:salvador], created_by_user: users[:salvador],
+      role_label: "Supervisor", log_date: log_date, hours: 8.0,
+      started_at: log_date.beginning_of_day + 7.hours, ended_at: log_date.beginning_of_day + 15.hours,
+      notes: "Crew supervision and equipment management")
+    3.times do |i|
+      LaborEntry.create!(incident: incident4, user: nil, created_by_user: users[:salvador],
+        role_label: "Laborer", log_date: log_date, hours: 8.0,
+        started_at: log_date.beginning_of_day + 7.hours, ended_at: log_date.beginning_of_day + 15.hours,
+        notes: "General labor — demolition, extraction, equipment setup")
+    end
+  end
+
+  # Activity entries — DFR-scale daily logs
+  dfr_day1 = ActivityEntry.create!(
+    incident: incident4,
+    performed_by_user: users[:salvador],
+    title: "Initial assessment and demolition across all units",
+    details: "704 – Extensive water damage throughout. Removed baseboards from dining room, kitchen, hallways, bedroom, and bathroom. Drilled weep holes at 16\" intervals in all affected walls. Extracted standing water with truck-mounted extractor. Set up 4 air movers and 1 dehumidifier for initial dry-down.\n\n804 – Damage pattern similar to 704. Removed baseboards from dining room, kitchen, hallway, bedroom, and bathroom. Significant moisture readings in all walls. Set up 4 air movers and 1 dehumidifier. Subfloor readings elevated — monitoring for plywood damage.\n\n805 – Water intrusion through bathroom. Carpet saturated in bedroom and hallway. Removed baseboards, drilled weep holes, extracted water. Set up 5 air movers and 1 dehumidifier. Bathroom tile grout needs resealing after drying.\n\n806 – Restricted access — residents had belongings inside. Coordinated with management for access tomorrow. Preliminary assessment through doorway shows standing water in kitchen and hallway.\n\n1502 – Active drying in progress. Unit has moderate water damage in kitchen and living areas. Removed baseboards, extracted water, set up 5 fans and 2 dehumidifiers. Drying is progressing normally.\n\n2601 – Most severely affected unit. Has been partially reflooded at least 3 times since initial event. Significant water damage throughout — kitchen, living room, hallway, both bedrooms. Carpet pad destroyed. Removed all baseboards, drilled weep holes throughout. Set up 4 air movers and 2 dehumidifiers. This unit will require the longest drying time.\n\n803 – Moderate water damage in bathroom and adjacent bedroom. Set up 2 air movers and 1 dehumidifier. Responding well to treatment.\n\n3103 – Light water damage in kitchen area. Set up 2 air movers. Expected to dry quickly.",
+    units_affected: 8,
+    units_affected_description: "Units 704, 803, 804, 805, 806, 1502, 2601, 3103",
+    visitors: "Safety meeting conducted on site",
+    usable_rooms_returned: "None",
+    estimated_date_of_return: nil,
+    status: "completed",
+    occurred_at: now - 3.days + 8.hours
+  )
+
+  dfr_day1_actions = [
+    { action_type: "add", quantity: 22, equipment_type: equipment_types["Air Mover"], note: "Distributed across all 8 units" },
+    { action_type: "add", quantity: 9, equipment_type: equipment_types["Dehumidifier"], note: "1-2 per unit based on severity" }
+  ]
+  dfr_day1_actions.each { |a| ActivityEquipmentAction.create!(activity_entry: dfr_day1, **a) }
+
+  dfr_day2 = ActivityEntry.create!(
+    incident: incident4,
+    performed_by_user: users[:salvador],
+    title: "Moisture readings, microbial discovery, and equipment adjustment",
+    details: "704 – Discovered extensive microbial growth after removing baseboards from dining room, kitchen, hallways, bedroom, and bathroom. Tommy Thacker with Protean Services will return to assess the unit on Monday 2-2-26. Removed fans per protocol — maintaining 1 dehumidifier to control moisture levels until remediation protocol is received.\n\n804 – Unit damages are similar to unit 704. Discovered extensive microbial growth after removing baseboards from the dining room, kitchen, hallway, bedroom, and bathroom. Tommy Thacker with Protean Services assessed this unit yesterday. Currently 1 dehumidifier running to lower moisture levels until protocol received.\n\n805 – Unit reflooded overnight. The shower faucet was on and when water was restored, it splashed onto the floor because there's no curtain to stop it. We extracted and reset equipment. 5 fans and 1 dehumidifier in the unit.\n\n806 – Residents removed the remainder of their stuff today. They could not remove their car from the garage — it would not start. Just before residents arrived, unit was partially reflooded in the kitchen, hall, dining, living, and bedroom similar to the initial leak. The leak was coming from somewhere above the hall connecting dining to the kitchen. Once we extracted the bulk water, we set fans and dry mopped. Removed baseboards, drilled holes, wet ceiling drywall, and insulation. 4 fans and 1 dehumidifier in the unit.\n\n1502 – Unit is in the drying process. Good progress on moisture readings. 5 fans and 2 dehumidifiers running.\n\n2601 – Unit is in the drying process. This unit has partially reflooded at least 3 times since Wednesday. The leaks seem to have been resolved — no new water discovered today. We added an extra dehumidifier from unit 803 and 4 fans from 3103 since the central heater is not working, to help dry over the weekend. This unit has shown little drying progress due to multiple water intrusions. 8 fans and 2 dehumidifiers.\n\n803 – Occupied. This unit is now dry. We removed the 1 fan from bedroom and 1 dehumidifier from bathroom, and moved to 2601.\n\n3103 – Unit is dry. Moved fans to 2601.\n\nAdditional notes: Some units are without water / power in building.",
+    units_affected: 8,
+    units_affected_description: "Units 704, 803, 804, 805, 806, 1502, 2601, 3103",
+    visitors: "Tommy Thacker — Protean Services (environmental assessment)",
+    usable_rooms_returned: "None",
+    estimated_date_of_return: nil,
+    status: "in_progress",
+    occurred_at: now - 1.day + 8.hours
+  )
+
+  dfr_day2_actions = [
+    { action_type: "remove", quantity: 2, equipment_type: equipment_types["Air Mover"], note: "Removed from 803 — unit is dry, moved to 2601" },
+    { action_type: "remove", quantity: 1, equipment_type: equipment_types["Dehumidifier"], note: "Removed from 803 — moved to 2601" },
+    { action_type: "remove", quantity: 2, equipment_type: equipment_types["Air Mover"], note: "Removed from 3103 — unit is dry, moved to 2601" },
+    { action_type: "add", quantity: 4, equipment_type: equipment_types["Air Mover"], note: "Added to 2601 from 3103" },
+    { action_type: "add", quantity: 1, equipment_type: equipment_types["Dehumidifier"], note: "Added to 2601 from 803" },
+    { action_type: "remove", quantity: 3, equipment_type: equipment_types["Air Mover"], note: "Removed fans from 704 pending microbial protocol" }
+  ]
+  dfr_day2_actions.each { |a| ActivityEquipmentAction.create!(activity_entry: dfr_day2, **a) }
+
+  [ dfr_day1, dfr_day2 ].each do |entry|
+    ActivityEvent.create!(incident: incident4, event_type: "activity_logged",
+      performed_by_user: users[:salvador], metadata: { title: entry.title, status: entry.status },
+      created_at: entry.occurred_at)
+  end
+
+  # Messages
+  [
+    { user: :jane,  body: "Multiple units affected by flooding. Please prioritize assessment of all units and let us know what we're looking at in terms of timeline.", at: now - 10.days },
+    { user: :gordon, body: "Salvador and crew are on site. Initial assessment underway across all 8 units. Will have a full report by end of day.", at: now - 10.days + 2.hours },
+    { user: :salvador, body: "Found microbial growth in units 704 and 804 after removing baseboards. Protean Services has been contacted for environmental assessment. Maintaining dehumidifiers in those units but removing fans per protocol until we get clearance.", at: now - 2.days },
+    { user: :gordon, body: "Unit 2601 continues to be the most problematic — third reflooding event this week. We've consolidated equipment from the dry units (803, 3103) into 2601 to accelerate drying. Source of repeat flooding appears to be resolved now.", at: now - 1.day },
+    { user: :jane, body: "Residents in 806 are asking about their car in the garage — it won't start. Can your team help coordinate a tow? Also, any update on when Protean will have the protocol for 704 and 804?", at: now - 12.hours }
+  ].each do |msg|
+    Message.create!(incident: incident4, user: users[msg[:user]], body: msg[:body], created_at: msg[:at])
+  end
+
+  puts "  Incident 4 (DFR-scale Flood — 8 Units — Active): created"
 end
 
 # ==========================================================================
