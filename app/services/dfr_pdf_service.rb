@@ -42,14 +42,14 @@ class DfrPdfService
 
     data = [
       [ label_cell("Site Name:"), property.name, label_cell("Job Name:"), property.name ],
-      [label_cell("Job Number:"), @incident.job_id || "—", label_cell("Date:"), @date.strftime("%-m/%-d/%y")],
-      [label_cell("Project Manager:"), manager&.full_name || "—", label_cell("Superintendent:"), superintendent&.full_name || "—"],
-      [label_cell("Visitors:"), visitors_for_date || "—", label_cell("Status:"), @incident.display_status_label]
+      [ label_cell("Job Number:"), @incident.job_id || "—", label_cell("Date:"), @date.strftime("%-m/%-d/%y") ],
+      [ label_cell("Project Manager:"), manager&.full_name || "—", label_cell("Superintendent:"), superintendent&.full_name || "—" ],
+      [ label_cell("Visitors:"), visitors_for_date || "—", label_cell("Status:"), @incident.display_status_label ]
     ]
 
     pdf.table(data, width: pdf.bounds.width) do |t|
       t.cells.borders = []
-      t.cells.padding = [3, 5, 3, 5]
+      t.cells.padding = [ 3, 5, 3, 5 ]
       t.cells.size = 10
       t.columns(0).width = 110
       t.columns(2).width = 110
@@ -85,7 +85,7 @@ class DfrPdfService
         end
 
         activity.equipment_actions.includes(:equipment_type).each do |action|
-          parts = [action_label(action.action_type), action.quantity, action.type_name, action.note].compact
+          parts = [ action_label(action.action_type), action.quantity, action.type_name, action.note ].compact
           pdf.indent(15) { pdf.text "— #{parts.join(' ')}", color: "555555" }
         end
       end
@@ -121,11 +121,11 @@ class DfrPdfService
     usable_returned = activity&.usable_rooms_returned
     edr = activity&.estimated_date_of_return || @incident.estimated_date_of_return
 
-    fields << ["Number of Units Affected:", "#{units}#{units_desc.present? ? " — #{units_desc}" : ""}"] if units.present?
-    fields << ["Affected Room Numbers:", rooms] if rooms.present?
-    fields << ["Visitors:", visitors] if visitors.present?
-    fields << ["Usable Rooms Returned:", usable_returned.presence || "None"] if usable_returned.present? || units.present?
-    fields << ["Estimated Date of Return:", edr.present? ? edr.strftime("%-m/%-d/%y") : "TBD"] if units.present?
+    fields << [ "Number of Units Affected:", "#{units}#{units_desc.present? ? " — #{units_desc}" : ""}" ] if units.present?
+    fields << [ "Affected Room Numbers:", rooms ] if rooms.present?
+    fields << [ "Visitors:", visitors ] if visitors.present?
+    fields << [ "Usable Rooms Returned:", usable_returned.presence || "None" ] if usable_returned.present? || units.present?
+    fields << [ "Estimated Date of Return:", edr.present? ? edr.strftime("%-m/%-d/%y") : "TBD" ] if units.present?
 
     return if fields.empty?
 
@@ -155,7 +155,7 @@ class DfrPdfService
     by_role = labor.group_by(&:role_label).map do |role, entries|
       count = entries.map { |e| e.user_id || e.created_by_user_id }.uniq.size
       hours = entries.sum(&:hours)
-      [count, role, hours]
+      [ count, role, hours ]
     end
 
     by_role.each do |count, role, hours|
@@ -190,7 +190,7 @@ class DfrPdfService
       images_in_row.each_with_index do |img, i|
         x = i.even? ? 0 : (pdf.bounds.width / 2) + 10
         begin
-          pdf.image img[:file], at: [x, pdf.cursor], width: img[:width]
+          pdf.image img[:file], at: [ x, pdf.cursor ], width: img[:width]
         rescue StandardError
           # Skip unreadable images
         end
