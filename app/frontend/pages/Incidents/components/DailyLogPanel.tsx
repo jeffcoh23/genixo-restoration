@@ -68,7 +68,7 @@ export default function DailyLogPanel({
     return map;
   }, [labor_entries]);
 
-  // Enrich date groups with precomputed labor summaries
+  // Enrich date groups with precomputed labor summaries and latest situation
   const dateGroups = useMemo(() => {
     const groups = daily_log_table_groups.map((group) => {
       const dateLaborEntries = laborByDate[group.date_key] || [];
@@ -87,10 +87,22 @@ export default function DailyLogPanel({
         hours: Math.round(data.hours * 10) / 10,
       }));
 
+      // Latest situation from most recent activity row with metadata
+      const activityRows = group.rows.filter((row) => row.row_type === "activity");
+      const latestWithMeta = [...activityRows].reverse().find(
+        (row) => row.units_label !== "—" || row.visitors || row.usable_rooms_returned || row.estimated_date_of_return
+      );
+
       return {
         ...group,
-        activityRows: group.rows.filter((row) => row.row_type === "activity"),
+        activityRows,
         laborByRole,
+        situation: latestWithMeta ? {
+          units_label: latestWithMeta.units_label !== "—" ? latestWithMeta.units_label : null,
+          visitors: latestWithMeta.visitors || null,
+          usable_rooms_returned: latestWithMeta.usable_rooms_returned || null,
+          estimated_date_of_return: latestWithMeta.estimated_date_of_return || null,
+        } : null,
       };
     }).filter((g) => g.activityRows.length > 0 || g.laborByRole.length > 0);
 
@@ -189,13 +201,7 @@ export default function DailyLogPanel({
                       const isExpanded = isRowExpanded(row.id);
                       const hasDetail = row.detail_label !== "—" && row.detail_label.length > 0;
                       const isLong = hasDetail && row.detail_label.length > 120;
-                      const hasRowMetadata = (
-                        row.units_label !== "—" ||
-                        row.visitors ||
-                        row.usable_rooms_returned ||
-                        row.estimated_date_of_return
-                      );
-                      const isExpandable = isLong || hasRowMetadata;
+                      const isExpandable = isLong;
 
                       return (
                         <div
@@ -203,7 +209,6 @@ export default function DailyLogPanel({
                           className={isExpandable ? "cursor-pointer hover:bg-muted transition-colors" : ""}
                           onClick={isExpandable ? () => toggleRow(row.id) : undefined}
                         >
-                          {/* Row header */}
                           <div className="flex items-start gap-2 px-3 py-2">
                             <div className="w-[80px] shrink-0 text-xs text-muted-foreground pt-0.5">{row.time_label}</div>
                             <div className="flex-1 min-w-0">
@@ -237,38 +242,6 @@ export default function DailyLogPanel({
                               )}
                             </div>
                           </div>
-
-                          {/* Expanded row-specific metadata */}
-                          {isExpanded && hasRowMetadata && (
-                            <div className="px-3 pb-3 ml-[80px] pl-5">
-                              <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs">
-                                {row.units_label !== "—" && (
-                                  <span>
-                                    <span className="text-muted-foreground">Units </span>
-                                    <span className="text-foreground">{row.units_label}</span>
-                                  </span>
-                                )}
-                                {row.visitors && (
-                                  <span>
-                                    <span className="text-muted-foreground">Visitors </span>
-                                    <span className="text-foreground">{row.visitors}</span>
-                                  </span>
-                                )}
-                                {row.usable_rooms_returned && (
-                                  <span>
-                                    <span className="text-muted-foreground">Rooms Returned </span>
-                                    <span className="text-foreground">{row.usable_rooms_returned}</span>
-                                  </span>
-                                )}
-                                {row.estimated_date_of_return && (
-                                  <span>
-                                    <span className="text-muted-foreground">Est. Return </span>
-                                    <span className="text-foreground">{row.estimated_date_of_return}</span>
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          )}
                         </div>
                       );
                     })}
@@ -276,7 +249,7 @@ export default function DailyLogPanel({
                 )}
 
                 {/* Group-level resource summary */}
-                {(hasEquipment || hasLabor) && (
+                {(hasEquipment || hasLabor || group.situation) && (
                   <div className="border-t border-border bg-muted px-3 py-2.5">
                     <div className="flex flex-wrap gap-x-10 gap-y-2 text-xs">
                       {hasEquipment && (
@@ -301,6 +274,30 @@ export default function DailyLogPanel({
                               </div>
                             ))}
                           </div>
+                        </div>
+                      )}
+                      {group.situation?.units_label && (
+                        <div>
+                          <div className="text-muted-foreground uppercase tracking-wide font-semibold mb-1">Units Affected</div>
+                          <div className="text-foreground">{group.situation.units_label}</div>
+                        </div>
+                      )}
+                      {group.situation?.visitors && (
+                        <div>
+                          <div className="text-muted-foreground uppercase tracking-wide font-semibold mb-1">Visitors</div>
+                          <div className="text-foreground">{group.situation.visitors}</div>
+                        </div>
+                      )}
+                      {group.situation?.usable_rooms_returned && (
+                        <div>
+                          <div className="text-muted-foreground uppercase tracking-wide font-semibold mb-1">Rooms Returned</div>
+                          <div className="text-foreground">{group.situation.usable_rooms_returned}</div>
+                        </div>
+                      )}
+                      {group.situation?.estimated_date_of_return && (
+                        <div>
+                          <div className="text-muted-foreground uppercase tracking-wide font-semibold mb-1">Est. Return</div>
+                          <div className="text-foreground">{group.situation.estimated_date_of_return}</div>
                         </div>
                       )}
                     </div>

@@ -157,8 +157,9 @@ class IncidentsController < ApplicationController
         property: {
           id: property.id,
           name: property.name,
-          address: property.short_address,
-          path: property_path(property)
+          address: property.format_address,
+          path: property_path(property),
+          organization_name: property.property_management_org.name
         },
         deployed_equipment: deployed_equipment,
         assignments_path: incident_assignments_path(@incident),
@@ -636,7 +637,7 @@ class IncidentsController < ApplicationController
       }
     end
 
-    equip_summary = @incident ? equipment_summary_for_incident(@incident) : []
+    equip_by_date = @incident ? equipment_summary_by_date(@incident) : {}
 
     # Precompute labor hours per date for the group header
     labor_hours_by_date = labor_entries.each_with_object(Hash.new(0.0)) do |entry, map|
@@ -649,35 +650,58 @@ class IncidentsController < ApplicationController
         -parsed.to_f
       end
 
+      date_equip = equip_by_date[date_key] || []
+
       {
         date_key: date_key,
         date_label: format_date(Time.zone.parse("#{date_key}T00:00:00")),
         rows: rows,
-        equipment_summary: equip_summary,
+        equipment_summary: date_equip,
         total_labor_hours: labor_hours_by_date[date_key].round(1),
-        total_equip_count: equip_summary.sum { |e| e[:count] }
+        total_equip_count: date_equip.sum { |e| e[:count] }
       }
     end
   end
 
-  def equipment_summary_for_incident(incident)
+  def equipment_summary_by_date(incident)
     entries = incident.equipment_entries.includes(:equipment_type)
-    return [] if entries.empty?
+    return {} if entries.empty?
 
-    buckets = {}
-    entries.each do |entry|
-      type_name = entry.type_name.to_s.strip
-      next if type_name.blank?
+    # Collect all dates that have activity in the daily log
+    all_dates = entries.flat_map { |e|
+      dates = [ e.placed_at.to_date ]
+      dates << e.removed_at.to_date if e.removed_at
+      dates
+    }.uniq.sort
 
-      key = type_name.downcase
-      bucket = buckets[key] ||= { type_name: type_name, count: 0, hours: 0.0 }
-      bucket[:count] += 1
-      bucket[:hours] += (((entry.removed_at || Time.current) - entry.placed_at) / 1.hour).round(1)
+    all_dates.each_with_object({}) do |date, result|
+      date_key = date.iso8601
+      buckets = {}
+
+      entries.each do |entry|
+        # Equipment is active on this date if placed on or before this date and not yet removed (or removed on/after this date)
+        next if entry.placed_at.to_date > date
+        next if entry.removed_at && entry.removed_at.to_date < date
+
+        type_name = entry.type_name.to_s.strip
+        next if type_name.blank?
+
+        key = type_name.downcase
+        bucket = buckets[key] ||= { type_name: type_name, count: 0, hours: 0.0 }
+        bucket[:count] += 1
+
+        # Hours for this date: from start of day (or placed_at) to end of day (or removed_at)
+        day_start = [ entry.placed_at, date.beginning_of_day ].max
+        day_end = [ entry.removed_at || Time.current, date.end_of_day ].min
+        bucket[:hours] += ((day_end - day_start) / 1.hour).round(1)
+      end
+
+      next if buckets.empty?
+
+      result[date_key] = buckets.values
+        .sort_by { |b| [ -b[:count], b[:type_name] ] }
+        .map { |b| { type_name: b[:type_name], count: b[:count], hours: b[:hours].round(1) } }
     end
-
-    buckets.values
-      .sort_by { |b| [ -b[:count], b[:type_name] ] }
-      .map { |b| { type_name: b[:type_name], count: b[:count], hours: b[:hours].round(1) } }
   end
 
   def daily_activity_units_label(activity)

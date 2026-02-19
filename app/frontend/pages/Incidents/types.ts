@@ -257,6 +257,7 @@ export interface IncidentDetail {
     name: string;
     address: string | null;
     path: string;
+    organization_name: string;
   };
   deployed_equipment: {
     id: string;
