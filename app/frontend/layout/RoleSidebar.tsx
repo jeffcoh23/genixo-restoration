@@ -54,7 +54,7 @@ export default function RoleSidebar({ onNavigate }: { onNavigate: () => void }) 
                 transition-colors
                 ${isActive
                   ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                  : "text-sidebar-foreground hover:bg-muted"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent/50"
                 }
               `}
             >
@@ -73,17 +73,17 @@ export default function RoleSidebar({ onNavigate }: { onNavigate: () => void }) 
         <div className="text-sm font-medium text-sidebar-foreground">
           {user.full_name}
         </div>
-        <div className="text-xs text-muted-foreground">
+        <div className="text-xs text-sidebar-muted-foreground">
           {user.organization_name}
         </div>
-        <div className="text-xs text-muted-foreground">
+        <div className="text-xs text-sidebar-muted-foreground">
           {user.role_label}
         </div>
         <Button
           variant="ghost"
           size="sm"
           onClick={handleLogout}
-          className="mt-2 h-auto p-0 flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground"
+          className="mt-2 h-auto p-0 flex items-center gap-2 text-xs text-sidebar-muted-foreground hover:text-sidebar-foreground"
         >
           <LogOut className="h-3 w-3" />
           Log out

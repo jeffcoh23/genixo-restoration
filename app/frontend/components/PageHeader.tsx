@@ -18,7 +18,7 @@ export default function PageHeader({ title, backLink, action }: PageHeaderProps)
         </div>
       )}
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold text-foreground">{title}</h1>
+        <h1 className="text-2xl font-bold text-foreground">{title}</h1>
         {action && (
           action.href ? (
             <Button asChild>

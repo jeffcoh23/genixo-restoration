@@ -9,7 +9,7 @@ export default function DetailList({ children, emptyMessage, isEmpty }: DetailLi
     return <p className="text-sm text-muted-foreground">{emptyMessage || "None."}</p>;
   }
 
-  return <div className="rounded-md border divide-y">{children}</div>;
+  return <div className="rounded-lg border shadow-sm divide-y">{children}</div>;
 }
 
 export function DetailRow({ children }: { children: React.ReactNode }) {

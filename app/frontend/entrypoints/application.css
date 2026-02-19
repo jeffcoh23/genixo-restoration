@@ -4,54 +4,62 @@
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
-  --radius: 0.25rem;
+  --radius: 0.5rem;
 
-  /* Primary — Genixo brand teal */
-  --color-primary: hsl(187 70% 34%);
+  /* Primary — Genixo brand teal (deeper, richer) */
+  --color-primary: hsl(187 65% 32%);
   --color-primary-foreground: hsl(0 0% 100%);
 
   /* Secondary */
-  --color-secondary: hsl(210 8% 95%);
-  --color-secondary-foreground: hsl(210 10% 12%);
+  --color-secondary: hsl(220 10% 95%);
+  --color-secondary-foreground: hsl(224 10% 14%);
 
   /* Accent */
-  --color-accent: hsl(187 15% 93%);
-  --color-accent-foreground: hsl(187 70% 25%);
+  --color-accent: hsl(187 12% 93%);
+  --color-accent-foreground: hsl(187 65% 24%);
 
   /* Muted */
-  --color-muted: hsl(210 8% 93%);
-  --color-muted-foreground: hsl(210 5% 46%);
+  --color-muted: hsl(220 12% 93.5%);
+  --color-muted-foreground: hsl(220 6% 44%);
 
-  /* Neutrals — cool-tinted grays for surface depth */
-  --color-background: hsl(210 12% 96.5%);
-  --color-foreground: hsl(210 10% 12%);
+  /* Neutrals — warm-tinted grays for surface depth */
+  --color-background: hsl(220 14% 96%);
+  --color-foreground: hsl(224 10% 14%);
   --color-card: hsl(0 0% 100%);
-  --color-card-foreground: hsl(210 10% 12%);
+  --color-card-foreground: hsl(224 10% 14%);
   --color-popover: hsl(0 0% 100%);
-  --color-popover-foreground: hsl(210 10% 12%);
-  --color-border: hsl(210 10% 87%);
-  --color-input: hsl(210 10% 87%);
-  --color-ring: hsl(187 70% 34%);
+  --color-popover-foreground: hsl(224 10% 14%);
+  --color-border: hsl(220 10% 90%);
+  --color-input: hsl(220 10% 88%);
+  --color-ring: hsl(187 65% 32%);
 
   /* Semantic */
-  --color-destructive: hsl(0 84% 60%);
+  --color-destructive: hsl(0 72% 51%);
   --color-destructive-foreground: hsl(0 0% 100%);
 
   /* Status colors */
-  --color-status-emergency: hsl(0 84% 60%);
+  --color-status-emergency: hsl(0 72% 51%);
   --color-status-warning: hsl(38 92% 50%);
-  --color-status-success: hsl(142 76% 36%);
+  --color-status-success: hsl(152 60% 36%);
   --color-status-info: hsl(199 89% 48%);
-  --color-status-quote: hsl(270 50% 60%);
-  --color-status-completed: hsl(142 40% 50%);
-  --color-status-neutral: hsl(0 0% 55%);
+  --color-status-quote: hsl(262 52% 57%);
+  --color-status-completed: hsl(152 36% 48%);
+  --color-status-neutral: hsl(220 6% 55%);
 
-  /* Sidebar */
-  --color-sidebar: hsl(0 0% 98%);
-  --color-sidebar-foreground: hsl(0 0% 9%);
-  --color-sidebar-border: hsl(0 0% 90%);
-  --color-sidebar-accent: hsl(187 15% 95%);
-  --color-sidebar-accent-foreground: hsl(187 70% 25%);
+  /* Sidebar — dark for visual anchor */
+  --color-sidebar: hsl(222 20% 16%);
+  --color-sidebar-foreground: hsl(220 10% 85%);
+  --color-sidebar-border: hsl(222 15% 22%);
+  --color-sidebar-accent: hsl(222 15% 22%);
+  --color-sidebar-accent-foreground: hsl(0 0% 100%);
+  --color-sidebar-muted-foreground: hsl(220 8% 58%);
+
+  /* Warm-tinted shadows */
+  --shadow-2xs: 0 1px hsl(220 14% 60% / 0.05);
+  --shadow-xs: 0 1px 2px 0 hsl(220 14% 60% / 0.05);
+  --shadow-sm: 0 1px 3px 0 hsl(220 14% 60% / 0.08), 0 1px 2px -1px hsl(220 14% 60% / 0.08);
+  --shadow-md: 0 4px 6px -1px hsl(220 14% 60% / 0.08), 0 2px 4px -2px hsl(220 14% 60% / 0.08);
+  --shadow-lg: 0 10px 15px -3px hsl(220 14% 60% / 0.08), 0 4px 6px -4px hsl(220 14% 60% / 0.08);
 }
 
 @layer base {

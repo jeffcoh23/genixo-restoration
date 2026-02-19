@@ -19,7 +19,7 @@ export default function DataTable<T>({ columns, rows, keyFn, emptyMessage }: Dat
   }
 
   return (
-    <div className="rounded-md border">
+    <div className="rounded-lg border shadow-sm">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b bg-muted/50">
