@@ -283,16 +283,16 @@ Complete the app for production use.
 
 ### Unread Tracking
 
-- [ ] `IncidentReadState` — lazy creation, timestamp updates on tab view (see BUSINESS_RULES.md §11)
-- [ ] `DashboardService#unread_counts` — bulk aggregation (see ARCHITECTURE.md §5)
-- [ ] Unread badges — dashboard cards + sidebar dot
-- [ ] Tests — read states, count accuracy
+- [x] `IncidentReadState` — lazy creation, timestamp updates on tab view (see BUSINESS_RULES.md §11)
+- [x] `DashboardService#unread_counts` — bulk aggregation (see ARCHITECTURE.md §5)
+- [x] Unread badges — dashboard cards, tab badges, sidebar dot
+- [x] Tests — read states, count accuracy
 
 ### Daily Digest
 
-- [ ] `DailyDigestJob` — Solid Queue recurring, timezone-correct (see ARCHITECTURE.md §Background Jobs)
-- [ ] `DailyDigestMailer` — yesterday's activity summary per user
-- [ ] Tests — content, timezone, preferences
+- [x] `DailyDigestJob` — Solid Queue recurring, timezone-correct (see ARCHITECTURE.md §Background Jobs)
+- [x] `DailyDigestMailer` — yesterday's activity summary per user
+- [x] Tests — content, timezone, preferences
 
 ### Equipment Type Management
 
@@ -306,8 +306,8 @@ Complete the app for production use.
 
 ### Password Reset
 
-- [ ] Password reset flow — request, email, reset form, token expiry
-- [ ] "Forgot password?" link on login page
+- [x] Password reset flow — request, email, reset form, token expiry
+- [x] "Forgot password?" link on login page
 
 ### Timezone Handling
 
@@ -318,10 +318,22 @@ Complete the app for production use.
 
 - [x] Empty states for all lists and panels (see VIEWS.md §Empty States)
 
-### UI Audit & Composable Design System Cleanup
+### Phase 6A: Token Refresh (CSS-only, no component changes)
 
-- [x] Full-site UI ugliness/composability audit documented in `docs/UI_AUDIT.md`
-- [ ] Replace ugly default flash messages with a polished toast/notification component (auto-dismiss, styled per DESIGN.md)
+Update `application.css` tokens and global styles. Zero component code changes — the whole app gets prettier instantly.
+
+- [ ] Refresh DESIGN.md with "warm & polished" direction — new color palette, typography, shadow/depth system
+- [ ] Audit every page against new design tokens, document findings in `docs/UI_AUDIT.md`
+- [ ] Update `application.css` — new color tokens, warmer neutrals, richer shadows, refined borders
+- [ ] Typography refresh — font pairing, weight hierarchy, size tuning
+- [ ] Status color tuning — better contrast and vibrancy against warm backgrounds
+- [ ] Deploy and visual QA — verify token changes look good across all pages
+
+### Phase 6B: Structural Polish (component + layout changes)
+
+Component-level work. Only start after 6A is deployed and validated.
+
+- [ ] Replace ugly default flash messages with a polished toast/notification component
 - [ ] Build missing primitives: `Select`, `Textarea`, `Tabs`, `Dialog/Sheet`, reusable `EmptyStateCard`
 - [ ] Add composable layout primitives: `SectionCard`, `CardTable`, `EntityHeader`, standardized section actions
 - [ ] Refactor `DataTable`, `DetailList`, and `StatusBadge` to match DESIGN.md surface + hierarchy rules
@@ -329,6 +341,7 @@ Complete the app for production use.
 - [ ] Centralize status + relative time presentation (`statusColor` + `timeAgo`) into shared UI helpers
 - [ ] Migrate high-traffic pages first: Dashboard, Incidents Index, Incident Show (all right-panel tabs)
 - [ ] Migrate remaining CRUD/detail pages to the composable system (Organizations, Properties, Users, Settings, Invitations)
+- [ ] Redesign on-call settings page — card-based sections, better hierarchy
 - [ ] Accessibility + polish pass: focus states, keyboard nav, contrast, tap targets, spacing consistency
 - [ ] Visual QA sign-off across mobile/tablet/desktop for all six roles
 

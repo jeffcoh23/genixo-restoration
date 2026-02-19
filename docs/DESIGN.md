@@ -8,36 +8,40 @@
 
 **Name:** Genixo Restoration Manager (keep configurable, not hardcoded)
 **One-liner:** Incident management for property restoration teams
-**Feeling:** Clean, modern, trustworthy. A polished product that feels intentionally designed — not a wireframe with data in it. Information-dense but never cluttered — everything earns its space.
+**Direction:** Warm & polished — a premium SaaS tool that feels intentionally designed but never draws attention away from the data. Think Linear, Raycast, Height.
 
 **Target users:**
 - Mitigation managers/techs — blue-collar, on job sites, phones, varying tech comfort
 - Property managers — office-based, desktop, moderately tech-savvy
 
-**Design reference:** Linear, Notion, Height — modern work tools where surfaces create hierarchy, white cards float on tinted backgrounds, and every element has clear purpose.
+**Design principles:**
+1. **Information first** — the UI should disappear. Every element earns its space.
+2. **Warm, not cold** — subtle warmth in neutrals, shadows, and backgrounds. Never clinical.
+3. **Depth creates hierarchy** — shadows and surfaces do the work so you need less decoration.
+4. **Token-driven** — change the CSS variables, change the whole app. No hardcoded colors in components.
 
 ---
 
 ## Surface & Depth System
 
-This is the foundation of the visual language. Surfaces create hierarchy.
+Surfaces create hierarchy. Shadows have a warm tint.
 
 ```
 ┌─ Page Background ─────────────────────────────┐
-│  Cool-tinted gray (hsl 210 12% 96.5%)         │
+│  Warm off-white (hsl 220 14% 96%)             │
 │                                                │
 │  ┌─ Card Surface ──────────────────────┐       │
-│  │  Pure white + border + shadow-sm    │       │
+│  │  White + soft border + warm shadow  │       │
 │  │                                     │       │
 │  │  ┌─ Inset Surface ─────────────┐   │       │
-│  │  │  Muted bg (table headers,   │   │       │
+│  │  │  Warm muted bg (headers,    │   │       │
 │  │  │  code blocks, grouped rows) │   │       │
 │  │  └─────────────────────────────┘   │       │
 │  │                                     │       │
 │  └─────────────────────────────────────┘       │
 │                                                │
 │  ┌─ Elevated Surface ──────────────────┐       │
-│  │  White + border + shadow-md         │       │
+│  │  White + border + deeper shadow     │       │
 │  │  (dropdowns, modals, popovers)      │       │
 │  └─────────────────────────────────────┘       │
 └────────────────────────────────────────────────┘
@@ -50,58 +54,73 @@ This is the foundation of the visual language. Surfaces create hierarchy.
 | Inset | `bg-muted` | — | — | Table headers, grouped rows, code blocks |
 | Elevated | `bg-popover` | `border border-border` | `shadow-md` | Dropdowns, popovers, modals |
 
-**Key rule:** White cards on a tinted background create natural visual grouping without needing extra decoration. Every content group should be in a card.
+**Key rules:**
+- White cards on a warm-tinted background create natural grouping without decoration
+- Shadows use a warm undertone (not pure black — see Shadow section)
+- Every content group should be in a card
 
 ---
 
 ## Color Palette
 
-Built from the Genixo brand teal. Neutrals carry a cool blue undertone that harmonizes with the primary.
+Built from the Genixo brand teal. Neutrals carry a warm undertone — not cold blue-gray.
 
 ### Primary
 | Token | Value | Usage |
 |-------|-------|-------|
-| `primary` | `hsl(187 70% 34%)` | Main CTAs, active states, nav highlights, links |
+| `primary` | `hsl(187 65% 32%)` | Main CTAs, active states, nav highlights, links |
 | `primary-foreground` | `hsl(0 0% 100%)` | Text on primary surfaces |
 
-### Neutrals (cool-tinted)
+### Neutrals (warm-tinted)
 | Token | Value | Usage |
 |-------|-------|-------|
-| `background` | `hsl(210 12% 96.5%)` | Page canvas — the tinted gray that makes cards pop |
-| `foreground` | `hsl(210 10% 12%)` | Primary text — near-black with slight warmth |
+| `background` | `hsl(220 14% 96%)` | Page canvas — warm off-white that makes cards pop |
+| `foreground` | `hsl(224 10% 14%)` | Primary text — near-black with warmth |
 | `card` | `hsl(0 0% 100%)` | Card/panel backgrounds — pure white |
-| `card-foreground` | `hsl(210 10% 12%)` | Text on cards |
-| `muted` | `hsl(210 8% 93%)` | Inset surfaces — table headers, alternating rows |
-| `muted-foreground` | `hsl(210 5% 46%)` | Secondary text, labels, timestamps |
-| `border` | `hsl(210 10% 87%)` | All borders and dividers — visible but not heavy |
-| `input` | `hsl(210 10% 87%)` | Input field borders |
-| `ring` | `hsl(187 70% 34%)` | Focus ring color |
+| `card-foreground` | `hsl(224 10% 14%)` | Text on cards |
+| `popover` | `hsl(0 0% 100%)` | Dropdown/modal backgrounds |
+| `popover-foreground` | `hsl(224 10% 14%)` | Text on popovers |
+| `muted` | `hsl(220 12% 93.5%)` | Inset surfaces — table headers, alternating rows |
+| `muted-foreground` | `hsl(220 6% 44%)` | Secondary text, labels, timestamps |
+| `border` | `hsl(220 10% 90%)` | All borders — soft, visible but not heavy |
+| `input` | `hsl(220 10% 88%)` | Input field borders — slightly more visible than card borders |
+| `ring` | `hsl(187 65% 32%)` | Focus ring color |
 
 ### Accent
 | Token | Value | Usage |
 |-------|-------|-------|
-| `accent` | `hsl(187 15% 93%)` | Hover backgrounds, selected states, active nav items |
-| `accent-foreground` | `hsl(187 70% 25%)` | Text on accent backgrounds |
+| `accent` | `hsl(187 12% 93%)` | Hover backgrounds, selected states, active nav items |
+| `accent-foreground` | `hsl(187 65% 24%)` | Text on accent backgrounds |
 
 ### Semantic
 | Token | Value | Usage |
 |-------|-------|-------|
-| `destructive` | `hsl(0 84% 60%)` | Delete actions, emergency states |
+| `destructive` | `hsl(0 72% 51%)` | Delete actions, emergency states |
 | `destructive-foreground` | `hsl(0 0% 100%)` | Text on destructive |
 
 ### Status Colors
 | Status | Color | Token |
 |--------|-------|-------|
 | `new` / `acknowledged` | Blue `hsl(199 89% 48%)` | `status-info` |
-| `proposal_requested` / `proposal_submitted` / `proposal_signed` | Purple `hsl(270 50% 60%)` | `status-quote` |
-| `active` | Green `hsl(142 76% 36%)` | `status-success` |
+| `proposal_*` / `proposal_signed` | Purple `hsl(262 52% 57%)` | `status-quote` |
+| `active` | Green `hsl(152 60% 36%)` | `status-success` |
 | `on_hold` | Amber `hsl(38 92% 50%)` | `status-warning` |
-| `completed` | Muted green `hsl(142 40% 50%)` | `status-completed` |
-| `completed_billed` / `paid` / `closed` | Gray `hsl(0 0% 55%)` | `status-neutral` |
-| Emergency | Red `hsl(0 84% 60%)` | `status-emergency` |
+| `completed` | Muted green `hsl(152 36% 48%)` | `status-completed` |
+| `completed_billed` / `paid` / `closed` | Gray `hsl(220 6% 55%)` | `status-neutral` |
+| Emergency | Red `hsl(0 72% 51%)` | `status-emergency` |
+
+### Sidebar
+| Token | Value | Usage |
+|-------|-------|-------|
+| `sidebar` | `hsl(222 20% 16%)` | Dark sidebar background — strong left edge |
+| `sidebar-foreground` | `hsl(220 10% 85%)` | Primary sidebar text |
+| `sidebar-border` | `hsl(222 15% 22%)` | Sidebar internal borders |
+| `sidebar-accent` | `hsl(222 15% 22%)` | Active nav item background |
+| `sidebar-accent-foreground` | `hsl(0 0% 100%)` | Active nav item text |
+| `sidebar-muted-foreground` | `hsl(220 8% 58%)` | Secondary sidebar text |
 
 ### Mode
-Light mode only. No dark mode for MVP.
+Light mode only. No dark mode for MVP. The dark sidebar provides visual anchoring without needing a full dark mode.
 
 ---
 
@@ -124,9 +143,46 @@ Light mode only. No dark mode for MVP.
 
 **Rules:**
 - No type smaller than 12px — users have varying vision
-- `text-sm` (14px) is the default body size, not `text-base` (16px) — this is an information-dense work tool
-- Use weight and color for hierarchy, not just size. A bold 14px label reads stronger than a regular 16px body
+- `text-sm` (14px) is the default body size — this is an information-dense work tool
+- Use weight and color for hierarchy, not just size
 - `text-muted-foreground` for all secondary/supporting text
+- Page titles use `font-bold` (was `font-semibold`) for more presence
+
+---
+
+## Borders & Corners
+
+| Element | Radius | Border |
+|---------|--------|--------|
+| Cards, containers | `rounded-lg` (8px) | `border border-border` |
+| Buttons, inputs | `rounded-md` (6px) | per shadcn |
+| Badges | `rounded-md` (6px) | per shadcn |
+| Avatars | `rounded-full` | — |
+| Modals, sheets | `rounded-lg` (8px) | `border border-border` |
+| Dropdowns, popovers | `rounded-md` (6px) | `border border-border` |
+
+**`--radius: 0.5rem`** (8px base). This drives all shadcn component radii. The previous 0.25rem (4px) was too tight and made everything feel boxy.
+
+---
+
+## Shadows
+
+Shadows use a warm-tinted color, not pure black. This is what makes shadows feel "premium" vs "default".
+
+| Level | Class | Usage |
+|-------|-------|-------|
+| Rest | `shadow-sm` | Cards, panels — default state |
+| Elevated | `shadow-md` | Dropdowns, popovers, modals |
+| None | — | Inset surfaces, table headers, inline elements |
+
+**Shadow color override in CSS:**
+```css
+--shadow-color: 220 14% 60%;
+```
+
+Tailwind v4 shadow utilities will use this warm tone instead of pure black.
+
+**Rule:** Shadow always pairs with a border. Never shadow without border.
 
 ---
 
@@ -134,9 +190,9 @@ Light mode only. No dark mode for MVP.
 
 Use shadcn/ui components wherever possible. Only reach for raw Tailwind classes on structural containers where no shadcn primitive exists.
 
-**Available shadcn components:** `Button`, `Input`, `Badge`, `Card` (`CardHeader`, `CardTitle`, `CardContent`, `CardFooter`), `Label`, `Alert`.
+**Available shadcn components:** `Button`, `Input`, `Badge`, `Card` (`CardHeader`, `CardTitle`, `CardContent`, `CardFooter`), `Label`, `Alert`, `Checkbox`.
 
-**Needed (install via shadcn CLI):** `Select`, `Textarea`, `Tabs`, `Dialog`/`Sheet`, `Checkbox`, `Popover`, `Tooltip`.
+**Needed (install via shadcn CLI):** `Select`, `Textarea`, `Tabs`, `Dialog`/`Sheet`, `Popover`, `Tooltip`.
 
 ### Card
 The primary container for all content groups. Use the shadcn `Card` component.
@@ -269,33 +325,6 @@ Every clickable element must have visible feedback.
 
 ---
 
-## Borders & Corners
-
-| Element | Radius | Border |
-|---------|--------|--------|
-| Cards, containers | `rounded-lg` (8px) | `border border-border` |
-| Buttons, inputs | `rounded-md` (6px) | per shadcn |
-| Badges | `rounded-md` (6px) | per shadcn |
-| Avatars | `rounded-full` | — |
-| Modals, sheets | `rounded-lg` (8px) | `border border-border` |
-| Dropdowns, popovers | `rounded-md` (6px) | `border border-border` |
-
-**Modern but restrained.** Cards and major containers use `rounded-lg`. Controls (buttons, inputs, badges, dropdowns) use `rounded-md`. No `rounded-xl` or `rounded-full` on non-avatar elements.
-
----
-
-## Shadows
-
-| Level | Class | Usage |
-|-------|-------|-------|
-| Rest | `shadow-sm` | Cards, panels — default state |
-| Elevated | `shadow-md` | Dropdowns, popovers, modals |
-| None | — | Inset surfaces, table headers, inline elements |
-
-**Rule:** Shadow always pairs with a border. Never shadow without border.
-
----
-
 ## Spacing System
 
 Consistent spacing creates visual rhythm.
@@ -321,9 +350,9 @@ Consistent spacing creates visual rhythm.
   </div>
 
   <!-- Content cards -->
-  <div class="rounded-lg border border-border bg-card shadow-sm p-5">
+  <Card>
     ...
-  </div>
+  </Card>
 </div>
 ```
 
@@ -331,8 +360,8 @@ Consistent spacing creates visual rhythm.
 
 ## Layout
 
-**Max content width:** `max-w-5xl` (64rem / 1024px) for main content
-**Sidebar:** Fixed left, `bg-sidebar`, collapsible on mobile
+**Max content width:** `max-w-5xl` (64rem / 1024px) for default, `max-w-7xl` for wide pages (index/list pages)
+**Sidebar:** Fixed left, dark background, collapsible on mobile
 **Page padding:** `px-4 py-6 sm:px-6`
 
 ### Responsive Breakpoints
@@ -411,10 +440,6 @@ Use for: adding an equipment type, adding a contact, quick settings toggles.
 └─────────────────────────────────────────────────┘
 ```
 
-- Input + button sit inside the same card as the list they add to.
-- No separate "open form" step — the input is always visible.
-- Use `size="sm"` buttons. Input and button share a horizontal row.
-
 **Tier 2: Sheet/Modal** — 3-8 fields, contextual to current page.
 Use for: placing equipment, logging labor, uploading attachments, editing a record.
 
@@ -429,12 +454,6 @@ Use for: placing equipment, logging labor, uploading attachments, editing a reco
 │                        [Cancel]  [Save]       │
 └───────────────────────────────────────────────┘
 ```
-
-- Centered overlay on desktop (`sm:max-w-md`), bottom sheet on mobile.
-- Semi-transparent backdrop (`bg-black/40`).
-- Title bar with close (X) button. Card-style container with `rounded-lg`.
-- Actions pinned to bottom-right: ghost Cancel, primary Save.
-- Triggered by a ghost or outline button in a toolbar bar (e.g., `+ Add Equipment`).
 
 **Tier 3: Full Page** — 8+ fields, multi-section, or requires context not on current page.
 Use for: creating an incident, creating a property, editing profile.
@@ -455,14 +474,7 @@ Use for: creating an incident, creating a property, editing profile.
                               [Cancel]  [Submit]
 ```
 
-- Own route/URL (navigated via Inertia `<Link>`).
-- Each logical group in its own card with a header.
-- Submit button at the bottom, full-width or right-aligned.
-- Cancel navigates back (Inertia `router.visit` or `<Link>`).
-
 ### Form Action Buttons (Openers)
-
-How the "add/edit" button looks depends on where it lives:
 
 | Location | Button Style | Example |
 |----------|-------------|---------|
@@ -478,7 +490,7 @@ How the "add/edit" button looks depends on where it lives:
 Small rounded chips: colored background + text. Always show text label (accessibility).
 
 ```html
-<Badge class="bg-blue-500 text-white text-xs">New</Badge>
+<Badge class="bg-status-info text-white text-xs">New</Badge>
 <Badge class="bg-destructive text-white text-xs">
   <AlertTriangle class="h-3 w-3 mr-1" />
   Emergency
@@ -491,12 +503,17 @@ Emergency badge always appears first/leftmost.
 
 ## Navigation (Sidebar)
 
+**Dark sidebar** — creates a strong visual anchor on the left edge. The contrast with the light content area gives the app structure.
+
+- Dark background (`bg-sidebar`)
+- Light text (`text-sidebar-foreground`)
 - Logo at top
 - Role-aware links (different items per user_type)
-- Active state: `bg-accent text-accent-foreground` with left border accent
-- Hover: `hover:bg-muted/50`
+- Active state: `bg-sidebar-accent text-sidebar-accent-foreground`
+- Hover: `hover:bg-sidebar-accent/50`
 - Unread indicators: small dot badge on relevant links
 - Mobile: hamburger menu, slide-in drawer
+- User info at bottom: name, org, role, logout
 
 ---
 
