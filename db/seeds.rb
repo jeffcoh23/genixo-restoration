@@ -577,7 +577,7 @@ if Incident.count.zero?
     occurred_at: now - 12.days + 8.hours
   )
 
-  [smoke_day1, smoke_day2, smoke_day3].each do |entry|
+  [ smoke_day1, smoke_day2, smoke_day3 ].each do |entry|
     ActivityEvent.create!(incident: incident3, event_type: "activity_logged",
       performed_by_user: users[:henry], metadata: { title: entry.title, status: entry.status },
       created_at: entry.occurred_at)
