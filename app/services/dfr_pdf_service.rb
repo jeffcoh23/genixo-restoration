@@ -1,3 +1,6 @@
+require "prawn"
+require "prawn/table"
+
 class DfrPdfService
   include ActionView::Helpers::NumberHelper
 

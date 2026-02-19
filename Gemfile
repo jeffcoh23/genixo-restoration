@@ -17,9 +17,9 @@ gem "solid_cache"
 gem "solid_queue"
 gem "solid_cable"
 
-# PDF generation
-gem "prawn"
-gem "prawn-table"
+# PDF generation (lazy-loaded to avoid Zeitwerk conflicts)
+gem "prawn", require: false
+gem "prawn-table", require: false
 
 # Boot performance
 gem "bootsnap", require: false
