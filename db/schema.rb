@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_02_18_190119) do
+ActiveRecord::Schema[8.0].define(version: 2026_02_18_205805) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -123,7 +123,6 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_18_190119) do
     t.index ["equipment_type_id"], name: "index_equipment_entries_on_equipment_type_id"
     t.index ["incident_id"], name: "index_equipment_entries_on_incident_id"
     t.index ["logged_by_user_id"], name: "index_equipment_entries_on_logged_by_user_id"
-    t.check_constraint "equipment_type_id IS NOT NULL AND equipment_type_other IS NULL OR equipment_type_id IS NULL AND equipment_type_other IS NOT NULL", name: "equipment_type_xor"
   end
 
   create_table "equipment_types", force: :cascade do |t|

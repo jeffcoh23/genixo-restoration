@@ -64,6 +64,18 @@ Missing primitives currently block clean composition:
 - Structured `EmptyState`
 - Reusable `SectionCard` and `CardTable`
 
+### 5) Inconsistent Form Patterns
+
+Three distinct form patterns exist but are not standardized:
+
+- **Inline forms** (equipment types, contacts): Input + button directly on the page. Each has different spacing, button sizes, and container treatment.
+- **Sheet/modal forms** (equipment, labor, attachments, notes): Bottom sheet overlays. Each has slightly different header styling, padding, button layout, and backdrop opacity.
+- **Full-page forms** (new incident, new property, profile): Separate routes. Section grouping, field spacing, and submit button placement vary.
+
+No spec defines which tier to use for which complexity level, or what the visual treatment of each tier should be. Buttons that open forms also vary: some are ghost, some outline, some primary, some have icons, some don't. See DESIGN.md §Form Tiers for the target spec.
+
+---
+
 ## Area-by-Area Audit
 
 ### Layout and Navigation

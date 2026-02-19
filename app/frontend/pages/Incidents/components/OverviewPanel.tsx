@@ -18,6 +18,7 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
   const [contactFormOpen, setContactFormOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [confirmRemoveUser, setConfirmRemoveUser] = useState<{ name: string; path: string } | null>(null);
+  const [expandedUserId, setExpandedUserId] = useState<number | null>(null);
   const [teamOpen, setTeamOpen] = useState(true);
   const [contactsOpen, setContactsOpen] = useState(true);
 
@@ -93,26 +94,51 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
                       <span className="font-medium text-xs">{group.organization_name}</span>
                     </div>
                     <div className="space-y-0.5 ml-5">
-                      {group.users.map((u) => (
-                        <div key={u.id} className="flex items-center gap-1.5 text-xs -mx-1 px-1 py-0.5 rounded hover:bg-muted transition-colors">
-                          <div className="h-5 w-5 rounded-full bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground shrink-0">
-                            {u.initials}
-                          </div>
-                          <span className="text-foreground">{u.full_name}</span>
-                          <span className="text-muted-foreground">&middot; {u.role_label}</span>
-                          {u.remove_path && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setConfirmRemoveUser({ name: u.full_name, path: u.remove_path! })}
-                              className="h-5 w-5 p-0 ml-1 text-muted-foreground hover:text-destructive transition-colors"
-                              title={`Remove ${u.full_name}`}
+                      {group.users.map((u) => {
+                        const isExpanded = expandedUserId === u.id;
+                        const hasContact = u.email || u.phone;
+                        return (
+                          <div key={u.id}>
+                            <div
+                              className={`flex items-center gap-1.5 text-xs -mx-1 px-1 py-0.5 rounded hover:bg-muted transition-colors ${hasContact ? "cursor-pointer" : ""}`}
+                              onClick={hasContact ? () => setExpandedUserId(isExpanded ? null : u.id) : undefined}
                             >
-                              <X className="h-3 w-3" />
-                            </Button>
-                          )}
-                        </div>
-                      ))}
+                              <div className="h-5 w-5 rounded-full bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground shrink-0">
+                                {u.initials}
+                              </div>
+                              <span className="text-foreground">{u.full_name}</span>
+                              <span className="text-muted-foreground">&middot; {u.role_label}</span>
+                              {u.remove_path && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(e) => { e.stopPropagation(); setConfirmRemoveUser({ name: u.full_name, path: u.remove_path! }); }}
+                                  className="h-5 w-5 p-0 ml-1 text-muted-foreground hover:text-destructive transition-colors"
+                                  title={`Remove ${u.full_name}`}
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              )}
+                            </div>
+                            {isExpanded && (
+                              <div className="flex items-center gap-3 text-xs text-muted-foreground ml-6 mt-0.5 mb-1 pl-1">
+                                {u.email && (
+                                  <a href={`mailto:${u.email}`} className="flex items-center gap-1 hover:text-foreground transition-colors" onClick={(e) => e.stopPropagation()}>
+                                    <Mail className="h-2.5 w-2.5" />
+                                    {u.email}
+                                  </a>
+                                )}
+                                {u.phone && (
+                                  <a href={`tel:${u.phone}`} className="flex items-center gap-1 hover:text-foreground transition-colors" onClick={(e) => e.stopPropagation()}>
+                                    <Phone className="h-2.5 w-2.5" />
+                                    {u.phone}
+                                  </a>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 ))}

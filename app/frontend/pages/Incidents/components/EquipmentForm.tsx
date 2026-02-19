@@ -123,8 +123,8 @@ export default function EquipmentForm({ path, equipment_types, onClose, entry }:
             <div>
               <label className="text-xs font-medium text-muted-foreground">Placed On</label>
               <Input
-                type="date"
-                value={data.placed_at ? data.placed_at.split("T")[0] : ""}
+                type="datetime-local"
+                value={data.placed_at || ""}
                 onChange={(e) => setData("placed_at", e.target.value)}
                 className="mt-1"
                 required
@@ -140,9 +140,9 @@ export default function EquipmentForm({ path, equipment_types, onClose, entry }:
                       variant="link"
                       size="sm"
                       className="h-auto p-0 text-xs"
-                      onClick={() => setData("removed_at", now_datetime.split("T")[0])}
+                      onClick={() => setData("removed_at", now_datetime)}
                     >
-                      Today
+                      Now
                     </Button>
                   ) : (
                     <Button
@@ -157,8 +157,8 @@ export default function EquipmentForm({ path, equipment_types, onClose, entry }:
                   )}
                 </div>
                 <Input
-                  type="date"
-                  value={data.removed_at ? data.removed_at.split("T")[0] : ""}
+                  type="datetime-local"
+                  value={data.removed_at || ""}
                   onChange={(e) => setData("removed_at", e.target.value)}
                   className="mt-1"
                 />

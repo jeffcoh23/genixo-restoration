@@ -20,10 +20,10 @@ export default function ActivityForm({
   entry,
 }: ActivityFormProps) {
   const editing = !!entry;
-  const { now_datetime } = usePage<SharedProps>().props;
+  const { today } = usePage<SharedProps>().props;
   const [title, setTitle] = useState(entry?.title ?? "");
   const [status, setStatus] = useState(entry?.status ?? "Active");
-  const [occurredAt, setOccurredAt] = useState(entry?.occurred_at_value ?? now_datetime);
+  const [occurredAt, setOccurredAt] = useState(entry?.occurred_at_value ?? today);
   const [unitsAffected, setUnitsAffected] = useState(entry?.units_affected ? String(entry.units_affected) : "");
   const [unitsAffectedDescription, setUnitsAffectedDescription] = useState(entry?.units_affected_description ?? "");
   const [details, setDetails] = useState(entry?.details ?? "");
@@ -107,7 +107,7 @@ export default function ActivityForm({
                 Occurred At <span className="text-destructive">*</span>
               </label>
               <Input
-                type="datetime-local"
+                type="date"
                 value={occurredAt}
                 onChange={(e) => setOccurredAt(e.target.value)}
                 className="mt-1"
@@ -148,9 +148,9 @@ export default function ActivityForm({
             <textarea
               value={details}
               onChange={(e) => setDetails(e.target.value)}
-              rows={2}
-              className="mt-1 w-full rounded border border-input bg-background px-3 py-2 text-sm resize-none"
-              placeholder="Why this was done and what changed"
+              rows={8}
+              className="mt-1 w-full rounded border border-input bg-background px-3 py-2 text-sm resize-y"
+              placeholder="Detailed work performed — per-unit narratives, measurements, observations..."
             />
           </div>
 

@@ -8,7 +8,7 @@
 
 **Name:** Genixo Restoration Manager (keep configurable, not hardcoded)
 **One-liner:** Incident management for property restoration teams
-**Feeling:** Clean, structured, trustworthy. A well-organized tool that respects the user's time. Information-dense but never cluttered — everything earns its space.
+**Feeling:** Clean, modern, trustworthy. A polished product that feels intentionally designed — not a wireframe with data in it. Information-dense but never cluttered — everything earns its space.
 
 **Target users:**
 - Mitigation managers/techs — blue-collar, on job sites, phones, varying tech comfort
@@ -93,7 +93,7 @@ Built from the Genixo brand teal. Neutrals carry a cool blue undertone that harm
 | Status | Color | Token |
 |--------|-------|-------|
 | `new` / `acknowledged` | Blue `hsl(199 89% 48%)` | `status-info` |
-| `quote_requested` | Purple `hsl(270 50% 60%)` | `status-quote` |
+| `proposal_requested` / `proposal_submitted` / `proposal_signed` | Purple `hsl(270 50% 60%)` | `status-quote` |
 | `active` | Green `hsl(142 76% 36%)` | `status-success` |
 | `on_hold` | Amber `hsl(38 92% 50%)` | `status-warning` |
 | `completed` | Muted green `hsl(142 40% 50%)` | `status-completed` |
@@ -132,63 +132,67 @@ Light mode only. No dark mode for MVP.
 
 ## Component Recipes
 
-Specific class combinations to use. Copy-paste these, don't reinvent.
+Use shadcn/ui components wherever possible. Only reach for raw Tailwind classes on structural containers where no shadcn primitive exists.
+
+**Available shadcn components:** `Button`, `Input`, `Badge`, `Card` (`CardHeader`, `CardTitle`, `CardContent`, `CardFooter`), `Label`, `Alert`.
+
+**Needed (install via shadcn CLI):** `Select`, `Textarea`, `Tabs`, `Dialog`/`Sheet`, `Checkbox`, `Popover`, `Tooltip`.
 
 ### Card
-The primary container for all content groups.
+The primary container for all content groups. Use the shadcn `Card` component.
 
-```html
-<div class="rounded border border-border bg-card shadow-sm">
-  <div class="p-5">
-    <!-- card content -->
-  </div>
-</div>
+```tsx
+<Card>
+  <CardContent className="p-5">
+    {/* card content */}
+  </CardContent>
+</Card>
 ```
 
 **Card with header:**
-```html
-<div class="rounded border border-border bg-card shadow-sm overflow-hidden">
-  <div class="border-b border-border bg-muted/50 px-5 py-3">
-    <h2 class="text-sm font-semibold">Section Title</h2>
-  </div>
-  <div class="p-5">
-    <!-- card content -->
-  </div>
-</div>
+```tsx
+<Card>
+  <CardHeader className="border-b border-border bg-muted/50 px-5 py-3">
+    <CardTitle className="text-sm font-semibold">Section Title</CardTitle>
+  </CardHeader>
+  <CardContent className="p-5">
+    {/* card content */}
+  </CardContent>
+</Card>
 ```
 
 **Card with footer:**
-```html
-<div class="rounded border border-border bg-card shadow-sm overflow-hidden">
-  <div class="p-5">
-    <!-- card content -->
-  </div>
-  <div class="border-t border-border bg-muted/30 px-5 py-3">
-    <!-- actions, pagination -->
-  </div>
-</div>
+```tsx
+<Card>
+  <CardContent className="p-5">
+    {/* card content */}
+  </CardContent>
+  <CardFooter className="border-t border-border bg-muted/30 px-5 py-3">
+    {/* actions, pagination */}
+  </CardFooter>
+</Card>
 ```
 
 ### Table
-Always wrapped in a card container.
+Always wrapped in a Card container.
 
-```html
-<div class="rounded border border-border bg-card shadow-sm overflow-hidden">
-  <table class="w-full text-sm">
+```tsx
+<Card className="overflow-hidden">
+  <table className="w-full text-sm">
     <thead>
-      <tr class="border-b border-border bg-muted/50">
-        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      <tr className="border-b border-border bg-muted/50">
+        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Column
         </th>
       </tr>
     </thead>
-    <tbody class="divide-y divide-border">
-      <tr class="hover:bg-muted/30 transition-colors">
-        <td class="px-4 py-3">Value</td>
+    <tbody className="divide-y divide-border">
+      <tr className="hover:bg-muted/30 transition-colors">
+        <td className="px-4 py-3">Value</td>
       </tr>
     </tbody>
   </table>
-</div>
+</Card>
 ```
 
 **Rules:**
@@ -196,41 +200,26 @@ Always wrapped in a card container.
 - Body rows: `divide-y divide-border` for separators
 - Hover: `hover:bg-muted/30 transition-colors` on interactive rows
 - Clickable rows: add `cursor-pointer` and make entire row a link
-- Emergency rows: `bg-red-50` background override
 
 ### Stat Card
 For displaying key metrics.
 
-```html
-<div class="rounded border border-border bg-card shadow-sm p-4">
-  <div class="text-xs font-medium text-muted-foreground">Label</div>
-  <div class="text-2xl font-bold text-foreground mt-1">42</div>
-  <div class="text-xs text-muted-foreground mt-0.5">Supporting detail</div>
-</div>
-```
-
-**Stat row (inline):**
-```html
-<div class="flex gap-4">
-  <div class="rounded border border-border bg-card shadow-sm px-4 py-3 flex items-center gap-3">
-    <Icon class="h-5 w-5 text-muted-foreground" />
-    <div>
-      <div class="text-lg font-semibold">12.5h</div>
-      <div class="text-xs text-muted-foreground">hours logged</div>
-    </div>
-  </div>
-  <!-- more stats -->
-</div>
+```tsx
+<Card className="p-4">
+  <div className="text-xs font-medium text-muted-foreground">Label</div>
+  <div className="text-2xl font-bold text-foreground mt-1">42</div>
+  <div className="text-xs text-muted-foreground mt-0.5">Supporting detail</div>
+</Card>
 ```
 
 ### Key-Value Display
 For detail views (incident details, property info).
 
-```html
-<div class="space-y-3">
+```tsx
+<div className="space-y-3">
   <div>
-    <dt class="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Label</dt>
-    <dd class="text-sm text-foreground">Value goes here</dd>
+    <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Label</dt>
+    <dd className="text-sm text-foreground">Value goes here</dd>
   </div>
 </div>
 ```
@@ -238,10 +227,10 @@ For detail views (incident details, property info).
 ### List Items
 For lists within cards (assigned users, contacts, etc.).
 
-```html
-<div class="divide-y divide-border">
-  <div class="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/30 transition-colors">
-    <!-- item content -->
+```tsx
+<div className="divide-y divide-border">
+  <div className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/30 transition-colors">
+    {/* item content */}
   </div>
 </div>
 ```
@@ -249,15 +238,15 @@ For lists within cards (assigned users, contacts, etc.).
 ### Empty State
 Always within a card, always explains what goes here.
 
-```html
-<div class="rounded border border-border bg-card shadow-sm p-8 text-center">
-  <Icon class="h-8 w-8 text-muted-foreground mx-auto mb-3" />
-  <p class="text-sm font-medium text-foreground">No items yet</p>
-  <p class="text-xs text-muted-foreground mt-1">
+```tsx
+<Card className="p-8 text-center">
+  <Icon className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
+  <p className="text-sm font-medium text-foreground">No items yet</p>
+  <p className="text-xs text-muted-foreground mt-1">
     Description of what will appear here and how to add the first one.
   </p>
-  <Button class="mt-4" size="sm">Add First Item</Button>
-</div>
+  <Button className="mt-4" size="sm">Add First Item</Button>
+</Card>
 ```
 
 ---
@@ -284,13 +273,14 @@ Every clickable element must have visible feedback.
 
 | Element | Radius | Border |
 |---------|--------|--------|
-| Cards, containers | `rounded` (4px) | `border border-border` |
-| Buttons, inputs | `rounded` (4px) | per shadcn |
-| Badges | `rounded` (4px) | per shadcn |
+| Cards, containers | `rounded-lg` (8px) | `border border-border` |
+| Buttons, inputs | `rounded-md` (6px) | per shadcn |
+| Badges | `rounded-md` (6px) | per shadcn |
 | Avatars | `rounded-full` | — |
-| Dropdowns, popovers | `rounded` (4px) | `border border-border` |
+| Modals, sheets | `rounded-lg` (8px) | `border border-border` |
+| Dropdowns, popovers | `rounded-md` (6px) | `border border-border` |
 
-**Sharp, not rounded.** `4px` radius everywhere. No `rounded-lg` or `rounded-xl`. This is a work tool.
+**Modern but restrained.** Cards and major containers use `rounded-lg`. Controls (buttons, inputs, badges, dropdowns) use `rounded-md`. No `rounded-xl` or `rounded-full` on non-avatar elements.
 
 ---
 
@@ -331,7 +321,7 @@ Consistent spacing creates visual rhythm.
   </div>
 
   <!-- Content cards -->
-  <div class="rounded border border-border bg-card shadow-sm p-5">
+  <div class="rounded-lg border border-border bg-card shadow-sm p-5">
     ...
   </div>
 </div>
@@ -382,26 +372,104 @@ On desktop: main is left (order-1), sidebar is right (order-2).
 
 ## Forms
 
+- Use shadcn `Label`, `Input`, `Textarea`, `Select`, `Checkbox` components — never raw HTML controls with manual class strings
 - Labels above inputs, never floating or inline
 - Required fields: append ` *` to label text
 - Validation errors: red text below the field, `text-destructive text-xs mt-1`
 - Inputs: minimum 44px height for touch
-- Group related fields in a card with a header
+- Group related fields in a Card with a header
+- Use Inertia `useForm()` for all form state — `post(url)` / `patch(url)` with `processing`, `errors`, `setData`
 
-```html
-<div class="rounded border border-border bg-card shadow-sm overflow-hidden">
-  <div class="border-b border-border bg-muted/50 px-5 py-3">
-    <h2 class="text-sm font-semibold">Section</h2>
-  </div>
-  <div class="p-5 space-y-3">
+```tsx
+<Card className="overflow-hidden">
+  <CardHeader className="border-b border-border bg-muted/50 px-5 py-3">
+    <CardTitle className="text-sm font-semibold">Section</CardTitle>
+  </CardHeader>
+  <CardContent className="p-5 space-y-3">
     <div>
-      <label class="text-sm font-medium mb-1.5 block">Field Label *</label>
-      <Input ... />
-      {error && <p class="text-destructive text-xs mt-1">{error}</p>}
+      <Label>Field Label *</Label>
+      <Input className="mt-1.5" value={data.field} onChange={(e) => setData("field", e.target.value)} />
+      {errors.field && <p className="text-destructive text-xs mt-1">{errors.field}</p>}
     </div>
-  </div>
-</div>
+  </CardContent>
+</Card>
 ```
+
+### Form Tiers
+
+Three form patterns. Choose based on complexity — never mix patterns for the same tier.
+
+**Tier 1: Inline Form** — 1-2 fields, stays on the page.
+Use for: adding an equipment type, adding a contact, quick settings toggles.
+
+```
+┌─ Card ─────────────────────────────────────────┐
+│  [Input field...............] [+ Add]           │
+│                                                 │
+│  Existing Item 1                     [Actions]  │
+│  Existing Item 2                     [Actions]  │
+└─────────────────────────────────────────────────┘
+```
+
+- Input + button sit inside the same card as the list they add to.
+- No separate "open form" step — the input is always visible.
+- Use `size="sm"` buttons. Input and button share a horizontal row.
+
+**Tier 2: Sheet/Modal** — 3-8 fields, contextual to current page.
+Use for: placing equipment, logging labor, uploading attachments, editing a record.
+
+```
+┌─ Modal ──────────────────────────────── [✕] ─┐
+│  Title                                        │
+│                                               │
+│  [Field 1                              ]      │
+│  [Field 2          ] [Field 3          ]      │
+│  [Field 4                              ]      │
+│                                               │
+│                        [Cancel]  [Save]       │
+└───────────────────────────────────────────────┘
+```
+
+- Centered overlay on desktop (`sm:max-w-md`), bottom sheet on mobile.
+- Semi-transparent backdrop (`bg-black/40`).
+- Title bar with close (X) button. Card-style container with `rounded-lg`.
+- Actions pinned to bottom-right: ghost Cancel, primary Save.
+- Triggered by a ghost or outline button in a toolbar bar (e.g., `+ Add Equipment`).
+
+**Tier 3: Full Page** — 8+ fields, multi-section, or requires context not on current page.
+Use for: creating an incident, creating a property, editing profile.
+
+```
+┌─ PageHeader ─────────────────────────────────┐
+│  Create New Incident                         │
+└──────────────────────────────────────────────┘
+
+┌─ Card: Section 1 ───────────────────────────┐
+│  [Fields...]                                 │
+└──────────────────────────────────────────────┘
+
+┌─ Card: Section 2 ───────────────────────────┐
+│  [Fields...]                                 │
+└──────────────────────────────────────────────┘
+
+                              [Cancel]  [Submit]
+```
+
+- Own route/URL (navigated via Inertia `<Link>`).
+- Each logical group in its own card with a header.
+- Submit button at the bottom, full-width or right-aligned.
+- Cancel navigates back (Inertia `router.visit` or `<Link>`).
+
+### Form Action Buttons (Openers)
+
+How the "add/edit" button looks depends on where it lives:
+
+| Location | Button Style | Example |
+|----------|-------------|---------|
+| Card toolbar bar | Ghost `size="sm"` with icon | `+ Add Equipment` |
+| Table row action | Ghost `size="sm"` icon-only | Pencil icon, Trash icon |
+| Page header | Primary or outline `size="default"` | `Create Request` |
+| Empty state | Primary `size="sm"` centered | `Add First Item` |
 
 ---
 

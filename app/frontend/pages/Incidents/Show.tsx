@@ -1,6 +1,6 @@
 import { Link, router, usePage } from "@inertiajs/react";
 import { useState } from "react";
-import { ChevronDown, Pencil } from "lucide-react";
+import { ChevronDown, Mail, Pencil, Phone } from "lucide-react";
 import AppLayout from "@/layout/AppLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -137,14 +137,6 @@ export default function IncidentShow() {
             )}
           </div>
 
-          <span className="text-sm text-muted-foreground">
-            {incident.damage_label} &middot; {incident.project_type_label}
-          </span>
-
-          <span className="text-sm text-muted-foreground">
-            {incident.created_at_label}{incident.created_by && ` by ${incident.created_by}`}
-          </span>
-
           {incident.job_id && (
             <span className="text-sm text-muted-foreground">
               Job #{incident.job_id}
@@ -166,34 +158,77 @@ export default function IncidentShow() {
       </div>
 
       {/* Incident details */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 mb-6">
-        <div>
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Description</h3>
-          <p className="text-sm text-foreground whitespace-pre-wrap">{incident.description}</p>
+      <div className="mb-6 space-y-3">
+        {/* Text blocks — 2-col grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
+          <div>
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Description</h3>
+            <p className="text-sm text-foreground whitespace-pre-wrap">{incident.description}</p>
+          </div>
+
+          {incident.cause && (
+            <div>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Cause</h3>
+              <p className="text-sm text-foreground whitespace-pre-wrap">{incident.cause}</p>
+            </div>
+          )}
+
+          {incident.requested_next_steps && (
+            <div>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Requested Next Steps</h3>
+              <p className="text-sm text-foreground whitespace-pre-wrap">{incident.requested_next_steps}</p>
+            </div>
+          )}
         </div>
 
-        {incident.cause && (
+        {/* Compact metadata row */}
+        <div className="flex flex-wrap items-start gap-x-6 gap-y-2">
+          {incident.created_by && (
+            <div>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-0.5">Reported By</h3>
+              <p className="text-sm text-foreground">
+                {incident.created_by.name}
+                <span className="text-muted-foreground"> &middot; {incident.created_at_label}</span>
+              </p>
+              <div className="flex items-center gap-2 mt-0.5">
+                <a href={`mailto:${incident.created_by.email}`} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                  <Mail className="h-2.5 w-2.5" />
+                  {incident.created_by.email}
+                </a>
+                {incident.created_by.phone && (
+                  <a href={`tel:${incident.created_by.phone}`} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                    <Phone className="h-2.5 w-2.5" />
+                    {incident.created_by.phone}
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
+
           <div>
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Cause</h3>
-            <p className="text-sm text-foreground whitespace-pre-wrap">{incident.cause}</p>
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-0.5">Damage</h3>
+            <p className="text-sm text-foreground">{incident.damage_label}</p>
           </div>
-        )}
 
-        {incident.requested_next_steps && (
           <div>
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Requested Next Steps</h3>
-            <p className="text-sm text-foreground whitespace-pre-wrap">{incident.requested_next_steps}</p>
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-0.5">Project Type</h3>
+            <p className="text-sm text-foreground">{incident.project_type_label}</p>
           </div>
-        )}
 
-        {(incident.units_affected || incident.affected_room_numbers) && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            {incident.units_affected && <span>{incident.units_affected} units affected</span>}
-            {incident.units_affected && incident.affected_room_numbers && <span>&middot;</span>}
-            {incident.affected_room_numbers && <span>Rooms: {incident.affected_room_numbers}</span>}
-          </div>
-        )}
+          {incident.units_affected != null && (
+            <div>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-0.5">Units Affected</h3>
+              <p className="text-sm text-foreground">{incident.units_affected}</p>
+            </div>
+          )}
 
+          {incident.affected_room_numbers && (
+            <div>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-0.5">Affected Rooms</h3>
+              <p className="text-sm text-foreground">{incident.affected_room_numbers}</p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Tabbed content — full width */}
@@ -204,6 +239,7 @@ export default function IncidentShow() {
               daily_activities={daily_activities}
               daily_log_dates={daily_log_dates}
               daily_log_table_groups={daily_log_table_groups}
+              labor_entries={labor_entries}
               can_manage_activities={can_manage_activities}
               activity_entries_path={incident.activity_entries_path}
               equipment_types={equipment_types}

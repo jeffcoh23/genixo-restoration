@@ -239,40 +239,39 @@ Email delivery and emergency response chain.
 
 ### Email Infrastructure
 
-- [ ] Configure ActionMailer — Resend production, letter_opener_web dev (see PROJECT_SETUP.md)
-- [ ] Base mailer layout matching brand (see DESIGN.md)
+- [x] Configure ActionMailer — Resend production, letter_opener_web dev (see PROJECT_SETUP.md)
+- [x] Base mailer layout matching brand (see DESIGN.md)
 
 ### Notification Services
 
-- [ ] `NotificationDispatchService` (see ARCHITECTURE.md §Notification Architecture)
-- [ ] SMS/voice stub provider for MVP (log-only)
+- [x] `NotificationService` SMS/voice stub for MVP (log-only)
 
 ### Transactional Emails
 
-- [ ] Incident creation confirmation email
-- [ ] Status change notification job + email
-- [ ] New message notification job + email
-- [ ] Technician assignment notification email
-- [ ] Tests — recipients, preference filtering, job enqueuing
+- [x] Incident creation confirmation email
+- [x] Status change notification job + email
+- [x] New message notification job + email
+- [x] User assignment notification email
+- [x] Tests — recipients, preference filtering, job enqueuing
 
 ### Emergency Escalation
 
-- [ ] `EscalationService` + `EscalationJob` (see ARCHITECTURE.md §2 Emergency Escalation)
-- [ ] `EscalationTimeoutJob` — timeout → escalate to next contact
-- [ ] Escalation resolution when incident marked active
-- [ ] Edge cases — no on-call config, list exhausted (see BUSINESS_RULES.md §6)
-- [ ] Escalation tests — full chain, timeout, resolution, edge cases
+- [x] `EscalationService` + `EscalationJob` (see ARCHITECTURE.md §2 Emergency Escalation)
+- [x] `EscalationTimeoutJob` — timeout → escalate to next contact
+- [x] Escalation resolution when incident marked active
+- [x] Edge cases — no on-call config, list exhausted (see BUSINESS_RULES.md §6)
+- [x] Escalation tests — full chain, timeout, resolution, edge cases
 
 ### On-Call Configuration
 
-- [ ] On-call settings page + controller (see VIEWS.md §On-Call)
-- [ ] Escalation chain — add/remove/reorder contacts
+- [x] On-call settings page + controller (see VIEWS.md §On-Call)
+- [x] Escalation chain — add/remove/reorder contacts
 
 ### Notification Preferences
 
-- [ ] Preference toggles on settings page
-- [ ] All notification jobs respect user preferences
-- [ ] Tests — preferences honored
+- [x] Preference toggles on settings page
+- [x] All notification jobs respect user preferences
+- [x] Tests — preferences honored
 
 **Done when:** Emails fire on correct triggers. Escalation chain works end-to-end. Preferences respected.
 

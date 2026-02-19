@@ -3,6 +3,8 @@ class EquipmentEntry < ApplicationRecord
   belongs_to :equipment_type, optional: true
   belongs_to :logged_by_user, class_name: "User"
 
+  before_validation :normalize_equipment_type
+
   validates :placed_at, presence: true
   validate :equipment_type_xor
 
@@ -11,6 +13,10 @@ class EquipmentEntry < ApplicationRecord
   end
 
   private
+
+  def normalize_equipment_type
+    self.equipment_type_other = nil if equipment_type_other.blank?
+  end
 
   def equipment_type_xor
     if equipment_type_id.present? && equipment_type_other.present?

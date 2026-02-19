@@ -1,5 +1,5 @@
-import { Fragment, useMemo, useState } from "react";
-import { Pencil, Plus } from "lucide-react";
+import { useMemo, useState } from "react";
+import { ChevronDown, Pencil, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type {
   AttachableEquipmentEntry,
@@ -8,6 +8,7 @@ import type {
   DailyLogTableGroup,
   DailyLogTableRow,
   EquipmentType,
+  LaborEntry,
 } from "../types";
 import ActivityForm from "./ActivityForm";
 
@@ -15,6 +16,7 @@ interface DailyLogPanelProps {
   daily_activities: DailyActivity[];
   daily_log_dates: DailyLogDate[];
   daily_log_table_groups: DailyLogTableGroup[];
+  labor_entries: LaborEntry[];
   can_manage_activities: boolean;
   activity_entries_path: string;
   equipment_types: EquipmentType[];
@@ -25,6 +27,7 @@ export default function DailyLogPanel({
   daily_activities = [],
   daily_log_dates = [],
   daily_log_table_groups = [],
+  labor_entries = [],
   can_manage_activities,
   activity_entries_path,
   equipment_types,
@@ -32,17 +35,76 @@ export default function DailyLogPanel({
 }: DailyLogPanelProps) {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [activityForm, setActivityForm] = useState<{ open: boolean; entry?: DailyActivity }>({ open: false });
+  const [collapsedRows, setCollapsedRows] = useState<Set<string>>(new Set());
 
-  // Filter to activity rows only
-  const activityGroups = useMemo(() => {
-    const filtered = daily_log_table_groups.map((group) => ({
-      ...group,
-      rows: group.rows.filter((row) => row.row_type === "activity"),
-    })).filter((group) => group.rows.length > 0);
+  // When a specific date is selected, all rows are expanded by default (user collapses them).
+  // When "All Dates" is selected, all rows are collapsed by default (user expands them).
+  const isRowExpanded = (id: string) => {
+    if (selectedDate) return !collapsedRows.has(id);
+    return collapsedRows.has(id);
+  };
 
-    if (!selectedDate) return filtered;
-    return filtered.filter((group) => group.date_key === selectedDate);
-  }, [daily_log_table_groups, selectedDate]);
+  const toggleRow = (id: string) => {
+    setCollapsedRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const handleDateChange = (date: string | null) => {
+    setSelectedDate(date);
+    setCollapsedRows(new Set());
+  };
+
+  // Group labor entries by date for inline display
+  const laborByDate = useMemo(() => {
+    const map: Record<string, typeof labor_entries> = {};
+    for (const entry of labor_entries) {
+      const key = entry.log_date;
+      if (!map[key]) map[key] = [];
+      map[key].push(entry);
+    }
+    return map;
+  }, [labor_entries]);
+
+  // Enrich date groups with precomputed labor summaries
+  const dateGroups = useMemo(() => {
+    const groups = daily_log_table_groups.map((group) => {
+      const dateLaborEntries = laborByDate[group.date_key] || [];
+
+      // Group labor by role for the group footer
+      const roleMap: Record<string, { count: number; hours: number }> = {};
+      for (const entry of dateLaborEntries) {
+        const role = entry.role_label;
+        if (!roleMap[role]) roleMap[role] = { count: 0, hours: 0 };
+        roleMap[role].count += 1;
+        roleMap[role].hours += entry.hours;
+      }
+      const laborByRole = Object.entries(roleMap).map(([role, data]) => ({
+        role,
+        count: data.count,
+        hours: Math.round(data.hours * 10) / 10,
+      }));
+
+      const totalLaborHours = Math.round(
+        dateLaborEntries.reduce((sum, e) => sum + e.hours, 0) * 10,
+      ) / 10;
+
+      const totalEquipCount = group.equipment_summary.reduce((sum, e) => sum + e.count, 0);
+
+      return {
+        ...group,
+        activityRows: group.rows.filter((row) => row.row_type === "activity"),
+        laborByRole,
+        totalLaborHours,
+        totalEquipCount,
+      };
+    }).filter((g) => g.activityRows.length > 0 || g.laborByRole.length > 0);
+
+    if (!selectedDate) return groups;
+    return groups.filter((g) => g.date_key === selectedDate);
+  }, [daily_log_table_groups, selectedDate, laborByDate]);
 
   const hasNoActivity = daily_activities.length === 0;
 
@@ -56,7 +118,7 @@ export default function DailyLogPanel({
 
   const handleEdit = (row: DailyLogTableRow) => {
     if (!row.edit_path) return;
-    const entry = daily_activities.find((activity) => activity.edit_path === row.edit_path);
+    const entry = daily_activities.find((a) => a.edit_path === row.edit_path);
     if (!entry) return;
     setActivityForm({ open: true, entry });
   };
@@ -68,7 +130,7 @@ export default function DailyLogPanel({
           <Button
             variant={selectedDate === null ? "default" : "ghost"}
             size="sm"
-            onClick={() => setSelectedDate(null)}
+            onClick={() => handleDateChange(null)}
             className="h-7 text-xs whitespace-nowrap"
           >
             All Dates
@@ -78,7 +140,7 @@ export default function DailyLogPanel({
               key={dateEntry.key}
               variant={selectedDate === dateEntry.key ? "default" : "ghost"}
               size="sm"
-              onClick={() => setSelectedDate(dateEntry.key)}
+              onClick={() => handleDateChange(dateEntry.key)}
               className="h-7 text-xs whitespace-nowrap"
             >
               {dateEntry.label}
@@ -97,99 +159,164 @@ export default function DailyLogPanel({
       )}
 
       <div className="flex-1 overflow-y-auto p-3 pb-8 space-y-4">
-        {activityGroups.length === 0 ? (
+        {dateGroups.length === 0 ? (
           <div className="text-sm text-muted-foreground italic py-6 text-center">
             No entries for this date.
           </div>
         ) : (
-          activityGroups.map((group) => (
-            <div key={group.date_key} className="rounded border border-border overflow-hidden">
-              <div className="px-3 py-2 border-b border-border bg-muted text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                {group.date_label}
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-muted border-b border-border">
-                    <tr>
-                      <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground w-[90px]">Time</th>
-                      <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Activity</th>
-                      <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground w-[120px]">Status</th>
-                      <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground w-[140px]">Visitors</th>
-                      <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground w-[120px]">By</th>
-                      <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground w-[70px]"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {group.rows.map((row) => {
-                      const hasRow2 = row.row_type === "activity" && (
+          dateGroups.map((group) => {
+            const hasEquipment = group.equipment_summary.length > 0;
+            const hasLabor = group.laborByRole.length > 0;
+
+            return (
+              <div key={group.date_key} className="rounded border border-border overflow-hidden">
+                {/* Date header with summary stats */}
+                <div className="px-3 py-2 border-b border-border bg-muted flex items-center justify-between">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    {group.date_label}
+                  </span>
+                  {(group.totalLaborHours > 0 || group.totalEquipCount > 0) && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      {group.totalLaborHours > 0 && (
+                        <span>{group.totalLaborHours}h labor</span>
+                      )}
+                      {group.totalLaborHours > 0 && group.totalEquipCount > 0 && (
+                        <span>·</span>
+                      )}
+                      {group.totalEquipCount > 0 && (
+                        <span>{group.totalEquipCount} equip</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Activity rows */}
+                {group.activityRows.length > 0 && (
+                  <div className="divide-y divide-border">
+                    {group.activityRows.map((row) => {
+                      const isExpanded = isRowExpanded(row.id);
+                      const hasDetail = row.detail_label !== "—" && row.detail_label.length > 0;
+                      const isLong = hasDetail && row.detail_label.length > 120;
+                      const hasRowMetadata = (
                         row.units_label !== "—" ||
                         row.visitors ||
                         row.usable_rooms_returned ||
                         row.estimated_date_of_return
                       );
+                      const isExpandable = isLong || hasRowMetadata;
 
                       return (
-                        <Fragment key={row.id}>
-                          <tr className={`${hasRow2 ? "" : "border-b border-border"} align-top`}>
-                            <td className="px-3 py-2 text-xs text-muted-foreground whitespace-nowrap">{row.time_label}</td>
-                            <td className="px-3 py-2 text-xs text-foreground">
-                              {row.primary_label}
-                              {row.detail_label !== "—" && (
-                                <div className="text-muted-foreground mt-0.5">{row.detail_label}</div>
-                              )}
-                            </td>
-                            <td className="px-3 py-2 text-xs text-muted-foreground">{row.status_label}</td>
-                            <td className="px-3 py-2 text-xs text-muted-foreground">{row.visitors || ""}</td>
-                            <td className="px-3 py-2 text-xs text-muted-foreground">{row.actor_name}</td>
-                            <td className="px-3 py-2">
+                        <div
+                          key={row.id}
+                          className={isExpandable ? "cursor-pointer hover:bg-muted/50 transition-colors" : ""}
+                          onClick={isExpandable ? () => toggleRow(row.id) : undefined}
+                        >
+                          {/* Row header */}
+                          <div className="flex items-start gap-2 px-3 py-2">
+                            <div className="w-[80px] shrink-0 text-xs text-muted-foreground pt-0.5">{row.time_label}</div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start gap-1">
+                                {isExpandable && (
+                                  <ChevronDown className={`h-3.5 w-3.5 mt-0.5 shrink-0 text-muted-foreground transition-transform ${isExpanded ? "" : "-rotate-90"}`} />
+                                )}
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-sm font-medium text-foreground">{row.primary_label}</span>
+                                    {row.status_label && <span className="text-xs text-muted-foreground">{row.status_label}</span>}
+                                  </div>
+                                  {hasDetail && (
+                                    <div className={`text-xs text-muted-foreground mt-1 whitespace-pre-wrap ${!isExpanded && isLong ? "line-clamp-2" : ""}`}>
+                                      {row.detail_label}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="shrink-0 flex items-center gap-2">
                               {row.edit_path && (
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="h-7 px-2 text-xs gap-1"
-                                  onClick={() => handleEdit(row)}
+                                  className="h-6 px-2 text-xs gap-1"
+                                  onClick={(e) => { e.stopPropagation(); handleEdit(row); }}
                                 >
                                   <Pencil className="h-3 w-3" />
-                                  Edit
                                 </Button>
                               )}
-                            </td>
-                          </tr>
-                          {hasRow2 && (
-                            <tr className="border-b border-border">
-                              <td />
-                              <td colSpan={5} className="px-3 pb-2 pt-0">
-                                <div className="flex gap-8 text-xs">
-                                  {row.units_label !== "—" && (
-                                    <div>
-                                      <div className="text-muted-foreground uppercase tracking-wide text-xs">Units Affected</div>
-                                      <div className="text-muted-foreground">{row.units_label}</div>
-                                    </div>
-                                  )}
-                                  {row.usable_rooms_returned && (
-                                    <div>
-                                      <div className="text-muted-foreground uppercase tracking-wide text-xs">Usable Rooms Returned</div>
-                                      <div className="text-muted-foreground">{row.usable_rooms_returned}</div>
-                                    </div>
-                                  )}
-                                  {row.estimated_date_of_return && (
-                                    <div>
-                                      <div className="text-muted-foreground uppercase tracking-wide text-xs">Est. Date of Return</div>
-                                      <div className="text-muted-foreground">{row.estimated_date_of_return}</div>
-                                    </div>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
+                            </div>
+                          </div>
+
+                          {/* Expanded row-specific metadata */}
+                          {isExpanded && hasRowMetadata && (
+                            <div className="px-3 pb-3 ml-[80px] pl-5">
+                              <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs">
+                                {row.units_label !== "—" && (
+                                  <span>
+                                    <span className="text-muted-foreground">Units </span>
+                                    <span className="text-foreground">{row.units_label}</span>
+                                  </span>
+                                )}
+                                {row.visitors && (
+                                  <span>
+                                    <span className="text-muted-foreground">Visitors </span>
+                                    <span className="text-foreground">{row.visitors}</span>
+                                  </span>
+                                )}
+                                {row.usable_rooms_returned && (
+                                  <span>
+                                    <span className="text-muted-foreground">Rooms Returned </span>
+                                    <span className="text-foreground">{row.usable_rooms_returned}</span>
+                                  </span>
+                                )}
+                                {row.estimated_date_of_return && (
+                                  <span>
+                                    <span className="text-muted-foreground">Est. Return </span>
+                                    <span className="text-foreground">{row.estimated_date_of_return}</span>
+                                  </span>
+                                )}
+                              </div>
+                            </div>
                           )}
-                        </Fragment>
+                        </div>
                       );
                     })}
-                  </tbody>
-                </table>
+                  </div>
+                )}
+
+                {/* Group-level resource summary */}
+                {(hasEquipment || hasLabor) && (
+                  <div className="border-t border-border bg-muted/30 px-3 py-2.5">
+                    <div className="flex flex-wrap gap-x-10 gap-y-2 text-xs">
+                      {hasEquipment && (
+                        <div>
+                          <div className="text-muted-foreground uppercase tracking-wide font-semibold mb-1">Equipment</div>
+                          <div className="space-y-0.5">
+                            {group.equipment_summary.map((eq) => (
+                              <div key={eq.type_name} className="text-foreground">
+                                {eq.count} {eq.type_name} <span className="text-muted-foreground">{eq.hours}h</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {hasLabor && (
+                        <div>
+                          <div className="text-muted-foreground uppercase tracking-wide font-semibold mb-1">Labor</div>
+                          <div className="space-y-0.5">
+                            {group.laborByRole.map((lr) => (
+                              <div key={lr.role} className="text-foreground">
+                                {lr.count} {lr.role} <span className="text-muted-foreground">{lr.hours}h</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 

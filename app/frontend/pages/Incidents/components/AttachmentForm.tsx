@@ -52,6 +52,8 @@ export default function AttachmentForm({ path, onClose }: AttachmentFormProps) {
             <label className="text-xs font-medium text-muted-foreground">File</label>
             <Input
               type="file"
+              accept={data.category === "photo" ? "image/*" : undefined}
+              capture={data.category === "photo" ? "environment" : undefined}
               onChange={(e) => setData("file", e.target.files?.[0] ?? null)}
               className="mt-1"
             />

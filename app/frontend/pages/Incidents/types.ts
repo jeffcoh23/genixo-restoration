@@ -4,6 +4,8 @@ export interface TeamUser {
   full_name: string;
   initials: string;
   role_label: string;
+  email: string;
+  phone: string | null;
   remove_path: string | null;
 }
 
@@ -191,12 +193,20 @@ export interface DailyLogTableRow {
   visitors?: string | null;
   usable_rooms_returned?: string | null;
   estimated_date_of_return?: string | null;
+  equipment_actions?: { label: string; note: string | null }[];
+}
+
+export interface DailyLogEquipmentSummary {
+  type_name: string;
+  count: number;
+  hours: number;
 }
 
 export interface DailyLogTableGroup {
   date_key: string;
   date_label: string;
   rows: DailyLogTableRow[];
+  equipment_summary: DailyLogEquipmentSummary[];
 }
 
 export interface IncidentDetail {
@@ -239,7 +249,7 @@ export interface IncidentDetail {
   location_of_damage: string | null;
   created_at: string;
   created_at_label: string;
-  created_by: string | null;
+  created_by: { name: string; email: string; phone: string | null } | null;
   property: {
     id: number;
     name: string;
@@ -340,7 +350,7 @@ export interface EquipmentLogItem {
   location_notes: string | null;
   placed_at_label: string;
   removed_at_label: string | null;
-  total_days: number;
+  total_hours: number;
   edit_path: string | null;
   remove_path: string | null;
   // Raw values for edit form (only present when editable)

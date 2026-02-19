@@ -17,6 +17,10 @@ gem "solid_cache"
 gem "solid_queue"
 gem "solid_cable"
 
+# PDF generation
+gem "prawn"
+gem "prawn-table"
+
 # Boot performance
 gem "bootsnap", require: false
 

@@ -142,7 +142,7 @@ Mitigation manager enters call-in
 │                         │
 │ 2. Auto-transition to   │
 │    'acknowledged' or    │
-│    'quote_requested'    │
+│    'proposal_requested' │
 │    (based on intake     │
 │     selection)          │
 │                         │
@@ -182,9 +182,9 @@ class IncidentCreationService
       )
 
       # Auto-transition based on project_type
-      new_status = %w[mitigation_rfq buildback_rfq].include?(@params[:project_type]) ?
-                     "quote_requested" : "acknowledged"
-      transition_status!(new_status)
+      # RFQ types (mitigation_rfq, buildback_rfq, capex_rfq) → proposal_requested
+      # All others → acknowledged
+      auto_transition_status
 
       # Auto-assign all relevant users (not techs)
       auto_assign_users!
@@ -299,13 +299,18 @@ EscalationJob (Solid Queue)
 # app/services/status_transition_service.rb
 class StatusTransitionService
   ALLOWED_TRANSITIONS = {
-    "acknowledged"      => %w[active quote_requested on_hold],
-    "quote_requested"   => %w[active closed],
-    "active"            => %w[on_hold completed],
-    "on_hold"           => %w[active completed],
-    "completed"         => %w[completed_billed active],
-    "completed_billed"  => %w[paid active],
-    "paid"              => %w[closed],
+    # Standard path
+    "acknowledged"       => %w[active on_hold],
+    # Quote path
+    "proposal_requested" => %w[proposal_submitted],
+    "proposal_submitted" => %w[proposal_signed],
+    "proposal_signed"    => %w[active],
+    # Shared from active onward
+    "active"             => %w[on_hold completed],
+    "on_hold"            => %w[active completed],
+    "completed"          => %w[completed_billed active],
+    "completed_billed"   => %w[paid active],
+    "paid"               => %w[closed],
   }.freeze
 
   def initialize(incident:, new_status:, user:)
@@ -391,7 +396,7 @@ class DashboardService
     {
       emergency: scope.where(emergency: true, status: %w[new acknowledged active]),
       active: scope.where(status: "active"),
-      needs_attention: scope.where(status: %w[new acknowledged]),
+      needs_attention: scope.where(status: %w[new acknowledged proposal_requested proposal_submitted proposal_signed]),
       on_hold: scope.where(status: "on_hold"),
       recent_completed: scope.where(status: %w[completed completed_billed paid closed])
                              .limit(20)
@@ -603,7 +608,7 @@ All datetimes stored in UTC in the database. Displayed in the user's configured 
 around_action :set_timezone
 
 def set_timezone(&block)
-  Time.use_zone(current_user&.timezone || "America/New_York", &block)
+  Time.use_zone(current_user&.timezone || "America/Chicago", &block)
 end
 ```
 

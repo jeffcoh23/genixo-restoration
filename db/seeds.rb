@@ -336,77 +336,78 @@ if Incident.count.zero?
       logged_by_user: users[:henry])
   end
 
-  # Activity entries (activity-first daily log)
-  extract_water = ActivityEntry.create!(
+  # Activity entries — DFR-style daily logs with rich per-unit narratives
+  # Day 1: Initial response
+  day1 = ActivityEntry.create!(
     incident: incident1,
     performed_by_user: users[:henry],
-    title: "Extract water",
-    details: "Pulled standing water from hallway and unit 238. Started structural drying setup.",
+    title: "Initial response and water extraction",
+    details: "237 – Water intrusion from adjacent unit 238 through shared kitchen wall. Standing water found in kitchen and living room. Carpet is saturated along the shared wall approximately 8 feet out. Removed baseboards along shared wall, drilled weep holes in drywall at 16\" intervals. Extracted bulk water with truck-mounted extractor and set up drying equipment.\n\n238 – Source unit. Supply line burst under kitchen sink caused significant flooding throughout the unit. Standing water in kitchen, hallway, and living room — approximately 1\" deep in kitchen. Carpet pad is saturated throughout. Removed all baseboards, drilled weep holes, performed full extraction. This unit will require the longest drying time due to severity.\n\n239 – Minor water intrusion through shared hallway wall. Affected area limited to approximately 4 feet along the hallway-side bedroom wall. Removed baseboards in affected area, drilled weep holes, extracted standing water. Damage appears contained.\n\nHallway – Standing water found in the hallway between all three units. Extracted approximately 30 gallons. Hallway carpet may need replacement — pad is heavily saturated and water has reached the subfloor in spots.",
     units_affected: 3,
     units_affected_description: "Units 237, 238, 239 plus hallway",
+    visitors: "Safety walkthrough",
+    usable_rooms_returned: "None",
+    estimated_date_of_return: now + 4.days,
     status: "completed",
-    occurred_at: now - 3.days + 1.hour
+    occurred_at: now - 3.days + 8.hours
   )
 
-  ActivityEquipmentAction.create!(
-    activity_entry: extract_water,
-    action_type: "add",
-    quantity: 6,
-    equipment_type: equipment_types["Air Mover"],
-    note: "Increase airflow for primary dry-down pass"
-  )
+  ActivityEquipmentAction.create!(activity_entry: day1, action_type: "add", quantity: 6,
+    equipment_type: equipment_types["Air Mover"], note: "2 per unit for primary dry-down pass")
+  ActivityEquipmentAction.create!(activity_entry: day1, action_type: "add", quantity: 2,
+    equipment_type: equipment_types["Dehumidifier"], note: "1 in unit 238, 1 in hallway")
 
-  ActivityEquipmentAction.create!(
-    activity_entry: extract_water,
-    action_type: "add",
-    quantity: 2,
-    equipment_type: equipment_types["Dehumidifier"],
-    note: "Lower ambient humidity to reduce drying time"
-  )
+  ActivityEvent.create!(incident: incident1, event_type: "activity_logged",
+    performed_by_user: users[:henry], metadata: { title: day1.title, status: day1.status },
+    created_at: day1.occurred_at)
 
-  ActivityEvent.create!(
-    incident: incident1,
-    event_type: "activity_logged",
-    performed_by_user: users[:henry],
-    metadata: { title: extract_water.title, status: extract_water.status },
-    created_at: extract_water.occurred_at
-  )
-
-  move_fans = ActivityEntry.create!(
+  # Day 2: Progress check and equipment adjustment
+  day2 = ActivityEntry.create!(
     incident: incident1,
     performed_by_user: users[:henry],
-    title: "Move fans for final dry pass",
-    details: "Moisture improved in unit 237; moved two fans to unit 238 kitchen wall.",
-    units_affected: 1,
-    units_affected_description: "Unit 238 kitchen wall",
+    title: "Moisture readings and equipment adjustment",
+    details: "237 – Morning moisture readings: kitchen shared wall 28%, living room wall 18%. Drying is progressing well. Kitchen wall is the slowest area — added 1 additional air mover focused on this section. Carpet pad readings improved to acceptable levels; carpet itself may be salvageable.\n\n238 – Morning moisture readings: kitchen 45%, hallway 32%, living room 28%. This unit is still significantly elevated. Kitchen subfloor reading at 38% — may have plywood damage. Repositioned 2 air movers for better coverage on kitchen cabinets and hallway. Added 1 additional dehumidifier from storage.\n\n239 – Morning moisture readings: bedroom wall 14%, hallway side 12%. This unit is nearly dry. Will check again tomorrow and likely remove equipment if readings continue to drop.\n\nHallway – Carpet readings at 22%. Subfloor appears intact. Drying on schedule.",
+    units_affected: 3,
+    units_affected_description: "Units 237, 238, 239 plus hallway",
+    usable_rooms_returned: "None",
+    estimated_date_of_return: now + 3.days,
     status: "completed",
-    occurred_at: now - 2.days + 2.hours
+    occurred_at: now - 2.days + 8.hours
   )
 
-  ActivityEquipmentAction.create!(
-    activity_entry: move_fans,
-    action_type: "move",
-    quantity: 2,
-    equipment_type: equipment_types["Air Mover"],
-    note: "Redirect airflow to remaining wet section"
-  )
+  ActivityEquipmentAction.create!(activity_entry: day2, action_type: "add", quantity: 1,
+    equipment_type: equipment_types["Air Mover"], note: "Added to unit 237 kitchen shared wall")
+  ActivityEquipmentAction.create!(activity_entry: day2, action_type: "add", quantity: 1,
+    equipment_type: equipment_types["Dehumidifier"], note: "Added to unit 238 from storage")
+  ActivityEquipmentAction.create!(activity_entry: day2, action_type: "move", quantity: 2,
+    equipment_type: equipment_types["Air Mover"], note: "Repositioned in unit 238 for kitchen/hallway coverage")
 
-  ActivityEvent.create!(
+  ActivityEvent.create!(incident: incident1, event_type: "activity_logged",
+    performed_by_user: users[:henry], metadata: { title: day2.title, status: day2.status },
+    created_at: day2.occurred_at)
+
+  # Day 3: Continued drying, unit 239 cleared
+  day3 = ActivityEntry.create!(
     incident: incident1,
-    event_type: "activity_logged",
     performed_by_user: users[:henry],
-    metadata: { title: move_fans.title, status: move_fans.status },
-    created_at: move_fans.occurred_at
+    title: "Continued drying — unit 239 cleared",
+    details: "237 – Moisture readings: kitchen shared wall down to 18%, living room 12%. Good progress. Carpet pad readings now at acceptable levels in all areas. Will continue drying one more day to ensure wall cavities are fully dry.\n\n238 – Moisture readings: kitchen 32%, hallway 22%, living room 18%. Kitchen is still elevated but improving steadily. Subfloor reading down to 28%. Cabinet toe kicks still showing moisture — pulled bottom shelf items out to improve airflow behind cabinets. Carpet pad in this unit will need full replacement — too saturated to salvage.\n\n239 – All readings below 15%. Unit is dry. Removed all equipment from this unit. Baseboards can be reinstalled once painting is complete. Recommend new baseboards for the 4-foot affected section.\n\nHallway – Readings at 16%. Nearly dry. Carpet pad may be salvageable here.",
+    units_affected: 2,
+    units_affected_description: "Units 237, 238 (239 cleared)",
+    usable_rooms_returned: "Unit 239",
+    estimated_date_of_return: now + 2.days,
+    status: "in_progress",
+    occurred_at: now - 1.day + 8.hours
   )
 
-  # Operational notes
-  OperationalNote.create!(incident: incident1, created_by_user: users[:henry],
-    note_text: "Extracted approximately 80 gallons of standing water from hallway and units. Set up 6 air movers and 2 dehumidifiers. Carpet in unit 238 may need replacement — pad is saturated. Drywall moisture readings: 238 kitchen 45%, 237 shared wall 28%, 239 shared wall 22%.",
-    log_date: (now - 3.days).to_date, created_at: now - 3.days + 6.hours)
+  ActivityEquipmentAction.create!(activity_entry: day3, action_type: "remove", quantity: 2,
+    equipment_type: equipment_types["Air Mover"], note: "Removed from unit 239 — unit is dry")
 
-  OperationalNote.create!(incident: incident1, created_by_user: users[:henry],
-    note_text: "Morning readings showing improvement. 238 kitchen down to 32%, 237 wall 18%, 239 wall 14%. Repositioned 2 air movers for better coverage in 238. Drying progressing well in 237 and 239.",
-    log_date: (now - 2.days).to_date, created_at: now - 2.days + 3.hours)
+  ActivityEvent.create!(incident: incident1, event_type: "activity_logged",
+    performed_by_user: users[:henry], metadata: { title: day3.title, status: day3.status },
+    created_at: day3.occurred_at)
+
+  # Note: Operational notes are not used — all DFR content is captured in activity entry details.
 
   # Incident contact
   IncidentContact.create!(incident: incident1, name: "Patricia Williams", title: "Insurance Adjuster",
@@ -421,7 +422,7 @@ if Incident.count.zero?
   incident2 = Incident.create!(
     property: greystar_heights,
     created_by_user: users[:tom],
-    status: "quote_requested",
+    status: "proposal_requested",
     project_type: "mitigation_rfq",
     emergency: false,
     damage_type: "mold",
@@ -440,7 +441,7 @@ if Incident.count.zero?
     metadata: { project_type: "mitigation_rfq", damage_type: "mold" }, created_at: now - 2.days)
 
   ActivityEvent.create!(incident: incident2, event_type: "status_changed", performed_by_user: users[:tom],
-    metadata: { old_status: "new", new_status: "quote_requested" }, created_at: now - 2.days)
+    metadata: { old_status: "new", new_status: "proposal_requested" }, created_at: now - 2.days)
 
   [
     { user: :tom,    body: "Photos attached from the HVAC inspection. The mold is concentrated around the supply vents in both units. Residents haven't reported any health issues yet but we'd like to get this handled quickly.", at: now - 2.days },
@@ -535,10 +536,53 @@ if Incident.count.zero?
       location_notes: "Unit #{303 + i}", logged_by_user: users[:henry])
   end
 
-  # Operational note
-  OperationalNote.create!(incident: incident3, created_by_user: users[:henry],
-    note_text: "Set up 4 HEPA air scrubbers, one per affected unit. Unit 305 has heavy soot deposits on kitchen ceiling and cabinets — needs chemical sponge cleaning followed by sealing. Other units have light smoke film on walls and ceilings, standard cleaning protocol.",
-    log_date: (now - 14.days).to_date, created_at: now - 14.days + 6.hours)
+  # Activity entries — DFR-style daily logs for smoke damage
+  smoke_day1 = ActivityEntry.create!(
+    incident: incident3,
+    performed_by_user: users[:henry],
+    title: "Initial assessment and air scrubber setup",
+    details: "305 – Source unit. Kitchen fire caused heavy soot and smoke damage throughout. Kitchen ceiling is blackened with thick soot deposits. Cabinets have smoke film and grease residue. Living room and bedroom have moderate smoke residue on walls and ceiling. HVAC system was running during the fire and distributed smoke throughout the unit. Sealed off HVAC vents to prevent further contamination. Set up HEPA air scrubber in the kitchen area. This unit will require chemical sponge cleaning on all surfaces, followed by sealing primer before repainting.\n\n303 – Light smoke film on bedroom ceiling and living room walls adjacent to unit 305. Smoke entered primarily through shared wall penetrations and HVAC system. Set up air scrubber in the living room. Standard cleaning protocol should be sufficient.\n\n304 – Moderate smoke residue on kitchen and living room walls. Stronger odor than 303, likely due to proximity to 305's kitchen. Some soot deposits visible on kitchen ceiling near shared wall. Set up air scrubber. Will need chemical sponge cleaning on the kitchen ceiling, standard wipe-down elsewhere.\n\n306 – Light smoke film similar to 303. Affected areas are the bedroom and hallway adjacent to 305. Set up air scrubber. Standard cleaning protocol.",
+    units_affected: 4,
+    units_affected_description: "Units 303, 304, 305, 306",
+    visitors: "Fire department follow-up inspection",
+    usable_rooms_returned: "None",
+    estimated_date_of_return: now - 5.days,
+    status: "completed",
+    occurred_at: now - 14.days + 9.hours
+  )
+
+  smoke_day2 = ActivityEntry.create!(
+    incident: incident3,
+    performed_by_user: users[:henry],
+    title: "Full cleaning — unit 305 kitchen and common areas",
+    details: "305 – Began intensive cleaning. Kitchen ceiling chemical sponge cleaning completed — required three passes to remove soot deposits. Started on cabinet exteriors and interior shelving. HVAC ductwork in this unit needs professional duct cleaning before system can be used. Living room walls cleaned with standard smoke residue removal solution. Bedroom deferred to tomorrow.\n\n303 – Completed all cleaning. Walls and ceiling wiped down, air quality readings improved significantly. Air scrubber will continue running overnight.\n\n304 – Kitchen ceiling chemical sponge cleaning completed. Living room walls wiped down. Moderate smoke odor persists — will continue air scrubbing and reassess tomorrow.\n\n306 – Completed all cleaning. Similar to 303 — light residue removed with standard protocol. Air scrubber running overnight.",
+    units_affected: 4,
+    units_affected_description: "Units 303, 304, 305, 306",
+    usable_rooms_returned: "None",
+    status: "completed",
+    occurred_at: now - 13.days + 8.hours
+  )
+
+  smoke_day3 = ActivityEntry.create!(
+    incident: incident3,
+    performed_by_user: users[:henry],
+    title: "Final cleaning and equipment removal",
+    details: "305 – Completed bedroom cleaning and second pass on kitchen cabinets. Applied sealing primer to kitchen ceiling and walls. All surfaces clean and sealed. Air quality readings within normal range. HVAC duct cleaning scheduled separately by building management. Equipment removed.\n\n303 – Final air quality check — all readings normal. Equipment removed. Unit cleared for occupancy.\n\n304 – Second cleaning pass on kitchen. Smoke odor has dissipated after 48 hours of air scrubbing. Air quality readings normal. Equipment removed. Unit cleared for occupancy.\n\n306 – Final air quality check — all readings normal. Equipment removed. Unit cleared for occupancy.",
+    units_affected: 4,
+    units_affected_description: "Units 303, 304, 305, 306",
+    usable_rooms_returned: "303, 304, 306",
+    estimated_date_of_return: now - 4.days,
+    status: "completed",
+    occurred_at: now - 12.days + 8.hours
+  )
+
+  [smoke_day1, smoke_day2, smoke_day3].each do |entry|
+    ActivityEvent.create!(incident: incident3, event_type: "activity_logged",
+      performed_by_user: users[:henry], metadata: { title: entry.title, status: entry.status },
+      created_at: entry.occurred_at)
+  end
+
+  # Note: Operational notes are not used — all DFR content is captured in activity entry details.
 
   puts "  Incident 3 (Smoke Damage — Completed): created"
 end

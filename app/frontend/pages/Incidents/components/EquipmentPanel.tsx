@@ -20,7 +20,7 @@ export default function EquipmentPanel({ equipment_log = [], can_manage_equipmen
 
   const handleRemove = (item: EquipmentLogItem) => {
     if (!item.remove_path) return;
-    router.patch(item.remove_path, { removed_at: now_datetime.split("T")[0] }, { preserveScroll: true });
+    router.patch(item.remove_path, { removed_at: now_datetime }, { preserveScroll: true });
   };
 
   return (
@@ -48,9 +48,9 @@ export default function EquipmentPanel({ equipment_log = [], can_manage_equipmen
                   <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Model</th>
                   <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground w-[100px]">ID #</th>
                   <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Location</th>
-                  <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground w-[110px]">Date Set</th>
-                  <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground w-[110px]">Date Pulled</th>
-                  <th className="px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground w-[70px]">Days</th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Placed</th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Removed</th>
+                  <th className="px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground w-[70px]">Hours</th>
                   {can_manage_equipment && (
                     <th className="px-3 py-2 w-[70px]" />
                   )}
@@ -63,9 +63,9 @@ export default function EquipmentPanel({ equipment_log = [], can_manage_equipmen
                     <td className="px-3 py-2 text-sm text-muted-foreground">{item.equipment_model || "—"}</td>
                     <td className="px-3 py-2 text-sm text-muted-foreground">{item.equipment_identifier || "—"}</td>
                     <td className="px-3 py-2 text-sm text-muted-foreground">{item.location_notes || "—"}</td>
-                    <td className="px-3 py-2 text-sm text-muted-foreground">{item.placed_at_label}</td>
-                    <td className="px-3 py-2 text-sm text-muted-foreground">{item.removed_at_label || "—"}</td>
-                    <td className="px-3 py-2 text-sm text-muted-foreground text-right tabular-nums">{item.total_days}</td>
+                    <td className="px-3 py-2 text-sm text-muted-foreground whitespace-nowrap">{item.placed_at_label}</td>
+                    <td className="px-3 py-2 text-sm text-muted-foreground whitespace-nowrap">{item.removed_at_label || "—"}</td>
+                    <td className="px-3 py-2 text-sm text-muted-foreground text-right tabular-nums">{item.total_hours}</td>
                     {can_manage_equipment && (
                       <td className="px-2 py-2">
                         <div className="flex items-center gap-0.5">

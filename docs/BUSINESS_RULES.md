@@ -101,33 +101,36 @@ Email is globally unique across all organizations. One email address = one user 
 ### Project Type
 
 - `project_type` is a **persistent field** on the incident — visible in lists and detail views.
-- Set at creation from the intake form. Values: `emergency_response`, `mitigation_rfq`, `buildback_rfq`, `other`.
+- Set at creation from the intake form. Values: `emergency_response`, `mitigation_rfq`, `buildback_rfq`, `capex_rfq`, `other`.
 - Drives initial status + emergency flag automatically:
   - `emergency_response` → `emergency = true`, status → `acknowledged`
-  - `mitigation_rfq` → status → `quote_requested`
-  - `buildback_rfq` → status → `quote_requested`
+  - `mitigation_rfq` → status → `proposal_requested`
+  - `buildback_rfq` → status → `proposal_requested`
+  - `capex_rfq` → status → `proposal_requested`
   - `other` → status → `acknowledged`
-- There is no separate `quote_requested` boolean. Status is the single source of truth.
+- RFQ project types are identified by `Incident.quote?` (checks `QUOTE_PROJECT_TYPES`).
 
 ### Damage Type
 
 - `damage_type` is a required field on every incident.
-- Values: `flood`, `fire`, `smoke`, `mold`, `odor`, `other`.
+- Values: `flood`, `fire`, `smoke`, `mold`, `odor`, `other`, `not_applicable`.
 - Set at creation from the intake form.
 
 ### Status Lifecycle
 
 ```
 new → acknowledged → active → on_hold → completed → completed_billed → paid → closed
-                   ↘ quote_requested → active (when approved)
+                   ↘ proposal_requested → proposal_submitted → proposal_signed → active
 ```
 
 **Allowed transitions:**
 
 | From | To |
 |------|----|
-| `acknowledged` | `active`, `quote_requested`, `on_hold` |
-| `quote_requested` | `active`, `closed` |
+| `acknowledged` | `active`, `on_hold` |
+| `proposal_requested` | `proposal_submitted` |
+| `proposal_submitted` | `proposal_signed` |
+| `proposal_signed` | `active` |
 | `active` | `on_hold`, `completed` |
 | `on_hold` | `active`, `completed` |
 | `completed` | `completed_billed`, `active` (reopen) |

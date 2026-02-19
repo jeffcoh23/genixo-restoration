@@ -81,7 +81,7 @@ All users across both org types. `user_type` determines permissions.
 | first_name | string | NOT NULL | |
 | last_name | string | NOT NULL | |
 | phone | string | | For notifications and escalation |
-| timezone | string | NOT NULL, DEFAULT `'America/New_York'` | IANA timezone for display. All datetimes stored as UTC, displayed in user's timezone. |
+| timezone | string | NOT NULL, DEFAULT `'America/Chicago'` | IANA timezone for display. All datetimes stored as UTC, displayed in user's timezone. |
 | user_type | string | NOT NULL | See user types below |
 | notification_preferences | jsonb | NOT NULL, DEFAULT `{}` | See notification preferences |
 | active | boolean | NOT NULL, DEFAULT true | Soft deactivation |
@@ -186,9 +186,9 @@ The core work unit. Tracks a mitigation job from intake through payment.
 | property_id | bigint | NOT NULL, FK | |
 | created_by_user_id | bigint | NOT NULL, FK → users | Who filed it |
 | status | string | NOT NULL, DEFAULT `'new'` | See lifecycle below |
-| project_type | string | NOT NULL | `emergency_response`, `mitigation_rfq`, `buildback_rfq`, `other` |
+| project_type | string | NOT NULL | `emergency_response`, `mitigation_rfq`, `buildback_rfq`, `capex_rfq`, `other` |
 | emergency | boolean | NOT NULL, DEFAULT false | Triggers escalation if true |
-| damage_type | string | NOT NULL | `flood`, `fire`, `smoke`, `mold`, `odor`, `other` |
+| damage_type | string | NOT NULL | `flood`, `fire`, `smoke`, `mold`, `odor`, `other`, `not_applicable` |
 | description | text | NOT NULL | Free text — what happened, narrative |
 | cause | text | | What caused the damage |
 | requested_next_steps | text | | What the requester wants done |
@@ -197,6 +197,8 @@ The core work unit. Tracks a mitigation job from intake through payment.
 | visitors | text | | People present on-site |
 | usable_rooms_returned | text | | Rooms returned to usable condition |
 | estimated_date_of_return | date | | Estimated date tenants can return |
+| location_of_damage | text | | Free text — where on the property the damage is |
+| do_not_exceed_limit | decimal | | Optional dollar amount cap |
 | job_id | string | | Optional external job/reference number |
 | last_activity_at | datetime | | Denormalized. Updated on any message, activity event, labor, equipment, note, or attachment. |
 | created_at | datetime | NOT NULL | |
@@ -204,20 +206,23 @@ The core work unit. Tracks a mitigation job from intake through payment.
 
 **`project_type` drives initial status + emergency flag at creation:**
 - `emergency_response` → `emergency = true`, status auto-transitions to `acknowledged`
-- `mitigation_rfq` → status auto-transitions to `quote_requested`
-- `buildback_rfq` → status auto-transitions to `quote_requested`
+- `mitigation_rfq` → status auto-transitions to `proposal_requested`
+- `buildback_rfq` → status auto-transitions to `proposal_requested`
+- `capex_rfq` → status auto-transitions to `proposal_requested`
 - `other` → status auto-transitions to `acknowledged`
 
 **Statuses:**
 ```
 new → acknowledged → active → on_hold → completed → completed_billed → paid → closed
-                   ↘ quote_requested → active (when approved)
+                   ↘ proposal_requested → proposal_submitted → proposal_signed → active
 ```
 
 - `new` — Just created (exists momentarily)
-- `acknowledged` — Auto-transition on creation. Confirmation email sent.
-- `quote_requested` — Set at intake for RFQ project types. Quote handled outside the platform. Manager manually moves to `active` when work is approved.
-- `active` — Manager manually sets when work begins. Techs are assigned at this point.
+- `acknowledged` — Auto-transition on creation for non-RFQ types. Confirmation email sent.
+- `proposal_requested` — Auto-transition on creation for RFQ project types. Proposal work begins.
+- `proposal_submitted` — Proposal has been sent to the client.
+- `proposal_signed` — Client has signed the proposal.
+- `active` — Work begins. Standard and quote paths converge here. Techs are assigned at this point.
 - `on_hold` — Work paused.
 - `completed` — Mitigation work finished.
 - `completed_billed` — Invoice sent.
@@ -480,6 +485,7 @@ Individual physical equipment units. Still used for optional specific-unit refer
 | incident_id | bigint | NOT NULL, FK | |
 | equipment_type_id | bigint | FK → equipment_types | Nullable if using freeform |
 | equipment_type_other | string | | Freeform type name when not in predefined list |
+| equipment_model | string | | Model name (e.g., "LGR 7000XLi") |
 | equipment_identifier | string | | Serial number or barcode string. Manual entry for MVP. |
 | placed_at | datetime | NOT NULL | When equipment was placed |
 | removed_at | datetime | | When removed. Null = still in place. |
@@ -489,13 +495,7 @@ Individual physical equipment units. Still used for optional specific-unit refer
 | updated_at | datetime | NOT NULL | |
 
 **Constraints:**
-- **DB check constraint:** Exactly one of `equipment_type_id` or `equipment_type_other` must be present (XOR). Prevents both-null and both-present states at the database level.
-  ```sql
-  CHECK (
-    (equipment_type_id IS NOT NULL AND equipment_type_other IS NULL) OR
-    (equipment_type_id IS NULL AND equipment_type_other IS NOT NULL)
-  )
-  ```
+- **Model validation:** Exactly one of `equipment_type_id` or `equipment_type_other` must be present (XOR). Empty strings are normalized to NULL before validation.
 
 **Indexes:**
 - `index_equipment_entries_on_incident_id`

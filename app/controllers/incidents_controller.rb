@@ -149,7 +149,11 @@ class IncidentsController < ApplicationController
         location_of_damage: @incident.location_of_damage,
         created_at: @incident.created_at.iso8601,
         created_at_label: format_date(@incident.created_at),
-        created_by: @incident.created_by_user&.full_name,
+        created_by: @incident.created_by_user ? {
+          name: @incident.created_by_user.full_name,
+          email: @incident.created_by_user.email_address,
+          phone: @incident.created_by_user.phone
+        } : nil,
         property: {
           id: property.id,
           name: property.name,
@@ -386,6 +390,8 @@ class IncidentsController < ApplicationController
             full_name: a.user.full_name,
             initials: a.user.initials,
             role_label: User::ROLE_LABELS[a.user.user_type],
+            email: a.user.email_address,
+            phone: a.user.phone,
             remove_path: can_remove_assignment?(a.user) ? incident_assignment_path(@incident, a) : nil
           }
         }
@@ -503,7 +509,7 @@ class IncidentsController < ApplicationController
         details: entry.details,
         status: entry.status,
         occurred_at: entry.occurred_at.iso8601,
-        occurred_at_value: format_datetime_value(entry.occurred_at),
+        occurred_at_value: entry.occurred_at.to_date.iso8601,
         occurred_at_label: format_datetime(entry.occurred_at),
         date_key: entry.occurred_at.to_date.iso8601,
         date_label: format_date(entry.occurred_at),
@@ -572,7 +578,11 @@ class IncidentsController < ApplicationController
         edit_path: activity[:edit_path],
         visitors: activity[:visitors],
         usable_rooms_returned: activity[:usable_rooms_returned],
-        estimated_date_of_return: activity[:estimated_date_of_return].present? ? format_date(Time.zone.parse(activity[:estimated_date_of_return])) : nil
+        estimated_date_of_return: activity[:estimated_date_of_return].present? ? format_date(Time.zone.parse(activity[:estimated_date_of_return])) : nil,
+        equipment_actions: activity[:equipment_actions].map { |ea|
+          label_parts = [ea[:action_label], ea[:quantity], ea[:type_name]].compact
+          { label: label_parts.join(" "), note: ea[:note] }
+        }
       }
     end
 
@@ -626,6 +636,8 @@ class IncidentsController < ApplicationController
       }
     end
 
+    equip_summary = @incident ? equipment_summary_for_incident(@incident) : []
+
     groups.keys.sort.reverse.map do |date_key|
       rows = groups[date_key].sort_by do |row|
         parsed = parse_metadata_time(row[:occurred_at]) || Time.zone.parse("#{date_key}T00:00:00")
@@ -635,9 +647,30 @@ class IncidentsController < ApplicationController
       {
         date_key: date_key,
         date_label: format_date(Time.zone.parse("#{date_key}T00:00:00")),
-        rows: rows
+        rows: rows,
+        equipment_summary: equip_summary
       }
     end
+  end
+
+  def equipment_summary_for_incident(incident)
+    entries = incident.equipment_entries.includes(:equipment_type)
+    return [] if entries.empty?
+
+    buckets = {}
+    entries.each do |entry|
+      type_name = entry.type_name.to_s.strip
+      next if type_name.blank?
+
+      key = type_name.downcase
+      bucket = buckets[key] ||= { type_name: type_name, count: 0, hours: 0.0 }
+      bucket[:count] += 1
+      bucket[:hours] += (((entry.removed_at || Time.current) - entry.placed_at) / 1.hour).round(1)
+    end
+
+    buckets.values
+      .sort_by { |b| [-b[:count], b[:type_name]] }
+      .map { |b| { type_name: b[:type_name], count: b[:count], hours: b[:hours].round(1) } }
   end
 
   def daily_activity_units_label(activity)
@@ -650,16 +683,7 @@ class IncidentsController < ApplicationController
   end
 
   def daily_activity_detail_label(activity)
-    detail_parts = []
-    detail_parts << activity[:details].presence
-
-    equipment_label = activity[:equipment_actions].map do |action|
-      pieces = [ action[:action_label], action[:quantity], action[:type_name], action[:note] ].compact
-      pieces.join(" ")
-    end.join(" | ")
-    detail_parts << equipment_label.presence
-
-    detail_parts.compact.join(" · ").presence || "—"
+    activity[:details].presence || "—"
   end
 
   def labor_time_window_label(entry)
@@ -963,16 +987,16 @@ class IncidentsController < ApplicationController
       .order(placed_at: :asc, created_at: :asc)
       .map do |entry|
       editable = can_edit_equipment_entry?(entry)
-      days = ((entry.removed_at || Time.current).to_date - entry.placed_at.to_date).to_i
+      hours = (((entry.removed_at || Time.current) - entry.placed_at) / 1.hour).round(1)
       data = {
         id: entry.id,
         type_name: entry.type_name,
         equipment_model: entry.equipment_model,
         equipment_identifier: entry.equipment_identifier,
         location_notes: entry.location_notes,
-        placed_at_label: format_date(entry.placed_at),
-        removed_at_label: entry.removed_at ? format_date(entry.removed_at) : nil,
-        total_days: days,
+        placed_at_label: format_datetime(entry.placed_at),
+        removed_at_label: entry.removed_at ? format_datetime(entry.removed_at) : nil,
+        total_hours: hours,
         edit_path: editable ? incident_equipment_entry_path(incident, entry) : nil,
         remove_path: editable && entry.removed_at.nil? ? remove_incident_equipment_entry_path(incident, entry) : nil
       }
