@@ -128,7 +128,8 @@ class SettingsController < ApplicationController
   def update_preferences
     prefs = current_user.notification_preferences.merge(
       "status_change" => params[:status_change] == "true" || params[:status_change] == true,
-      "new_message" => params[:new_message] == "true" || params[:new_message] == true
+      "new_message" => params[:new_message] == "true" || params[:new_message] == true,
+      "daily_digest" => params[:daily_digest] == "true" || params[:daily_digest] == true
     )
     current_user.update!(notification_preferences: prefs)
     redirect_to settings_path, notice: "Notification preferences saved."
@@ -201,7 +202,8 @@ class SettingsController < ApplicationController
       organization_name: current_user.organization.name,
       notification_preferences: {
         status_change: current_user.notification_preference("status_change"),
-        new_message: current_user.notification_preference("new_message")
+        new_message: current_user.notification_preference("new_message"),
+        daily_digest: current_user.notification_preference("daily_digest")
       }
     }
   end

@@ -73,8 +73,14 @@ class User < ApplicationRecord
     Permissions.has?(user_type, permission)
   end
 
+  NOTIFICATION_DEFAULTS = {
+    "status_change" => true,
+    "new_message" => true,
+    "daily_digest" => false
+  }.freeze
+
   def notification_preference(key)
-    notification_preferences.fetch(key.to_s, true)
+    notification_preferences.fetch(key.to_s, NOTIFICATION_DEFAULTS.fetch(key.to_s, true))
   end
 
   private

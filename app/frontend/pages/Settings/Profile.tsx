@@ -8,6 +8,12 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { SharedProps } from "@/types";
 
+interface NotificationPreferences {
+  status_change: boolean;
+  new_message: boolean;
+  daily_digest: boolean;
+}
+
 interface UserProfile {
   first_name: string;
   last_name: string;
@@ -15,6 +21,7 @@ interface UserProfile {
   timezone: string;
   role_label: string;
   organization_name: string;
+  notification_preferences: NotificationPreferences;
 }
 
 interface TimezoneOption {
@@ -27,6 +34,7 @@ interface Props {
   timezone_options: TimezoneOption[];
   update_path: string;
   password_path: string;
+  preferences_path: string;
 }
 
 function ProfileForm({ user, timezoneOptions, updatePath }: {
@@ -137,8 +145,53 @@ function PasswordForm({ passwordPath }: { passwordPath: string }) {
   );
 }
 
+function NotificationPreferencesForm({ preferences, preferencesPath }: {
+  preferences: NotificationPreferences;
+  preferencesPath: string;
+}) {
+  const { data, setData, patch, processing } = useForm({
+    status_change: preferences.status_change,
+    new_message: preferences.new_message,
+    daily_digest: preferences.daily_digest,
+  });
+
+  function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    patch(preferencesPath);
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="max-w-lg space-y-4">
+      {[
+        { key: "status_change" as const, label: "Status changes", description: "Get notified when an incident status changes" },
+        { key: "new_message" as const, label: "New messages", description: "Get notified when someone sends a message on your incidents" },
+        { key: "daily_digest" as const, label: "Daily digest email", description: "Receive a daily summary of activity across your incidents" },
+      ].map((pref) => (
+        <label key={pref.key} className="flex items-start gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={data[pref.key]}
+            onChange={(e) => setData(pref.key, e.target.checked)}
+            className="mt-0.5 h-4 w-4 rounded border-input accent-primary"
+          />
+          <div>
+            <div className="text-sm font-medium text-foreground">{pref.label}</div>
+            <div className="text-xs text-muted-foreground">{pref.description}</div>
+          </div>
+        </label>
+      ))}
+
+      <div className="pt-2">
+        <Button type="submit" disabled={processing}>
+          {processing ? "Saving..." : "Save Preferences"}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
 export default function SettingsProfile() {
-  const { user, timezone_options, update_path, password_path } = usePage<SharedProps & Props>().props;
+  const { user, timezone_options, update_path, password_path, preferences_path } = usePage<SharedProps & Props>().props;
 
   return (
     <AppLayout>
@@ -156,6 +209,12 @@ export default function SettingsProfile() {
         <section>
           <h2 className="text-lg font-semibold text-foreground mb-4">Profile</h2>
           <ProfileForm user={user} timezoneOptions={timezone_options} updatePath={update_path} />
+        </section>
+
+        {/* Notification preferences */}
+        <section>
+          <h2 className="text-lg font-semibold text-foreground mb-4">Notifications</h2>
+          <NotificationPreferencesForm preferences={user.notification_preferences} preferencesPath={preferences_path} />
         </section>
 
         {/* Password form */}

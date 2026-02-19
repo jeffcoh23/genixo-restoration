@@ -77,28 +77,19 @@ export default function IncidentShow() {
 
     const tabToType: Record<string, string> = { messages: "messages", daily_log: "activity" };
     const readType = tabToType[tab];
-    if (!readType) return;
+    if (!readType || markedTabs.has(readType)) return;
 
-    setMarkedTabs((prev) => {
-      if (prev.has(readType)) return prev;
+    const hasUnread = readType === "messages" ? incident.unread_messages > 0 : incident.unread_activity > 0;
+    if (!hasUnread) return;
 
-      const hasUnread = readType === "messages" ? incident.unread_messages > 0 : incident.unread_activity > 0;
-      if (!hasUnread) return prev;
+    setMarkedTabs((prev) => new Set([...prev, readType]));
 
-      // Fire-and-forget PATCH
-      const csrfToken = document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content;
-      fetch(incident.mark_read_path, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          "X-CSRF-Token": csrfToken || "",
-        },
-        body: JSON.stringify({ tab: readType }),
-      });
-
-      return new Set([...prev, readType]);
+    router.patch(incident.mark_read_path, { tab: readType }, {
+      async: true,
+      preserveState: true,
+      preserveScroll: true,
     });
-  }, [incident.mark_read_path, incident.unread_messages, incident.unread_activity]);
+  }, [incident.mark_read_path, incident.unread_messages, incident.unread_activity, markedTabs]);
 
   const handleTransition = (newStatus: string) => {
     setTransitioning(true);

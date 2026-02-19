@@ -1,0 +1,16 @@
+Daily Activity Summary
+=====================
+
+Hi <%= @user.first_name %>, here's what happened on <%= @date_label %> across your incidents.
+
+<% @summaries.each do |summary| %>
+<%= summary[:property_name] %> (<%= summary[:organization_name] %>) — <%= summary[:status_label] %>
+<%= "-" * 40 %>
+<% if summary[:new_messages] > 0 %>  - <%= pluralize(summary[:new_messages], "new message") %>
+<% end %><% if summary[:new_activity_events] > 0 %>  - <%= pluralize(summary[:new_activity_events], "activity event") %>
+<% end %><% if summary[:new_labor_entries] > 0 %>  - <%= pluralize(summary[:new_labor_entries], "labor entry", "labor entries") %>
+<% end %><% if summary[:new_equipment_entries] > 0 %>  - <%= pluralize(summary[:new_equipment_entries], "equipment entry", "equipment entries") %>
+<% end %>
+
+<% end %>
+You can change this setting in your account preferences.
