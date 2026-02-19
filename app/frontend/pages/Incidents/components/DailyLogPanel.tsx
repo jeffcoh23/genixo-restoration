@@ -175,23 +175,10 @@ export default function DailyLogPanel({
             return (
               <div key={group.date_key} className="rounded border border-border overflow-hidden">
                 {/* Date header with summary stats */}
-                <div className="px-3 py-2 border-b border-border bg-muted flex items-center justify-between">
+                <div className="px-3 py-2 border-b border-border bg-muted">
                   <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     {group.date_label}
                   </span>
-                  {(group.total_labor_hours > 0 || group.total_equip_count > 0) && (
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      {group.total_labor_hours > 0 && (
-                        <span>{group.total_labor_hours}h labor</span>
-                      )}
-                      {group.total_labor_hours > 0 && group.total_equip_count > 0 && (
-                        <span>·</span>
-                      )}
-                      {group.total_equip_count > 0 && (
-                        <span>{group.total_equip_count} equip</span>
-                      )}
-                    </div>
-                  )}
                 </div>
 
                 {/* Activity rows */}
