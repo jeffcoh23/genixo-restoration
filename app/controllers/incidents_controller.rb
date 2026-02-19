@@ -157,7 +157,8 @@ class IncidentsController < ApplicationController
         property: {
           id: property.id,
           name: property.name,
-          address: property.format_address,
+          address_line1: property.street_address,
+          address_line2: [ property.city, property.state ].filter_map(&:presence).join(", ") + (property.zip.present? ? " #{property.zip}" : ""),
           path: property_path(property),
           organization_name: property.property_management_org.name
         },

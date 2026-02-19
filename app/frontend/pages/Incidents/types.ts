@@ -255,7 +255,8 @@ export interface IncidentDetail {
   property: {
     id: number;
     name: string;
-    address: string | null;
+    address_line1: string | null;
+    address_line2: string | null;
     path: string;
     organization_name: string;
   };

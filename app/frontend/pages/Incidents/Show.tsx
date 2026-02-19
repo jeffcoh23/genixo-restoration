@@ -97,12 +97,6 @@ export default function IncidentShow() {
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            {incident.job_id && (
-              <span className="text-sm text-muted-foreground">
-                Job #{incident.job_id}
-              </span>
-            )}
-
             <div className="relative">
               {can_transition && incident.valid_transitions.length > 0 ? (
                 <Button
@@ -156,13 +150,20 @@ export default function IncidentShow() {
 
         {/* Row 2: Metadata strip with headers */}
         <div className="flex flex-wrap items-start gap-x-6 gap-y-2 mt-2">
-          {incident.property.address && (
+          {(incident.property.address_line1 || incident.property.address_line2) && (
             <div>
               <div className="text-xs text-muted-foreground uppercase tracking-wide font-semibold">Location</div>
               <div className="text-sm text-foreground">
-                {incident.property.address}
-                {incident.location_of_damage && <span className="text-muted-foreground"> &middot; {incident.location_of_damage}</span>}
+                {incident.property.address_line1 && <div>{incident.property.address_line1}</div>}
+                {incident.property.address_line2 && <div>{incident.property.address_line2}</div>}
+                {incident.location_of_damage && <div className="text-muted-foreground">{incident.location_of_damage}</div>}
               </div>
+            </div>
+          )}
+          {incident.job_id && (
+            <div>
+              <div className="text-xs text-muted-foreground uppercase tracking-wide font-semibold">Job #</div>
+              <div className="text-sm text-foreground">{incident.job_id}</div>
             </div>
           )}
           <div>
