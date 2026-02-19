@@ -249,60 +249,50 @@ export default function DailyLogPanel({
                 )}
 
                 {/* Group-level resource summary */}
-                {(hasEquipment || hasLabor || group.situation) && (
-                  <div className="border-t border-border bg-muted px-3 py-2.5">
-                    <div className="flex flex-wrap gap-x-10 gap-y-2 text-xs">
-                      {hasEquipment && (
-                        <div>
-                          <div className="text-muted-foreground uppercase tracking-wide font-semibold mb-1">Equipment</div>
-                          <div className="space-y-0.5">
-                            {group.equipment_summary.map((eq) => (
-                              <div key={eq.type_name} className="text-foreground">
-                                {eq.count} {eq.type_name} <span className="text-muted-foreground">{eq.hours}h</span>
-                              </div>
-                            ))}
-                          </div>
+                <div className="border-t border-border bg-muted px-3 py-2.5">
+                  <div className="grid grid-cols-5 gap-x-4 text-xs" style={{ gridTemplateColumns: "2fr 2fr 3fr 2fr 1.5fr" }}>
+                    <div>
+                      <div className="text-muted-foreground uppercase tracking-wide font-semibold mb-1">Equipment</div>
+                      {hasEquipment ? (
+                        <div className="space-y-0.5">
+                          {group.equipment_summary.map((eq) => (
+                            <div key={eq.type_name} className="text-foreground">
+                              {eq.count} {eq.type_name} <span className="text-muted-foreground">{eq.hours}h</span>
+                            </div>
+                          ))}
                         </div>
-                      )}
-                      {hasLabor && (
-                        <div>
-                          <div className="text-muted-foreground uppercase tracking-wide font-semibold mb-1">Labor</div>
-                          <div className="space-y-0.5">
-                            {group.laborByRole.map((lr) => (
-                              <div key={lr.role} className="text-foreground">
-                                {lr.count} {lr.role} <span className="text-muted-foreground">{lr.hours}h</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      {group.situation?.units_label && (
-                        <div>
-                          <div className="text-muted-foreground uppercase tracking-wide font-semibold mb-1">Units Affected</div>
-                          <div className="text-foreground">{group.situation.units_label}</div>
-                        </div>
-                      )}
-                      {group.situation?.visitors && (
-                        <div>
-                          <div className="text-muted-foreground uppercase tracking-wide font-semibold mb-1">Visitors</div>
-                          <div className="text-foreground">{group.situation.visitors}</div>
-                        </div>
-                      )}
-                      {group.situation?.usable_rooms_returned && (
-                        <div>
-                          <div className="text-muted-foreground uppercase tracking-wide font-semibold mb-1">Rooms Returned</div>
-                          <div className="text-foreground">{group.situation.usable_rooms_returned}</div>
-                        </div>
-                      )}
-                      {group.situation?.estimated_date_of_return && (
-                        <div>
-                          <div className="text-muted-foreground uppercase tracking-wide font-semibold mb-1">Est. Return</div>
-                          <div className="text-foreground">{group.situation.estimated_date_of_return}</div>
-                        </div>
+                      ) : (
+                        <div className="text-muted-foreground">—</div>
                       )}
                     </div>
+                    <div>
+                      <div className="text-muted-foreground uppercase tracking-wide font-semibold mb-1">Labor</div>
+                      {hasLabor ? (
+                        <div className="space-y-0.5">
+                          {group.laborByRole.map((lr) => (
+                            <div key={lr.role} className="text-foreground">
+                              {lr.count} {lr.role} <span className="text-muted-foreground">{lr.hours}h</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-muted-foreground">—</div>
+                      )}
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground uppercase tracking-wide font-semibold mb-1">Units Affected</div>
+                      <div className="text-foreground">{group.situation?.units_label || <span className="text-muted-foreground">—</span>}</div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground uppercase tracking-wide font-semibold mb-1">Rooms Returned</div>
+                      <div className="text-foreground">{group.situation?.usable_rooms_returned || <span className="text-muted-foreground">—</span>}</div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground uppercase tracking-wide font-semibold mb-1">Est. Return</div>
+                      <div className="text-foreground">{group.situation?.estimated_date_of_return || <span className="text-muted-foreground">—</span>}</div>
+                    </div>
                   </div>
-                )}
+                </div>
               </div>
             );
           })
