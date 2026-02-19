@@ -376,6 +376,7 @@ DEPENDENCIES
   debug
   inertia_rails
   letter_opener_web
+  matrix
   minitest (~> 5.25)
   pg (~> 1.1)
   prawn

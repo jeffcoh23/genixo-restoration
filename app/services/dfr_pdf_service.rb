@@ -1,6 +1,3 @@
-require "prawn"
-require "prawn/table"
-
 class DfrPdfService
   include ActionView::Helpers::NumberHelper
 
@@ -11,6 +8,9 @@ class DfrPdfService
   end
 
   def generate
+    require "prawn"
+    require "prawn/table"
+
     Time.use_zone(@timezone) do
       build_pdf
     end

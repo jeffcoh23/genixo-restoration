@@ -20,6 +20,7 @@ gem "solid_cable"
 # PDF generation (lazy-loaded to avoid Zeitwerk conflicts)
 gem "prawn", require: false
 gem "prawn-table", require: false
+gem "matrix"  # Required by Prawn, removed from Ruby stdlib in 3.1+
 
 # Boot performance
 gem "bootsnap", require: false
