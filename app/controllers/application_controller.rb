@@ -129,7 +129,7 @@ class ApplicationController < ActionController::Base
     end
 
     if user.can?(Permissions::MANAGE_ORGANIZATIONS)
-      items << { label: "Organizations", href: organizations_path, icon: "Building" }
+      items << { label: "Property Management", href: organizations_path, icon: "Building" }
       items << { label: "Users", href: users_path, icon: "Users" }
     end
 

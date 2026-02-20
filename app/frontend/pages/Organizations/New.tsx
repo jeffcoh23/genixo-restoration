@@ -26,7 +26,7 @@ export default function NewOrganization() {
 
   return (
     <AppLayout>
-      <PageHeader title="New Organization" backLink={{ href: routes.organizations, label: "Organizations" }} />
+      <PageHeader title="New Company" backLink={{ href: routes.organizations, label: "Property Management" }} />
 
       <form onSubmit={handleSubmit} className="max-w-lg space-y-4">
         <FormField id="name" label="Name" value={data.name} onChange={(v) => setData("name", v)} error={errors.name} required />
@@ -43,7 +43,7 @@ export default function NewOrganization() {
             <Link href={routes.organizations}>Cancel</Link>
           </Button>
           <Button type="submit" disabled={processing}>
-            {processing ? "Creating..." : "Create Organization"}
+            {processing ? "Creating..." : "Create Company"}
           </Button>
         </div>
       </form>

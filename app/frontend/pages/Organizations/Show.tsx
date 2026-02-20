@@ -38,7 +38,7 @@ export default function OrganizationShow() {
     <AppLayout>
       <PageHeader
         title={organization.name}
-        backLink={{ href: routes.organizations, label: "Organizations" }}
+        backLink={{ href: routes.organizations, label: "Property Management" }}
       />
 
       <div className="flex items-center justify-between mb-6">

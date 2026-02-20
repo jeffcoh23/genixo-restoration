@@ -27,12 +27,12 @@ export default function OrganizationsIndex() {
 
   return (
     <AppLayout wide>
-      <PageHeader title="Organizations" action={{ href: routes.new_organization, label: "New Organization" }} />
+      <PageHeader title="Property Management" action={{ href: routes.new_organization, label: "New Company" }} />
       <DataTable
         columns={columns}
         rows={organizations}
         keyFn={(org) => org.id}
-        emptyMessage='No property management companies yet. Use "New Organization" to add one.'
+        emptyMessage='No property management companies yet. Use "New Company" to add one.'
       />
     </AppLayout>
   );
