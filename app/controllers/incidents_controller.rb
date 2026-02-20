@@ -8,10 +8,20 @@ class IncidentsController < ApplicationController
     scope = visible_incidents.includes(property: :property_management_org)
 
     # Filters
-    scope = scope.where(status: params[:status]) if params[:status].present?
-    scope = scope.where(property_id: params[:property_id]) if params[:property_id].present?
-    scope = scope.where(project_type: params[:project_type]) if params[:project_type].present?
+    if params[:status].present?
+      statuses = params[:status].split(",").select { |s| Incident::STATUSES.include?(s) }
+      scope = scope.where(status: statuses) if statuses.any?
+    end
+    if params[:property_id].present?
+      property_ids = params[:property_id].split(",").map(&:to_i).select(&:positive?)
+      scope = scope.where(property_id: property_ids) if property_ids.any?
+    end
+    if params[:project_type].present?
+      types = params[:project_type].split(",").select { |t| Incident::PROJECT_TYPES.include?(t) }
+      scope = scope.where(project_type: types) if types.any?
+    end
     scope = scope.where(emergency: true) if params[:emergency] == "1"
+    scope = scope.where(emergency: false) if params[:emergency] == "0"
 
     if params[:search].present?
       term = "%#{params[:search]}%"
@@ -46,7 +56,7 @@ class IncidentsController < ApplicationController
       filters: {
         search: params[:search],
         status: params[:status],
-        property_id: params[:property_id]&.to_i,
+        property_id: params[:property_id],
         project_type: params[:project_type],
         emergency: params[:emergency]
       },
@@ -1049,8 +1059,8 @@ class IncidentsController < ApplicationController
         equipment_model: entry.equipment_model,
         equipment_identifier: entry.equipment_identifier,
         location_notes: entry.location_notes,
-        placed_at_label: format_datetime(entry.placed_at),
-        removed_at_label: entry.removed_at ? format_datetime(entry.removed_at) : nil,
+        placed_at_label: format_date(entry.placed_at),
+        removed_at_label: entry.removed_at ? format_date(entry.removed_at) : nil,
         total_hours: hours,
         edit_path: editable ? incident_equipment_entry_path(incident, entry) : nil,
         remove_path: editable && entry.removed_at.nil? ? remove_incident_equipment_entry_path(incident, entry) : nil
@@ -1058,8 +1068,8 @@ class IncidentsController < ApplicationController
       if editable
         data[:equipment_type_id] = entry.equipment_type_id
         data[:equipment_type_other] = entry.equipment_type_other
-        data[:placed_at] = format_datetime_value(entry.placed_at)
-        data[:removed_at] = entry.removed_at ? format_datetime_value(entry.removed_at) : nil
+        data[:placed_at] = entry.placed_at.to_date.iso8601
+        data[:removed_at] = entry.removed_at&.to_date&.iso8601
       end
       data
     end

@@ -45,7 +45,7 @@ export default function LaborForm({ path, users, onClose, entry }: LaborFormProp
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-      <div className="fixed inset-0 bg-black opacity-40" onClick={onClose} />
+      <div className="fixed inset-0 bg-black opacity-40" />
       <div className="relative bg-background border border-border rounded-t sm:rounded w-full sm:max-w-md p-4 shadow-lg">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-semibold">{editing ? "Edit Labor Entry" : "Add Labor Entry"}</h3>

@@ -18,13 +18,13 @@ export default function EquipmentForm({ path, equipment_types, onClose, entry }:
   const hasOtherType = editing && !entry.equipment_type_id && !!entry.equipment_type_other;
   const [useOther, setUseOther] = useState(hasOtherType);
 
-  const { now_datetime } = usePage<SharedProps>().props;
+  const { today } = usePage<SharedProps>().props;
   const { data, setData, post, patch, processing, errors } = useForm({
     equipment_type_id: entry?.equipment_type_id ? String(entry.equipment_type_id) : "",
     equipment_type_other: entry?.equipment_type_other ?? "",
     equipment_model: entry?.equipment_model ?? "",
     equipment_identifier: entry?.equipment_identifier ?? "",
-    placed_at: entry?.placed_at ?? now_datetime,
+    placed_at: entry?.placed_at ?? today,
     removed_at: entry?.removed_at ?? "",
     location_notes: entry?.location_notes ?? "",
   });
@@ -48,7 +48,7 @@ export default function EquipmentForm({ path, equipment_types, onClose, entry }:
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-      <div className="fixed inset-0 bg-black opacity-40" onClick={onClose} />
+      <div className="fixed inset-0 bg-black opacity-40" />
       <div className="relative bg-background border border-border rounded-t sm:rounded w-full sm:max-w-md p-4 shadow-lg">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-semibold">{editing ? "Edit Equipment" : "Place Equipment"}</h3>
@@ -123,7 +123,7 @@ export default function EquipmentForm({ path, equipment_types, onClose, entry }:
             <div>
               <label className="text-xs font-medium text-muted-foreground">Placed On</label>
               <Input
-                type="datetime-local"
+                type="date"
                 value={data.placed_at || ""}
                 onChange={(e) => setData("placed_at", e.target.value)}
                 className="mt-1"
@@ -140,9 +140,9 @@ export default function EquipmentForm({ path, equipment_types, onClose, entry }:
                       variant="link"
                       size="sm"
                       className="h-auto p-0 text-xs"
-                      onClick={() => setData("removed_at", now_datetime)}
+                      onClick={() => setData("removed_at", today)}
                     >
-                      Now
+                      Today
                     </Button>
                   ) : (
                     <Button
@@ -157,7 +157,7 @@ export default function EquipmentForm({ path, equipment_types, onClose, entry }:
                   )}
                 </div>
                 <Input
-                  type="datetime-local"
+                  type="date"
                   value={data.removed_at || ""}
                   onChange={(e) => setData("removed_at", e.target.value)}
                   className="mt-1"

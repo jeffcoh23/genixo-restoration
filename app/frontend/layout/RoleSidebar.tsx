@@ -1,7 +1,6 @@
 import { Link, usePage } from "@inertiajs/react";
 import { router } from "@inertiajs/react";
 import {
-  LayoutDashboard,
   AlertTriangle,
   Building2,
   Building,
@@ -15,7 +14,6 @@ import { Button } from "@/components/ui/button";
 import { SharedProps, NavItem } from "@/types";
 
 const iconMap: Record<string, React.ReactNode> = {
-  LayoutDashboard: <LayoutDashboard className="h-4 w-4" />,
   AlertTriangle: <AlertTriangle className="h-4 w-4" />,
   Building2: <Building2 className="h-4 w-4" />,
   Building: <Building className="h-4 w-4" />,
@@ -42,7 +40,7 @@ export default function RoleSidebar({ onNavigate }: { onNavigate: () => void }) 
       <nav className="flex-1 px-3 py-2 space-y-1">
         {nav_items.map((item: NavItem) => {
           const isActive = currentPath === item.href ||
-            (item.href !== routes.dashboard && currentPath.startsWith(item.href));
+            currentPath.startsWith(item.href + "/");
 
           return (
             <Link

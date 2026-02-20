@@ -6,6 +6,7 @@ import PageHeader from "@/components/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SharedProps } from "@/types";
+import { statusColor } from "@/lib/statusColor";
 
 interface IncidentCard {
   id: number;
@@ -44,26 +45,6 @@ const GROUP_CONFIG = [
   { key: "on_hold" as const, label: "On Hold", defaultOpen: true },
   { key: "recent_completed" as const, label: "Recent Completed", defaultOpen: false },
 ];
-
-function statusColor(status: string): string {
-  switch (status) {
-    case "new":
-    case "acknowledged":
-      return "bg-status-info text-white";
-    case "proposal_requested":
-    case "proposal_submitted":
-    case "proposal_signed":
-      return "bg-status-quote text-white";
-    case "active":
-      return "bg-status-success text-white";
-    case "on_hold":
-      return "bg-status-warning text-white";
-    case "completed":
-      return "bg-status-completed text-white";
-    default:
-      return "bg-status-neutral text-white";
-  }
-}
 
 export default function Dashboard() {
   const { groups, total_count, can_create_incident, routes } =

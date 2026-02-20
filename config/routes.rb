@@ -67,16 +67,20 @@ Rails.application.routes.draw do
   get "settings", to: "settings#show", as: :settings
   patch "settings", to: "settings#update"
   patch "settings/password", to: "settings#update_password", as: :settings_password
-  get "settings/on-call", to: "settings#on_call", as: :on_call_settings
-  patch "settings/on-call", to: "settings#update_on_call", as: :update_on_call_settings
-  post "settings/on-call/contacts", to: "settings#create_escalation_contact", as: :escalation_contacts
-  delete "settings/on-call/contacts/:id", to: "settings#destroy_escalation_contact", as: :escalation_contact
-  patch "settings/on-call/contacts/reorder", to: "settings#reorder_escalation_contacts", as: :reorder_escalation_contacts
   patch "settings/preferences", to: "settings#update_preferences", as: :settings_preferences
-  get "settings/equipment-types", to: "settings#equipment_types", as: :equipment_types_settings
-  post "settings/equipment-types", to: "settings#create_equipment_type", as: :create_equipment_type
-  patch "settings/equipment-types/:id/deactivate", to: "settings#deactivate_equipment_type", as: :deactivate_equipment_type
-  patch "settings/equipment-types/:id/reactivate", to: "settings#reactivate_equipment_type", as: :reactivate_equipment_type
 
-  root "sessions#new"
+  # On-Call (top-level, not nested under settings)
+  get "on-call", to: "settings#on_call", as: :on_call_settings
+  patch "on-call", to: "settings#update_on_call", as: :update_on_call_settings
+  post "on-call/contacts", to: "settings#create_escalation_contact", as: :escalation_contacts
+  delete "on-call/contacts/:id", to: "settings#destroy_escalation_contact", as: :escalation_contact
+  patch "on-call/contacts/reorder", to: "settings#reorder_escalation_contacts", as: :reorder_escalation_contacts
+
+  # Equipment Types (top-level, not nested under settings)
+  get "equipment-types", to: "settings#equipment_types", as: :equipment_types_settings
+  post "equipment-types", to: "settings#create_equipment_type", as: :create_equipment_type
+  patch "equipment-types/:id/deactivate", to: "settings#deactivate_equipment_type", as: :deactivate_equipment_type
+  patch "equipment-types/:id/reactivate", to: "settings#reactivate_equipment_type", as: :reactivate_equipment_type
+
+  root "incidents#index"
 end

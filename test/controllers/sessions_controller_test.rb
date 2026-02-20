@@ -20,7 +20,7 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
 
   test "POST /login with valid credentials creates session and redirects" do
     post login_path, params: { email_address: "auth@test.com", password: "password123" }
-    assert_redirected_to dashboard_path
+    assert_redirected_to incidents_path
 
     assert_equal 1, @user.sessions.count
     assert cookies[:session_id].present?

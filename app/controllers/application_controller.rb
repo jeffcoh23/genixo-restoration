@@ -121,7 +121,6 @@ class ApplicationController < ActionController::Base
     return [] unless user
 
     items = [
-      { label: "Dashboard", href: dashboard_path, icon: "LayoutDashboard" },
       { label: "Incidents", href: incidents_path, icon: "AlertTriangle" }
     ]
 

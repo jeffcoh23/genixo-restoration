@@ -14,13 +14,13 @@ interface EquipmentPanelProps {
 }
 
 export default function EquipmentPanel({ equipment_log = [], can_manage_equipment, equipment_entries_path, equipment_types }: EquipmentPanelProps) {
-  const { now_datetime } = usePage<SharedProps>().props;
+  const { today } = usePage<SharedProps>().props;
   const [showForm, setShowForm] = useState(false);
   const [editingEntry, setEditingEntry] = useState<EquipmentLogItem | null>(null);
 
   const handleRemove = (item: EquipmentLogItem) => {
     if (!item.remove_path) return;
-    router.patch(item.remove_path, { removed_at: now_datetime }, { preserveScroll: true });
+    router.patch(item.remove_path, { removed_at: today }, { preserveScroll: true });
   };
 
   return (

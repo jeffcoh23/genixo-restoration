@@ -3,10 +3,12 @@ import { AlertTriangle, Search, ChevronLeft, ChevronRight, ArrowUpDown, MessageS
 import { useState, useCallback } from "react";
 import AppLayout from "@/layout/AppLayout";
 import PageHeader from "@/components/PageHeader";
+import MultiFilterSelect from "@/components/MultiFilterSelect";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { SharedProps } from "@/types";
+import { statusColor } from "@/lib/statusColor";
 
 interface Incident {
   id: number;
@@ -35,7 +37,7 @@ interface Pagination {
 interface Filters {
   search: string | null;
   status: string | null;
-  property_id: number | null;
+  property_id: string | null;
   project_type: string | null;
   emergency: string | null;
 }
@@ -70,26 +72,6 @@ interface IncidentsIndexProps {
   can_create: boolean;
 }
 
-function statusColor(status: string): string {
-  switch (status) {
-    case "new":
-    case "acknowledged":
-      return "bg-status-info text-white";
-    case "proposal_requested":
-    case "proposal_submitted":
-    case "proposal_signed":
-      return "bg-status-quote text-white";
-    case "active":
-      return "bg-status-success text-white";
-    case "on_hold":
-      return "bg-status-warning text-white";
-    case "completed":
-      return "bg-status-completed text-white";
-    default:
-      return "bg-status-neutral text-white";
-  }
-}
-
 export default function IncidentsIndex() {
   const { incidents, pagination, filters, sort, filter_options, can_create, routes } =
     usePage<SharedProps & IncidentsIndexProps>().props;
@@ -101,18 +83,16 @@ export default function IncidentsIndex() {
       const current: Record<string, string> = {};
       if (filters.search) current.search = filters.search;
       if (filters.status) current.status = filters.status;
-      if (filters.property_id) current.property_id = String(filters.property_id);
+      if (filters.property_id) current.property_id = filters.property_id;
       if (filters.project_type) current.project_type = filters.project_type;
       if (filters.emergency) current.emergency = filters.emergency;
       if (sort.column !== "created_at") current.sort = sort.column;
       if (sort.direction !== "desc") current.direction = sort.direction;
 
       const merged = { ...current, ...params };
-      // Remove null/empty values
       Object.keys(merged).forEach((k) => {
         if (!merged[k] || merged[k] === "") delete merged[k];
       });
-      // Reset to page 1 on filter change unless explicitly navigating pages
       if (!params.page) delete merged.page;
 
       router.get(routes.incidents, merged, { preserveState: true, preserveScroll: true });
@@ -138,44 +118,47 @@ export default function IncidentsIndex() {
       />
 
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3 mb-4">
-        <form onSubmit={handleSearch} className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        <form onSubmit={handleSearch} className="relative w-48">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search..."
-            className="pl-9"
+            className="pl-8 h-8 text-sm"
           />
         </form>
 
-        <FilterSelect
-          value={filters.status || ""}
-          onChange={(v) => navigate({ status: v || null })}
-          placeholder="Status"
+        <MultiFilterSelect
+          selected={filters.status ? filters.status.split(",") : []}
+          onChange={(values) => navigate({ status: values.length ? values.join(",") : null })}
+          allLabel="All Statuses"
           options={filter_options.statuses.map((s) => ({ value: s.value, label: s.label }))}
         />
 
-        <FilterSelect
-          value={filters.property_id ? String(filters.property_id) : ""}
-          onChange={(v) => navigate({ property_id: v || null })}
-          placeholder="Property"
+        <MultiFilterSelect
+          selected={filters.property_id ? String(filters.property_id).split(",") : []}
+          onChange={(values) => navigate({ property_id: values.length ? values.join(",") : null })}
+          allLabel="All Properties"
           options={filter_options.properties.map((p) => ({ value: String(p.id), label: p.name }))}
         />
 
-        <FilterSelect
-          value={filters.project_type || ""}
-          onChange={(v) => navigate({ project_type: v || null })}
-          placeholder="Type"
+        <MultiFilterSelect
+          selected={filters.project_type ? filters.project_type.split(",") : []}
+          onChange={(values) => navigate({ project_type: values.length ? values.join(",") : null })}
+          allLabel="All Types"
           options={filter_options.project_types.map((t) => ({ value: t.value, label: t.label }))}
         />
 
-        <FilterSelect
+        <select
           value={filters.emergency || ""}
-          onChange={(v) => navigate({ emergency: v || null })}
-          placeholder="Emergency"
-          options={[{ value: "1", label: "Emergency Only" }]}
-        />
+          onChange={(e) => navigate({ emergency: e.target.value || null })}
+          className="h-8 rounded-md border border-input bg-background px-2.5 text-sm text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+        >
+          <option value="">All Emergencies</option>
+          <option value="1">Emergency</option>
+          <option value="0">Non-Emergency</option>
+        </select>
       </div>
 
       {/* Table */}
@@ -276,33 +259,6 @@ export default function IncidentsIndex() {
         </div>
       )}
     </AppLayout>
-  );
-}
-
-function FilterSelect({
-  value,
-  onChange,
-  placeholder,
-  options,
-}: {
-  value: string;
-  onChange: (value: string) => void;
-  placeholder: string;
-  options: { value: string; label: string }[];
-}) {
-  return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="h-9 rounded border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-    >
-      <option value="">{placeholder}</option>
-      {options.map((opt) => (
-        <option key={opt.value} value={opt.value}>
-          {opt.label}
-        </option>
-      ))}
-    </select>
   );
 }
 

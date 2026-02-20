@@ -2,7 +2,7 @@ class SessionsController < ApplicationController
   allow_unauthenticated_access only: %i[new create]
 
   def new
-    redirect_to dashboard_path if authenticated?
+    redirect_to incidents_path if authenticated?
     render inertia: "Login", props: {
       forgot_password_path: forgot_password_path
     }
@@ -31,6 +31,6 @@ class SessionsController < ApplicationController
   private
 
   def after_login_path
-    session.delete(:return_to) || dashboard_path
+    session.delete(:return_to) || incidents_path
   end
 end

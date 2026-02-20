@@ -22,7 +22,7 @@ export default function ActivityForm({
   const editing = !!entry;
   const { today } = usePage<SharedProps>().props;
   const [title, setTitle] = useState(entry?.title ?? "");
-  const [status, setStatus] = useState(entry?.status ?? "Active");
+  const [status, setStatus] = useState(entry?.status ?? "Complete");
   const [occurredAt, setOccurredAt] = useState(entry?.occurred_at_value ?? today);
   const [unitsAffected, setUnitsAffected] = useState(entry?.units_affected ? String(entry.units_affected) : "");
   const [unitsAffectedDescription, setUnitsAffectedDescription] = useState(entry?.units_affected_description ?? "");
@@ -67,7 +67,7 @@ export default function ActivityForm({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-      <div className="fixed inset-0 bg-black opacity-40" onClick={onClose} />
+      <div className="fixed inset-0 bg-black opacity-40" />
       <div className="relative bg-background border border-border rounded-t sm:rounded w-full sm:max-w-2xl p-4 shadow-lg max-h-[95vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-semibold">{editing ? "Edit Activity" : "Add Activity"}</h3>
