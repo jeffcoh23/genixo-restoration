@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Link, usePage } from "@inertiajs/react";
+import { Link, router, usePage } from "@inertiajs/react";
 import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import AppLayout from "@/layout/AppLayout";
 import PageHeader from "@/components/PageHeader";
+import MultiFilterSelect from "@/components/MultiFilterSelect";
 import { Button } from "@/components/ui/button";
 import { SharedProps } from "@/types";
 
@@ -14,6 +15,19 @@ interface Property {
   pm_org_name: string;
   active_incident_count: number;
   total_incident_count: number;
+}
+
+interface PmOrgOption {
+  id: number;
+  name: string;
+}
+
+interface Filters {
+  pm_org_id: string | null;
+}
+
+interface FilterOptions {
+  pm_organizations?: PmOrgOption[];
 }
 
 type SortKey = "name" | "address" | "pm_org_name" | "active_incident_count" | "total_incident_count";
@@ -41,10 +55,14 @@ const COLUMNS: { key: SortKey; header: string; align?: "right" }[] = [
 ];
 
 export default function PropertiesIndex() {
-  const { properties, can_create, routes } = usePage<SharedProps & {
+  const { properties, can_create, filters, filter_options, routes } = usePage<SharedProps & {
     properties: Property[];
     can_create: boolean;
+    filters: Filters;
+    filter_options: FilterOptions;
   }>().props;
+
+  const pmOrgs = filter_options.pm_organizations;
 
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
@@ -66,6 +84,20 @@ export default function PropertiesIndex() {
         title="Properties"
         action={can_create ? { href: routes.new_property, label: "New Property" } : undefined}
       />
+
+      {pmOrgs && pmOrgs.length > 1 && (
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <MultiFilterSelect
+            selected={filters.pm_org_id ? filters.pm_org_id.split(",") : []}
+            onChange={(values) =>
+              router.get(routes.properties, values.length ? { pm_org_id: values.join(",") } : {}, { preserveState: true, preserveScroll: true })
+            }
+            allLabel="All PM Companies"
+            options={pmOrgs.map((o) => ({ value: String(o.id), label: o.name }))}
+          />
+        </div>
+      )}
+
       {sorted.length === 0 ? (
         <p className="text-muted-foreground">
           {can_create ? 'No properties yet. Use "New Property" to add one.' : "No properties yet."}

@@ -6,6 +6,8 @@ class PropertiesController < ApplicationController
 
   def index
     @properties = visible_properties.includes(:property_management_org).order(:name)
+    @properties = @properties.where(property_management_org_id: params[:pm_org_id].split(",")) if params[:pm_org_id].present?
+
     render inertia: "Properties/Index", props: {
       properties: @properties.map { |p|
         {
@@ -18,7 +20,15 @@ class PropertiesController < ApplicationController
           total_incident_count: p.incidents.count
         }
       },
-      can_create: can_create_property?
+      can_create: can_create_property?,
+      filters: { pm_org_id: params[:pm_org_id] },
+      filter_options: mitigation_user? ? {
+        pm_organizations: visible_properties
+          .joins(:property_management_org)
+          .select("DISTINCT organizations.id, organizations.name")
+          .order("organizations.name")
+          .map { |p| { id: p.id, name: p.name } }
+      } : {}
     }
   end
 
