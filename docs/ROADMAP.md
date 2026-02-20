@@ -372,6 +372,34 @@ Identify and write after features are UI-complete. Each test = one user flow in 
 
 ---
 
+## Scratchpad
+
+> Active backlog of fixes, improvements, and features. Check off as completed. Remove if no longer needed.
+
+### Quick Fixes
+
+- [ ] Hide dashboard from sidebar, make `/` → incidents index, redirect logged-in users away from login page
+- [ ] "Organizations" verbiage → "Property Management Companies" / "Mitigation Company" in UI text (code/models stay same)
+- [ ] Modal forms: don't close when clicking outside the overlay
+- [ ] Equipment placed_at and removed_at: date-only inputs, remove time
+- [ ] PM users cannot edit incidents after creation (add permission check)
+- [ ] Incidents Index: separate "Unread" column from "Activity" timestamp column
+- [ ] Daily log activity form: default status to "Complete" instead of "Active"
+
+### Medium
+
+- [ ] Properties Index: add organization filter dropdown for mitigation users
+- [ ] New Incident form: split user assignment into two selects (Mitigation Team / PM Team), PM users only see their own
+- [ ] Add "Job Started" status between Active and Completed — update StatusTransitionService, model constants, labels, frontend statusColor
+- [ ] Equipment change history: verify activity_events tracks enough detail, add history view if needed
+
+### Larger Features
+
+- [ ] Equipment inventory: new `equipment_items` table (belongs to equipment_type, has model name + serial number). Cascading dropdown on placement form: pick type → shows available items of that type. `equipment_entries` references specific item instead of free-text model/identifier
+- [ ] Camera capture + bulk photo upload — HTML5 capture attribute, multi-file, optimized for mobile techs snapping 10+ photos at a time
+
+---
+
 ## Post-MVP
 
 Deferred features. Infrastructure is in place for all of these.

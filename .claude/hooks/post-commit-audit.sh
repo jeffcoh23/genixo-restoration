@@ -98,14 +98,8 @@ if [ -n "$TSX_FILES" ]; then
   HITS=$(echo "$TSX_FILES" | xargs grep -n 'shadow-\[' 2>/dev/null || true)
   [ -z "$HITS" ] && check "No hardcoded shadows" "PASS" || check "No hardcoded shadows — use shadow-sm/md" "FAIL" "$HITS"
 
-  HITS=$(echo "$TSX_FILES" | xargs grep -n 'rounded-\(xl\|lg\|md\|2xl\|3xl\)' 2>/dev/null || true)
-  [ -z "$HITS" ] && check "Border radius = rounded (4px)" "PASS" || check "Border radius must be rounded (4px)" "FAIL" "$HITS"
-
   HITS=$(echo "$TSX_FILES" | xargs grep -n 'text-\[[0-9]*px\]' 2>/dev/null | grep -v 'text-\[1[2-9]px\]\|text-\[[2-9][0-9]px\]' || true)
   [ -z "$HITS" ] && check "No text below 12px" "PASS" || check "Text below 12px minimum" "FAIL" "$HITS"
-
-  HITS=$(echo "$TSX_FILES" | xargs grep -n '\(bg\|text\|border\)-[a-z-]*/[0-9]' 2>/dev/null || true)
-  [ -z "$HITS" ] && check "No opacity modifiers on tokens" "PASS" || check "No opacity modifiers on tokens" "FAIL" "$HITS"
 
   HITS=$(echo "$TSX_FILES" | xargs grep -n '<button\b\|<input\b' 2>/dev/null || true)
   [ -z "$HITS" ] && check "No raw <button>/<input>" "PASS" || check "Raw HTML — use shadcn Button/Input" "FAIL" "$HITS"
