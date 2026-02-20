@@ -231,6 +231,7 @@ class IncidentsController < ApplicationController
       assignable_pm_users: can_assign_to_incident? ? assignable_incident_users(@incident, :pm) : [],
       assignable_labor_users: can_manage_labor? ? assignable_labor_users(@incident) : [],
       equipment_types: can_manage_equipment? ? equipment_types_for_incident(@incident) : [],
+      equipment_items_by_type: can_manage_equipment? ? equipment_items_by_type(@incident) : {},
       attachable_equipment_entries: can_manage_activities? ? attachable_equipment_entries(@incident) : [],
       project_types: Incident::PROJECT_TYPES.map { |t| { value: t, label: Incident::PROJECT_TYPE_LABELS[t] } },
       damage_types: Incident::DAMAGE_TYPES.map { |t| { value: t, label: Incident::DAMAGE_LABELS[t] } },
@@ -1029,6 +1030,15 @@ class IncidentsController < ApplicationController
     EquipmentType.where(organization_id: incident.property.mitigation_org_id)
       .active.order(:name)
       .map { |t| { id: t.id, name: t.name } }
+  end
+
+  def equipment_items_by_type(incident)
+    items = EquipmentItem.where(organization_id: incident.property.mitigation_org_id)
+      .active.includes(:equipment_type).order(:identifier)
+
+    items.group_by(&:equipment_type_id).transform_values do |type_items|
+      type_items.map { |i| { id: i.id, identifier: i.identifier, model_name: i.equipment_model, serial_number: i.serial_number } }
+    end
   end
 
   def attachable_equipment_entries(incident)

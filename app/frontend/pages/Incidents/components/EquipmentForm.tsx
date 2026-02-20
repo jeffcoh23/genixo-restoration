@@ -6,14 +6,22 @@ import { Input } from "@/components/ui/input";
 import { SharedProps } from "@/types";
 import type { EquipmentType, EquipmentEntry } from "../types";
 
+interface EquipmentItemOption {
+  id: number;
+  identifier: string;
+  model_name: string | null;
+  serial_number: string | null;
+}
+
 interface EquipmentFormProps {
   path: string;
   equipment_types: EquipmentType[];
+  equipment_items_by_type?: Record<string, EquipmentItemOption[]>;
   onClose: () => void;
   entry?: EquipmentEntry;
 }
 
-export default function EquipmentForm({ path, equipment_types, onClose, entry }: EquipmentFormProps) {
+export default function EquipmentForm({ path, equipment_types, equipment_items_by_type = {}, onClose, entry }: EquipmentFormProps) {
   const editing = !!entry;
   const hasOtherType = editing && !entry.equipment_type_id && !!entry.equipment_type_other;
   const [useOther, setUseOther] = useState(hasOtherType);
@@ -22,6 +30,7 @@ export default function EquipmentForm({ path, equipment_types, onClose, entry }:
   const { data, setData, post, patch, processing, errors } = useForm({
     equipment_type_id: entry?.equipment_type_id ? String(entry.equipment_type_id) : "",
     equipment_type_other: entry?.equipment_type_other ?? "",
+    equipment_item_id: "",
     equipment_model: entry?.equipment_model ?? "",
     equipment_identifier: entry?.equipment_identifier ?? "",
     placed_at: entry?.placed_at ?? today,
@@ -29,13 +38,32 @@ export default function EquipmentForm({ path, equipment_types, onClose, entry }:
     location_notes: entry?.location_notes ?? "",
   });
 
+  // Items available for the currently selected type
+  const typeItems = data.equipment_type_id ? (equipment_items_by_type[data.equipment_type_id] || []) : [];
+
   const handleTypeChange = (value: string) => {
     if (value === "__other__") {
       setUseOther(true);
-      setData("equipment_type_id", "");
+      setData((prev) => ({ ...prev, equipment_type_id: "", equipment_type_other: "", equipment_item_id: "", equipment_model: "", equipment_identifier: "" }));
     } else {
       setUseOther(false);
-      setData((prev) => ({ ...prev, equipment_type_id: value, equipment_type_other: "" }));
+      setData((prev) => ({ ...prev, equipment_type_id: value, equipment_type_other: "", equipment_item_id: "", equipment_model: "", equipment_identifier: "" }));
+    }
+  };
+
+  const handleItemChange = (value: string) => {
+    if (value === "__manual__" || value === "") {
+      setData((prev) => ({ ...prev, equipment_item_id: "", equipment_model: "", equipment_identifier: "" }));
+      return;
+    }
+    const item = typeItems.find((i) => String(i.id) === value);
+    if (item) {
+      setData((prev) => ({
+        ...prev,
+        equipment_item_id: value,
+        equipment_model: item.model_name || "",
+        equipment_identifier: item.identifier,
+      }));
     }
   };
 
@@ -45,6 +73,8 @@ export default function EquipmentForm({ path, equipment_types, onClose, entry }:
     const url = editing ? entry!.edit_path! : path;
     submit(url, { onSuccess: () => onClose() });
   };
+
+  const isItemSelected = data.equipment_item_id !== "";
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
@@ -88,6 +118,25 @@ export default function EquipmentForm({ path, equipment_types, onClose, entry }:
             </div>
           )}
 
+          {/* Item picker — only shown when a known type is selected and items exist */}
+          {!useOther && typeItems.length > 0 && (
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Select Unit</label>
+              <select
+                value={data.equipment_item_id || "__manual__"}
+                onChange={(e) => handleItemChange(e.target.value)}
+                className="mt-1 w-full rounded border border-input bg-background px-3 py-2 text-sm"
+              >
+                <option value="__manual__">Enter manually</option>
+                {typeItems.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.identifier}{item.model_name ? ` — ${item.model_name}` : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div>
             <label className="text-xs font-medium text-muted-foreground">Model</label>
             <Input
@@ -95,6 +144,7 @@ export default function EquipmentForm({ path, equipment_types, onClose, entry }:
               onChange={(e) => setData("equipment_model", e.target.value)}
               placeholder="e.g. LGR 7000XLi"
               className="mt-1"
+              readOnly={isItemSelected}
             />
           </div>
 
@@ -106,6 +156,7 @@ export default function EquipmentForm({ path, equipment_types, onClose, entry }:
                 onChange={(e) => setData("equipment_identifier", e.target.value)}
                 placeholder="e.g. DH-042"
                 className="mt-1"
+                readOnly={isItemSelected}
               />
             </div>
             <div>

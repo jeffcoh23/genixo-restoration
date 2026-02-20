@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_02_18_205805) do
+ActiveRecord::Schema[8.0].define(version: 2026_02_20_051605) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -119,10 +119,26 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_18_205805) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "equipment_model"
+    t.bigint "equipment_item_id"
     t.index ["equipment_identifier"], name: "index_equipment_entries_on_equipment_identifier"
+    t.index ["equipment_item_id"], name: "index_equipment_entries_on_equipment_item_id"
     t.index ["equipment_type_id"], name: "index_equipment_entries_on_equipment_type_id"
     t.index ["incident_id"], name: "index_equipment_entries_on_incident_id"
     t.index ["logged_by_user_id"], name: "index_equipment_entries_on_logged_by_user_id"
+  end
+
+  create_table "equipment_items", force: :cascade do |t|
+    t.bigint "equipment_type_id", null: false
+    t.bigint "organization_id", null: false
+    t.string "equipment_model"
+    t.string "serial_number"
+    t.string "identifier", null: false
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["equipment_type_id"], name: "index_equipment_items_on_equipment_type_id"
+    t.index ["organization_id", "identifier"], name: "index_equipment_items_on_organization_id_and_identifier", unique: true
+    t.index ["organization_id"], name: "index_equipment_items_on_organization_id"
   end
 
   create_table "equipment_types", force: :cascade do |t|
@@ -522,9 +538,12 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_18_205805) do
   add_foreign_key "activity_events", "incidents"
   add_foreign_key "activity_events", "users", column: "performed_by_user_id"
   add_foreign_key "attachments", "users", column: "uploaded_by_user_id"
+  add_foreign_key "equipment_entries", "equipment_items"
   add_foreign_key "equipment_entries", "equipment_types"
   add_foreign_key "equipment_entries", "incidents"
   add_foreign_key "equipment_entries", "users", column: "logged_by_user_id"
+  add_foreign_key "equipment_items", "equipment_types"
+  add_foreign_key "equipment_items", "organizations"
   add_foreign_key "equipment_types", "organizations"
   add_foreign_key "escalation_contacts", "on_call_configurations"
   add_foreign_key "escalation_contacts", "users"

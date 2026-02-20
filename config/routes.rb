@@ -76,6 +76,9 @@ Rails.application.routes.draw do
   delete "on-call/contacts/:id", to: "settings#destroy_escalation_contact", as: :escalation_contact
   patch "on-call/contacts/reorder", to: "settings#reorder_escalation_contacts", as: :reorder_escalation_contacts
 
+  # Equipment Items (inventory)
+  resources :equipment_items, only: %i[index create update]
+
   # Equipment Types (top-level, not nested under settings)
   get "equipment-types", to: "settings#equipment_types", as: :equipment_types_settings
   post "equipment-types", to: "settings#create_equipment_type", as: :create_equipment_type

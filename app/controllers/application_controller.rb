@@ -46,6 +46,7 @@ class ApplicationController < ActionController::Base
       invitations: invitations_path,
       settings: settings_path,
       on_call: on_call_settings_path,
+      equipment_items: equipment_items_path,
       equipment_types: equipment_types_settings_path,
       login: login_path,
       logout: logout_path
@@ -138,6 +139,7 @@ class ApplicationController < ActionController::Base
     end
 
     if user.can?(Permissions::MANAGE_EQUIPMENT_TYPES)
+      items << { label: "Equipment", href: equipment_items_path, icon: "Package" }
       items << { label: "Equipment Types", href: equipment_types_settings_path, icon: "Wrench" }
     end
 

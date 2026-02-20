@@ -11,6 +11,7 @@ Organization (mitigation or property_management)
 ├── has_many :users
 ├── has_many :properties (PM org owns, Mitigation org services)
 ├── has_many :equipment_types (Mitigation org only)
+├── has_many :equipment_items (Mitigation org only)
 └── has_one  :on_call_configuration (Mitigation org only)
 
 Property
@@ -475,6 +476,29 @@ Predefined equipment types scoped to a mitigation org. Managers can add to this 
 
 ---
 
+### equipment_items
+
+Individual pieces of equipment in the company's inventory. Each item belongs to an equipment type (category) and is identified by a short code. Items can be linked to equipment entries when placed on incidents.
+
+| Column | Type | Constraints | Notes |
+|--------|------|-------------|-------|
+| id | bigint | PK | |
+| equipment_type_id | bigint | NOT NULL, FK → equipment_types | Category (e.g., "Dehumidifier") |
+| organization_id | bigint | NOT NULL, FK → organizations | Owning mitigation org |
+| equipment_model | string | | Model name (e.g., "LGR 7000XLi") |
+| serial_number | string | | Manufacturer serial number |
+| identifier | string | NOT NULL | Short code (e.g., "DH-042") |
+| active | boolean | NOT NULL, default true | Soft-delete flag |
+| created_at | datetime | NOT NULL | |
+| updated_at | datetime | NOT NULL | |
+
+**Indexes:**
+- `index_equipment_items_on_equipment_type_id`
+- `index_equipment_items_on_organization_id`
+- `index_equipment_items_on_organization_id_and_identifier` (unique)
+
+---
+
 ### equipment_entries
 
 Individual physical equipment units. Still used for optional specific-unit references and active deployment tracking.
@@ -484,6 +508,7 @@ Individual physical equipment units. Still used for optional specific-unit refer
 | id | bigint | PK | |
 | incident_id | bigint | NOT NULL, FK | |
 | equipment_type_id | bigint | FK → equipment_types | Nullable if using freeform |
+| equipment_item_id | bigint | FK → equipment_items | Optional link to inventory item |
 | equipment_type_other | string | | Freeform type name when not in predefined list |
 | equipment_model | string | | Model name (e.g., "LGR 7000XLi") |
 | equipment_identifier | string | | Serial number or barcode string. Manual entry for MVP. |

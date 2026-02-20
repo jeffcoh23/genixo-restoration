@@ -38,6 +38,7 @@ export default function IncidentShow() {
     assignable_pm_users = [],
     assignable_labor_users = [],
     equipment_types = [],
+    equipment_items_by_type = {},
     attachable_equipment_entries = [],
     project_types = [],
     damage_types = [],
@@ -245,6 +246,7 @@ export default function IncidentShow() {
               can_manage_equipment={can_manage_equipment}
               equipment_entries_path={incident.equipment_entries_path}
               equipment_types={equipment_types}
+              equipment_items_by_type={equipment_items_by_type}
             />
           )}
           {activeTab === "labor" && (

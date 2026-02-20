@@ -11,9 +11,10 @@ interface EquipmentPanelProps {
   can_manage_equipment: boolean;
   equipment_entries_path: string;
   equipment_types: EquipmentType[];
+  equipment_items_by_type?: Record<string, { id: number; identifier: string; model_name: string | null; serial_number: string | null }[]>;
 }
 
-export default function EquipmentPanel({ equipment_log = [], can_manage_equipment, equipment_entries_path, equipment_types }: EquipmentPanelProps) {
+export default function EquipmentPanel({ equipment_log = [], can_manage_equipment, equipment_entries_path, equipment_types, equipment_items_by_type }: EquipmentPanelProps) {
   const { today } = usePage<SharedProps>().props;
   const [showForm, setShowForm] = useState(false);
   const [editingEntry, setEditingEntry] = useState<EquipmentLogItem | null>(null);
@@ -106,6 +107,7 @@ export default function EquipmentPanel({ equipment_log = [], can_manage_equipmen
         <EquipmentForm
           path={equipment_entries_path}
           equipment_types={equipment_types}
+          equipment_items_by_type={equipment_items_by_type}
           onClose={() => setShowForm(false)}
         />
       )}
@@ -114,6 +116,7 @@ export default function EquipmentPanel({ equipment_log = [], can_manage_equipmen
         <EquipmentForm
           path={equipment_entries_path}
           equipment_types={equipment_types}
+          equipment_items_by_type={equipment_items_by_type}
           onClose={() => setEditingEntry(null)}
           entry={{
             id: editingEntry.id,

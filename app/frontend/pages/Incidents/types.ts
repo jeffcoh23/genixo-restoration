@@ -397,6 +397,7 @@ export interface ShowProps {
   assignable_pm_users: AssignableUser[];
   assignable_labor_users: AssignableUser[];
   equipment_types: EquipmentType[];
+  equipment_items_by_type: Record<string, { id: number; identifier: string; model_name: string | null; serial_number: string | null }[]>;
   attachable_equipment_entries: AttachableEquipmentEntry[];
   back_path: string;
 }

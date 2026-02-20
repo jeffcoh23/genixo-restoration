@@ -1,6 +1,7 @@
 class EquipmentEntry < ApplicationRecord
   belongs_to :incident
   belongs_to :equipment_type, optional: true
+  belongs_to :equipment_item, optional: true
   belongs_to :logged_by_user, class_name: "User"
 
   before_validation :normalize_equipment_type
