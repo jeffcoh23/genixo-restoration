@@ -310,11 +310,22 @@ QUOTE / PROPOSAL (RFQ):
 - Managers can add new types. Types can be soft-deactivated (`active = false`).
 - Equipment types are org-scoped — each mitigation org has its own list.
 
+### Equipment Items (Inventory)
+
+- Individual pieces of equipment in a mitigation org's inventory. Each item belongs to an equipment type (category).
+- **Who can manage:** Mitigation managers only (same `MANAGE_EQUIPMENT_TYPES` permission).
+- Each item has a unique `identifier` within its org (e.g., "DH-042"), plus optional `equipment_model` and `serial_number`.
+- Items can be soft-deactivated (`active = false`).
+- When placing equipment on an incident, users can pick from inventory items (cascading dropdown: type → item) or enter details manually.
+- Picking an inventory item auto-fills `equipment_model` and `equipment_identifier` on the equipment entry.
+- No availability tracking — an item can be placed on multiple incidents simultaneously.
+
 ### Equipment Entries
 
 - Track individual physical equipment units placed at an incident (unit-level inventory/reference).
 - **Who can create:** Technicians, managers.
 - Each entry has either a predefined `equipment_type_id` OR a freeform `equipment_type_other` — never both, never neither (enforced by DB CHECK constraint).
+- Optionally references an `equipment_item` from inventory (auto-fills model and identifier).
 - `equipment_identifier` is a manually entered serial number or label (barcode scanning deferred to post-MVP).
 - `placed_at` is required (when the equipment was placed).
 - `removed_at` is null until the equipment is removed. Null means still in place.

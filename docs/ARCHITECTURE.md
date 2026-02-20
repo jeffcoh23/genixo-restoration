@@ -745,6 +745,8 @@ app/frontend/pages/
 ├── Users/
 │   ├── Index.tsx
 │   └── Show.tsx
+├── EquipmentItems/
+│   └── Index.tsx              # Equipment inventory management (mitigation only)
 ├── Settings/
 │   ├── Profile.tsx            # Profile, password, notifications, timezone
 │   ├── OnCall.tsx             # On-call configuration (mitigation only)

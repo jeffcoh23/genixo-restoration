@@ -47,6 +47,7 @@
 | Organizations | Yes | - | Yes | - |
 | Users | Yes | - | Yes | - |
 | On-Call | Yes | - | - | - |
+| Equipment | Yes | - | - | - |
 | Equipment Types | Yes | - | - | - |
 | Settings | Yes | Yes | Yes | Yes |
 
@@ -911,6 +912,19 @@ Click user → user detail. "Invite User" opens modal with: email (required), us
 
 ---
 
+### Equipment Inventory — `GET /equipment_items`
+
+**Page:** `EquipmentItems/Index.tsx`
+**Access:** Manager (mitigation org) only
+
+Table of individual equipment units grouped into active/inactive sections. Inline add form at top. Inline edit rows. Each item belongs to an equipment type and has a unique identifier within the org.
+
+Columns: Identifier, Type, Model, Serial #, Actions (edit, deactivate/reactivate).
+
+The equipment placement form on incidents shows a cascading dropdown: pick type → pick item from inventory (or enter manually).
+
+---
+
 ## Route Summary
 
 | Route | Page | Access |
@@ -931,6 +945,7 @@ Click user → user detail. "Invite User" opens modal with: email (required), us
 | `GET /users/:id` | User Detail | Manager, office_sales |
 | `GET /settings` | Profile & Preferences | All users |
 | `GET /settings/on-call` | On-Call Config | Manager only |
+| `GET /equipment_items` | Equipment Inventory | Manager only |
 | `GET /settings/equipment-types` | Equipment Types | Manager only |
 
 ---
