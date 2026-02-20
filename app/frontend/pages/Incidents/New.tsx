@@ -53,16 +53,10 @@ export default function NewIncident() {
 
   const isEmergency = data.project_type === "emergency_response";
 
-  // Users for the currently selected property
+  // Users for the currently selected property, split by org type
   const currentUsers: NewIncidentAssignableUser[] = data.property_id ? (property_users[data.property_id] || []) : [];
-
-  // Group by org for display
-  const usersByOrg: Record<string, NewIncidentAssignableUser[]> = {};
-  for (const user of currentUsers) {
-    const org = user.organization_name;
-    if (!usersByOrg[org]) usersByOrg[org] = [];
-    usersByOrg[org].push(user);
-  }
+  const mitigationUsers = currentUsers.filter((u) => u.org_type === "mitigation");
+  const pmUsers = currentUsers.filter((u) => u.org_type === "pm");
 
   const handleOrgChange = (orgId: string) => {
     setSelectedOrgId(orgId);
@@ -323,43 +317,28 @@ export default function NewIncident() {
 
         {/* Assign Team Members — only shown after property is selected */}
         {can_assign && data.property_id && currentUsers.length > 0 && (
-          <fieldset className="space-y-2">
+          <fieldset className="space-y-3">
             <Label asChild><legend>Assign Team Members</legend></Label>
             <p className="text-xs text-muted-foreground">Checked members will be auto-assigned. Uncheck to remove, or check additional people.</p>
-            <div className="rounded border border-input max-h-[280px] overflow-y-auto">
-              {Object.entries(usersByOrg).map(([orgName, users]) => (
-                <div key={orgName}>
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-muted border-b border-input sticky top-0 z-10">
-                    <Building2 className="h-3 w-3 text-muted-foreground" />
-                    <span className="text-xs font-medium text-muted-foreground">{orgName}</span>
-                  </div>
-                  {users.map((u) => {
-                    const selected = data.additional_user_ids.includes(u.id);
-                    return (
-                      <div
-                        key={u.id}
-                        role="checkbox"
-                        aria-checked={selected}
-                        tabIndex={0}
-                        onClick={() => toggleUser(u.id)}
-                        onKeyDown={(e) => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); toggleUser(u.id); } }}
-                        className={`flex items-center gap-2 px-3 py-1.5 text-sm cursor-pointer hover:bg-muted transition-colors border-b border-input last:border-b-0 select-none ${
-                          selected ? "bg-accent" : ""
-                        }`}
-                      >
-                        <div className={`h-4 w-4 rounded border flex items-center justify-center shrink-0 ${
-                          selected ? "bg-primary border-primary" : "border-input"
-                        }`}>
-                          {selected && <Check className="h-3 w-3 text-primary-foreground" />}
-                        </div>
-                        <span className="text-foreground">{u.full_name}</span>
-                        <span className="text-muted-foreground text-xs ml-auto">{u.role_label}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
+
+            {mitigationUsers.length > 0 && (
+              <UserChecklistSection
+                label="Mitigation Team"
+                users={mitigationUsers}
+                selectedIds={data.additional_user_ids}
+                onToggle={toggleUser}
+              />
+            )}
+
+            {pmUsers.length > 0 && (
+              <UserChecklistSection
+                label="Property Management Team"
+                users={pmUsers}
+                selectedIds={data.additional_user_ids}
+                onToggle={toggleUser}
+              />
+            )}
+
             <p className="text-xs text-muted-foreground">{data.additional_user_ids.length} member{data.additional_user_ids.length !== 1 ? "s" : ""} selected</p>
           </fieldset>
         )}
@@ -437,5 +416,52 @@ export default function NewIncident() {
         </div>
       </form>
     </AppLayout>
+  );
+}
+
+function UserChecklistSection({
+  label,
+  users,
+  selectedIds,
+  onToggle,
+}: {
+  label: string;
+  users: NewIncidentAssignableUser[];
+  selectedIds: number[];
+  onToggle: (id: number) => void;
+}) {
+  return (
+    <div>
+      <div className="flex items-center gap-1.5 mb-1">
+        <Building2 className="h-3 w-3 text-muted-foreground" />
+        <span className="text-xs font-semibold text-muted-foreground">{label}</span>
+      </div>
+      <div className="rounded border border-input">
+        {users.map((u) => {
+          const selected = selectedIds.includes(u.id);
+          return (
+            <div
+              key={u.id}
+              role="checkbox"
+              aria-checked={selected}
+              tabIndex={0}
+              onClick={() => onToggle(u.id)}
+              onKeyDown={(e) => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); onToggle(u.id); } }}
+              className={`flex items-center gap-2 px-3 py-1.5 text-sm cursor-pointer hover:bg-muted transition-colors border-b border-input last:border-b-0 select-none ${
+                selected ? "bg-accent" : ""
+              }`}
+            >
+              <div className={`h-4 w-4 rounded border flex items-center justify-center shrink-0 ${
+                selected ? "bg-primary border-primary" : "border-input"
+              }`}>
+                {selected && <Check className="h-3 w-3 text-primary-foreground" />}
+              </div>
+              <span className="text-foreground">{u.full_name}</span>
+              <span className="text-muted-foreground text-xs ml-auto">{u.role_label}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }

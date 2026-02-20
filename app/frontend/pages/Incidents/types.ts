@@ -313,6 +313,7 @@ export interface NewIncidentAssignableUser {
   full_name: string;
   role_label: string;
   organization_name: string;
+  org_type: "mitigation" | "pm";
   auto_assign: boolean;
 }
 

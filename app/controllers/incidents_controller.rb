@@ -396,7 +396,7 @@ class IncidentsController < ApplicationController
           false
         end
 
-        { id: u.id, full_name: u.full_name, role_label: User::ROLE_LABELS[u.user_type], organization_name: u.organization.name, auto_assign: auto }
+        { id: u.id, full_name: u.full_name, role_label: User::ROLE_LABELS[u.user_type], organization_name: u.organization.name, org_type: u.mitigation_user? ? "mitigation" : "pm", auto_assign: auto }
       end
 
       result[property.id] = property_user_list
