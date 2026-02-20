@@ -391,10 +391,12 @@ Identify and write after features are UI-complete. Each test = one user flow in 
 - [x] Properties Index: add organization filter dropdown for mitigation users
 - [x] New Incident form: split user assignment into two selects (Mitigation Team / PM Team), PM users only see their own
 - [x] Add "Job Started" status between Active and Completed — update StatusTransitionService, model constants, labels, frontend statusColor
+- [ ] Equipment change history: "Where is DH-042 right now?" — add last-seen/current-incident column to inventory page, per-item placement history
 
 ### Larger Features
 
 - [x] Equipment inventory: new `equipment_items` table (belongs to equipment_type, has model name + serial number). Cascading dropdown on placement form: pick type → shows available items of that type. `equipment_entries` references specific item instead of free-text model/identifier
+- [ ] Camera capture + bulk photo upload — HTML5 `capture="environment"` for rear camera on mobile. Multi-file input, shared category/date, upload progress. Optimized for techs snapping 10+ photos per visit
 
 ---
 
@@ -405,8 +407,6 @@ Deferred features. Infrastructure is in place for all of these.
 | Feature | Notes |
 |---------|-------|
 | Gantt chart / project timeline | Interactive incident timeline view using [SVAR React Gantt](https://svar.dev/react/gantt/) (MIT). Visualize incident phases, equipment deployments, and labor across a drag-and-drop timeline. Managers get a bird's-eye view of all active jobs. |
-| Equipment change history | "Where is DH-042 right now?" — add last-seen/current-incident column to inventory page, per-item placement history. Activity events already log enough detail. |
-| Camera capture + bulk photo upload | HTML5 `capture="environment"` for rear camera on mobile. Multi-file input, shared category/date, upload progress. Optimized for techs snapping 10+ photos per visit. |
 | Real-time updates | ActionCable / Solid Cable tables created. Add live updates. |
 | SMS/voice notifications | Plug provider into `NotificationDispatchService`. |
 | Equipment barcode scanning | `equipment_identifier` field exists. Add camera scan. |
