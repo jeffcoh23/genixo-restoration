@@ -10,7 +10,7 @@ class CreateEquipmentItems < ActiveRecord::Migration[8.0]
       t.timestamps
     end
 
-    add_index :equipment_items, [:organization_id, :identifier], unique: true
+    add_index :equipment_items, [ :organization_id, :identifier ], unique: true
 
     add_reference :equipment_entries, :equipment_item, foreign_key: true
   end
