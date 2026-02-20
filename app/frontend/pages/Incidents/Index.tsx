@@ -150,15 +150,15 @@ export default function IncidentsIndex() {
           options={filter_options.project_types.map((t) => ({ value: t.value, label: t.label }))}
         />
 
-        <select
-          value={filters.emergency || ""}
-          onChange={(e) => navigate({ emergency: e.target.value || null })}
-          className="h-8 rounded-md border border-input bg-background px-2.5 text-sm text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-        >
-          <option value="">All Emergencies</option>
-          <option value="1">Emergency</option>
-          <option value="0">Non-Emergency</option>
-        </select>
+        <MultiFilterSelect
+          selected={filters.emergency ? [filters.emergency] : []}
+          onChange={(values) => navigate({ emergency: values.length ? values[values.length - 1] : null })}
+          allLabel="All Emergencies"
+          options={[
+            { value: "1", label: "Emergency" },
+            { value: "0", label: "Non-Emergency" },
+          ]}
+        />
       </div>
 
       {/* Table */}

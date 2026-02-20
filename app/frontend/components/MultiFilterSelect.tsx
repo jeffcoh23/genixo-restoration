@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { ChevronDown, Check } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface MultiFilterSelectProps {
   selected: string[];
@@ -40,26 +41,28 @@ export default function MultiFilterSelect({
 
   return (
     <div className="relative" ref={ref}>
-      <button
-        type="button"
+      <Button
+        variant="outline"
+        size="sm"
         onClick={() => setOpen(!open)}
-        className={`h-8 rounded-md border px-2.5 text-sm flex items-center gap-1.5 max-w-[200px] focus:outline-none focus:ring-1 focus:ring-ring transition-colors ${
+        className={`h-8 px-2.5 text-sm flex items-center gap-1.5 max-w-[200px] ${
           hasSelection
             ? "bg-accent border-accent text-accent-foreground"
-            : "bg-background border-input text-muted-foreground"
+            : "text-muted-foreground"
         }`}
       >
         <span className="truncate">{triggerText}</span>
         <ChevronDown className="h-3.5 w-3.5 flex-shrink-0 opacity-50" />
-      </button>
+      </Button>
 
       {open && (
         <div className="absolute top-full left-0 mt-1 z-50 bg-popover border border-border rounded-md shadow-md min-w-[220px] py-1 max-h-[320px] overflow-y-auto">
           {/* "All" option — resets this filter */}
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => { onChange([]); setOpen(false); }}
-            className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-muted/50 text-left transition-colors ${
+            className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm justify-start rounded-none h-auto ${
               !hasSelection ? "text-foreground font-medium" : "text-muted-foreground"
             }`}
           >
@@ -69,18 +72,19 @@ export default function MultiFilterSelect({
               {!hasSelection && <Check className="h-3 w-3" />}
             </span>
             {allLabel}
-          </button>
+          </Button>
 
           <div className="border-t border-border my-1" />
 
           {options.map((opt) => {
             const isSelected = selected.includes(opt.value);
             return (
-              <button
+              <Button
                 key={opt.value}
-                type="button"
+                variant="ghost"
+                size="sm"
                 onClick={() => toggle(opt.value)}
-                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-muted/50 text-left transition-colors"
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm justify-start rounded-none h-auto"
               >
                 <span className={`h-4 w-4 rounded border flex items-center justify-center flex-shrink-0 transition-colors ${
                   isSelected ? "bg-primary border-primary text-primary-foreground" : "border-input"
@@ -88,7 +92,7 @@ export default function MultiFilterSelect({
                   {isSelected && <Check className="h-3 w-3" />}
                 </span>
                 {opt.label}
-              </button>
+              </Button>
             );
           })}
         </div>
