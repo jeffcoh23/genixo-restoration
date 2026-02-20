@@ -7,6 +7,7 @@ interface MultiFilterSelectProps {
   onChange: (values: string[]) => void;
   allLabel: string;
   options: { value: string; label: string }[];
+  width?: string;
 }
 
 export default function MultiFilterSelect({
@@ -14,6 +15,7 @@ export default function MultiFilterSelect({
   onChange,
   allLabel,
   options,
+  width,
 }: MultiFilterSelectProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -45,11 +47,12 @@ export default function MultiFilterSelect({
         variant="outline"
         size="sm"
         onClick={() => setOpen(!open)}
-        className={`h-8 px-2.5 text-sm flex items-center gap-1.5 max-w-[200px] ${
+        className={`h-8 px-2.5 text-sm flex items-center gap-1.5 ${
           hasSelection
             ? "bg-accent border-accent text-accent-foreground"
             : "text-muted-foreground"
         }`}
+        style={width ? { width } : undefined}
       >
         <span className="truncate">{triggerText}</span>
         <ChevronDown className="h-3.5 w-3.5 flex-shrink-0 opacity-50" />

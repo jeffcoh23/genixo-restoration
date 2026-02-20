@@ -1,5 +1,5 @@
 import { Link, router, usePage } from "@inertiajs/react";
-import { AlertTriangle, Search, ChevronLeft, ChevronRight, ArrowUpDown, MessageSquare, Activity } from "lucide-react";
+import { AlertTriangle, Search, X, ChevronLeft, ChevronRight, ArrowUpDown, MessageSquare, Activity } from "lucide-react";
 import { useState, useCallback } from "react";
 import AppLayout from "@/layout/AppLayout";
 import PageHeader from "@/components/PageHeader";
@@ -119,14 +119,35 @@ export default function IncidentsIndex() {
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-2 mb-4">
-        <form onSubmit={handleSearch} className="relative w-48">
+        <form onSubmit={handleSearch} className="relative w-52 flex items-center">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search..."
-            className="pl-8 h-8 text-sm"
+            className="pl-8 pr-16 h-8 text-sm"
           />
+          <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
+            {search && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                onClick={() => { setSearch(""); navigate({ search: null }); }}
+              >
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            )}
+            <Button
+              type="submit"
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+            >
+              <Search className="h-3.5 w-3.5" />
+            </Button>
+          </div>
         </form>
 
         <MultiFilterSelect
@@ -134,6 +155,7 @@ export default function IncidentsIndex() {
           onChange={(values) => navigate({ status: values.length ? values.join(",") : null })}
           allLabel="All Statuses"
           options={filter_options.statuses.map((s) => ({ value: s.value, label: s.label }))}
+          width="140px"
         />
 
         <MultiFilterSelect
@@ -141,6 +163,7 @@ export default function IncidentsIndex() {
           onChange={(values) => navigate({ property_id: values.length ? values.join(",") : null })}
           allLabel="All Properties"
           options={filter_options.properties.map((p) => ({ value: String(p.id), label: p.name }))}
+          width="150px"
         />
 
         <MultiFilterSelect
@@ -148,6 +171,7 @@ export default function IncidentsIndex() {
           onChange={(values) => navigate({ project_type: values.length ? values.join(",") : null })}
           allLabel="All Types"
           options={filter_options.project_types.map((t) => ({ value: t.value, label: t.label }))}
+          width="120px"
         />
 
         <MultiFilterSelect
@@ -158,6 +182,7 @@ export default function IncidentsIndex() {
             { value: "1", label: "Emergency" },
             { value: "0", label: "Non-Emergency" },
           ]}
+          width="155px"
         />
       </div>
 
