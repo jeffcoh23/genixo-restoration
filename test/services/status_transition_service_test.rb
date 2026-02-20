@@ -43,10 +43,16 @@ class StatusTransitionServiceTest < ActiveSupport::TestCase
     assert_equal "active", incident.reload.status
   end
 
-  test "quote active to completed" do
+  test "quote active to job_started" do
     incident = create_quote_incident(status: "active")
-    transition(incident, "completed")
-    assert_equal "completed", incident.reload.status
+    transition(incident, "job_started")
+    assert_equal "job_started", incident.reload.status
+  end
+
+  test "active to job_started" do
+    incident = create_incident(status: "active")
+    transition(incident, "job_started")
+    assert_equal "job_started", incident.reload.status
   end
 
   test "active to on_hold" do
@@ -55,16 +61,36 @@ class StatusTransitionServiceTest < ActiveSupport::TestCase
     assert_equal "on_hold", incident.reload.status
   end
 
-  test "active to completed" do
+  test "cannot transition active directly to completed" do
     incident = create_incident(status: "active")
+    assert_raises(StatusTransitionService::InvalidTransitionError) { transition(incident, "completed") }
+    assert_equal "active", incident.reload.status
+  end
+
+  # --- Job Started transitions ---
+
+  test "job_started to completed" do
+    incident = create_incident(status: "job_started")
     transition(incident, "completed")
     assert_equal "completed", incident.reload.status
+  end
+
+  test "job_started to on_hold" do
+    incident = create_incident(status: "job_started")
+    transition(incident, "on_hold")
+    assert_equal "on_hold", incident.reload.status
   end
 
   test "on_hold to active" do
     incident = create_incident(status: "on_hold")
     transition(incident, "active")
     assert_equal "active", incident.reload.status
+  end
+
+  test "on_hold to job_started" do
+    incident = create_incident(status: "on_hold")
+    transition(incident, "job_started")
+    assert_equal "job_started", incident.reload.status
   end
 
   test "on_hold to completed" do

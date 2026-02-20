@@ -1,6 +1,6 @@
 class Incident < ApplicationRecord
   STATUSES = %w[
-    new acknowledged active on_hold completed completed_billed paid closed
+    new acknowledged active job_started on_hold completed completed_billed paid closed
     proposal_requested proposal_submitted proposal_signed
   ].freeze
   PROJECT_TYPES = %w[emergency_response mitigation_rfq buildback_rfq capex_rfq other].freeze
@@ -9,7 +9,7 @@ class Incident < ApplicationRecord
 
   STATUS_LABELS = {
     "new" => "New", "acknowledged" => "Acknowledged",
-    "active" => "Active", "on_hold" => "On Hold", "completed" => "Completed",
+    "active" => "Active", "job_started" => "Job Started", "on_hold" => "On Hold", "completed" => "Completed",
     "completed_billed" => "Billed", "paid" => "Paid", "closed" => "Closed",
     "proposal_requested" => "Proposal Requested", "proposal_submitted" => "Proposal Submitted",
     "proposal_signed" => "Proposal Signed"

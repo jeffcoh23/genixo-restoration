@@ -122,8 +122,8 @@ Two paths diverge from intake, then converge at `active`:
 
 ```
 EMERGENCY / STANDARD:
-  new → acknowledged → active → completed → completed_billed → paid → closed
-                     ↘ on_hold ↗
+  new → acknowledged → active → job_started → completed → completed_billed → paid → closed
+                     ↘ on_hold ↗ (from active, job_started, or on_hold)
 
 QUOTE / PROPOSAL (RFQ):
   new → proposal_requested → proposal_submitted → proposal_signed → active → (same)
@@ -138,14 +138,16 @@ QUOTE / PROPOSAL (RFQ):
 | `proposal_requested` | `proposal_submitted` |
 | `proposal_submitted` | `proposal_signed` |
 | `proposal_signed` | `active` |
-| `active` | `on_hold`, `completed` |
-| `on_hold` | `active`, `completed` |
+| `active` | `job_started`, `on_hold` |
+| `job_started` | `completed`, `on_hold` |
+| `on_hold` | `active`, `job_started`, `completed` |
 | `completed` | `completed_billed`, `active` (reopen) |
 | `completed_billed` | `paid`, `active` (reopen) |
 | `paid` | `closed` |
 
 - `new` is auto-transitioned during creation by `IncidentCreationService` based on project type (emergency/standard → `acknowledged`, RFQ → `proposal_requested`). Manual transition from `new` is also allowed.
 - **All status changes after creation are manual.** No automatic transitions.
+- `job_started` means "crew is on site, work has begun." It sits between `active` (assigned, ready to go) and `completed` (work finished).
 - Status changes are **not reversible** in general, but `active` can be reached from `completed` and `completed_billed` as a reopen path.
 - Every status change creates an `activity_event` with `old_status` and `new_status` in metadata.
 
