@@ -175,7 +175,7 @@ export default function DailyLogPanel({
             const hasLabor = group.laborByRole.length > 0;
 
             return (
-              <div key={group.date_key} className="rounded border border-border overflow-hidden">
+              <div key={group.date_key} className="rounded-lg border border-border overflow-hidden">
                 {/* Date header */}
                 <div className="px-3 py-2 border-b border-border bg-muted flex items-center justify-between">
                   <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">

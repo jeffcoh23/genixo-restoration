@@ -198,31 +198,31 @@ export default function SettingsProfile() {
     <AppLayout>
       <PageHeader title="Settings" />
 
-      <div className="space-y-10">
+      <div className="space-y-6">
         {/* Read-only info */}
-        <div className="rounded border border-border bg-card px-4 py-3">
+        <div className="rounded-lg border border-border bg-card shadow-sm px-5 py-3">
           <p className="text-sm text-muted-foreground">
             {user.role_label} at {user.organization_name}
           </p>
         </div>
 
         {/* Profile form */}
-        <section>
-          <h2 className="text-lg font-semibold text-foreground mb-4">Profile</h2>
+        <div className="bg-card rounded-lg border border-border shadow-sm p-5">
+          <h2 className="text-sm font-semibold text-foreground mb-4">Profile</h2>
           <ProfileForm user={user} timezoneOptions={timezone_options} updatePath={update_path} />
-        </section>
+        </div>
 
         {/* Notification preferences */}
-        <section>
-          <h2 className="text-lg font-semibold text-foreground mb-4">Notifications</h2>
+        <div className="bg-card rounded-lg border border-border shadow-sm p-5">
+          <h2 className="text-sm font-semibold text-foreground mb-4">Notifications</h2>
           <NotificationPreferencesForm preferences={user.notification_preferences} preferencesPath={preferences_path} />
-        </section>
+        </div>
 
         {/* Password form */}
-        <section>
-          <h2 className="text-lg font-semibold text-foreground mb-4">Change Password</h2>
+        <div className="bg-card rounded-lg border border-border shadow-sm p-5">
+          <h2 className="text-sm font-semibold text-foreground mb-4">Change Password</h2>
           <PasswordForm passwordPath={password_path} />
-        </section>
+        </div>
       </div>
     </AppLayout>
   );

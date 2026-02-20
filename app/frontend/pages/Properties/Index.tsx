@@ -71,7 +71,7 @@ export default function PropertiesIndex() {
           {can_create ? 'No properties yet. Use "New Property" to add one.' : "No properties yet."}
         </p>
       ) : (
-        <div className="rounded border">
+        <div className="rounded-lg border bg-card shadow-sm">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted">

@@ -77,7 +77,7 @@ export default function Dashboard() {
       />
 
       {total_count === 0 ? (
-        <div className="rounded border border-border bg-card p-8 text-center">
+        <div className="rounded-lg border border-border bg-card shadow-sm p-8 text-center">
           <p className="text-muted-foreground">No incidents to show.</p>
           {can_create_incident && (
             <p className="mt-2 text-sm text-muted-foreground">
@@ -127,7 +127,7 @@ function IncidentGroup({
       </Button>
 
       {open && (
-        <div className="rounded border border-border overflow-hidden divide-y divide-border">
+        <div className="rounded-lg border border-border bg-card shadow-sm overflow-hidden divide-y divide-border">
           {incidents.map((incident) => (
             <Link
               key={incident.id}

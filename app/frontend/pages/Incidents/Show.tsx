@@ -19,19 +19,19 @@ function statusColor(status: string): string {
   switch (status) {
     case "new":
     case "acknowledged":
-      return "bg-blue-500 text-white";
+      return "bg-status-info text-white";
     case "proposal_requested":
     case "proposal_submitted":
     case "proposal_signed":
-      return "bg-purple-500 text-white";
+      return "bg-status-quote text-white";
     case "active":
-      return "bg-green-600 text-white";
+      return "bg-status-success text-white";
     case "on_hold":
-      return "bg-amber-500 text-white";
+      return "bg-status-warning text-white";
     case "completed":
-      return "bg-green-500 text-white";
+      return "bg-status-completed text-white";
     default:
-      return "bg-gray-500 text-white";
+      return "bg-status-neutral text-white";
   }
 }
 
@@ -108,10 +108,10 @@ export default function IncidentShow() {
         </Link>
       </div>
 
-      {/* Header */}
-      <div className="pb-4 border-b border-border mb-6 space-y-2">
+      {/* Incident summary card */}
+      <div className="bg-card rounded-lg border border-border shadow-sm mb-6">
         {/* Row 1: Identity + controls */}
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center justify-between gap-4 px-5 pt-4 pb-2">
           <div className="min-w-0 flex items-center gap-1 text-sm">
             <span className="text-muted-foreground">{incident.property.organization_name}</span>
             <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
@@ -128,7 +128,7 @@ export default function IncidentShow() {
                   size="sm"
                   onClick={() => setStatusOpen(!statusOpen)}
                   disabled={transitioning}
-                  className={`inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-sm font-medium ${statusColor(incident.status)} hover:opacity-90 transition-opacity`}
+                  className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium ${statusColor(incident.status)} hover:opacity-90 transition-opacity`}
                 >
                   {incident.status_label}
                   <ChevronDown className="h-3.5 w-3.5" />
@@ -142,7 +142,7 @@ export default function IncidentShow() {
               {statusOpen && (
                 <>
                   <div className="fixed inset-0 z-30" onClick={() => setStatusOpen(false)} />
-                  <div className="absolute right-0 top-full mt-1 z-40 bg-popover border border-border rounded shadow-md py-1 min-w-[180px]">
+                  <div className="absolute right-0 top-full mt-1 z-40 bg-popover border border-border rounded-lg shadow-md py-1 min-w-[180px]">
                     {incident.valid_transitions.map((t) => (
                       <Button
                         key={t.value}
@@ -172,8 +172,8 @@ export default function IncidentShow() {
           </div>
         </div>
 
-        {/* Row 2: Metadata strip with headers */}
-        <div className="flex flex-wrap items-start gap-x-6 gap-y-2 mt-2">
+        {/* Row 2: Metadata strip */}
+        <div className="flex flex-wrap items-start gap-x-6 gap-y-2 px-5 pb-4">
           {(incident.property.address_line1 || incident.property.address_line2) && (
             <div>
               <div className="text-xs text-muted-foreground uppercase tracking-wide font-semibold">Location</div>
@@ -216,34 +216,34 @@ export default function IncidentShow() {
             </div>
           )}
         </div>
-      </div>
 
-      {/* Description / Cause / Next Steps */}
-      <div className="mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
-          <div>
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Description</h3>
-            <p className="text-sm text-foreground whitespace-pre-wrap">{incident.description}</p>
+        {/* Description / Cause / Next Steps */}
+        <div className="border-t border-border px-5 py-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
+            <div>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Description</h3>
+              <p className="text-sm text-foreground whitespace-pre-wrap">{incident.description}</p>
+            </div>
+
+            {incident.cause && (
+              <div>
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Cause</h3>
+                <p className="text-sm text-foreground whitespace-pre-wrap">{incident.cause}</p>
+              </div>
+            )}
+
+            {incident.requested_next_steps && (
+              <div>
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Requested Next Steps</h3>
+                <p className="text-sm text-foreground whitespace-pre-wrap">{incident.requested_next_steps}</p>
+              </div>
+            )}
           </div>
-
-          {incident.cause && (
-            <div>
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Cause</h3>
-              <p className="text-sm text-foreground whitespace-pre-wrap">{incident.cause}</p>
-            </div>
-          )}
-
-          {incident.requested_next_steps && (
-            <div>
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Requested Next Steps</h3>
-              <p className="text-sm text-foreground whitespace-pre-wrap">{incident.requested_next_steps}</p>
-            </div>
-          )}
         </div>
       </div>
 
-      {/* Tabbed content — full width */}
-      <div className="h-[calc(100vh-400px)] overflow-hidden">
+      {/* Tabbed content card */}
+      <div className="bg-card rounded-lg border border-border shadow-sm h-[calc(100vh-400px)] overflow-hidden">
         <RightPanelShell activeTab={activeTab} onTabChange={handleTabChange} unreadMessages={displayUnreadMessages} unreadActivity={displayUnreadActivity}>
           {activeTab === "daily_log" && (
             <DailyLogPanel

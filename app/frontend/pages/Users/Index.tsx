@@ -90,7 +90,7 @@ export default function UsersIndex() {
 
       {/* Invite User Form */}
       {showInviteForm && (
-        <div className="rounded border p-6 mb-6 bg-muted">
+        <div className="bg-card rounded-lg border border-border shadow-sm p-6 mb-6">
           <h2 className="text-lg font-semibold text-foreground mb-4">Invite User</h2>
           <form onSubmit={handleInvite} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
