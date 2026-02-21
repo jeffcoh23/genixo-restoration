@@ -320,20 +320,20 @@ function AssignDropdown({ users, open, onToggle, onAssign, onClose }: {
             className="absolute right-0 top-full mt-1 z-20 bg-popover border border-border rounded shadow-md py-1 min-w-[220px] max-h-[200px] overflow-y-auto"
           >
             {users.map((u, i) => (
-              <button
+              <Button
                 key={u.id}
-                type="button"
+                variant="ghost"
                 data-assign-item
                 role="option"
                 aria-selected={false}
                 onClick={() => onAssign(u.id)}
-                className={`w-full flex items-center justify-between px-3 py-2.5 sm:py-1.5 text-sm sm:text-xs text-left transition-colors ${
-                  focusIndex === i ? "bg-accent" : "hover:bg-muted"
+                className={`w-full flex items-center justify-between px-3 py-2.5 sm:py-1.5 text-sm sm:text-xs rounded-none h-auto ${
+                  focusIndex === i ? "bg-accent" : ""
                 }`}
               >
                 <span>{u.full_name}</span>
                 <span className="text-muted-foreground">{u.role_label}</span>
-              </button>
+              </Button>
             ))}
           </div>
         </>

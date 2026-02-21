@@ -39,6 +39,13 @@ export default function MultiFilterSelect({
 
   const totalItems = options.length + 1; // +1 for "All" option
 
+  const toggle = useCallback((value: string) => {
+    const next = selected.includes(value)
+      ? selected.filter((v) => v !== value)
+      : [...selected, value];
+    onChange(next);
+  }, [selected, onChange]);
+
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (!open) {
       if (e.key === "Enter" || e.key === " " || e.key === "ArrowDown") {
@@ -74,7 +81,7 @@ export default function MultiFilterSelect({
         }
         break;
     }
-  }, [open, focusIndex, totalItems, options]);
+  }, [open, focusIndex, totalItems, options, onChange, toggle]);
 
   // Scroll focused item into view
   useEffect(() => {
@@ -82,13 +89,6 @@ export default function MultiFilterSelect({
     const items = listRef.current.querySelectorAll("[data-filter-item]");
     items[focusIndex]?.scrollIntoView({ block: "nearest" });
   }, [focusIndex, open]);
-
-  const toggle = (value: string) => {
-    const next = selected.includes(value)
-      ? selected.filter((v) => v !== value)
-      : [...selected, value];
-    onChange(next);
-  };
 
   const hasSelection = selected.length > 0;
   const triggerText = hasSelection
@@ -122,14 +122,14 @@ export default function MultiFilterSelect({
           className="absolute top-full left-0 mt-1 z-50 bg-popover border border-border rounded-md shadow-md min-w-[220px] py-1 max-h-[320px] overflow-y-auto"
         >
           {/* "All" option — resets this filter */}
-          <button
-            type="button"
+          <Button
+            variant="ghost"
             data-filter-item
             role="option"
             aria-selected={!hasSelection}
             onClick={() => { onChange([]); setOpen(false); }}
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 sm:py-2 text-sm text-left transition-colors ${
-              focusIndex === 0 ? "bg-accent" : "hover:bg-muted"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 sm:py-2 text-sm justify-start rounded-none h-auto ${
+              focusIndex === 0 ? "bg-accent" : ""
             } ${!hasSelection ? "text-foreground font-medium" : "text-muted-foreground"}`}
           >
             <span className={`h-4 w-4 rounded border flex items-center justify-center flex-shrink-0 ${
@@ -138,22 +138,22 @@ export default function MultiFilterSelect({
               {!hasSelection && <Check className="h-3 w-3" />}
             </span>
             {allLabel}
-          </button>
+          </Button>
 
           <div className="border-t border-border my-1" />
 
           {options.map((opt, i) => {
             const isSelected = selected.includes(opt.value);
             return (
-              <button
+              <Button
                 key={opt.value}
-                type="button"
+                variant="ghost"
                 data-filter-item
                 role="option"
                 aria-selected={isSelected}
                 onClick={() => toggle(opt.value)}
-                className={`w-full flex items-center gap-2.5 px-3 py-2.5 sm:py-2 text-sm text-left transition-colors ${
-                  focusIndex === i + 1 ? "bg-accent" : "hover:bg-muted"
+                className={`w-full flex items-center gap-2.5 px-3 py-2.5 sm:py-2 text-sm justify-start rounded-none h-auto ${
+                  focusIndex === i + 1 ? "bg-accent" : ""
                 }`}
               >
                 <span className={`h-4 w-4 rounded border flex items-center justify-center flex-shrink-0 transition-colors ${
@@ -162,7 +162,7 @@ export default function MultiFilterSelect({
                   {isSelected && <Check className="h-3 w-3" />}
                 </span>
                 {opt.label}
-              </button>
+              </Button>
             );
           })}
         </div>
