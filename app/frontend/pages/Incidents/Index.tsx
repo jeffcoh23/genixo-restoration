@@ -190,7 +190,7 @@ export default function IncidentsIndex() {
       {/* Active filter chips */}
       <ActiveFilterChips filters={filters} filterOptions={filter_options} navigate={navigate} onClearSearch={() => setSearch("")} />
 
-      {/* Table */}
+      {/* Results */}
       {incidents.length === 0 ? (
         <div className="rounded-lg border border-border bg-card shadow-sm">
           <EmptyState
@@ -200,69 +200,126 @@ export default function IncidentsIndex() {
           />
         </div>
       ) : (
-        <div className="rounded-lg border border-border bg-card shadow-sm overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b bg-muted">
-                <SortHeader label="Property" column="property" sort={sort} onSort={handleSort} />
-                <th className="px-4 py-3 font-medium text-left">Description</th>
-                <SortHeader label="Status" column="status" sort={sort} onSort={handleSort} />
-                <th className="px-4 py-3 font-medium text-left">Type</th>
-                <SortHeader label="Activity" column="last_activity_at" sort={sort} onSort={handleSort} align="right" />
-              </tr>
-            </thead>
-            <tbody>
-              {incidents.map((incident) => {
-                const showEmergency = incident.emergency && (incident.status === "new" || incident.status === "acknowledged");
-                return (
-                <tr
+        <>
+          {/* Mobile card list */}
+          <div className="sm:hidden space-y-2">
+            {incidents.map((incident) => {
+              const showEmergency = incident.emergency && (incident.status === "new" || incident.status === "acknowledged");
+              return (
+                <Link
                   key={incident.id}
-                  className={`border-b last:border-0 hover:bg-muted transition-colors ${
-                    showEmergency ? "bg-status-emergency/10" : ""
+                  href={incident.path}
+                  className={`block rounded-lg border border-border bg-card shadow-sm px-4 py-3 hover:bg-muted transition-colors ${
+                    showEmergency ? "border-l-4 border-l-destructive" : ""
                   }`}
                 >
-                  <td className="px-4 py-3">
-                    <Link href={incident.path} className="font-medium text-primary hover:underline flex items-center gap-1.5">
-                      {showEmergency && (
-                        <AlertTriangle className="h-3.5 w-3.5 text-destructive flex-shrink-0" />
-                      )}
-                      {incident.property_name}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground max-w-[300px] truncate">
-                    {incident.description}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge className={`text-xs ${statusColor(incident.status)}`}>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <span className="font-medium text-foreground flex items-center gap-1.5">
+                        {showEmergency && <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0" />}
+                        {incident.property_name}
+                      </span>
+                      <p className="text-sm text-muted-foreground truncate mt-0.5">{incident.description}</p>
+                    </div>
+                    <Badge className={`text-xs shrink-0 ${statusColor(incident.status)}`}>
                       {incident.status_label}
                     </Badge>
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {incident.project_type_label}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-2">
+                  </div>
+                  <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                    <span>{incident.project_type_label}</span>
+                    <span>&middot;</span>
+                    <span>{incident.damage_label}</span>
+                    {incident.last_activity_label && (
+                      <>
+                        <span>&middot;</span>
+                        <span>{incident.last_activity_label}</span>
+                      </>
+                    )}
+                    <div className="ml-auto flex items-center gap-2">
                       {incident.unread_messages > 0 && (
-                        <span className="inline-flex items-center gap-0.5 text-xs font-medium text-status-info">
+                        <span className="inline-flex items-center gap-0.5 font-medium text-status-info" aria-label={`${incident.unread_messages} unread message${incident.unread_messages !== 1 ? "s" : ""}`}>
                           <MessageSquare className="h-3 w-3" />
                           {incident.unread_messages}
                         </span>
                       )}
                       {incident.unread_activity > 0 && (
-                        <span className="inline-flex items-center gap-0.5 text-xs font-medium text-status-warning">
+                        <span className="inline-flex items-center gap-0.5 font-medium text-status-warning" aria-label={`${incident.unread_activity} new activit${incident.unread_activity !== 1 ? "ies" : "y"}`}>
                           <Activity className="h-3 w-3" />
                           {incident.unread_activity}
                         </span>
                       )}
-                      <span className="text-muted-foreground">{incident.last_activity_label}</span>
                     </div>
-                  </td>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden sm:block rounded-lg border border-border bg-card shadow-sm overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-muted">
+                  <SortHeader label="Property" column="property" sort={sort} onSort={handleSort} />
+                  <th className="px-4 py-3 font-medium text-left">Description</th>
+                  <SortHeader label="Status" column="status" sort={sort} onSort={handleSort} />
+                  <th className="px-4 py-3 font-medium text-left">Type</th>
+                  <SortHeader label="Activity" column="last_activity_at" sort={sort} onSort={handleSort} align="right" />
                 </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {incidents.map((incident) => {
+                  const showEmergency = incident.emergency && (incident.status === "new" || incident.status === "acknowledged");
+                  return (
+                  <tr
+                    key={incident.id}
+                    className={`border-b last:border-0 hover:bg-muted transition-colors ${
+                      showEmergency ? "bg-status-emergency/10" : ""
+                    }`}
+                  >
+                    <td className="px-4 py-3">
+                      <Link href={incident.path} className="font-medium text-primary hover:underline flex items-center gap-1.5">
+                        {showEmergency && (
+                          <AlertTriangle className="h-3.5 w-3.5 text-destructive flex-shrink-0" />
+                        )}
+                        {incident.property_name}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground max-w-[300px] truncate">
+                      {incident.description}
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge className={`text-xs ${statusColor(incident.status)}`}>
+                        {incident.status_label}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {incident.project_type_label}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        {incident.unread_messages > 0 && (
+                          <span className="inline-flex items-center gap-0.5 text-xs font-medium text-status-info" title={`${incident.unread_messages} unread message${incident.unread_messages !== 1 ? "s" : ""}`} aria-label={`${incident.unread_messages} unread message${incident.unread_messages !== 1 ? "s" : ""}`}>
+                            <MessageSquare className="h-3 w-3" />
+                            {incident.unread_messages}
+                          </span>
+                        )}
+                        {incident.unread_activity > 0 && (
+                          <span className="inline-flex items-center gap-0.5 text-xs font-medium text-status-warning" title={`${incident.unread_activity} new activit${incident.unread_activity !== 1 ? "ies" : "y"}`} aria-label={`${incident.unread_activity} new activit${incident.unread_activity !== 1 ? "ies" : "y"}`}>
+                            <Activity className="h-3 w-3" />
+                            {incident.unread_activity}
+                          </span>
+                        )}
+                        <span className="text-muted-foreground">{incident.last_activity_label}</span>
+                      </div>
+                    </td>
+                  </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       {/* Pagination */}

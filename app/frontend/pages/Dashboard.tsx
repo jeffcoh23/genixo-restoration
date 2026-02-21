@@ -136,13 +136,21 @@ function IncidentGroup({
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   {incident.unread_messages > 0 && (
-                    <span className="inline-flex items-center gap-0.5 text-xs font-medium text-status-info">
+                    <span
+                      className="inline-flex items-center gap-0.5 text-xs font-medium text-status-info"
+                      title={`${incident.unread_messages} unread message${incident.unread_messages !== 1 ? "s" : ""}`}
+                      aria-label={`${incident.unread_messages} unread message${incident.unread_messages !== 1 ? "s" : ""}`}
+                    >
                       <MessageSquare className="h-3 w-3" />
                       {incident.unread_messages}
                     </span>
                   )}
                   {incident.unread_activity > 0 && (
-                    <span className="inline-flex items-center gap-0.5 text-xs font-medium text-status-warning">
+                    <span
+                      className="inline-flex items-center gap-0.5 text-xs font-medium text-status-warning"
+                      title={`${incident.unread_activity} new activit${incident.unread_activity !== 1 ? "ies" : "y"}`}
+                      aria-label={`${incident.unread_activity} new activit${incident.unread_activity !== 1 ? "ies" : "y"}`}
+                    >
                       <Activity className="h-3 w-3" />
                       {incident.unread_activity}
                     </span>
