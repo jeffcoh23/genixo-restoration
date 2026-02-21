@@ -5,6 +5,7 @@ import PageHeader from "@/components/PageHeader";
 import DetailList, { DetailRow } from "@/components/DetailList";
 import StatusBadge from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SharedProps } from "@/types";
 
 interface AssignedUser {
@@ -26,6 +27,7 @@ interface AssignableUser {
 interface PropertyIncident {
   id: number;
   summary: string;
+  status: string;
   status_label: string;
   path: string;
 }
@@ -101,16 +103,16 @@ export default function PropertyShow() {
 
         {showAssignForm && (
           <div className="flex gap-2 mb-4">
-            <select
-              value={selectedUserId}
-              onChange={(e) => setSelectedUserId(e.target.value)}
-              className="flex h-9 w-full max-w-xs rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs"
-            >
-              <option value="">Select a user...</option>
-              {assignable_users.map((u) => (
-                <option key={u.id} value={u.id}>{u.full_name} ({u.role_label})</option>
-              ))}
-            </select>
+            <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+              <SelectTrigger className="max-w-xs">
+                <SelectValue placeholder="Select a user..." />
+              </SelectTrigger>
+              <SelectContent>
+                {assignable_users.map((u) => (
+                  <SelectItem key={u.id} value={String(u.id)}>{u.full_name} ({u.role_label})</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Button size="sm" onClick={handleAssign} disabled={!selectedUserId}>Assign</Button>
           </div>
         )}
@@ -125,9 +127,9 @@ export default function PropertyShow() {
               <div className="flex items-center gap-3">
                 <span className="text-sm text-muted-foreground">{user.role_label}</span>
                 {can_assign && (
-                  <button onClick={() => handleRemove(user)} className="text-xs text-muted-foreground hover:text-destructive transition-colors">
+                  <Button variant="ghost" size="sm" className="h-auto py-0 px-1 text-xs text-muted-foreground hover:text-destructive" onClick={() => handleRemove(user)}>
                     Remove
-                  </button>
+                  </Button>
                 )}
               </div>
             </DetailRow>
@@ -142,7 +144,7 @@ export default function PropertyShow() {
           {property.incidents.map((incident) => (
             <DetailRow key={incident.id}>
               <Link href={incident.path} className="font-medium text-primary hover:underline">{incident.summary}</Link>
-              <StatusBadge label={incident.status_label} />
+              <StatusBadge status={incident.status} label={incident.status_label} />
             </DetailRow>
           ))}
         </DetailList>

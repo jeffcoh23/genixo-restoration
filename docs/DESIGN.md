@@ -13,12 +13,14 @@
 **Target users:**
 - Mitigation managers/techs — blue-collar, on job sites, phones, varying tech comfort
 - Property managers — office-based, desktop, moderately tech-savvy
+- **Assume low tech literacy.** Users may not discover tabs, hidden menus, or subtle interactive elements. Every action must be obvious — prefer visible buttons and inline content over hidden navigation.
 
 **Design principles:**
 1. **Information first** — the UI should disappear. Every element earns its space.
 2. **Warm, not cold** — subtle warmth in neutrals, shadows, and backgrounds. Never clinical.
 3. **Depth creates hierarchy** — shadows and surfaces do the work so you need less decoration.
 4. **Token-driven** — change the CSS variables, change the whole app. No hardcoded colors in components.
+5. **Obvious over clever** — if a user needs to discover a feature, it's hidden. Primary actions get visible buttons. Secondary/admin features go in clearly labeled drawers, not tabs.
 
 ---
 

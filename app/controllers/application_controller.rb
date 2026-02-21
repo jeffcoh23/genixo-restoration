@@ -140,7 +140,6 @@ class ApplicationController < ActionController::Base
 
     if user.can?(Permissions::MANAGE_EQUIPMENT_TYPES)
       items << { label: "Equipment", href: equipment_items_path, icon: "Package" }
-      items << { label: "Equipment Types", href: equipment_types_settings_path, icon: "Wrench" }
     end
 
     items << { label: "Settings", href: settings_path, icon: "Settings" }

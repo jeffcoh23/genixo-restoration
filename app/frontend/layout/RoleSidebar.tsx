@@ -7,6 +7,7 @@ import {
   Users,
   Phone,
   Wrench,
+  Package,
   Settings,
   LogOut,
 } from "lucide-react";
@@ -20,6 +21,7 @@ const iconMap: Record<string, React.ReactNode> = {
   Users: <Users className="h-4 w-4" />,
   Phone: <Phone className="h-4 w-4" />,
   Wrench: <Wrench className="h-4 w-4" />,
+  Package: <Package className="h-4 w-4" />,
   Settings: <Settings className="h-4 w-4" />,
 };
 

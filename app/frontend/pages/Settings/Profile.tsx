@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SharedProps } from "@/types";
 
 interface NotificationPreferences {
@@ -65,17 +66,17 @@ function ProfileForm({ user, timezoneOptions, updatePath }: {
       <FormField id="email_address" label="Email" type="email" value={data.email_address} onChange={(v) => setData("email_address", v)} error={errors.email_address} required />
 
       <div className="space-y-2">
-        <Label htmlFor="timezone">Timezone *</Label>
-        <select
-          id="timezone"
-          value={data.timezone}
-          onChange={(e) => setData("timezone", e.target.value)}
-          className="flex h-9 w-full rounded border border-input bg-transparent px-3 py-1 text-sm shadow-xs"
-        >
-          {timezoneOptions.map((tz) => (
-            <option key={tz.value} value={tz.value}>{tz.label}</option>
-          ))}
-        </select>
+        <Label>Timezone *</Label>
+        <Select value={data.timezone} onValueChange={(v) => setData("timezone", v)}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {timezoneOptions.map((tz) => (
+              <SelectItem key={tz.value} value={tz.value}>{tz.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         {errors.timezone && <p className="text-sm text-destructive">{errors.timezone}</p>}
       </div>
 

@@ -3,6 +3,7 @@ import AppLayout from "@/layout/AppLayout";
 import PageHeader from "@/components/PageHeader";
 import DetailList, { DetailRow } from "@/components/DetailList";
 import StatusBadge from "@/components/StatusBadge";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SharedProps } from "@/types";
 
@@ -15,6 +16,7 @@ interface AssignedProperty {
 interface AssignedIncident {
   id: number;
   summary: string;
+  status: string;
   status_label: string;
   property_name: string;
   path: string;
@@ -62,9 +64,7 @@ export default function UserShow() {
         <div>
           <div className="flex items-center gap-3">
             {!user.active && (
-              <span className="text-xs px-2 py-1 rounded-full bg-destructive/10 text-destructive font-medium">
-                Deactivated
-              </span>
+              <Badge variant="destructive">Deactivated</Badge>
             )}
           </div>
           <p className="text-muted-foreground mt-1">{user.role_label} at {user.organization_name}</p>
@@ -110,7 +110,7 @@ export default function UserShow() {
                 <Link href={i.path} className="font-medium text-primary hover:underline">{i.summary}</Link>
                 <span className="text-sm text-muted-foreground ml-2">{i.property_name}</span>
               </div>
-              <StatusBadge label={i.status_label} />
+              <StatusBadge status={i.status} label={i.status_label} />
             </DetailRow>
           ))}
         </DetailList>

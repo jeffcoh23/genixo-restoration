@@ -136,13 +136,13 @@ function IncidentGroup({
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   {incident.unread_messages > 0 && (
-                    <span className="inline-flex items-center gap-0.5 text-xs font-medium text-blue-600">
+                    <span className="inline-flex items-center gap-0.5 text-xs font-medium text-status-info">
                       <MessageSquare className="h-3 w-3" />
                       {incident.unread_messages}
                     </span>
                   )}
                   {incident.unread_activity > 0 && (
-                    <span className="inline-flex items-center gap-0.5 text-xs font-medium text-amber-600">
+                    <span className="inline-flex items-center gap-0.5 text-xs font-medium text-status-warning">
                       <Activity className="h-3 w-3" />
                       {incident.unread_activity}
                     </span>

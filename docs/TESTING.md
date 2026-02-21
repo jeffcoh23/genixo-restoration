@@ -113,3 +113,235 @@ Each system test should cover one complete user flow (login, do the thing, verif
 ### E2E is for JavaScript-dependent flows
 
 If a behavior can be verified without rendering React components, test it at the controller layer instead. Reserve browser tests for multi-step interactions that require real JS execution.
+
+---
+
+## E2E Test Plan
+
+> Comprehensive catalog of every user flow that needs browser-level E2E coverage. Organized by feature group with build priority.
+>
+> **Current state:** `test/system/` is empty. All flows below are unwritten.
+
+### Priority Guide
+
+| Priority | Criteria | When to write |
+|----------|----------|---------------|
+| **P1 — Critical** | Auth, data isolation, primary value flows | First — gates production |
+| **P2 — Core** | Standard CRUD, dashboard, team management | After P1 passes |
+| **P3 — Edge** | Role restrictions, form validation, UI states | After P2 passes |
+
+---
+
+### A. Authentication (file: `test/system/authentication_test.rb`)
+
+| ID | Test | Roles | Flow | Verify |
+|----|------|-------|------|--------|
+| A1 | Login happy path | Manager, Technician, PM user | `/login` → enter credentials → submit | Redirected to incidents; welcome notice; correct sidebar nav for role |
+| A2 | Login — deactivated account | Any deactivated | Submit valid credentials | Alert shown; still on login page; no session |
+| A3 | Login — invalid credentials | Any | Wrong password or nonexistent email | Alert; stays on login page |
+| A4 | Logout | Any | Click logout in sidebar | Redirect to login; session destroyed; subsequent visit → login |
+| A5 | Forgot password | Any | "Forgot password?" → enter email → submit | Success message shown (even for nonexistent email — no enumeration) |
+| A6 | Password reset — valid token | Any | Visit reset URL → new password + confirm → submit | Redirect to login with success notice |
+| A7 | Password reset — expired token | Any | Visit expired/invalid token URL | Redirect to forgot-password with alert |
+| A8 | Password reset — mismatch | Any | New password ≠ confirmation | Error on form; password unchanged |
+| A9 | Invitation accept — happy path | New user | `/invitations/:token` → pre-filled email/org → fill name + password → submit | Account created; logged in; redirected to dashboard |
+| A10 | Invitation — already accepted | Any | Visit already-accepted token URL | Redirect to login with alert |
+| A11 | Invitation — expired | Any | Visit expired token URL | Expired page rendered |
+| A12 | Deactivated user mid-session | Any | Log in → admin deactivates → next request | Session terminated; redirect to login |
+| A13 | Unauthenticated redirect + return-to | Anonymous | Visit `/incidents/:id` → redirect to login → log in | Return to original incident URL |
+
+**Priority:** A1–A4, A12, A13 = P1. A5–A11 = P2.
+
+---
+
+### B. Dashboard (file: `test/system/dashboard_test.rb`)
+
+| ID | Test | Roles | Flow | Verify |
+|----|------|-------|------|--------|
+| B1 | Manager dashboard | Manager | Login → view `/` | All 5 groups visible; "Create Request" button shown; incident cards with property, status, badges |
+| B2 | Technician dashboard | Technician | Login → view `/` | Only assigned incidents; no "Create Request" button; limited sidebar |
+| B3 | PM user dashboard | Property_Manager | Login → view `/` | Only incidents for assigned properties |
+| B4 | Empty state | New user (no incidents) | Login → view `/` | "No incidents" message; "Create your first incident" link if permitted |
+| B5 | Unread badges | Any | Another user sends message → current user views dashboard | Blue (messages) or amber (activity) badge on incident card |
+| B6 | Group collapse/expand | Any | Click group header | Group toggles; only groups with incidents shown |
+
+**Priority:** B1–B3 = P2. B4–B6 = P3.
+
+---
+
+### C. Incident Lifecycle (file: `test/system/incidents_test.rb`)
+
+| ID | Test | Roles | Flow | Verify |
+|----|------|-------|------|--------|
+| C1 | Create emergency incident | Manager | "Create Request" → select property → "Emergency Response" → fill form → submit | Status = "acknowledged"; emergency warning shown; escalation triggered; auto-assignments populated |
+| C2 | Create quote incident | Manager | Select "Mitigation RFQ" → submit | Status = "proposal_requested" |
+| C3 | Create incident — PM user | Property_Manager | Login → "Create Request" → only sees assigned properties → submit | Incident created; mitigation managers auto-assigned |
+| C4 | Create incident — validation errors | Manager | Submit without required fields | Inline errors; stays on form |
+| C5 | Create with team assignment | Manager | Select property → auto-checked users → uncheck some → submit | Assignments match selections |
+| C6 | Create with contacts | Manager | Add contact rows → submit | Contacts shown on incident show page |
+| C7 | Filter by status | Manager | Incidents index → select statuses → apply | Table shows only matching; URL params preserved |
+| C8 | Filter by property | Manager | Select property filter | Only incidents for that property |
+| C9 | Search | Manager | Type in search → submit | Matches by description or property name |
+| C10 | Sort columns | Manager | Click column headers | Re-orders; toggle direction on second click |
+| C11 | Pagination | Manager (25+ incidents) | Navigate to page 2 | Correct page; controls update |
+| C12 | View incident detail | Manager | Click incident → Overview tab | All fields shown: description, cause, project type, property, team |
+| C13 | Edit incident | Manager | Click Edit → modify description → save | Updated; notice shown |
+| C14 | Technician cannot edit | Technician | View assigned incident | No edit button; direct PATCH → 404 |
+| C15 | Status transition — standard | Manager | Open status dropdown → select valid next status | Status updates; activity logged; notification fired |
+| C16 | Status transition — quote path | Manager | proposal_requested → proposal_submitted → proposal_signed → active | Each step works in sequence; can't skip |
+| C17 | Status transition — invalid rejected | Manager | Attempt invalid transition | Alert; status unchanged |
+| C18 | Status transition — non-manager blocked | Technician | Direct PATCH to transition endpoint | 404 |
+| C19 | Status transition resolves escalation | Manager | Emergency with open escalation → transition to "active" | Escalation events resolved |
+| C20 | Mark read — messages tab | Any | Open incident with unread messages → Messages tab | Badge clears |
+| C21 | Mark read — activity tab | Any | Open incident with unread activity → Daily Log tab | Badge clears |
+| C22 | DFR PDF download | Any | Click DFR download button | PDF downloads with correct filename |
+| C23 | Emergency visual distinction | Manager | View incident list with emergency incident in new/acknowledged | Red highlight; "Emergency" badge instead of status label |
+
+**Priority:** C1, C3, C15, C16 = P1. C7–C13, C20–C21 = P2. C2, C4–C6, C14, C17–C19, C22–C23 = P3.
+
+---
+
+### D. Team Management (file: `test/system/team_management_test.rb`)
+
+| ID | Test | Roles | Flow | Verify |
+|----|------|-------|------|--------|
+| D1 | Assign mitigation user | Manager | Incident → Mitigation Team → add user | User in list; activity logged; notification sent |
+| D2 | Assign PM user (own org) | Property_Manager | Incident → PM Team → add PM user | Only own-org users available |
+| D3 | PM cannot assign mitigation users | Property_Manager | Direct POST with mitigation user_id | 404 |
+| D4 | Remove user from incident | Manager | Click Remove on team member | Removed; activity logged |
+| D5 | PM cannot remove mitigation user | Property_Manager | Attempt remove mitigation team member | 404 |
+| D6 | Assign user to property | Manager | Property → assign PM user | User added to assigned list |
+| D7 | Remove user from property | Manager | Click Remove on property assignment | Assignment removed |
+
+**Priority:** D1–D2 = P1. D3–D7 = P2.
+
+---
+
+### E. Daily Operations (file: `test/system/daily_operations_test.rb`)
+
+| ID | Test | Roles | Flow | Verify |
+|----|------|-------|------|--------|
+| E1 | Send message | Any | Incident → Messages → type → send | Message in thread; timestamp shown |
+| E2 | Send message with attachment | Any | Attach file + type message → send | Message + file stored; visible in thread |
+| E3 | Empty message rejected | Any | Submit empty body | Alert; message not sent |
+| E4 | Log labor — technician (self) | Technician | Incident → Labor → fill form → submit | Entry created with user = self |
+| E5 | Log labor — manager (any user) | Manager | Select different user from dropdown → submit | Entry with specified user; hours calculated |
+| E6 | Edit own labor entry | Technician | Click edit → change hours → save | Updated; activity logged |
+| E7 | Delete labor entry | Manager | Click delete on entry | Removed; activity logged |
+| E8 | Technician cannot edit other's labor | Technician | PATCH entry not created by self | 404 |
+| E9 | Place equipment | Manager | Equipment tab → Place → select type → submit | Entry created; activity logged |
+| E10 | Place equipment — inventory picker | Manager | Select type → pick specific item from inventory | Identifier + model auto-populated |
+| E11 | Place equipment — "Other" type | Technician | Select "Other" → enter custom type | Entry with `equipment_type_other` set |
+| E12 | Remove equipment | Manager | Click Remove on active entry | `removed_at` set; activity logged |
+| E13 | Edit equipment entry | Manager | Edit equipment location/dates | Updated; activity logged |
+| E14 | Technician cannot edit other's equipment | Technician | PATCH entry not created by self | 404 |
+| E15 | Log activity entry with equipment actions | Manager | Daily Log → "Log Activity" → fill + add equipment actions → submit | Entry + actions created; equipment summary updated |
+| E16 | Add operational note | Technician | Daily Log → Add Note → fill text + date → submit | Note in daily log; activity logged |
+| E17 | Upload document | Any | Documents tab → upload file with category → submit | File stored; in document list; activity logged |
+| E18 | Add incident contact | Manager | Incident → Contacts → add name/email/phone → submit | Contact added; activity logged |
+| E19 | Update incident contact | Manager | Edit existing contact fields | Updated |
+| E20 | Remove incident contact | Manager | Click remove on contact | Removed; activity logged |
+
+**Priority:** E1, E4, E9 = P1. E2, E5–E7, E12, E15–E17 = P2. E3, E8, E10–E11, E13–E14, E18–E20 = P3.
+
+---
+
+### F. Admin Operations (file: `test/system/admin_operations_test.rb`)
+
+| ID | Test | Roles | Flow | Verify |
+|----|------|-------|------|--------|
+| F1 | Create PM organization | Manager | Organizations → New → fill fields → submit | Created; type = property_management |
+| F2 | Edit PM organization | Manager | Organization show → Edit → modify → save | Updated |
+| F3 | Create property | Manager | Properties → New → fill name/org/address → submit | Created; mitigation_org = current user's org |
+| F4 | Edit property — mitigation admin | Manager | Edit → change PM org → save | PM org updated |
+| F5 | Edit property — PM cannot change org | Property_Manager | Edit property → org field disabled | Org change stripped from params |
+| F6 | Invite user — own org | Manager | Users → Invite → fill email/role → send | Invitation created; email sent; pending in list |
+| F7 | Invite user — to PM org | Manager | Users → select PM org → PM role → send | Invitation for PM org created |
+| F8 | Resend invitation | Manager | Click Resend on pending invitation | Token reset; email resent |
+| F9 | Deactivate user | Manager | Users → user → Deactivate | Deactivated; next login blocked |
+| F10 | Cannot deactivate self | Manager | View own profile | Button disabled or blocked |
+| F11 | Reactivate user | Manager | Deactivated users → Reactivate | User can log in again |
+| F12 | Add equipment item | Manager | Equipment → Add Item → type/identifier → save | Item in inventory table |
+| F13 | Edit equipment item inline | Manager | Click pencil → edit → Save | Row updates |
+| F14 | Deactivate equipment item | Manager | Click Remove on item | Item active=false |
+| F15 | Add equipment type | Manager | Manage Types → Add Type → name → submit | Type in list; available in forms |
+| F16 | Deactivate equipment type | Manager | Manage Types → Deactivate | Type inactive; not selectable |
+| F17 | Reactivate equipment type | Manager | Manage Types → Reactivate | Type active again |
+| F18 | Equipment placement history | Manager | Equipment index → click identifier | Sheet shows deployment timeline |
+| F19 | Configure on-call primary + timeout | Manager | Settings → On-Call → select primary → set timeout → save | Configuration created/updated |
+| F20 | Add escalation contact | Manager | On-Call → add contact | Contact at bottom of chain |
+| F21 | Reorder escalation chain | Manager | Click up/down arrows | Position updated; UI reflects |
+| F22 | Remove escalation contact | Manager | Click trash on contact | Removed; remaining reordered |
+
+**Priority:** F1, F3, F6, F9 = P2. Everything else = P3.
+
+---
+
+### G. Settings & Profile (file: `test/system/settings_test.rb`)
+
+| ID | Test | Roles | Flow | Verify |
+|----|------|-------|------|--------|
+| G1 | Update profile | Any | Settings → change name/email/timezone → Save | Fields updated; timezone affects display |
+| G2 | Change password — happy path | Any | Settings → current password + new password → submit | Password updated; success notice |
+| G3 | Change password — wrong current | Any | Enter incorrect current password | Error "is incorrect" |
+| G4 | Change password — mismatch | Any | New ≠ confirmation | Error "doesn't match" |
+| G5 | Notification preferences | Any | Toggle checkboxes → save | Preferences persisted (reload confirms) |
+| G6 | Role/org display read-only | Any | Navigate to settings | Role label + org name shown; not editable |
+
+**Priority:** G1–G2 = P2. G3–G6 = P3.
+
+---
+
+### H. Cross-Cutting & Security (file: `test/system/security_test.rb`)
+
+| ID | Test | Roles | Flow | Verify |
+|----|------|-------|------|--------|
+| H1 | PM cross-org incident isolation | PM user (Org A) | GET `/incidents/:id` for Org B's incident | 404 |
+| H2 | PM cross-org property isolation | PM user | GET `/properties/:id` for unassigned property | 404 |
+| H3 | Cross-org equipment isolation | Manager | PATCH equipment item from another mitigation org | 404 |
+| H4 | Technician unassigned incident | Technician | GET `/incidents/:id` (not assigned) | 404 |
+| H5 | Technician cannot create incident | Technician | GET `/incidents/new` | 404 |
+| H6 | PM_Manager cannot create incident | PM_Manager | GET `/incidents/new` | 404 |
+| H7 | Non-manager blocked from on-call | Technician, PM user | GET `/settings/on-call` | 404 |
+| H8 | Non-manager blocked from equipment inventory | Technician, PM user | GET `/equipment-items` | 404 |
+| H9 | Non-manager blocked from organizations | Technician, PM user | GET `/organizations` | 404 |
+| H10 | Non-manager blocked from user management | Technician, PM user | GET `/users` | 404 |
+| H11 | Authenticated user redirected from login | Any | Visit `/login` while logged in | Redirect to incidents |
+| H12 | Emergency visual indicators | Any | View emergency incident in new/acknowledged status | Red highlight; "Emergency" badge; AlertTriangle icon |
+| H13 | Pagination preserves filters | Manager | Apply status filter → page 2 | Both filter + page in URL; preserved on reload |
+| H14 | Technician labor auto-assigned to self | Technician | POST labor with another user's ID | user_id stripped; entry created with own user |
+| H15 | Invitation cross-org targeting | Manager | Invite to serviced PM org vs. unrelated PM org | Serviced: works. Unrelated: not available |
+
+**Priority:** H1–H4 = P1. H5–H10 = P2. H11–H15 = P3.
+
+---
+
+### Build Order
+
+Write E2E tests in this order — each group builds on the previous:
+
+1. **Auth basics** (A1–A4, A12–A13) — can't test anything else without login working
+2. **Data isolation** (H1–H4) — security gates production
+3. **Incident create + status** (C1, C3, C15–C16) — primary value loop
+4. **Daily ops core** (E1, E4, E9) — messages, labor, equipment
+5. **Team management** (D1–D2) — assignments
+6. **Dashboard + list** (B1–B3, C7–C13) — navigation and filtering
+7. **Admin CRUD** (F1, F3, F6, F9) — org, property, user management
+8. **Settings** (G1–G2) — profile and password
+9. **Remaining P2 + P3** — edge cases, validation, role restrictions
+
+### Test File Organization
+
+```
+test/system/
+├── authentication_test.rb    # A1–A13
+├── dashboard_test.rb         # B1–B6
+├── incidents_test.rb         # C1–C23
+├── team_management_test.rb   # D1–D7
+├── daily_operations_test.rb  # E1–E20
+├── admin_operations_test.rb  # F1–F22
+├── settings_test.rb          # G1–G6
+└── security_test.rb          # H1–H15
+```
+
+**Total:** 8 files, ~100 test cases. Write P1 first (~20 tests), then P2 (~40 tests), then P3 (~40 tests).

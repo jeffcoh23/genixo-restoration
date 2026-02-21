@@ -116,7 +116,7 @@ class UsersController < ApplicationController
     detail[:assigned_incidents] = user.assigned_incidents
       .where.not(status: %w[completed completed_billed paid closed])
       .includes(:property).order(created_at: :desc).map { |i|
-        { id: i.id, summary: incident_summary(i), status_label: Incident::STATUS_LABELS[i.status],
+        { id: i.id, summary: incident_summary(i), status: i.status, status_label: Incident::STATUS_LABELS[i.status],
           property_name: i.property.name, path: incident_path(i) }
       }
 

@@ -5,6 +5,7 @@ import PageHeader from "@/components/PageHeader";
 import DataTable, { Column, LinkCell, MutedCell } from "@/components/DataTable";
 import FormField from "@/components/FormField";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SharedProps } from "@/types";
 
 interface UserRow {
@@ -99,23 +100,28 @@ export default function UsersIndex() {
 
               {org_options.length > 1 && (
                 <div className="space-y-2">
-                  <label htmlFor="invite_org" className="text-sm font-medium">Organization</label>
-                  <select id="invite_org" value={form.data.organization_id}
-                    onChange={(e) => { form.setData("organization_id", e.target.value); form.setData("user_type", ""); }}
-                    className="flex h-9 w-full rounded border border-input bg-transparent px-3 py-1 text-sm shadow-sm">
-                    {org_options.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
-                  </select>
+                  <label className="text-sm font-medium">Organization</label>
+                  <Select value={form.data.organization_id} onValueChange={(v) => { form.setData("organization_id", v); form.setData("user_type", ""); }}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {org_options.map((o) => <SelectItem key={o.id} value={String(o.id)}>{o.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
 
               <div className="space-y-2">
-                <label htmlFor="invite_role" className="text-sm font-medium">Role</label>
-                <select id="invite_role" value={form.data.user_type}
-                  onChange={(e) => form.setData("user_type", e.target.value)}
-                  className="flex h-9 w-full rounded border border-input bg-transparent px-3 py-1 text-sm shadow-sm" required>
-                  <option value="">Select a role...</option>
-                  {selectedOrg?.role_options.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
-                </select>
+                <label className="text-sm font-medium">Role</label>
+                <Select value={form.data.user_type} onValueChange={(v) => form.setData("user_type", v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a role..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {selectedOrg?.role_options.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
                 {form.errors.user_type && <p className="text-sm text-destructive mt-1">{form.errors.user_type}</p>}
               </div>
             </div>

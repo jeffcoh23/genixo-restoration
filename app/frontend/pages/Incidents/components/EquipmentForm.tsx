@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useForm, usePage } from "@inertiajs/react";
-import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SharedProps } from "@/types";
 import type { EquipmentType, EquipmentEntry } from "../types";
 
@@ -10,7 +11,6 @@ interface EquipmentItemOption {
   id: number;
   identifier: string;
   model_name: string | null;
-  serial_number: string | null;
 }
 
 interface EquipmentFormProps {
@@ -77,30 +77,26 @@ export default function EquipmentForm({ path, equipment_types, equipment_items_b
   const isItemSelected = data.equipment_item_id !== "";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-      <div className="fixed inset-0 bg-black opacity-40" />
-      <div className="relative bg-background border border-border rounded-t sm:rounded w-full sm:max-w-md p-4 shadow-lg">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold">{editing ? "Edit Equipment" : "Place Equipment"}</h3>
-          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={onClose}>
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{editing ? "Edit Equipment" : "Place Equipment"}</DialogTitle>
+        </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
             <label className="text-xs font-medium text-muted-foreground">Equipment Type</label>
-            <select
-              value={useOther ? "__other__" : data.equipment_type_id}
-              onChange={(e) => handleTypeChange(e.target.value)}
-              className="mt-1 w-full rounded border border-input bg-background px-3 py-2 text-sm"
-            >
-              <option value="">Select type...</option>
-              {equipment_types.map((t) => (
-                <option key={t.id} value={t.id}>{t.name}</option>
-              ))}
-              <option value="__other__">Other (specify)</option>
-            </select>
+            <Select value={useOther ? "__other__" : data.equipment_type_id || undefined} onValueChange={handleTypeChange}>
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder="Select type..." />
+              </SelectTrigger>
+              <SelectContent>
+                {equipment_types.map((t) => (
+                  <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>
+                ))}
+                <SelectItem value="__other__">Other (specify)</SelectItem>
+              </SelectContent>
+            </Select>
             {(errors as Record<string, string>).base && (
               <p className="text-xs text-destructive mt-1">{(errors as Record<string, string>).base}</p>
             )}
@@ -122,18 +118,19 @@ export default function EquipmentForm({ path, equipment_types, equipment_items_b
           {!useOther && typeItems.length > 0 && (
             <div>
               <label className="text-xs font-medium text-muted-foreground">Select Unit</label>
-              <select
-                value={data.equipment_item_id || "__manual__"}
-                onChange={(e) => handleItemChange(e.target.value)}
-                className="mt-1 w-full rounded border border-input bg-background px-3 py-2 text-sm"
-              >
-                <option value="__manual__">Enter manually</option>
-                {typeItems.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.identifier}{item.model_name ? ` — ${item.model_name}` : ""}
-                  </option>
-                ))}
-              </select>
+              <Select value={data.equipment_item_id || "__manual__"} onValueChange={handleItemChange}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__manual__">Enter manually</SelectItem>
+                  {typeItems.map((item) => (
+                    <SelectItem key={item.id} value={String(item.id)}>
+                      {item.identifier}{item.model_name ? ` — ${item.model_name}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           )}
 
@@ -224,7 +221,7 @@ export default function EquipmentForm({ path, equipment_types, equipment_items_b
             </Button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

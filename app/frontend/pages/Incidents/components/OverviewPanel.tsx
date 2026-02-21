@@ -3,6 +3,7 @@ import { router } from "@inertiajs/react";
 import { Mail, Pencil, Phone, Plus, UserPlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import type { Contact, IncidentDetail, AssignableUser, TeamUser } from "../types";
 
@@ -160,7 +161,7 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
                     <div className="text-xs font-medium text-foreground">
                       {c.name}
                       {c.title && <span className="text-muted-foreground font-normal"> &middot; {c.title}</span>}
-                      {c.onsite && <span className="ml-1.5 inline-flex items-center rounded bg-emerald-100 px-1.5 py-0.5 text-xs font-medium text-emerald-700">Onsite</span>}
+                      {c.onsite && <span className="ml-1.5 inline-flex items-center rounded bg-status-success/15 px-1.5 py-0.5 text-xs font-medium text-status-success">Onsite</span>}
                     </div>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
                       {c.email && (
@@ -211,20 +212,20 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
       </div>
 
       {/* Confirm remove user */}
-      {confirmRemoveUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="fixed inset-0 bg-black opacity-40" />
-          <div className="relative bg-background border border-border rounded w-full max-w-sm p-4 shadow-lg">
-            <p className="text-sm">
-              Remove <span className="font-medium">{confirmRemoveUser.name}</span> from this incident?
-            </p>
-            <div className="flex justify-end gap-2 mt-4">
-              <Button variant="ghost" size="sm" onClick={() => setConfirmRemoveUser(null)}>Cancel</Button>
-              <Button variant="destructive" size="sm" onClick={handleRemove}>Remove</Button>
-            </div>
+      <Dialog open={!!confirmRemoveUser} onOpenChange={(open) => !open && setConfirmRemoveUser(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Remove Team Member</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm">
+            Remove <span className="font-medium">{confirmRemoveUser?.name}</span> from this incident?
+          </p>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="ghost" size="sm" onClick={() => setConfirmRemoveUser(null)}>Cancel</Button>
+            <Button variant="destructive" size="sm" onClick={handleRemove}>Remove</Button>
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
       {/* Add contact modal */}
       {contactFormOpen && (
@@ -389,15 +390,11 @@ function ContactFormModal({ contact, contacts_path, onClose }: {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-      <div className="fixed inset-0 bg-black opacity-40" />
-      <div className="relative bg-background border border-border rounded-t sm:rounded w-full sm:max-w-md p-4 shadow-lg">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold">{editing ? "Edit Contact" : "Add Contact"}</h3>
-          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={onClose}>
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{editing ? "Edit Contact" : "Add Contact"}</DialogTitle>
+        </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
@@ -465,7 +462,7 @@ function ContactFormModal({ contact, contacts_path, onClose }: {
             </Button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

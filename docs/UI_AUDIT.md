@@ -1,321 +1,433 @@
-# UI Audit — February 19, 2026
+# UI/UX Audit V2 (Prime-Time Readiness)
 
-> Page-by-page audit against the refreshed "warm & polished" design direction.
-> Split into two categories: **Token fixes** (CSS-only, zero component changes) and **Structural fixes** (component/layout changes).
-
----
-
-## Global Token Issues
-
-These affect every page and are fixed by updating `application.css` only.
-
-| Issue | Current | Target | Impact |
-|-------|---------|--------|--------|
-| Border radius too tight | `--radius: 0.25rem` (4px) | `--radius: 0.5rem` (8px) | Everything looks boxy — cards, buttons, inputs, badges |
-| Background too cold | `hsl(210 12% 96.5%)` | `hsl(220 14% 96%)` | Clinical blue-gray feel |
-| Borders too harsh | `hsl(210 10% 87%)` | `hsl(220 10% 90%)` | Borders draw too much attention |
-| Muted text too cold | `hsl(210 5% 46%)` | `hsl(220 6% 44%)` | Secondary text feels detached |
-| Foreground not warm | `hsl(210 10% 12%)` | `hsl(224 10% 14%)` | Primary text slightly cold |
-| Sidebar is white | `hsl(0 0% 98%)` | `hsl(222 20% 16%)` dark | No visual anchor, sidebar blends with content |
-| Primary slightly dull | `hsl(187 70% 34%)` | `hsl(187 65% 32%)` | Teal could be deeper/richer |
-| Status quote purple | `hsl(270 50% 60%)` | `hsl(262 52% 57%)` | Slightly warmer purple |
-| Status success green | `hsl(142 76% 36%)` | `hsl(152 60% 36%)` | Slightly warmer green |
-| Destructive too hot | `hsl(0 84% 60%)` | `hsl(0 72% 51%)` | Red is too saturated, needs restraint |
-| No shadow warmth | Default Tailwind shadows | Warm-tinted shadow color | Shadows feel default/generic |
-
-**Effort: ~30 minutes.** Change CSS variables, refresh browser, done.
+> Comprehensive UI/UX audit for Genixo Restoration.
+>
+> Goal: if this document is implemented exactly, the app is ready for prime-time users across all six roles.
 
 ---
 
-## Page-by-Page Findings
+## 1. Scope and Method
 
-### Sidebar (`layout/RoleSidebar.tsx`)
+### Scope
 
-**Token fixes:**
-- Sidebar background/text colors change automatically via new sidebar tokens
-- Active state color changes automatically
+- Full UI/UX audit across authentication, incident workflows, properties, organizations, users, settings, and equipment inventory.
+- Includes visual design quality, form usability, accessibility/contrast, and multi-step flow clarity.
 
-**Structural fixes:**
-- Sidebar currently uses `bg-sidebar` token — will automatically pick up dark color
-- Hover state needs update: `hover:bg-muted` → `hover:bg-sidebar-accent/50` (dark sidebar hover)
-- Logo circle `bg-primary` will work on dark bg — may want white outline for contrast
-- Logout text `text-muted-foreground` needs to become `text-sidebar-muted-foreground`
-- User info section text colors need sidebar-specific tokens
+### Sources reviewed
 
-**Risk: Low.** Class name changes only. Fully reversible.
+- Product/domain docs: `docs/ARCHITECTURE.md`, `docs/BUSINESS_RULES.md`, `docs/SCHEMA.md`, `docs/VIEWS.md`, `docs/DESIGN.md`, `docs/TESTING.md`, `docs/ROADMAP.md`, `docs/PROJECT_SETUP.md`, `docs/CODE_QUALITY.md`, `docs/INERTIA_RAILS.md`, `docs/DFR-reference.pdf`.
+- Frontend implementation: all files under `app/frontend/`.
 
-### App Layout (`layout/AppLayout.tsx`)
+### Severity rubric
 
-**Token fixes:**
-- `bg-background` picks up new warm tone automatically
-- Mobile header `bg-background` picks up automatically
-
-**Structural fixes:**
-- Mobile header could use `bg-card border-b shadow-sm` for more presence (optional)
-
-### Flash Messages (`layout/FlashMessages.tsx`)
-
-**Token fixes:**
-- Alert component uses shadcn defaults — picks up new radius automatically
-
-**Structural fixes:**
-- None needed. Already using shadcn `Alert` component.
-
-### Login (`pages/Login.tsx`)
-
-**Token fixes:**
-- Card, inputs, buttons all pick up new radius and colors automatically
-- `bg-background` picks up warm tone
-
-**Structural fixes:**
-- None needed. This is the most polished page already.
-
-### Dashboard (`pages/Dashboard.tsx`)
-
-**Token fixes:**
-- Incident card dividers and borders pick up softer colors automatically
-- Badge radius picks up automatically
-
-**Structural fixes:**
-- `statusColor()` function (line 48-66) uses hardcoded Tailwind colors (`bg-blue-500`, `bg-green-600`) instead of status tokens (`bg-status-info`, `bg-status-success`). Should use tokens so they're configurable.
-- Incident group container `rounded border` → should use card treatment with shadow for depth
-- Group header buttons could have slightly more visual weight
-
-**Risk: Low.** Small class changes.
-
-### Incidents Index (`pages/Incidents/Index.tsx`)
-
-**Token fixes:**
-- Table borders/backgrounds pick up new tokens automatically
-- Badge radius picks up automatically
-
-**Structural fixes:**
-- `statusColor()` (line 73-91) same issue — uses tokens correctly here (`bg-status-info`), good
-- `FilterSelect` (line 282-306) uses raw `<select>` with manual class strings. Should use shadcn `Select` when available.
-- Table wrapper `rounded border` → could benefit from card treatment
-- Emergency row highlight `bg-red-50` — hardcoded, should use a token or `bg-destructive/5`
-
-**Risk: Low.** FilterSelect is the biggest change — could be deferred to Phase 6B.
-
-### Incident Detail (`pages/Incidents/Show.tsx`)
-
-**Token fixes:**
-- Header borders, text colors pick up automatically
-- Badge, buttons pick up new radius
-
-**Structural fixes:**
-- `statusColor()` (line 18-36) uses hardcoded colors (`bg-blue-500`, `bg-purple-500`, `bg-green-600`, `bg-amber-500`, `bg-gray-500`) instead of status tokens. **This is the #1 offender** — hardcoded colors won't respond to token changes.
-- Status dropdown menu (line 145-157) manually styled — works fine structurally
-
-**Risk: Low.** Just changing class names in the statusColor function.
-
-### Incident Sub-panels
-
-**RightPanelShell** (`components/RightPanelShell.tsx`)
-- Tab bar uses hand-rolled `border-b-2` tabs. Functional, no token issues.
-- Unread badge uses `bg-primary` — picks up token change automatically.
-
-**MessagePanel**, **DailyLogPanel**, **EquipmentPanel**, **LaborPanel**, **DocumentPanel**
-- These are complex panels — need individual audit but token changes will flow through automatically.
-- Known: DailyLogPanel and LaborPanel use raw `<select>` for date pickers.
-
-**OverviewPanel** (`components/OverviewPanel.tsx`)
-- Team member lists, contact forms — mostly uses shadcn components.
-- Some raw `<select>` for user assignment dropdowns.
-
-**IncidentEditForm** (`components/IncidentEditForm.tsx`)
-- Modal overlay — uses raw `<select>` and `<textarea>` with manual styling.
-
-### New Incident (`pages/Incidents/New.tsx`)
-
-**Token fixes:**
-- Form card `bg-card border shadow-sm` picks up automatically
-- Radio cards `border-primary bg-accent` pick up new tokens
-
-**Structural fixes:**
-- Raw `<select>` elements (lines 137, 154, 224) with long manual class strings
-- Raw `<textarea>` elements (lines 241, 265, 279, 293) with long manual class strings
-- These are the main form controls that need shadcn replacements (Phase 6B)
-
-### Organizations Index (`pages/Organizations/Index.tsx`)
-
-**Token fixes:**
-- DataTable picks up border/hover changes automatically
-
-**Structural fixes:**
-- None. Clean page using DataTable properly.
-
-### Organization Detail (`pages/Organizations/Show.tsx`)
-
-**Token fixes:**
-- DetailList border picks up softer color automatically
-
-**Structural fixes:**
-- Contact/address info section is bare text — could benefit from a Card wrapper
-- DetailList/DetailRow are functional but visually minimal
-
-### Properties Index (`pages/Properties/Index.tsx`)
-
-**Token fixes:**
-- Table borders/headers pick up automatically
-- Sort buttons pick up new styles
-
-**Structural fixes:**
-- Custom table implementation (not using DataTable) — line 75-120
-- Table wrapper `rounded border` → card treatment
-- Works fine, just not using shared components
-
-### Property Detail (`pages/Properties/Show.tsx`)
-
-**Token fixes:**
-- DetailList, StatusBadge pick up changes automatically
-
-**Structural fixes:**
-- Assign form uses raw `<select>` (line 104-113)
-- Remove button uses raw `<button>` (line 128) instead of shadcn Button
-- StatusBadge (line 145) renders as generic gray `bg-muted` — doesn't use status colors. Should map status labels to colors.
-
-### Users Index (`pages/Users/Index.tsx`)
-
-**Token fixes:**
-- DataTable picks up changes automatically
-
-**Structural fixes:**
-- Invite form (line 93-138) uses raw `<select>` elements (lines 103, 113)
-- Active users grouping uses `reduce()` on frontend (line 172-178) — should come pre-grouped from server per CODE_QUALITY.md
-
-### User Detail (`pages/Users/Show.tsx`)
-
-**Token fixes:**
-- DetailList picks up changes automatically
-
-**Structural fixes:**
-- Deactivated badge (line 65) uses `bg-destructive/10` — may need adjustment
-- StatusBadge on incidents shows generic gray, not status-colored
-
-### Settings Profile (`pages/Settings/Profile.tsx`)
-
-**Token fixes:**
-- Form inputs, buttons, checkboxes pick up new styles
-
-**Structural fixes:**
-- Timezone uses raw `<select>` (line 69-78)
-- Sections are bare `<section>` with `<h2>` headers — could be wrapped in Cards for visual grouping
-- Notification preferences form is clean (uses Checkbox component)
-
-### Settings On-Call (`pages/Settings/OnCall.tsx`)
-
-**Token fixes:**
-- Inputs, buttons pick up new styles
-
-**Structural fixes:**
-- No `PageHeader` component (line 96 uses raw `<h1>`)
-- Raw `<select>` elements (lines 107, 202)
-- Escalation contacts list has no card wrapper — just floating items
-- Overall the page feels unfinished — no card surfaces, no section grouping
-- **This is the ugliest page in the app** — highest priority for Phase 6B
-
-### Settings Equipment Types (`pages/Settings/EquipmentTypes.tsx`)
-
-- Not read in this audit. Should be checked separately.
-
-### Auth Pages (`pages/Auth/ForgotPassword.tsx`, `pages/Auth/ResetPassword.tsx`)
-
-**Token fixes:**
-- Card, inputs, buttons pick up new tokens automatically
-
-**Structural fixes:**
-- None needed. Similar structure to Login page.
-
-### Invitation Pages (`pages/Invitations/Accept.tsx`, `pages/Invitations/Expired.tsx`)
-
-- Not read in this audit. Should be checked separately.
+- `P0` Critical: blocks prime-time launch (accessibility, major trust or task-completion risk).
+- `P1` High: materially degrades user efficiency or confidence.
+- `P2` Medium: quality gaps that should be fixed before broad scale.
+- `P3` Low: polish and consistency improvements.
 
 ---
 
-## Shared Components
+## 2. Executive Verdict
 
-### DataTable (`components/DataTable.tsx`)
+Current state is strong functionally, but not yet prime-time for UI/UX quality.
 
-**Token fixes:**
-- `rounded-md` → will become `rounded-lg` with new radius token (via shadcn, if it uses the token)
-- Wait — DataTable uses hardcoded `rounded-md` (line 22). This needs to change to `rounded-lg` to match card radius.
-- `bg-muted/50` header picks up new muted color
+### Readiness score
 
-**Structural fixes:**
-- No shadow on the table wrapper. Should add `shadow-sm` for card depth.
-- Empty state is bare `<p>` text (line 18) — should use card-based empty state.
+- Visual cohesion: `6/10`
+- Form quality and consistency: `5/10`
+- Accessibility and contrast: `4/10`
+- Core flow clarity: `6/10`
+- Mobile ergonomics: `5/10`
+- Overall prime-time readiness: `5.2/10`
 
-### DetailList (`components/DetailList.tsx`)
+### Launch blockers
 
-**Token fixes:**
-- `rounded-md` → should be `rounded-lg` to match card radius
-- Border picks up softer color
-
-**Structural fixes:**
-- No shadow. Should add `shadow-sm`.
-- Empty state is bare `<p>` text — should use card treatment.
-
-### StatusBadge (`components/StatusBadge.tsx`)
-
-**Token + Structural fixes:**
-- Renders as generic gray (`bg-muted text-muted-foreground`) for all statuses
-- Should accept a `status` prop and map to status color tokens
-- Currently useless as a design element — every badge looks the same
-
-### PageHeader (`components/PageHeader.tsx`)
-
-**Token fixes:**
-- `font-semibold` → should be `font-bold` per new type scale
-
-**Structural fixes:**
-- None. Clean and functional.
-
-### FormField (`components/FormField.tsx`)
-
-**Token fixes:**
-- Uses shadcn Input/Label — picks up changes automatically
-
-**Structural fixes:**
-- None needed.
+All `P0` items below must be completed before prime-time release.
 
 ---
 
-## Priority Summary
+## 3. P0 Blockers (Must Fix)
 
-### Phase 6A (Token refresh — CSS only)
+### P0-1: Status color contrast fails WCAG AA
 
-1. Update `application.css` with new color tokens, radius, shadows
-2. Fix sidebar colors in `RoleSidebar.tsx` (class names for dark sidebar)
-3. Fix `statusColor()` in `Show.tsx` and `Dashboard.tsx` to use status tokens
-4. Update `DataTable` and `DetailList` radius from `rounded-md` to `rounded-lg`
-5. Update `PageHeader` font weight to `font-bold`
+- Affected:
+  - `app/frontend/lib/statusColor.ts`
+  - badge usages in `app/frontend/pages/Dashboard.tsx`, `app/frontend/pages/Incidents/Index.tsx`, `app/frontend/components/StatusBadge.tsx`
+- Problem:
+  - White text on several status colors is below 4.5:1 contrast.
+  - Measured failures:
+    - white on warning (`--color-status-warning`): `2.14:1`
+    - white on info (`--color-status-info`): `2.85:1`
+    - white on completed (`--color-status-completed`): `2.95:1`
+    - white on neutral (`--color-status-neutral`): `3.47:1`
+- Required fix:
+  - Update status token values (or per-status text colors) so every badge/text combination meets WCAG AA at 12px.
+  - Keep semantic meaning, but guarantee accessible contrast.
+- Done when:
+  - Automated contrast checks for all status badge variants pass >= `4.5:1`.
 
-### Phase 6B (Structural polish — component changes)
+### P0-2: Controls below minimum touch target
 
-Ordered by visual impact:
+- Affected broadly:
+  - Multiple screens use `h-6`, `h-7`, `h-8` controls for interactive actions.
+  - Examples in `app/frontend/pages/Incidents/Index.tsx`, `app/frontend/pages/Incidents/components/*`, `app/frontend/pages/Settings/*`, `app/frontend/pages/EquipmentItems/Index.tsx`.
+- Problem:
+  - Critical interactions are too small for field/mobile users.
+- Required fix:
+  - Set minimum touch target for interactive controls to 44px on mobile breakpoints.
+  - Reserve sub-44 controls only for non-critical desktop-only inline affordances.
+- Done when:
+  - No primary/secondary action needed for task completion is below 44px on mobile.
 
-1. On-call settings page redesign (ugliest page)
-2. Replace raw `<select>` with shadcn Select (12+ instances across app)
-3. Replace raw `<textarea>` with shadcn Textarea (4+ instances in New Incident)
-4. Add `shadow-sm` to DataTable and DetailList wrappers
-5. StatusBadge: add status-aware color mapping
-6. Settings Profile: wrap sections in Cards
-7. Card-based empty states (DataTable, DetailList)
-8. Centralize `statusColor()` into shared utility
-9. Accessibility pass: focus states, contrast, touch targets
+### P0-3: Keyboard accessibility gaps in custom controls
+
+- Affected:
+  - `app/frontend/components/MultiFilterSelect.tsx`
+  - `app/frontend/pages/Incidents/New.tsx` (`UserChecklistSection` custom checkbox rows)
+  - `app/frontend/pages/Incidents/components/OverviewPanel.tsx` (`AssignDropdown`)
+- Problem:
+  - Custom widgets are click-oriented and do not implement full keyboard interaction patterns (`Arrow`, `Esc`, roving focus, correct ARIA roles/states).
+- Required fix:
+  - Replace custom dropdown/checkbox list behavior with accessible primitives (`Select`, `Popover` + command list, or checkbox groups).
+  - Ensure full keyboard operation and visible focus styles.
+- Done when:
+  - Full flow can be completed keyboard-only with predictable tab order and visible focus ring.
+
+### P0-4: Raw native selects still present in core forms
+
+- Affected:
+  - `app/frontend/pages/Properties/New.tsx`
+  - `app/frontend/pages/Incidents/components/AttachmentForm.tsx`
+- Problem:
+  - Inconsistent visual language and behavior versus the rest of the app.
+- Required fix:
+  - Replace remaining raw `<select>` with shared `Select` component.
+- Done when:
+  - No raw `<select>` remains in page-level forms.
 
 ---
 
-## Files Modified by Token Refresh (Phase 6A)
+## 4. P1 Findings (High Priority)
 
-| File | Change |
-|------|--------|
-| `app/frontend/entrypoints/application.css` | All color tokens, radius, shadow color |
-| `app/frontend/layout/RoleSidebar.tsx` | Sidebar class names for dark theme |
-| `app/frontend/layout/AppLayout.tsx` | Sidebar `bg-sidebar` classes (minor) |
-| `app/frontend/pages/Dashboard.tsx` | `statusColor()` → use tokens |
-| `app/frontend/pages/Incidents/Show.tsx` | `statusColor()` → use tokens |
-| `app/frontend/components/DataTable.tsx` | `rounded-md` → `rounded-lg`, add `shadow-sm` |
-| `app/frontend/components/DetailList.tsx` | `rounded-md` → `rounded-lg`, add `shadow-sm` |
-| `app/frontend/components/PageHeader.tsx` | `font-semibold` → `font-bold` |
+### P1-1: Incident creation form is cognitively heavy
+
+- Affected: `app/frontend/pages/Incidents/New.tsx`
+- Problem:
+  - Single long form mixes intake, workflow, team assignment, and contacts without progressive disclosure.
+- Required fix:
+  - Split into clear sections/cards:
+    - Incident Basics
+    - Situation Details
+    - Team Assignment
+    - Contacts
+  - Add sticky footer actions (`Cancel`, `Create Request`) on long pages.
+  - Collapse advanced/optional fields by default.
+
+### P1-2: Inconsistent form label hierarchy and error presentation
+
+- Affected broadly: most forms under `app/frontend/pages/**`
+- Problem:
+  - Mixed use of `Label`, raw `label`, `text-xs` labels, and inconsistent error copy placement.
+- Required fix:
+  - Standardize on one form field recipe:
+    - Label (14px minimum on desktop, 13px min mobile)
+    - Control
+    - Helper text (optional)
+    - Error text (consistent spacing and color)
+
+### P1-3: Too many low-emphasis ghost actions for important tasks
+
+- Affected:
+  - Incident screens (`Show`, `DailyLogPanel`, `EquipmentPanel`, `LaborPanel`, `OverviewPanel`)
+  - Equipment management and on-call pages
+- Problem:
+  - Important actions are visually underweighted (tiny ghost buttons/icons).
+- Required fix:
+  - Promote primary actions to explicit buttons in action bars.
+  - Keep icon-only controls for tertiary actions only.
+
+### P1-4: Mobile table usability is weak
+
+- Affected:
+  - `app/frontend/pages/Incidents/Index.tsx`
+  - `app/frontend/pages/Properties/Index.tsx`
+  - `app/frontend/pages/Users/Index.tsx`
+  - `app/frontend/pages/EquipmentItems/Index.tsx`
+  - several incident panel tables
+- Problem:
+  - Horizontal tables dominate critical flows on small screens.
+- Required fix:
+  - Add responsive card/list rendering for mobile for key operational tables.
+
+### P1-5: Tab density and discoverability in incident detail
+
+- Affected: `app/frontend/pages/Incidents/components/RightPanelShell.tsx`
+- Problem:
+  - Six tabs with equal weight create scan friction; on smaller widths tab discoverability drops.
+- Required fix:
+  - Prioritize top tasks (`Daily Log`, `Messages`, `Documents`) and move lower-frequency admin tasks under `Manage` sub-actions.
+  - Ensure horizontal scroll/overflow behavior for tabs on narrow screens.
+
+### P1-6: Inconsistent empty-state quality
+
+- Affected:
+  - Good patterns exist (`MessagePanel`, some list pages), but others are plain text-only or visually sparse (`Invitations/Expired`, some admin tables).
+- Required fix:
+  - Standardize empty states to include icon, plain-language explanation, and next action where permitted.
+
+---
+
+## 5. P2 Findings (Medium Priority)
+
+### P2-1: Status and metric semantics rely too much on color
+
+- Affected:
+  - Dashboard unread counters, status chips, equipment status pills.
+- Required fix:
+  - Add non-color cues consistently (labels/icons/tooltips), especially for unread/activity distinctions.
+
+### P2-2: Legacy destructive browser confirms
+
+- Affected:
+  - `app/frontend/pages/Properties/Show.tsx`
+  - `app/frontend/pages/Users/Show.tsx`
+- Required fix:
+  - Replace `confirm()` dialogs with consistent `Dialog` confirmation pattern.
+
+### P2-3: Form behavior consistency in media upload flows
+
+- Affected:
+  - `app/frontend/pages/Incidents/components/PhotoUploadDialog.tsx`
+- Problem:
+  - Native `fetch` flow gives minimal per-file failure feedback and closes/reloads regardless of pending uploads.
+- Required fix:
+  - Add explicit upload queue states, failure messaging, and guard against closing while uploads are active.
+
+### P2-4: Typography density skews small in operations views
+
+- Affected broadly in incident management views.
+- Required fix:
+  - Reduce overuse of `text-xs` for task-critical labels and values.
+  - Keep `text-xs` for metadata only.
+
+### P2-5: Filter UX lacks quick “applied filters” visibility
+
+- Affected:
+  - `Incidents/Index`, `Properties/Index`, `EquipmentItems/Index`
+- Required fix:
+  - Add applied filter chips with one-click clear per filter.
+
+---
+
+## 6. Forms Deep Audit
+
+### 6.1 Current issues
+
+- Control inconsistency:
+  - Raw selects mixed with shadcn selects.
+- Layout inconsistency:
+  - Some forms are card-based; others are plain stacked fields with no grouping.
+- Label inconsistency:
+  - Mixed casing, size, and required marker treatment.
+- Action inconsistency:
+  - Some forms use clear primary/secondary actions; others hide critical actions in small ghost buttons.
+- Validation inconsistency:
+  - Inline errors are not uniformly styled/presented.
+
+### 6.2 Required standard (single form system)
+
+Apply this to all Tier 1/2/3 forms:
+
+- Tier 1 (inline): compact but minimum 40px desktop / 44px mobile targets.
+- Tier 2 (dialog/sheet): sectioned layout, sticky action row if content scrolls.
+- Tier 3 (full page): grouped cards with explicit section headings and sticky footer actions on long forms.
+- Labels:
+  - Required fields always explicit.
+  - Optional fields marked consistently.
+- Errors:
+  - 1 pattern only (`text-destructive`, consistent spacing).
+  - Add optional top-level summary for long forms with many errors.
+
+### 6.3 Priority form targets
+
+- `app/frontend/pages/Incidents/New.tsx`
+- `app/frontend/pages/Incidents/components/AttachmentForm.tsx`
+- `app/frontend/pages/Properties/New.tsx`
+- `app/frontend/pages/Users/Index.tsx` (invite form)
+- `app/frontend/pages/Settings/OnCall.tsx`
+- `app/frontend/pages/EquipmentItems/Index.tsx` dialogs/sheets
+
+---
+
+## 7. Contrast and Visual System Audit
+
+### 7.1 Token-level issues
+
+- `status` palette currently optimized for vibrancy, not accessibility.
+- `muted-foreground` on `muted` backgrounds is borderline (`4.40:1`) and frequently used at `text-xs`.
+
+### 7.2 Required token adjustments
+
+- Adjust status color values (or text colors) to guarantee 4.5:1 for badge text.
+- Slightly increase contrast for metadata text on muted surfaces.
+- Keep semantic intent but prioritize readability under daylight/mobile use.
+
+### 7.3 Component-level visual cleanup
+
+- Normalize card paddings and section headers across pages.
+- Ensure interactive rows have distinct hover + focus states.
+- Keep one visual language for tables/lists; avoid mixed density patterns on adjacent pages.
+
+---
+
+## 8. Core Flow Audit
+
+### 8.1 Incident intake flow
+
+- Strengths:
+  - Complete data model support and team assignment capability.
+- Friction:
+  - Long monolithic form, optional fields presented too early, contact entry dense.
+- Required changes:
+  - Progressive disclosure and sectioning.
+  - Stronger microcopy for emergency path consequences.
+  - Better contact entry UX (repeatable card rows with cleaner spacing and error state).
+
+### 8.2 Incident execution flow (`Show`)
+
+- Strengths:
+  - Rich operational surfaces in one workspace.
+- Friction:
+  - Tab overload; dense controls; discoverability of manage/team actions is weak.
+  - Fixed viewport-height shell may reduce usable area on shorter screens.
+- Required changes:
+  - Rebalance tab priorities.
+  - Increase action prominence.
+  - Improve responsive behavior for constrained heights.
+
+### 8.3 Messaging and docs flow
+
+- Strengths:
+  - Strong visual thread grouping and clean upload entry points.
+- Friction:
+  - Attachment-only send is blocked by body validation in `MessagePanel`.
+- Required changes:
+  - Allow send when `body` is empty if files are attached.
+
+### 8.4 Admin setup flows (users/properties/orgs/on-call/equipment)
+
+- Strengths:
+  - End-to-end functionality exists.
+- Friction:
+  - Visual quality and interaction consistency vary heavily between pages.
+- Required changes:
+  - Standardize filters, tables, dialogs, and confirmation patterns.
+
+---
+
+## 9. Page-by-Page Priority Actions
+
+### Authentication and invitation
+
+- `app/frontend/pages/Login.tsx`
+  - Replace flash boxes with shared alert/toast pattern used elsewhere.
+- `app/frontend/pages/Auth/ForgotPassword.tsx`
+  - Same flash consistency update as login.
+- `app/frontend/pages/Auth/ResetPassword.tsx`
+  - Add password requirements helper text.
+- `app/frontend/pages/Invitations/Accept.tsx`
+  - Wrap form in card and align with auth page shell.
+- `app/frontend/pages/Invitations/Expired.tsx`
+  - Replace plain layout with structured empty/error state card.
+
+### Incident surfaces
+
+- `app/frontend/pages/Incidents/New.tsx`
+  - Sectioned layout and sticky submit bar.
+  - Replace tiny inline contact controls with larger target controls.
+  - Keep accessible team assignment controls.
+- `app/frontend/pages/Incidents/Show.tsx`
+  - Improve adaptive height strategy and mobile spacing.
+- `app/frontend/pages/Incidents/components/RightPanelShell.tsx`
+  - Mobile-safe tab overflow and clearer priority ordering.
+- `app/frontend/pages/Incidents/components/AttachmentForm.tsx`
+  - Replace raw `<select>` and apply standard field recipe.
+- `app/frontend/pages/Incidents/components/MessagePanel.tsx`
+  - Support attachment-only sends.
+
+### Lists and admin pages
+
+- `app/frontend/pages/Incidents/Index.tsx`
+  - Improve small-screen filter/search ergonomics.
+- `app/frontend/pages/Properties/New.tsx`
+  - Replace raw `<select>`.
+- `app/frontend/pages/Users/Index.tsx`
+  - Improve invite form grouping and role/org dependencies UX.
+- `app/frontend/pages/Settings/OnCall.tsx`
+  - Increase control sizes and improve reorder/remove clarity.
+- `app/frontend/pages/EquipmentItems/Index.tsx`
+  - Reduce visual complexity in one screen: tighter hierarchy and clearer edit/view state transitions.
+
+---
+
+## 10. Implementation Plan (Required Sequence)
+
+### Phase 1: Accessibility baseline (`P0`)
+
+- Contrast fixes for status system.
+- Minimum touch targets.
+- Keyboard accessibility on custom controls.
+- Remove raw selects.
+
+### Phase 2: Form system unification (`P1`)
+
+- Apply shared form recipe across all pages.
+- Rework incident creation layout.
+- Standardize validation and helper text.
+
+### Phase 3: Core flow refinements (`P1/P2`)
+
+- Incident detail tab/action hierarchy.
+- Messaging/doc flow improvements.
+- Admin flow consistency and mobile support.
+
+### Phase 4: Final polish (`P2/P3`)
+
+- Empty states, microcopy, spacing consistency.
+- Icon-only actions and visual hierarchy cleanup.
+
+---
+
+## 11. Prime-Time Definition of Done
+
+App is considered prime-time ready only when all are true:
+
+- `P0` and `P1` issues in this doc are complete.
+- Status and critical text contrast pass WCAG AA.
+- Critical workflows (create incident, triage/update incident, assign users, upload docs/photos, manage on-call) are keyboard-completable and mobile-usable.
+- No raw form primitives remain outside approved shared components.
+- All key pages have consistent form/list/empty-state patterns.
+- QA verifies no dead-end flow for any of the six user roles.
+
+---
+
+## 12. QA Checklist (Release Gate)
+
+- Contrast audit pass for tokens + badges + alert states.
+- 44px minimum tap target pass on mobile critical actions.
+- Keyboard-only pass for:
+  - login/reset/invitation accept
+  - new incident creation
+  - incident detail tabs + assignment/contact actions
+  - equipment and on-call admin tasks
+- Mobile viewport pass for:
+  - Incident index and detail
+  - New incident
+  - Message and document interactions
+- Cross-role UX pass (manager, technician, office/sales, property manager, area manager, PM manager).
+
+---
+
+## 13. Summary
+
+This app is operationally strong but currently misses prime-time UX quality mainly in accessibility, form consistency, and high-density operational ergonomics. Implementing this Audit V2 closes those gaps and produces a reliable, readable, and low-friction interface for field and office users.
