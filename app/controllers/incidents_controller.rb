@@ -201,6 +201,7 @@ class IncidentsController < ApplicationController
         equipment_entries_path: incident_equipment_entries_path(@incident),
         operational_notes_path: incident_operational_notes_path(@incident),
         attachments_path: incident_attachments_path(@incident),
+        upload_photo_path: upload_photo_incident_attachments_path(@incident),
         dfr_path: dfr_incident_path(@incident),
         mark_read_path: mark_read_incident_path(@incident),
         unread_messages: unread[:messages],
@@ -987,7 +988,9 @@ class IncidentsController < ApplicationController
         uploaded_by_name: att.uploaded_by_user.full_name,
         content_type: att.file.content_type,
         byte_size: att.file.byte_size,
-        url: rails_blob_path(att.file, disposition: "inline")
+        url: rails_blob_path(att.file, disposition: "inline"),
+        thumbnail_url: (att.file.content_type&.start_with?("image/") && att.file.variable?) ?
+          rails_representation_path(att.file.variant(:thumbnail), disposition: "inline") : nil
       }
     end
   end
@@ -1037,7 +1040,7 @@ class IncidentsController < ApplicationController
       .active.includes(:equipment_type).order(:identifier)
 
     items.group_by(&:equipment_type_id).transform_values do |type_items|
-      type_items.map { |i| { id: i.id, identifier: i.identifier, model_name: i.equipment_model, serial_number: i.serial_number } }
+      type_items.map { |i| { id: i.id, identifier: i.identifier, model_name: i.equipment_model } }
     end
   end
 

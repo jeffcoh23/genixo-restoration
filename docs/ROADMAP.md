@@ -355,18 +355,37 @@ Component-level work. Only start after 6A is deployed and validated.
 
 ### E2E Test Paths (Capybara + Playwright)
 
-Identify and write after features are UI-complete. Each test = one user flow in a real browser.
+Full test plan with 100 test cases across 8 files: see [TESTING.md §E2E Test Plan](TESTING.md#e2e-test-plan).
 
-- [ ] **Login flow** — valid credentials → dashboard; invalid → error; deactivated → blocked
-- [ ] **Incident lifecycle** — create incident → appears on dashboard → change status → verify transitions
-- [ ] **Assignment flow** — assign user to incident → appears in team panel → unassign
-- [ ] **Messages** — send message on incident → appears in thread → visible to assigned users
-- [ ] **Labor entry** — tech logs hours → appears in daily log → manager edits entry
-- [ ] **Equipment entry** — place equipment → appears in daily log → remove equipment
-- [ ] **Cross-org isolation** — PM user cannot see other PM org's incidents/properties
-- [ ] **Tech scoping** — unassigned tech cannot see incident; assigned tech can
-- [ ] **Invitation flow** — invite user → accept invitation → set password → login
-- [ ] **Property management** — create property → assign PM users → view property detail
+#### P1 — Critical (gates production, ~20 tests)
+
+- [ ] **Authentication basics** (A1–A4, A12–A13) — login all roles, logout, deactivated mid-session, return-to redirect
+- [ ] **Data isolation** (H1–H4) — PM cross-org incidents, PM cross-org properties, cross-org equipment, technician unassigned
+- [ ] **Incident creation** (C1, C3) — emergency incident (manager), standard incident (PM user)
+- [ ] **Status transitions** (C15–C16) — standard path, quote/proposal path
+- [ ] **Messages** (E1) — send message on incident
+- [ ] **Labor** (E4) — technician logs labor entry
+- [ ] **Equipment** (E9) — place equipment on incident
+- [ ] **Team assignment** (D1–D2) — assign mitigation user, assign PM user (own org)
+
+#### P2 — Core Workflows (~40 tests)
+
+- [ ] **Auth extended** (A5–A11) — forgot password, reset, invitation accept/expired
+- [ ] **Dashboard** (B1–B3) — manager, technician, PM views
+- [ ] **Incident list** (C7–C13) — filters, search, sort, pagination, detail view, edit
+- [ ] **Daily ops** (E2, E5–E7, E12, E15–E17) — attachments, manager labor, delete, equipment removal, activity entries, notes, documents
+- [ ] **Team extended** (D3–D7) — PM restrictions, remove user, property assignments
+- [ ] **Admin CRUD** (F1, F3, F6, F9) — create org, create property, invite user, deactivate user
+- [ ] **Settings** (G1–G2) — update profile, change password
+- [ ] **Role blocking** (H5–H10) — technician/PM blocked from admin pages
+
+#### P3 — Edge Cases (~40 tests)
+
+- [ ] **Incident edge cases** (C2, C4–C6, C14, C17–C19, C22–C23) — quote type, validation, team assignment form, technician restrictions, escalation resolution, DFR download, emergency indicators
+- [ ] **Daily ops edge cases** (E3, E8, E10–E11, E13–E14, E18–E20) — empty message, ownership restrictions, inventory picker, "Other" type, contacts CRUD
+- [ ] **Admin edge cases** (F2, F4–F5, F7–F8, F10–F22) — edit restrictions, PM org limits, resend invitation, self-deactivation blocked, equipment inventory management, on-call config
+- [ ] **Settings edge cases** (G3–G6) — wrong password, mismatch, preferences, read-only display
+- [ ] **Cross-cutting** (H11–H15, B4–B6, C20–C21) — login redirect, emergency visuals, pagination+filters, unread badge lifecycle
 
 **Done when:** Fully usable by all six roles. No dead ends, no missing states. Ready for production.
 
@@ -391,12 +410,12 @@ Identify and write after features are UI-complete. Each test = one user flow in 
 - [x] Properties Index: add organization filter dropdown for mitigation users
 - [x] New Incident form: split user assignment into two selects (Mitigation Team / PM Team), PM users only see their own
 - [x] Add "Job Started" status between Active and Completed — update StatusTransitionService, model constants, labels, frontend statusColor
-- [ ] Equipment change history: "Where is DH-042 right now?" — add last-seen/current-incident column to inventory page, per-item placement history
+- [x] Equipment change history: "Where is DH-042 right now?" — add last-seen/current-incident column to inventory page, per-item placement history
 
 ### Larger Features
 
-- [x] Equipment inventory: new `equipment_items` table (belongs to equipment_type, has model name + serial number). Cascading dropdown on placement form: pick type → shows available items of that type. `equipment_entries` references specific item instead of free-text model/identifier
-- [ ] Camera capture + bulk photo upload — HTML5 `capture="environment"` for rear camera on mobile. Multi-file input, shared category/date, upload progress. Optimized for techs snapping 10+ photos per visit
+- [x] Equipment inventory: new `equipment_items` table (belongs to equipment_type, has model name + identifier). Cascading dropdown on placement form: pick type → shows available items of that type. `equipment_entries` references specific item instead of free-text model/identifier
+- [x] Camera capture + bulk photo upload — HTML5 `capture="environment"` for rear camera on mobile. Multi-file input, shared category/date, upload progress. Optimized for techs snapping 10+ photos per visit
 
 ---
 

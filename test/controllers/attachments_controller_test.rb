@@ -93,6 +93,63 @@ class AttachmentsControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
+  # --- upload_photo (JSON endpoint) tests ---
+
+  test "upload_photo creates photo attachment and returns JSON" do
+    login_as @manager
+    assert_difference "Attachment.count", 1 do
+      post upload_photo_incident_attachments_path(@incident), params: {
+        file: fixture_file_upload("test_photo.jpg", "image/jpeg"),
+        log_date: Date.current.iso8601,
+        description: "Kitchen water damage"
+      }
+    end
+    assert_response :created
+    json = JSON.parse(response.body)
+    assert json["id"].present?
+    assert_equal "test_photo.jpg", json["filename"]
+
+    att = Attachment.last
+    assert_equal "photo", att.category
+    assert_equal "Kitchen water damage", att.description
+    assert_equal @manager.id, att.uploaded_by_user_id
+  end
+
+  test "upload_photo returns error for missing file" do
+    login_as @manager
+    assert_no_difference "Attachment.count" do
+      post upload_photo_incident_attachments_path(@incident), params: {
+        log_date: Date.current.iso8601
+      }
+    end
+    assert_response :unprocessable_entity
+    json = JSON.parse(response.body)
+    assert json["errors"].any?
+  end
+
+  test "upload_photo creates activity event" do
+    login_as @tech
+    post upload_photo_incident_attachments_path(@incident), params: {
+      file: fixture_file_upload("test_photo.jpg", "image/jpeg"),
+      log_date: Date.current.iso8601
+    }
+    assert_response :created
+    event = ActivityEvent.last
+    assert_equal "attachment_uploaded", event.event_type
+    assert_equal "photo", event.metadata["category"]
+  end
+
+  test "upload_photo denied for cross-org user" do
+    login_as @cross_org_pm
+    assert_no_difference "Attachment.count" do
+      post upload_photo_incident_attachments_path(@incident), params: {
+        file: fixture_file_upload("test_photo.jpg", "image/jpeg"),
+        log_date: Date.current.iso8601
+      }
+    end
+    assert_response :not_found
+  end
+
   # --- Activity event + validation tests ---
 
   test "creates activity event on upload" do

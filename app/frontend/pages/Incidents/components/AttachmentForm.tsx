@@ -1,11 +1,16 @@
 import { useForm, usePage } from "@inertiajs/react";
-import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { SharedProps } from "@/types";
 
 const CATEGORIES = [
-  { value: "photo", label: "Photo" },
   { value: "moisture_mapping", label: "Moisture Mapping" },
   { value: "moisture_readings", label: "Moisture Readings" },
   { value: "psychrometric_log", label: "Psychrometric Log" },
@@ -37,45 +42,56 @@ export default function AttachmentForm({ path, onClose }: AttachmentFormProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-      <div className="fixed inset-0 bg-black opacity-40" />
-      <div className="relative bg-background border border-border rounded-t sm:rounded w-full sm:max-w-md p-4 shadow-lg">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold">Upload Document</h3>
-          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={onClose}>
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
+    <Dialog open onOpenChange={(isOpen) => !isOpen && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-sm">Upload Document</DialogTitle>
+          <DialogDescription className="sr-only">
+            Upload a document to this incident
+          </DialogDescription>
+        </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="text-xs font-medium text-muted-foreground">File</label>
+            <label className="text-xs font-medium text-muted-foreground">
+              File
+            </label>
             <Input
               type="file"
-              accept={data.category === "photo" ? "image/*" : undefined}
-              capture={data.category === "photo" ? "environment" : undefined}
               onChange={(e) => setData("file", e.target.files?.[0] ?? null)}
               className="mt-1"
             />
-            {errors.file && <p className="text-xs text-destructive mt-1">{errors.file}</p>}
+            {errors.file && (
+              <p className="text-xs text-destructive mt-1">{errors.file}</p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-medium text-muted-foreground">Category</label>
+              <label className="text-xs font-medium text-muted-foreground">
+                Category
+              </label>
               <select
                 value={data.category}
                 onChange={(e) => setData("category", e.target.value)}
                 className="mt-1 w-full rounded border border-input bg-background px-3 py-2 text-sm"
               >
                 {CATEGORIES.map((c) => (
-                  <option key={c.value} value={c.value}>{c.label}</option>
+                  <option key={c.value} value={c.value}>
+                    {c.label}
+                  </option>
                 ))}
               </select>
-              {errors.category && <p className="text-xs text-destructive mt-1">{errors.category}</p>}
+              {errors.category && (
+                <p className="text-xs text-destructive mt-1">
+                  {errors.category}
+                </p>
+              )}
             </div>
             <div>
-              <label className="text-xs font-medium text-muted-foreground">Date</label>
+              <label className="text-xs font-medium text-muted-foreground">
+                Date
+              </label>
               <Input
                 type="date"
                 value={data.log_date}
@@ -86,7 +102,9 @@ export default function AttachmentForm({ path, onClose }: AttachmentFormProps) {
           </div>
 
           <div>
-            <label className="text-xs font-medium text-muted-foreground">Description</label>
+            <label className="text-xs font-medium text-muted-foreground">
+              Description
+            </label>
             <Input
               value={data.description}
               onChange={(e) => setData("description", e.target.value)}
@@ -96,13 +114,24 @@ export default function AttachmentForm({ path, onClose }: AttachmentFormProps) {
           </div>
 
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
-            <Button type="submit" size="sm" disabled={processing || !data.file}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              size="sm"
+              disabled={processing || !data.file}
+            >
               {processing ? "Uploading..." : "Upload"}
             </Button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

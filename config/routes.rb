@@ -35,7 +35,11 @@ Rails.application.routes.draw do
       end
     end
     resources :operational_notes, only: %i[create]
-    resources :attachments, only: %i[create]
+    resources :attachments, only: %i[create] do
+      collection do
+        post :upload_photo
+      end
+    end
   end
 
   # Properties

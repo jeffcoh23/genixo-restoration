@@ -149,6 +149,7 @@ export interface IncidentAttachment {
   content_type: string;
   byte_size: number;
   url: string;
+  thumbnail_url: string | null;
 }
 
 export interface EquipmentType {
@@ -220,6 +221,7 @@ export interface IncidentDetail {
   equipment_entries_path: string;
   operational_notes_path: string;
   attachments_path: string;
+  upload_photo_path: string;
   dfr_path: string;
   mark_read_path: string;
   unread_messages: number;
@@ -397,7 +399,7 @@ export interface ShowProps {
   assignable_pm_users: AssignableUser[];
   assignable_labor_users: AssignableUser[];
   equipment_types: EquipmentType[];
-  equipment_items_by_type: Record<string, { id: number; identifier: string; model_name: string | null; serial_number: string | null }[]>;
+  equipment_items_by_type: Record<string, { id: number; identifier: string; model_name: string | null }[]>;
   attachable_equipment_entries: AttachableEquipmentEntry[];
   back_path: string;
 }

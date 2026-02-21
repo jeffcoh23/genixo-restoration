@@ -268,6 +268,7 @@ export default function IncidentShow() {
             <DocumentPanel
               attachments={attachments}
               attachments_path={incident.attachments_path}
+              upload_photo_path={incident.upload_photo_path}
             />
           )}
           {activeTab === "manage" && (
