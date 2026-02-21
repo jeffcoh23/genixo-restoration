@@ -3,10 +3,9 @@ import { ChevronDown, ChevronRight, MessageSquare, Activity } from "lucide-react
 import { useState } from "react";
 import AppLayout from "@/layout/AppLayout";
 import PageHeader from "@/components/PageHeader";
-import { Badge } from "@/components/ui/badge";
+import StatusBadge from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { SharedProps } from "@/types";
-import { statusColor } from "@/lib/statusColor";
 
 interface IncidentCard {
   id: number;
@@ -147,9 +146,7 @@ function IncidentGroup({
                       Activity {incident.unread_activity}
                     </span>
                   )}
-                  <Badge className={`text-xs ${statusColor(incident.status)}`}>
-                    {incident.status_label}
-                  </Badge>
+                  <StatusBadge status={incident.status} label={incident.status_label} />
                 </div>
               </div>
             </Link>

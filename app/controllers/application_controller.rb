@@ -105,6 +105,7 @@ class ApplicationController < ActionController::Base
 
     # Check for any unread activity
     ActivityEvent.where(incident_id: visible_ids)
+      .for_daily_log_notifications
       .where.not(performed_by_user_id: current_user.id)
       .where(
         "NOT EXISTS (SELECT 1 FROM incident_read_states WHERE incident_read_states.incident_id = activity_events.incident_id AND incident_read_states.user_id = ? AND incident_read_states.last_activity_read_at >= activity_events.created_at)",

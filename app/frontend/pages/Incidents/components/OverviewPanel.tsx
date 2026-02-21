@@ -37,14 +37,13 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
   };
 
   return (
-    <div className="overflow-y-auto h-full px-3 py-3">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div className="overflow-y-auto h-full p-4 bg-background">
+      <div className="mx-auto grid max-w-[1500px] grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 items-start">
         {/* Column 1: Mitigation Team */}
-        <div>
-          <div className="flex items-center mb-2">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex-1">
-              Mitigation Team
-              <span className="text-muted-foreground tabular-nums ml-1.5">{incident.mitigation_team.length}</span>
+        <section className="rounded-xl border border-border bg-card shadow-sm p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-semibold text-foreground flex-1">
+              Mitigation Team <span className="text-muted-foreground tabular-nums">{incident.mitigation_team.length}</span>
             </h3>
             {can_assign && assignable_mitigation_users.length > 0 && (
               <AssignSelect users={assignable_mitigation_users} onAssign={handleAssign} />
@@ -52,7 +51,7 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
           </div>
 
           {incident.mitigation_team.length === 0 ? (
-            <p className="text-muted-foreground text-xs">No team members assigned.</p>
+            <p className="text-muted-foreground text-sm">No team members assigned.</p>
           ) : (
             <UserList
               users={incident.mitigation_team}
@@ -61,14 +60,13 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
               onRemove={(name, path) => setConfirmRemoveUser({ name, path })}
             />
           )}
-        </div>
+        </section>
 
         {/* Column 2: Property Management */}
-        <div>
-          <div className="flex items-center mb-2">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex-1">
-              Property Management
-              <span className="text-muted-foreground tabular-nums ml-1.5">{incident.pm_team.length}</span>
+        <section className="rounded-xl border border-border bg-card shadow-sm p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-semibold text-foreground flex-1">
+              Property Management <span className="text-muted-foreground tabular-nums">{incident.pm_team.length}</span>
             </h3>
             {can_assign && assignable_pm_users.length > 0 && (
               <AssignSelect users={assignable_pm_users} onAssign={handleAssign} />
@@ -76,7 +74,7 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
           </div>
 
           {incident.pm_team.length === 0 && incident.pm_contacts.length === 0 ? (
-            <p className="text-muted-foreground text-xs">No PM team members.</p>
+            <p className="text-muted-foreground text-sm">No PM team members.</p>
           ) : (
             <div className="space-y-3">
               {incident.pm_team.length > 0 && (
@@ -91,16 +89,16 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
               {incident.pm_contacts.length > 0 && (
                 <div className="space-y-2">
                   {incident.pm_team.length > 0 && (
-                    <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide pt-1">Contacts</div>
+                    <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide pt-1">Contacts</div>
                   )}
                   {incident.pm_contacts.map((c) => (
-                    <div key={c.id} className="flex items-start gap-2 pl-2 border-l-2 border-border">
+                    <div key={c.id} className="rounded-md border border-border bg-background p-2.5">
                       <div className="flex-1 min-w-0">
-                        <div className="text-xs font-medium text-foreground">
+                        <div className="text-sm font-medium text-foreground">
                           {c.name}
                           {c.title && <span className="text-muted-foreground font-normal"> &middot; {c.title}</span>}
                         </div>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mt-1">
                           {c.email && (
                             <span className="flex items-center gap-1">
                               <Mail className="h-2.5 w-2.5" />
@@ -121,17 +119,16 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
               )}
             </div>
           )}
-        </div>
+        </section>
 
         {/* Column 3: Contacts */}
-        <div>
-          <div className="flex items-center mb-2">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex-1">
-              Contacts
-              <span className="text-muted-foreground tabular-nums ml-1.5">{incident.contacts.length}</span>
+        <section className="rounded-xl border border-border bg-card shadow-sm p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-semibold text-foreground flex-1">
+              Contacts <span className="text-muted-foreground tabular-nums">{incident.contacts.length}</span>
             </h3>
             {can_manage_contacts && (
-              <Button variant="outline" size="sm" className="h-10 sm:h-8 text-sm sm:text-xs gap-1" onClick={() => setContactFormOpen(true)}>
+              <Button variant="outline" size="sm" className="h-10 sm:h-8 text-sm sm:text-xs gap-1.5" onClick={() => setContactFormOpen(true)}>
                 <Plus className="h-3 w-3" />
                 Add
               </Button>
@@ -139,18 +136,18 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
           </div>
 
           {incident.contacts.length === 0 ? (
-            <p className="text-muted-foreground text-xs">No contacts added.</p>
+            <p className="text-muted-foreground text-sm">No contacts added.</p>
           ) : (
             <div className="space-y-2">
               {incident.contacts.map((c) => (
-                <div key={c.id} className="flex items-start gap-2 pl-2 border-l-2 border-border">
+                <div key={c.id} className="flex items-start gap-2 rounded-md border border-border bg-background p-2.5">
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs font-medium text-foreground">
+                    <div className="text-sm font-medium text-foreground">
                       {c.name}
                       {c.title && <span className="text-muted-foreground font-normal"> &middot; {c.title}</span>}
                       {c.onsite && <span className="ml-1.5 inline-flex items-center rounded bg-status-success/15 px-1.5 py-0.5 text-xs font-medium text-status-success">Onsite</span>}
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mt-1">
                       {c.email && (
                         <span className="flex items-center gap-1">
                           <Mail className="h-2.5 w-2.5" />
@@ -195,7 +192,7 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
               ))}
             </div>
           )}
-        </div>
+        </section>
       </div>
 
       {/* Confirm remove user */}
@@ -248,9 +245,9 @@ function AssignSelect({ users, onAssign }: {
         onAssign(Number(next));
       }}
     >
-      <SelectTrigger className="h-10 sm:h-8 w-[180px] text-sm sm:text-xs">
+      <SelectTrigger className="h-10 sm:h-8 w-[190px] text-sm sm:text-xs bg-background">
         <div className="flex items-center gap-1">
-        <UserPlus className="h-3 w-3" />
+          <UserPlus className="h-3 w-3" />
           <SelectValue placeholder="Assign User" />
         </div>
       </SelectTrigger>
@@ -286,15 +283,15 @@ function UserList({ users, expandedUserId, onToggleExpand, onRemove }: {
     <div className="space-y-2">
       {groups.map((group) => (
         <div key={group.role}>
-          <div className="text-xs font-medium text-muted-foreground mb-0.5">{group.role}s</div>
-          <div className="space-y-0.5">
+          <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">{group.role}s</div>
+          <div className="space-y-1.5">
             {group.users.map((u) => {
               const isExpanded = expandedUserId === u.id;
               const hasContact = u.email || u.phone;
               return (
                 <div key={u.id}>
-                  <div className="flex items-center gap-1.5 text-xs -mx-1 px-1 py-0.5 rounded hover:bg-muted transition-colors">
-                    <div className="h-5 w-5 rounded-full bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground shrink-0">
+                  <div className="flex items-center gap-2 text-sm rounded-md border border-border bg-background px-2 py-1.5 hover:bg-muted/25 transition-colors">
+                    <div className="h-6 w-6 rounded-full bg-muted/70 flex items-center justify-center text-xs font-medium text-muted-foreground shrink-0">
                       {u.initials}
                     </div>
                     {hasContact ? (
@@ -313,7 +310,7 @@ function UserList({ users, expandedUserId, onToggleExpand, onRemove }: {
                         variant="ghost"
                         size="sm"
                         onClick={(e) => { e.stopPropagation(); onRemove(u.full_name, u.remove_path!); }}
-                        className="h-8 w-8 sm:h-6 sm:w-6 p-0 ml-1 text-muted-foreground hover:text-destructive transition-colors"
+                        className="h-8 w-8 sm:h-7 sm:w-7 p-0 ml-auto text-muted-foreground hover:text-destructive transition-colors"
                         title={`Remove ${u.full_name}`}
                       >
                         <X className="h-3 w-3" />
@@ -321,7 +318,7 @@ function UserList({ users, expandedUserId, onToggleExpand, onRemove }: {
                     )}
                   </div>
                   {isExpanded && (
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground ml-6 mt-0.5 mb-1 pl-1">
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground ml-8 mt-1 mb-1 pl-1">
                       {u.email && (
                         <a href={`mailto:${u.email}`} className="flex items-center gap-1 hover:text-foreground transition-colors" onClick={(e) => e.stopPropagation()}>
                           <Mail className="h-2.5 w-2.5" />

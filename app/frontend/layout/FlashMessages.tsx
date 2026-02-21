@@ -27,9 +27,9 @@ export default function FlashMessages({ flash }: FlashMessagesProps) {
   const dismiss = () => setHiddenKey(flashKey);
 
   return (
-    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[60] w-full max-w-md px-4">
+    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[60] w-full max-w-md px-4 space-y-2">
       {flash.notice && (
-        <Alert className="border-l-4 border-l-status-success bg-status-success/10 shadow-lg">
+        <Alert className="border-l-4 border-l-status-success border-status-success/35 bg-card shadow-xl">
           <div className="flex items-start gap-3">
             <CheckCircle className="h-5 w-5 text-status-success shrink-0 mt-0.5" />
             <AlertDescription className="flex-1 text-sm text-foreground">{flash.notice}</AlertDescription>
@@ -40,7 +40,7 @@ export default function FlashMessages({ flash }: FlashMessagesProps) {
         </Alert>
       )}
       {flash.alert && (
-        <Alert variant="destructive" className="border-l-4 border-l-destructive bg-destructive/10 shadow-lg">
+        <Alert variant="destructive" className="border-l-4 border-l-destructive border-destructive/45 bg-card shadow-xl">
           <div className="flex items-start gap-3">
             <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
             <AlertDescription className="flex-1 text-sm">{flash.alert}</AlertDescription>

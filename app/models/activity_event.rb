@@ -10,9 +10,12 @@ class ActivityEvent < ApplicationRecord
     escalation_attempted escalation_skipped escalation_exhausted
     contact_added contact_removed
   ].freeze
+  DAILY_LOG_NOTIFICATION_EVENT_TYPES = %w[activity_logged].freeze
 
   belongs_to :incident
   belongs_to :performed_by_user, class_name: "User"
 
   validates :event_type, presence: true, inclusion: { in: EVENT_TYPES }
+
+  scope :for_daily_log_notifications, -> { where(event_type: DAILY_LOG_NOTIFICATION_EVENT_TYPES) }
 end

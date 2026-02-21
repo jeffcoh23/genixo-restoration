@@ -243,6 +243,7 @@ export interface IncidentDetail {
   damage_label: string;
   emergency: boolean;
   job_id: string | null;
+  do_not_exceed_limit: string | null;
   location_of_damage: string | null;
   created_at: string;
   created_at_label: string;
@@ -276,6 +277,12 @@ export interface MessageAttachment {
   filename: string;
   category_label: string;
   url: string;
+  content_type: string | null;
+  byte_size: number;
+  created_at: string;
+  created_at_label: string;
+  uploaded_by_name: string;
+  thumbnail_url: string | null;
 }
 
 export interface Message {

@@ -19,10 +19,10 @@ export default function DataTable<T>({ columns, rows, keyFn, emptyMessage }: Dat
   }
 
   return (
-    <div className="rounded-lg border shadow-sm">
+    <div className="rounded-lg border border-border bg-card shadow-sm overflow-hidden">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b bg-muted/50">
+          <tr className="border-b border-border bg-muted/70">
             {columns.map((col, i) => (
               <th
                 key={i}
@@ -33,9 +33,9 @@ export default function DataTable<T>({ columns, rows, keyFn, emptyMessage }: Dat
             ))}
           </tr>
         </thead>
-        <tbody>
+        <tbody className="divide-y divide-border">
           {rows.map((row) => (
-            <tr key={keyFn(row)} className="border-b last:border-0 hover:bg-muted/30">
+            <tr key={keyFn(row)} className="hover:bg-muted/35 transition-colors">
               {columns.map((col, i) => (
                 <td key={i} className={`px-4 py-3 ${col.align === "right" ? "text-right" : ""}`}>
                   {col.render(row)}

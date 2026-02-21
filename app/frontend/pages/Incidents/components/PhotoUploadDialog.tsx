@@ -178,7 +178,7 @@ export default function PhotoUploadDialog({
       return;
     }
     stopCamera();
-    router.reload();
+    router.reload({ only: [ "attachments", "messages" ] });
     onClose();
   }, [activeCount, stopCamera, onClose]);
 

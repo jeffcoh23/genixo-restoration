@@ -164,20 +164,26 @@ export default function DailyLogPanel({
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto p-3 pb-8 space-y-5">
+      <div className="flex-1 overflow-y-auto p-4 pb-10 space-y-6 bg-gradient-to-b from-background via-background to-muted/15">
         {dateGroups.length === 0 ? (
           <div className="text-sm text-muted-foreground italic py-6 text-center">
             No entries for this date.
           </div>
         ) : (
-          dateGroups.map((group) => {
+          dateGroups.map((group, groupIndex) => {
             const hasEquipment = group.equipment_summary.length > 0;
             const hasLabor = group.laborByRole.length > 0;
+            const headerTone = groupIndex % 2 === 0
+              ? "from-accent/80 to-accent/30"
+              : "from-muted/90 to-muted/45";
+            const edgeTone = groupIndex % 2 === 0
+              ? "border-l-primary/40"
+              : "border-l-muted-foreground/40";
 
             return (
-              <div key={group.date_key} className="rounded-xl border border-border overflow-hidden bg-card/95 shadow-sm">
+              <div key={group.date_key} className={`rounded-xl border border-border/90 border-l-4 ${edgeTone} overflow-hidden bg-card shadow-sm`}>
                 {/* Date header */}
-                <div className="px-4 py-3 border-b border-border bg-gradient-to-r from-accent/85 to-muted/45 flex items-center justify-between">
+                <div className={`px-4 py-3 border-b border-border bg-gradient-to-r ${headerTone} flex items-center justify-between`}>
                   <span className="text-sm font-semibold uppercase tracking-wide text-foreground/85">
                     {group.date_label}
                   </span>
@@ -195,7 +201,7 @@ export default function DailyLogPanel({
 
                 {/* Activity rows */}
                 {group.activityRows.length > 0 && (
-                  <div className="divide-y divide-border">
+                  <div className="divide-y divide-border bg-card">
                     {group.activityRows.map((row) => {
                       const isExpanded = isRowExpanded(row.id);
                       const hasDetail = row.detail_label !== "—" && row.detail_label.length > 0;
@@ -213,7 +219,7 @@ export default function DailyLogPanel({
                               toggleRow(row.id);
                             }
                           } : undefined}
-                          className={`${isExpandable ? "cursor-pointer" : ""} hover:bg-muted/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset transition-colors`}
+                          className={`${isExpandable ? "cursor-pointer" : ""} hover:bg-muted/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset transition-colors`}
                           onClick={isExpandable ? () => toggleRow(row.id) : undefined}
                         >
                           <div className="flex items-start gap-2 px-4 py-3">
@@ -260,7 +266,7 @@ export default function DailyLogPanel({
                 )}
 
                 {/* Group-level resource summary */}
-                <div className="border-t border-border bg-accent/35 px-4 py-3">
+                <div className="border-t border-border bg-muted/30 px-4 py-3">
                   <div className="grid grid-cols-1 md:grid-cols-5 gap-x-4 gap-y-3 text-sm">
                     <div>
                       <div className="text-[11px] text-muted-foreground uppercase tracking-wide font-semibold mb-1">Equipment</div>

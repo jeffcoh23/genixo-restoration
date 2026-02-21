@@ -48,6 +48,7 @@ class DashboardService
 
     # Unread activity: activity_events created after user's last_activity_read_at
     ActivityEvent.where(incident_id: visible_ids)
+      .for_daily_log_notifications
       .where.not(performed_by_user_id: @user.id)
       .group(:incident_id)
       .select("incident_id, MAX(created_at) AS latest, COUNT(*) AS total")
@@ -58,6 +59,7 @@ class DashboardService
       if threshold.nil? || row.latest > threshold
         unread = if threshold
           ActivityEvent.where(incident_id: row.incident_id)
+            .for_daily_log_notifications
             .where.not(performed_by_user_id: @user.id)
             .where("created_at > ?", threshold).count
         else

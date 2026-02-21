@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { router } from "@inertiajs/react";
-import { Send, Paperclip, FileText, ExternalLink, MessageCircle, X } from "lucide-react";
+import { Camera, ExternalLink, FileText, MessageCircle, Paperclip, Send, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -18,6 +18,7 @@ export default function MessagePanel({ messages, messages_path }: MessagePanelPr
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -58,7 +59,7 @@ export default function MessagePanel({ messages, messages_path }: MessagePanelPr
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      setFiles((prev) => [...prev, ...Array.from(e.target.files!)]);
+      setFiles((prev) => [ ...prev, ...Array.from(e.target.files!) ]);
     }
     e.target.value = "";
   };
@@ -69,7 +70,7 @@ export default function MessagePanel({ messages, messages_path }: MessagePanelPr
 
   return (
     <div className="flex flex-col h-full">
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-4 pb-8">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-4 pb-8 bg-muted/10">
         {messages.length === 0 ? (
           <EmptyState />
         ) : (
@@ -77,7 +78,7 @@ export default function MessagePanel({ messages, messages_path }: MessagePanelPr
         )}
       </div>
 
-      <div className="border-t border-border bg-background px-3 py-2.5">
+      <div className="border-t border-border bg-card px-3 py-2.5">
         {files.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mb-2">
             {files.map((file, i) => (
@@ -104,6 +105,14 @@ export default function MessagePanel({ messages, messages_path }: MessagePanelPr
             className="hidden"
             onChange={handleFileSelect}
           />
+          <Input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={handleFileSelect}
+          />
           <Button
             type="button"
             variant="ghost"
@@ -113,6 +122,16 @@ export default function MessagePanel({ messages, messages_path }: MessagePanelPr
             aria-label="Attach files"
           >
             <Paperclip className="h-4 w-4" />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="shrink-0 h-9 w-9"
+            onClick={() => cameraInputRef.current?.click()}
+            aria-label="Take photo"
+          >
+            <Camera className="h-4 w-4" />
           </Button>
           <Textarea
             ref={textareaRef}
@@ -148,7 +167,7 @@ function EmptyState() {
       </div>
       <p className="text-sm font-medium text-foreground">No messages yet</p>
       <p className="text-xs text-muted-foreground mt-1 max-w-[220px]">
-        Start the conversation — everyone assigned to this incident will see your messages.
+        Start the conversation - everyone assigned to this incident will see your messages.
       </p>
     </div>
   );
@@ -192,8 +211,8 @@ function OwnMessage({ message, grouped }: { message: Message; grouped: boolean }
           <span className="text-xs text-muted-foreground">{message.timestamp_label}</span>
         </div>
       )}
-      <div className="max-w-[85%] rounded bg-accent px-3.5 py-2">
-        <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{message.body}</p>
+      <div className="max-w-[85%] rounded border border-primary/25 bg-primary/10 px-3.5 py-2">
+        {message.body && <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{message.body}</p>}
         <AttachmentList attachments={message.attachments} />
       </div>
       {grouped && (
@@ -231,8 +250,8 @@ function OtherMessage({ message, grouped }: { message: Message; grouped: boolean
             </span>
           </div>
         )}
-        <div className="rounded bg-background border border-border px-3.5 py-2 shadow-sm">
-          <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{message.body}</p>
+        <div className="rounded border border-border bg-card px-3.5 py-2 shadow-sm">
+          {message.body && <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{message.body}</p>}
           <AttachmentList attachments={message.attachments} />
         </div>
         {grouped && (
@@ -248,21 +267,63 @@ function OtherMessage({ message, grouped }: { message: Message; grouped: boolean
 function AttachmentList({ attachments }: { attachments?: MessageAttachment[] }) {
   if (!attachments || attachments.length === 0) return null;
 
+  const imageAttachments = attachments.filter((att) => att.content_type?.startsWith("image/"));
+  const fileAttachments = attachments.filter((att) => !att.content_type?.startsWith("image/"));
+  const previewImages = imageAttachments.slice(0, 4);
+  const extraImageCount = imageAttachments.length - previewImages.length;
+
   return (
-    <div className="flex flex-wrap gap-1.5 mt-2 pt-2 border-t border-border">
-      {attachments.map((att) => (
-        <a
-          key={att.id}
-          href={att.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 rounded bg-muted hover:bg-accent border border-border px-2 py-0.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <FileText className="h-3 w-3 shrink-0" />
-          <span className="truncate max-w-[120px]">{att.filename}</span>
-          <ExternalLink className="h-3 w-3 shrink-0" />
-        </a>
-      ))}
+    <div className="mt-2 pt-2 border-t border-border space-y-2">
+      {imageAttachments.length > 0 && (
+        <div className={`grid gap-1.5 ${imageAttachments.length === 1 ? "grid-cols-1 max-w-[280px]" : "grid-cols-2 max-w-[340px]"}`}>
+          {previewImages.map((att, index) => (
+            <a
+              key={att.id}
+              href={att.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="relative block rounded overflow-hidden border border-border bg-muted hover:border-primary transition-colors"
+              title={att.filename}
+            >
+              {att.thumbnail_url ? (
+                <img
+                  src={att.thumbnail_url}
+                  alt={att.filename}
+                  className={`w-full object-cover ${imageAttachments.length === 1 ? "h-44" : "h-28"}`}
+                  loading="lazy"
+                />
+              ) : (
+                <div className={`w-full flex items-center justify-center text-xs text-muted-foreground ${imageAttachments.length === 1 ? "h-44" : "h-28"}`}>
+                  {att.filename}
+                </div>
+              )}
+              {extraImageCount > 0 && index === previewImages.length - 1 && (
+                <div className="absolute inset-0 bg-black/55 flex items-center justify-center text-sm font-semibold text-white">
+                  +{extraImageCount}
+                </div>
+              )}
+            </a>
+          ))}
+        </div>
+      )}
+
+      {fileAttachments.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {fileAttachments.map((att) => (
+            <a
+              key={att.id}
+              href={att.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 rounded bg-muted hover:bg-accent border border-border px-2 py-0.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <FileText className="h-3 w-3 shrink-0" />
+              <span className="truncate max-w-[120px]">{att.filename}</span>
+              <ExternalLink className="h-3 w-3 shrink-0" />
+            </a>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

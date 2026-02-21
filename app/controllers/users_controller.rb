@@ -1,6 +1,7 @@
 class UsersController < ApplicationController
-  before_action :require_mitigation_admin
-  before_action :set_user, only: %i[show deactivate reactivate]
+  before_action :require_users_management_access, only: %i[index deactivate reactivate]
+  before_action :set_user, only: %i[show update deactivate reactivate]
+  before_action :authorize_update!, only: %i[update]
 
   def index
     org_ids = visible_org_ids
@@ -20,8 +21,20 @@ class UsersController < ApplicationController
   def show
     render inertia: "Users/Show", props: {
       user: serialize_user_detail(@user),
-      can_deactivate: @user.id != current_user.id
+      can_edit: can_edit_target_user?,
+      can_edit_role: can_edit_role_for_target?,
+      can_deactivate: @user.id != current_user.id,
+      role_options: can_edit_role_for_target? ? role_options_for(@user.organization) : []
     }
+  end
+
+  def update
+    if @user.update(user_update_params)
+      redirect_to user_path(@user), notice: "User details updated."
+    else
+      redirect_to user_path(@user), inertia: { errors: @user.errors.to_hash },
+        alert: "Could not update user."
+    end
   end
 
   def deactivate
@@ -41,11 +54,17 @@ class UsersController < ApplicationController
 
   private
 
-  def require_mitigation_admin
+  def require_users_management_access
     raise ActiveRecord::RecordNotFound unless can_manage_users?
   end
 
   def set_user
+    if params[:id].to_i == current_user.id
+      @user = current_user
+      return
+    end
+
+    raise ActiveRecord::RecordNotFound unless can_manage_users?
     @user = User.where(organization_id: visible_org_ids).find(params[:id])
   end
 
@@ -61,6 +80,7 @@ class UsersController < ApplicationController
       id: user.id,
       path: user_path(user),
       full_name: user.full_name,
+      user_type: user.user_type,
       email: user.email_address,
       phone: user.phone,
       role_label: User::ROLE_LABELS[user.user_type],
@@ -102,6 +122,7 @@ class UsersController < ApplicationController
       first_name: user.first_name,
       last_name: user.last_name,
       timezone: user.timezone,
+      update_path: user_path(user),
       is_pm_user: user.pm_user?,
       deactivate_path: deactivate_user_path(user),
       reactivate_path: reactivate_user_path(user)
@@ -127,5 +148,32 @@ class UsersController < ApplicationController
     label = Incident::DAMAGE_LABELS[incident.damage_type] || incident.damage_type
     desc = incident.description.truncate(50)
     "#{label} — #{desc}"
+  end
+
+  def role_options_for(organization)
+    types = organization.mitigation? ? User::MITIGATION_TYPES : User::PM_TYPES
+    types.map { |t| { value: t, label: User::ROLE_LABELS[t] } }
+  end
+
+  def can_edit_other_users?
+    current_user.organization.mitigation? && current_user.user_type == User::MANAGER
+  end
+
+  def can_edit_target_user?
+    @user.id == current_user.id || can_edit_other_users?
+  end
+
+  def can_edit_role_for_target?
+    can_edit_other_users? && @user.id != current_user.id
+  end
+
+  def authorize_update!
+    raise ActiveRecord::RecordNotFound unless can_edit_target_user?
+  end
+
+  def user_update_params
+    allowed = [ :first_name, :last_name, :email_address, :phone, :timezone ]
+    allowed << :user_type if can_edit_role_for_target?
+    params.require(:user).permit(*allowed)
   end
 end

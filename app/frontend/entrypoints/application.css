@@ -40,10 +40,10 @@
   /* Status colors */
   --color-status-emergency: hsl(0 72% 51%);
   --color-status-warning: hsl(38 92% 50%);
-  --color-status-success: hsl(152 60% 36%);
+  --color-status-success: hsl(152 60% 30%);
   --color-status-info: hsl(199 89% 48%);
   --color-status-quote: hsl(262 52% 57%);
-  --color-status-completed: hsl(152 36% 48%);
+  --color-status-completed: hsl(152 46% 30%);
   --color-status-neutral: hsl(220 6% 55%);
 
   /* Sidebar — dark for visual anchor */

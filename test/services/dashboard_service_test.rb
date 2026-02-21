@@ -147,21 +147,35 @@ class DashboardServiceTest < ActiveSupport::TestCase
   test "unread_counts includes unread activity events" do
     ActivityEvent.create!(
       incident: @active, performed_by_user: @tech,
-      event_type: "status_changed", metadata: {}
+      event_type: "activity_logged", metadata: {}
     )
 
     counts = DashboardService.new(user: @manager).unread_counts
     assert_equal 1, counts.dig(@active.id, :activity)
   end
 
+  test "unread_counts excludes non-daily-log activity events" do
+    ActivityEvent.create!(
+      incident: @active, performed_by_user: @tech,
+      event_type: "status_changed", metadata: {}
+    )
+
+    counts = DashboardService.new(user: @manager).unread_counts
+    assert_nil counts.dig(@active.id, :activity)
+  end
+
   test "unread_counts respects last_activity_read_at" do
     ActivityEvent.create!(
       incident: @active, performed_by_user: @tech,
-      event_type: "status_changed", metadata: {}, created_at: 1.hour.ago
+      event_type: "activity_logged", metadata: {}, created_at: 1.hour.ago
     )
     ActivityEvent.create!(
       incident: @active, performed_by_user: @tech,
-      event_type: "user_assigned", metadata: {}, created_at: 1.minute.ago
+      event_type: "activity_logged", metadata: {}, created_at: 1.minute.ago
+    )
+    ActivityEvent.create!(
+      incident: @active, performed_by_user: @tech,
+      event_type: "status_changed", metadata: {}, created_at: 30.seconds.ago
     )
 
     IncidentReadState.create!(incident: @active, user: @manager, last_activity_read_at: 30.minutes.ago)

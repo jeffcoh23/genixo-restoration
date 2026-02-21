@@ -10,10 +10,11 @@ interface RightPanelShellProps {
 
 const tabs = [
   { key: "daily_log", label: "Daily Log" },
-  { key: "messages", label: "Messages" },
-  { key: "documents", label: "Documents" },
-  { key: "equipment", label: "Equipment" },
   { key: "labor", label: "Labor" },
+  { key: "equipment", label: "Equipment" },
+  { key: "photos", label: "Photos" },
+  { key: "documents", label: "Documents" },
+  { key: "messages", label: "Messages" },
   { key: "manage", label: "Manage" },
 ];
 

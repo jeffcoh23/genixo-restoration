@@ -10,6 +10,7 @@ import MessagePanel from "./components/MessagePanel";
 import DailyLogPanel from "./components/DailyLogPanel";
 import EquipmentPanel from "./components/EquipmentPanel";
 import LaborPanel from "./components/LaborPanel";
+import PhotosPanel from "./components/PhotosPanel";
 import DocumentPanel from "./components/DocumentPanel";
 import OverviewPanel from "./components/OverviewPanel";
 import IncidentEditForm from "./components/IncidentEditForm";
@@ -202,20 +203,20 @@ export default function IncidentShow() {
         {/* Description / Cause / Next Steps */}
         <div className="border-t border-border px-5 py-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
-            <div>
+            <div className="rounded-lg border border-border bg-muted/20 px-3 py-2.5">
               <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Description</h3>
               <p className="text-sm text-foreground whitespace-pre-wrap">{incident.description}</p>
             </div>
 
             {incident.cause && (
-              <div>
+              <div className="rounded-lg border border-border bg-muted/20 px-3 py-2.5">
                 <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Cause</h3>
                 <p className="text-sm text-foreground whitespace-pre-wrap">{incident.cause}</p>
               </div>
             )}
 
             {incident.requested_next_steps && (
-              <div>
+              <div className="rounded-lg border border-border bg-muted/20 px-3 py-2.5">
                 <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Requested Next Steps</h3>
                 <p className="text-sm text-foreground whitespace-pre-wrap">{incident.requested_next_steps}</p>
               </div>
@@ -268,6 +269,12 @@ export default function IncidentShow() {
             <DocumentPanel
               attachments={attachments}
               attachments_path={incident.attachments_path}
+            />
+          )}
+          {activeTab === "photos" && (
+            <PhotosPanel
+              attachments={attachments}
+              messages={messages}
               upload_photo_path={incident.upload_photo_path}
             />
           )}

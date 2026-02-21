@@ -134,7 +134,10 @@ class IncidentsController < ApplicationController
       .joins(:user).where(users: { active: true })
       .order("users.last_name, users.first_name")
 
-    messages = @incident.messages.includes(user: :organization).order(created_at: :asc)
+    messages = @incident.messages.includes(
+      { user: :organization },
+      { attachments: [ :uploaded_by_user, { file_attachment: :blob } ] }
+    ).order(created_at: :asc)
 
     render inertia: "Incidents/Show", props: {
       incident: {
@@ -159,6 +162,7 @@ class IncidentsController < ApplicationController
         damage_label: Incident::DAMAGE_LABELS[@incident.damage_type],
         emergency: @incident.emergency,
         job_id: @incident.job_id,
+        do_not_exceed_limit: @incident.do_not_exceed_limit,
         location_of_damage: @incident.location_of_damage,
         created_at: @incident.created_at.iso8601,
         created_at_label: format_date(@incident.created_at),
@@ -320,6 +324,7 @@ class IncidentsController < ApplicationController
       :description, :cause, :requested_next_steps,
       :units_affected, :affected_room_numbers, :job_id,
       :project_type, :damage_type,
+      :do_not_exceed_limit, :location_of_damage,
       :visitors, :usable_rooms_returned, :estimated_date_of_return
     )
   end
@@ -915,6 +920,22 @@ class IncidentsController < ApplicationController
     user = message.user
     show_date = prev.nil? || message.created_at.to_date != prev.created_at.to_date
     same_sender = !show_date && prev&.user_id == message.user_id
+    attachments = message.attachments.sort_by(&:created_at).map do |attachment|
+      {
+        id: attachment.id,
+        filename: attachment.file.filename.to_s,
+        category_label: attachment.category.titleize,
+        url: rails_blob_path(attachment.file, disposition: "inline"),
+        content_type: attachment.file.content_type,
+        byte_size: attachment.file.byte_size,
+        created_at: attachment.created_at.iso8601,
+        created_at_label: format_datetime(attachment.created_at),
+        uploaded_by_name: attachment.uploaded_by_user&.full_name || user.full_name,
+        thumbnail_url: (attachment.file.content_type&.start_with?("image/") && attachment.file.variable?) ?
+          rails_representation_path(attachment.file.variant(:thumbnail), disposition: "inline") : nil
+      }
+    end
+
     {
       id: message.id,
       body: message.body,
@@ -928,7 +949,8 @@ class IncidentsController < ApplicationController
         initials: user.initials,
         role_label: User::ROLE_LABELS[user.user_type],
         org_name: user.organization.name
-      }
+      },
+      attachments: attachments
     }
   end
 
@@ -1125,7 +1147,7 @@ class IncidentsController < ApplicationController
     msg_count = unread_messages.count
 
     act_threshold = read_state&.last_activity_read_at
-    unread_activity = incident.activity_events.where.not(performed_by_user_id: current_user.id)
+    unread_activity = incident.activity_events.for_daily_log_notifications.where.not(performed_by_user_id: current_user.id)
     unread_activity = unread_activity.where("created_at > ?", act_threshold) if act_threshold
     act_count = unread_activity.count
 

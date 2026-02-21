@@ -8,13 +8,13 @@ export function statusColor(status: string): string {
     case "proposal_signed":
       return "bg-status-quote text-white";
     case "active":
-      return "bg-status-success text-black";
+      return "bg-status-success text-white";
     case "job_started":
-      return "bg-status-success text-black";
+      return "bg-status-success text-white";
     case "on_hold":
       return "bg-status-warning text-black";
     case "completed":
-      return "bg-status-completed text-black";
+      return "bg-status-completed text-white";
     case "emergency":
       return "bg-status-emergency text-white";
     default:

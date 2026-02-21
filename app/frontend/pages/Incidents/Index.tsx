@@ -4,11 +4,10 @@ import { useState, useCallback, useMemo } from "react";
 import AppLayout from "@/layout/AppLayout";
 import PageHeader from "@/components/PageHeader";
 import MultiFilterSelect from "@/components/MultiFilterSelect";
-import { Badge } from "@/components/ui/badge";
+import StatusBadge from "@/components/StatusBadge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { SharedProps } from "@/types";
-import { statusColor } from "@/lib/statusColor";
 
 interface Incident {
   id: number;
@@ -301,7 +300,7 @@ export default function IncidentsIndex() {
                     <Link href={incident.path} className="font-semibold text-foreground hover:text-primary transition-colors">
                       {incident.property_name}
                     </Link>
-                    <Badge className={`text-xs ${statusColor(incident.status)}`}>{incident.status_label}</Badge>
+                    <StatusBadge status={incident.status} label={incident.status_label} />
                   </div>
                   <p className="mt-2 text-sm text-muted-foreground line-clamp-2">{incident.description}</p>
                   <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
@@ -367,9 +366,7 @@ export default function IncidentsIndex() {
                           {incident.description}
                         </td>
                         <td className="px-4 py-3">
-                          <Badge className={`text-xs ${statusColor(incident.status)}`}>
-                            {incident.status_label}
-                          </Badge>
+                          <StatusBadge status={incident.status} label={incident.status_label} />
                         </td>
                         <td className="px-4 py-3 text-muted-foreground">
                           {incident.project_type_label}

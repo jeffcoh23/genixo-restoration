@@ -1,4 +1,4 @@
-import { Link, usePage, router } from "@inertiajs/react";
+import { Link, usePage, router, useForm } from "@inertiajs/react";
 import { useState } from "react";
 import AppLayout from "@/layout/AppLayout";
 import PageHeader from "@/components/PageHeader";
@@ -7,6 +7,8 @@ import StatusBadge from "@/components/StatusBadge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SharedProps } from "@/types";
 
 interface AssignedProperty {
@@ -28,6 +30,7 @@ interface UserDetail {
   id: number;
   path: string;
   full_name: string;
+  user_type: string;
   first_name: string;
   last_name: string;
   email: string;
@@ -37,6 +40,7 @@ interface UserDetail {
   timezone: string;
   active: boolean;
   is_pm_user: boolean;
+  update_path: string;
   deactivate_path: string;
   reactivate_path: string;
   assigned_properties?: AssignedProperty[];
@@ -44,11 +48,35 @@ interface UserDetail {
 }
 
 export default function UserShow() {
-  const { user, can_deactivate, routes } = usePage<SharedProps & {
+  const { user, can_edit, can_edit_role, can_deactivate, role_options, routes } = usePage<SharedProps & {
     user: UserDetail;
+    can_edit: boolean;
+    can_edit_role: boolean;
     can_deactivate: boolean;
+    role_options: { value: string; label: string }[];
   }>().props;
+  const [editing, setEditing] = useState(false);
   const [confirmDeactivate, setConfirmDeactivate] = useState(false);
+  const editForm = useForm({
+    first_name: user.first_name,
+    last_name: user.last_name,
+    email_address: user.email,
+    phone: user.phone || "",
+    timezone: user.timezone,
+    user_type: user.user_type,
+  });
+
+  function startEdit() {
+    editForm.setData({
+      first_name: user.first_name,
+      last_name: user.last_name,
+      email_address: user.email,
+      phone: user.phone || "",
+      timezone: user.timezone,
+      user_type: user.user_type,
+    });
+    setEditing(true);
+  }
 
   function handleDeactivate() {
     setConfirmDeactivate(true);
@@ -60,6 +88,13 @@ export default function UserShow() {
 
   function confirmAndDeactivate() {
     router.patch(user.deactivate_path, {}, { onSuccess: () => setConfirmDeactivate(false) });
+  }
+
+  function handleSaveEdit(e: React.FormEvent) {
+    e.preventDefault();
+    editForm.patch(user.update_path, {
+      onSuccess: () => setEditing(false),
+    });
   }
 
   return (
@@ -81,6 +116,7 @@ export default function UserShow() {
           </div>
         </div>
         <div className="flex gap-2">
+          {can_edit && <Button variant="outline" onClick={startEdit}>Edit</Button>}
           {can_deactivate && user.active && (
             <Button variant="outline" onClick={handleDeactivate}>Deactivate</Button>
           )}
@@ -89,6 +125,102 @@ export default function UserShow() {
           )}
         </div>
       </div>
+
+      <Dialog open={editing} onOpenChange={setEditing}>
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Edit User</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSaveEdit} className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label htmlFor="first_name" className="text-sm font-medium">First Name</label>
+                <Input
+                  id="first_name"
+                  value={editForm.data.first_name}
+                  onChange={(e) => editForm.setData("first_name", e.target.value)}
+                  className="h-10"
+                />
+                {editForm.errors.first_name && <p className="text-sm text-destructive">{editForm.errors.first_name}</p>}
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="last_name" className="text-sm font-medium">Last Name</label>
+                <Input
+                  id="last_name"
+                  value={editForm.data.last_name}
+                  onChange={(e) => editForm.setData("last_name", e.target.value)}
+                  className="h-10"
+                />
+                {editForm.errors.last_name && <p className="text-sm text-destructive">{editForm.errors.last_name}</p>}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label htmlFor="email_address" className="text-sm font-medium">Email</label>
+                <Input
+                  id="email_address"
+                  type="email"
+                  value={editForm.data.email_address}
+                  onChange={(e) => editForm.setData("email_address", e.target.value)}
+                  className="h-10"
+                />
+                {editForm.errors.email_address && <p className="text-sm text-destructive">{editForm.errors.email_address}</p>}
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="phone" className="text-sm font-medium">Phone</label>
+                <Input
+                  id="phone"
+                  value={editForm.data.phone}
+                  onChange={(e) => editForm.setData("phone", e.target.value)}
+                  className="h-10"
+                />
+                {editForm.errors.phone && <p className="text-sm text-destructive">{editForm.errors.phone}</p>}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Role</label>
+                {can_edit_role ? (
+                  <>
+                    <Select value={editForm.data.user_type} onValueChange={(v) => editForm.setData("user_type", v)}>
+                      <SelectTrigger className="h-10">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {role_options.map((role) => (
+                          <SelectItem key={role.value} value={role.value}>{role.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {editForm.errors.user_type && <p className="text-sm text-destructive">{editForm.errors.user_type}</p>}
+                  </>
+                ) : (
+                  <Input value={user.role_label} disabled className="h-10" />
+                )}
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="timezone" className="text-sm font-medium">Timezone</label>
+                <Input
+                  id="timezone"
+                  value={editForm.data.timezone}
+                  onChange={(e) => editForm.setData("timezone", e.target.value)}
+                  className="h-10"
+                />
+                {editForm.errors.timezone && <p className="text-sm text-destructive">{editForm.errors.timezone}</p>}
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-1">
+              <Button type="button" variant="ghost" onClick={() => setEditing(false)}>Cancel</Button>
+              <Button type="submit" disabled={editForm.processing}>
+                {editForm.processing ? "Saving..." : "Save Changes"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Property Assignments (PM users only) */}
       <section className="mb-8">

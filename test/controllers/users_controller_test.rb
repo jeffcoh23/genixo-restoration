@@ -47,6 +47,18 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
+  test "technician can view their own user page" do
+    login_as @tech
+    get user_path(@tech)
+    assert_response :success
+  end
+
+  test "pm user can view their own user page" do
+    login_as @pm_user
+    get user_path(@pm_user)
+    assert_response :success
+  end
+
   # --- Visibility scoping ---
 
   test "manager can view users from own org" do
@@ -65,6 +77,36 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     login_as @manager
     get user_path(@unrelated_user)
     assert_response :not_found
+  end
+
+  # --- Updates ---
+
+  test "manager can update another user" do
+    login_as @manager
+    patch user_path(@tech), params: { user: { first_name: "Updated", user_type: User::TECHNICIAN } }
+    assert_redirected_to user_path(@tech)
+    assert_equal "Updated", @tech.reload.first_name
+  end
+
+  test "office_sales cannot update another user" do
+    login_as @office
+    patch user_path(@tech), params: { user: { first_name: "Nope" } }
+    assert_response :not_found
+    assert_not_equal "Nope", @tech.reload.first_name
+  end
+
+  test "technician can update themselves" do
+    login_as @tech
+    patch user_path(@tech), params: { user: { first_name: "Techy", timezone: "UTC" } }
+    assert_redirected_to user_path(@tech)
+    assert_equal "Techy", @tech.reload.first_name
+  end
+
+  test "technician cannot update their own role" do
+    login_as @tech
+    patch user_path(@tech), params: { user: { user_type: User::MANAGER } }
+    assert_redirected_to user_path(@tech)
+    assert_equal User::TECHNICIAN, @tech.reload.user_type
   end
 
   # --- Deactivation ---

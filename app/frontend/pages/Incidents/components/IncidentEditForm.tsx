@@ -22,6 +22,8 @@ export default function IncidentEditForm({ incident, project_types, damage_types
     units_affected: incident.units_affected != null ? String(incident.units_affected) : "",
     affected_room_numbers: incident.affected_room_numbers ?? "",
     job_id: incident.job_id ?? "",
+    do_not_exceed_limit: incident.do_not_exceed_limit ?? "",
+    location_of_damage: incident.location_of_damage ?? "",
     project_type: incident.project_type,
     damage_type: incident.damage_type,
   });
@@ -82,6 +84,32 @@ export default function IncidentEditForm({ incident, project_types, damage_types
               className="h-9"
             />
             {errors.job_id && <p className="text-xs text-destructive">{errors.job_id}</p>}
+          </div>
+
+          {/* Emergency limit */}
+          <div className="space-y-1.5">
+            <Label htmlFor="edit_do_not_exceed" className="text-xs">Emergency Do Not Exceed Limit</Label>
+            <Input
+              id="edit_do_not_exceed"
+              value={data.do_not_exceed_limit}
+              onChange={(e) => setData("do_not_exceed_limit", e.target.value)}
+              placeholder="Optional dollar amount"
+              className="h-9"
+            />
+            {errors.do_not_exceed_limit && <p className="text-xs text-destructive">{errors.do_not_exceed_limit}</p>}
+          </div>
+
+          {/* Location */}
+          <div className="space-y-1.5">
+            <Label htmlFor="edit_location" className="text-xs">Location of Damage</Label>
+            <Textarea
+              id="edit_location"
+              rows={2}
+              value={data.location_of_damage}
+              onChange={(e) => setData("location_of_damage", e.target.value)}
+              className="resize-none"
+            />
+            {errors.location_of_damage && <p className="text-xs text-destructive">{errors.location_of_damage}</p>}
           </div>
 
           {/* Description */}

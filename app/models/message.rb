@@ -4,5 +4,13 @@ class Message < ApplicationRecord
 
   has_many :attachments, as: :attachable, dependent: :destroy
 
-  validates :body, presence: true
+  validate :body_or_attachment_present
+
+  private
+
+  def body_or_attachment_present
+    return if body.present? || attachments.any?
+
+    errors.add(:body, "can't be blank")
+  end
 end

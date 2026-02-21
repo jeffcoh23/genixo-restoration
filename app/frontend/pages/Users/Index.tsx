@@ -1,10 +1,11 @@
 import { useForm, usePage, router } from "@inertiajs/react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import AppLayout from "@/layout/AppLayout";
 import PageHeader from "@/components/PageHeader";
 import DataTable, { Column, LinkCell, MutedCell } from "@/components/DataTable";
 import FormField from "@/components/FormField";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SharedProps } from "@/types";
 
@@ -39,20 +40,6 @@ interface OrgOption {
   role_options: RoleOption[];
 }
 
-const userColumns: Column<UserRow>[] = [
-  { header: "Name", render: (u) => <LinkCell href={u.path}>{u.full_name}</LinkCell> },
-  { header: "Email", render: (u) => <MutedCell>{u.email}</MutedCell> },
-  { header: "Role", render: (u) => <MutedCell>{u.role_label}</MutedCell> },
-  { header: "Phone", render: (u) => <MutedCell>{u.phone || "—"}</MutedCell> },
-];
-
-const deactivatedColumns: Column<UserRow>[] = [
-  { header: "Name", render: (u) => <LinkCell href={u.path}>{u.full_name}</LinkCell> },
-  { header: "Email", render: (u) => <MutedCell>{u.email}</MutedCell> },
-  { header: "Role", render: (u) => <MutedCell>{u.role_label}</MutedCell> },
-  { header: "Organization", render: (u) => <MutedCell>{u.organization_name}</MutedCell> },
-];
-
 export default function UsersIndex() {
   const { active_users, deactivated_users, pending_invitations, org_options, routes } = usePage<SharedProps & {
     active_users: UserRow[];
@@ -62,7 +49,7 @@ export default function UsersIndex() {
   }>().props;
 
   const [showDeactivated, setShowDeactivated] = useState(false);
-  const [showInviteForm, setShowInviteForm] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
 
   const form = useForm({
     email: "",
@@ -75,30 +62,64 @@ export default function UsersIndex() {
 
   const selectedOrg = org_options.find((o) => o.id.toString() === form.data.organization_id);
 
+  const groupedActiveUsers = useMemo(
+    () => active_users.reduce<Record<string, UserRow[]>>((groups, user) => {
+      const org = user.organization_name;
+      if (!groups[org]) groups[org] = [];
+      groups[org].push(user);
+      return groups;
+    }, {}),
+    [active_users]
+  );
+
   function handleInvite(e: React.FormEvent) {
     e.preventDefault();
     form.post(routes.invitations, {
-      onSuccess: () => { form.reset(); setShowInviteForm(false); },
+      onSuccess: () => {
+        form.reset();
+        setShowInviteModal(false);
+      },
     });
   }
+
+  const userColumns: Column<UserRow>[] = [
+    {
+      header: "Name",
+      render: (u) => <LinkCell href={u.path}>{u.full_name}</LinkCell>,
+    },
+    { header: "Email", render: (u) => <MutedCell>{u.email}</MutedCell> },
+    { header: "Role", render: (u) => <MutedCell>{u.role_label}</MutedCell> },
+    { header: "Phone", render: (u) => <MutedCell>{u.phone || "—"}</MutedCell> },
+  ];
+
+  const deactivatedColumns: Column<UserRow>[] = [
+    {
+      header: "Name",
+      render: (u) => <LinkCell href={u.path}>{u.full_name}</LinkCell>,
+    },
+    { header: "Email", render: (u) => <MutedCell>{u.email}</MutedCell> },
+    { header: "Role", render: (u) => <MutedCell>{u.role_label}</MutedCell> },
+    { header: "Organization", render: (u) => <MutedCell>{u.organization_name}</MutedCell> },
+  ];
 
   return (
     <AppLayout wide>
       <PageHeader
         title="Users"
-        action={{ label: showInviteForm ? "Cancel" : "Invite User", onClick: () => setShowInviteForm(!showInviteForm) }}
+        action={{ label: "Invite User", onClick: () => setShowInviteModal(true) }}
       />
 
-      {/* Invite User Form */}
-      {showInviteForm && (
-        <div className="bg-card rounded-lg border border-border shadow-sm p-6 mb-6">
-          <h2 className="text-lg font-semibold text-foreground mb-4">Invite User</h2>
-          <form onSubmit={handleInvite} className="space-y-5">
-            <div className="text-sm text-muted-foreground">
+      <Dialog open={showInviteModal} onOpenChange={setShowInviteModal}>
+        <DialogContent className="max-w-3xl p-0 gap-0 overflow-hidden">
+          <DialogHeader className="px-6 pt-5 pb-4 border-b border-border bg-muted/30">
+            <DialogTitle>Invite User</DialogTitle>
+            <p className="text-sm text-muted-foreground">
               Choose the organization first, then select one of the roles available for that organization.
-            </div>
+            </p>
+          </DialogHeader>
 
-            <div className="grid grid-cols-2 gap-4">
+          <form onSubmit={handleInvite} className="p-6 space-y-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField id="invite_email" label="Email" type="email" value={form.data.email}
                 onChange={(v) => form.setData("email", v)} error={form.errors.email} required />
 
@@ -133,7 +154,7 @@ export default function UsersIndex() {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <FormField id="invite_first" label="First Name" hint="optional" value={form.data.first_name}
                 onChange={(v) => form.setData("first_name", v)} />
               <FormField id="invite_last" label="Last Name" hint="optional" value={form.data.last_name}
@@ -142,14 +163,17 @@ export default function UsersIndex() {
                 onChange={(v) => form.setData("phone", v)} />
             </div>
 
-            <div className="flex justify-end">
-              <Button type="submit" className="h-11 sm:h-10" disabled={form.processing}>
+            <div className="flex items-center justify-end gap-2 pt-1">
+              <Button type="button" variant="outline" onClick={() => setShowInviteModal(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={form.processing}>
                 {form.processing ? "Sending..." : "Send Invitation"}
               </Button>
             </div>
           </form>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
       {/* Pending Invitations */}
       {pending_invitations.length > 0 && (
@@ -182,14 +206,7 @@ export default function UsersIndex() {
       )}
 
       {/* Active Users — grouped by organization */}
-      {Object.entries(
-        active_users.reduce<Record<string, UserRow[]>>((groups, user) => {
-          const org = user.organization_name;
-          if (!groups[org]) groups[org] = [];
-          groups[org].push(user);
-          return groups;
-        }, {})
-      ).map(([orgName, users]) => (
+      {Object.entries(groupedActiveUsers).map(([orgName, users]) => (
         <div key={orgName} className="mb-6">
           <h2 className="text-sm font-medium text-muted-foreground mb-2">{orgName}</h2>
           <DataTable columns={userColumns} rows={users} keyFn={(u) => u.id} emptyMessage="No team members yet." />
@@ -211,6 +228,7 @@ export default function UsersIndex() {
           )}
         </div>
       )}
+
     </AppLayout>
   );
 }

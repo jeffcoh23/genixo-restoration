@@ -51,7 +51,7 @@ Rails.application.routes.draw do
   resources :organizations, only: %i[index new create show edit update]
 
   # Users
-  resources :users, only: %i[index show] do
+  resources :users, only: %i[index show update] do
     member do
       patch :deactivate
       patch :reactivate

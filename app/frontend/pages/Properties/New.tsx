@@ -35,38 +35,49 @@ export default function NewProperty() {
     <AppLayout>
       <PageHeader title="New Property" backLink={{ href: routes.properties, label: "Properties" }} />
 
-      <form onSubmit={handleSubmit} className="max-w-lg space-y-4">
-        <FormField id="name" label="Name" value={data.name} onChange={(v) => setData("name", v)} error={errors.name} required />
+      <form onSubmit={handleSubmit} className="max-w-3xl">
+        <div className="rounded-lg border border-border bg-card shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-border bg-muted/30">
+            <h2 className="text-base font-semibold text-foreground">Property Details</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Add the core location and management information for this property.
+            </p>
+          </div>
 
-        <div className="space-y-2">
-          <label htmlFor="pm_org" className="text-sm font-medium">PM Organization *</label>
-          <Select value={data.property_management_org_id} onValueChange={(value) => setData("property_management_org_id", value)}>
-            <SelectTrigger id="pm_org" className="h-11 sm:h-10">
-              <SelectValue placeholder="Select an organization..." />
-            </SelectTrigger>
-            <SelectContent>
-              {pm_organizations.map((org) => (
-                <SelectItem key={org.id} value={String(org.id)}>
-                  {org.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {errors.property_management_org_id && (
-            <p className="text-sm text-destructive">{errors.property_management_org_id}</p>
-          )}
-        </div>
+          <div className="p-6 space-y-5">
+            <FormField id="name" label="Name" value={data.name} onChange={(v) => setData("name", v)} error={errors.name} required />
 
-        <AddressFields data={data} setData={setData} />
-        <FormField id="unit_count" label="Unit Count" type="number" value={data.unit_count} onChange={(v) => setData("unit_count", v)} />
+            <div className="space-y-2">
+              <label htmlFor="pm_org" className="text-sm font-medium">PM Organization *</label>
+              <Select value={data.property_management_org_id} onValueChange={(value) => setData("property_management_org_id", value)}>
+                <SelectTrigger id="pm_org" className="h-11 sm:h-10">
+                  <SelectValue placeholder="Select an organization..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {pm_organizations.map((org) => (
+                    <SelectItem key={org.id} value={String(org.id)}>
+                      {org.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.property_management_org_id && (
+                <p className="text-sm text-destructive">{errors.property_management_org_id}</p>
+              )}
+            </div>
 
-        <div className="flex gap-3 pt-2">
-          <Button variant="outline" asChild>
-            <Link href={routes.properties}>Cancel</Link>
-          </Button>
-          <Button type="submit" disabled={processing}>
-            {processing ? "Creating..." : "Create Property"}
-          </Button>
+            <AddressFields data={data} setData={setData} />
+            <FormField id="unit_count" label="Unit Count" type="number" value={data.unit_count} onChange={(v) => setData("unit_count", v)} />
+          </div>
+
+          <div className="px-6 py-4 border-t border-border bg-muted/20 flex gap-3 justify-end">
+            <Button variant="outline" asChild>
+              <Link href={routes.properties}>Cancel</Link>
+            </Button>
+            <Button type="submit" disabled={processing}>
+              {processing ? "Creating..." : "Create Property"}
+            </Button>
+          </div>
         </div>
       </form>
     </AppLayout>

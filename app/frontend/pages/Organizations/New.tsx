@@ -28,23 +28,34 @@ export default function NewOrganization() {
     <AppLayout>
       <PageHeader title="New Company" backLink={{ href: routes.organizations, label: "Property Management" }} />
 
-      <form onSubmit={handleSubmit} className="max-w-lg space-y-4">
-        <FormField id="name" label="Name" value={data.name} onChange={(v) => setData("name", v)} error={errors.name} required />
+      <form onSubmit={handleSubmit} className="max-w-3xl">
+        <div className="rounded-lg border border-border bg-card shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-border bg-muted/30">
+            <h2 className="text-base font-semibold text-foreground">Company Details</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Add contact and address information for the property management company.
+            </p>
+          </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <FormField id="phone" label="Phone" value={data.phone} onChange={(v) => setData("phone", v)} />
-          <FormField id="email" label="Email" type="email" value={data.email} onChange={(v) => setData("email", v)} />
-        </div>
+          <div className="p-6 space-y-5">
+            <FormField id="name" label="Name" value={data.name} onChange={(v) => setData("name", v)} error={errors.name} required />
 
-        <AddressFields data={data} setData={setData} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <FormField id="phone" label="Phone" value={data.phone} onChange={(v) => setData("phone", v)} />
+              <FormField id="email" label="Email" type="email" value={data.email} onChange={(v) => setData("email", v)} />
+            </div>
 
-        <div className="flex gap-3 pt-2">
-          <Button variant="outline" asChild>
-            <Link href={routes.organizations}>Cancel</Link>
-          </Button>
-          <Button type="submit" disabled={processing}>
-            {processing ? "Creating..." : "Create Company"}
-          </Button>
+            <AddressFields data={data} setData={setData} />
+          </div>
+
+          <div className="px-6 py-4 border-t border-border bg-muted/20 flex gap-3 justify-end">
+            <Button variant="outline" asChild>
+              <Link href={routes.organizations}>Cancel</Link>
+            </Button>
+            <Button type="submit" disabled={processing}>
+              {processing ? "Creating..." : "Create Company"}
+            </Button>
+          </div>
         </div>
       </form>
     </AppLayout>

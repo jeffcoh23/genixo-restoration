@@ -2,21 +2,23 @@ class MessagesController < ApplicationController
   before_action :set_incident
 
   def create
-    message = @incident.messages.create!(
+    message = @incident.messages.new(
       user: current_user,
-      body: params.require(:message).require(:body)
+      body: params.require(:message).fetch(:body, "").to_s.strip
     )
 
     if params[:message][:files].present?
       Array(params[:message][:files]).each do |file|
-        attachment = message.attachments.new(
+        attachment = message.attachments.build(
           uploaded_by_user: current_user,
           category: "general"
         )
         attachment.file.attach(file)
-        attachment.save!
       end
     end
+
+    message.save!
+    message.attachments.each { |attachment| attachment.save! unless attachment.persisted? }
 
     @incident.touch(:last_activity_at)
 
@@ -24,7 +26,7 @@ class MessagesController < ApplicationController
 
     redirect_to incident_path(@incident), notice: "Message sent."
   rescue ActionController::ParameterMissing
-    redirect_to incident_path(@incident), alert: "Message body can't be blank."
+    redirect_to incident_path(@incident), alert: "Message or attachment required."
   rescue ActiveRecord::RecordInvalid => e
     redirect_to incident_path(@incident), alert: e.record.errors.full_messages.join(", ")
   end
