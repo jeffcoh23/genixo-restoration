@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { router } from "@inertiajs/react";
 import { Mail, Pencil, Phone, Plus, UserPlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -144,8 +144,8 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
               <span className="text-muted-foreground tabular-nums ml-1.5">{incident.contacts.length}</span>
             </h3>
             {can_manage_contacts && (
-              <Button variant="ghost" size="sm" className="h-6 text-xs gap-1 text-muted-foreground" onClick={() => setContactFormOpen(true)}>
-                <Plus className="h-3 w-3" />
+              <Button variant="outline" size="sm" className="h-10 sm:h-7 text-sm sm:text-xs gap-1.5 text-muted-foreground" onClick={() => setContactFormOpen(true)}>
+                <Plus className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
                 Add
               </Button>
             )}
@@ -185,10 +185,11 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
                           variant="ghost"
                           size="sm"
                           onClick={() => setEditingContact(c)}
-                          className="h-5 w-5 p-0 text-muted-foreground hover:text-foreground transition-colors"
+                          className="h-8 w-8 sm:h-6 sm:w-6 p-0 text-muted-foreground hover:text-foreground transition-colors"
                           title={`Edit ${c.name}`}
+                          aria-label={`Edit ${c.name}`}
                         >
-                          <Pencil className="h-3 w-3" />
+                          <Pencil className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
                         </Button>
                       )}
                       {c.remove_path && (
@@ -196,10 +197,11 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
                           variant="ghost"
                           size="sm"
                           onClick={() => handleRemoveContact(c.remove_path!)}
-                          className="h-5 w-5 p-0 text-muted-foreground hover:text-destructive transition-colors"
+                          className="h-8 w-8 sm:h-6 sm:w-6 p-0 text-muted-foreground hover:text-destructive transition-colors"
                           title={`Remove ${c.name}`}
+                          aria-label={`Remove ${c.name}`}
                         >
-                          <X className="h-3 w-3" />
+                          <X className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
                         </Button>
                       )}
                     </div>
@@ -254,26 +256,84 @@ function AssignDropdown({ users, open, onToggle, onAssign, onClose }: {
   onAssign: (userId: number) => void;
   onClose: () => void;
 }) {
+  const [focusIndex, setFocusIndex] = useState(-1);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (open) setFocusIndex(-1);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || focusIndex < 0 || !listRef.current) return;
+    const items = listRef.current.querySelectorAll("[data-assign-item]");
+    items[focusIndex]?.scrollIntoView({ block: "nearest" });
+  }, [focusIndex, open]);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!open) {
+      if (e.key === "Enter" || e.key === " " || e.key === "ArrowDown") {
+        e.preventDefault();
+        onToggle();
+      }
+      return;
+    }
+    switch (e.key) {
+      case "Escape":
+        e.preventDefault();
+        onClose();
+        break;
+      case "ArrowDown":
+        e.preventDefault();
+        setFocusIndex((prev) => (prev + 1) % users.length);
+        break;
+      case "ArrowUp":
+        e.preventDefault();
+        setFocusIndex((prev) => (prev - 1 + users.length) % users.length);
+        break;
+      case "Enter":
+      case " ":
+        e.preventDefault();
+        if (focusIndex >= 0) onAssign(users[focusIndex].id);
+        break;
+    }
+  };
+
   return (
-    <div className="relative">
-      <Button variant="ghost" size="sm" className="h-6 text-xs gap-1 text-muted-foreground" onClick={onToggle}>
-        <UserPlus className="h-3 w-3" />
+    <div className="relative" onKeyDown={handleKeyDown}>
+      <Button
+        variant="outline"
+        size="sm"
+        className="h-10 sm:h-7 text-sm sm:text-xs gap-1.5 text-muted-foreground"
+        onClick={onToggle}
+        aria-expanded={open}
+        aria-haspopup="listbox"
+      >
+        <UserPlus className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
         Assign
       </Button>
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={onClose} />
-          <div className="absolute right-0 top-full mt-1 z-20 bg-popover border border-border rounded shadow-md py-1 min-w-[220px] max-h-[200px] overflow-y-auto">
-            {users.map((u) => (
-              <Button
+          <div
+            ref={listRef}
+            role="listbox"
+            className="absolute right-0 top-full mt-1 z-20 bg-popover border border-border rounded shadow-md py-1 min-w-[220px] max-h-[200px] overflow-y-auto"
+          >
+            {users.map((u, i) => (
+              <button
                 key={u.id}
-                variant="ghost"
+                type="button"
+                data-assign-item
+                role="option"
+                aria-selected={false}
                 onClick={() => onAssign(u.id)}
-                className="w-full justify-between px-3 py-1.5 h-auto text-xs hover:bg-muted transition-colors rounded-none"
+                className={`w-full flex items-center justify-between px-3 py-2.5 sm:py-1.5 text-sm sm:text-xs text-left transition-colors ${
+                  focusIndex === i ? "bg-accent" : "hover:bg-muted"
+                }`}
               >
                 <span>{u.full_name}</span>
                 <span className="text-muted-foreground">{u.role_label}</span>
-              </Button>
+              </button>
             ))}
           </div>
         </>
@@ -323,10 +383,11 @@ function UserList({ users, expandedUserId, onToggleExpand, onRemove }: {
                         variant="ghost"
                         size="sm"
                         onClick={(e) => { e.stopPropagation(); onRemove(u.full_name, u.remove_path!); }}
-                        className="h-5 w-5 p-0 ml-1 text-muted-foreground hover:text-destructive transition-colors"
+                        className="h-8 w-8 sm:h-6 sm:w-6 p-0 ml-1 text-muted-foreground hover:text-destructive transition-colors"
                         title={`Remove ${u.full_name}`}
+                        aria-label={`Remove ${u.full_name}`}
                       >
-                        <X className="h-3 w-3" />
+                        <X className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
                       </Button>
                     )}
                   </div>

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, usePage, router } from "@inertiajs/react";
 import AppLayout from "@/layout/AppLayout";
 import PageHeader from "@/components/PageHeader";
@@ -5,6 +6,7 @@ import DetailList, { DetailRow } from "@/components/DetailList";
 import StatusBadge from "@/components/StatusBadge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SharedProps } from "@/types";
 
 interface AssignedProperty {
@@ -46,9 +48,10 @@ export default function UserShow() {
     user: UserDetail;
     can_deactivate: boolean;
   }>().props;
+  const [confirmDeactivate, setConfirmDeactivate] = useState(false);
 
   function handleDeactivate() {
-    if (!confirm(`Deactivate ${user.full_name}? They will no longer be able to log in.`)) return;
+    setConfirmDeactivate(false);
     router.patch(user.deactivate_path);
   }
 
@@ -76,7 +79,7 @@ export default function UserShow() {
         </div>
         <div className="flex gap-2">
           {can_deactivate && user.active && (
-            <Button variant="outline" onClick={handleDeactivate}>Deactivate</Button>
+            <Button variant="outline" onClick={() => setConfirmDeactivate(true)}>Deactivate</Button>
           )}
           {!user.active && (
             <Button variant="outline" onClick={handleReactivate}>Reactivate</Button>
@@ -115,6 +118,21 @@ export default function UserShow() {
           ))}
         </DetailList>
       </section>
+
+      <Dialog open={confirmDeactivate} onOpenChange={setConfirmDeactivate}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Deactivate User</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm">
+            Deactivate <span className="font-medium">{user.full_name}</span>? They will no longer be able to log in.
+          </p>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="ghost" size="sm" onClick={() => setConfirmDeactivate(false)}>Cancel</Button>
+            <Button variant="destructive" size="sm" onClick={handleDeactivate}>Deactivate</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }

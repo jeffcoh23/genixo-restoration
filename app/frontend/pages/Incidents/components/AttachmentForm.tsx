@@ -1,6 +1,7 @@
 import { useForm, usePage } from "@inertiajs/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -71,17 +72,18 @@ export default function AttachmentForm({ path, onClose }: AttachmentFormProps) {
               <label className="text-xs font-medium text-muted-foreground">
                 Category
               </label>
-              <select
-                value={data.category}
-                onChange={(e) => setData("category", e.target.value)}
-                className="mt-1 w-full rounded border border-input bg-background px-3 py-2 text-sm"
-              >
-                {CATEGORIES.map((c) => (
-                  <option key={c.value} value={c.value}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
+              <Select value={data.category} onValueChange={(v) => setData("category", v)}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CATEGORIES.map((c) => (
+                    <SelectItem key={c.value} value={c.value}>
+                      {c.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               {errors.category && (
                 <p className="text-xs text-destructive mt-1">
                   {errors.category}

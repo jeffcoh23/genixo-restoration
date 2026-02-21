@@ -5,6 +5,7 @@ import PageHeader from "@/components/PageHeader";
 import DetailList, { DetailRow } from "@/components/DetailList";
 import StatusBadge from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SharedProps } from "@/types";
 
@@ -56,6 +57,7 @@ export default function PropertyShow() {
 
   const [showAssignForm, setShowAssignForm] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState("");
+  const [confirmRemoveUser, setConfirmRemoveUser] = useState<AssignedUser | null>(null);
 
   function handleAssign() {
     if (!selectedUserId) return;
@@ -64,9 +66,10 @@ export default function PropertyShow() {
     });
   }
 
-  function handleRemove(user: AssignedUser) {
-    if (!confirm(`Remove ${user.full_name} from this property?`)) return;
-    router.delete(user.remove_path);
+  function handleRemove() {
+    if (!confirmRemoveUser) return;
+    router.delete(confirmRemoveUser.remove_path);
+    setConfirmRemoveUser(null);
   }
 
   return (
@@ -127,7 +130,7 @@ export default function PropertyShow() {
               <div className="flex items-center gap-3">
                 <span className="text-sm text-muted-foreground">{user.role_label}</span>
                 {can_assign && (
-                  <Button variant="ghost" size="sm" className="h-auto py-0 px-1 text-xs text-muted-foreground hover:text-destructive" onClick={() => handleRemove(user)}>
+                  <Button variant="ghost" size="sm" className="h-auto py-0 px-1 text-xs text-muted-foreground hover:text-destructive" onClick={() => setConfirmRemoveUser(user)}>
                     Remove
                   </Button>
                 )}
@@ -149,6 +152,21 @@ export default function PropertyShow() {
           ))}
         </DetailList>
       </section>
+
+      <Dialog open={!!confirmRemoveUser} onOpenChange={(open) => !open && setConfirmRemoveUser(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Remove User</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm">
+            Remove <span className="font-medium">{confirmRemoveUser?.full_name}</span> from this property?
+          </p>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="ghost" size="sm" onClick={() => setConfirmRemoveUser(null)}>Cancel</Button>
+            <Button variant="destructive" size="sm" onClick={handleRemove}>Remove</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }

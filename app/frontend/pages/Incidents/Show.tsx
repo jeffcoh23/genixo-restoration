@@ -144,10 +144,10 @@ export default function IncidentShow() {
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-7 text-xs gap-1 text-muted-foreground"
+                className="h-10 sm:h-8 text-sm sm:text-xs gap-1.5 text-muted-foreground"
                 onClick={() => setEditFormOpen(true)}
               >
-                <Pencil className="h-3 w-3" />
+                <Pencil className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
                 Edit
               </Button>
             )}

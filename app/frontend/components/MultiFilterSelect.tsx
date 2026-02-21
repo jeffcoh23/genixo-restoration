@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { ChevronDown, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -18,8 +18,11 @@ export default function MultiFilterSelect({
   width,
 }: MultiFilterSelectProps) {
   const [open, setOpen] = useState(false);
+  const [focusIndex, setFocusIndex] = useState(-1);
   const ref = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
 
+  // Close on outside click
   useEffect(() => {
     if (!open) return;
     const handleClick = (e: MouseEvent) => {
@@ -28,6 +31,57 @@ export default function MultiFilterSelect({
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, [open]);
+
+  // Reset focus when opened
+  useEffect(() => {
+    if (open) setFocusIndex(-1);
+  }, [open]);
+
+  const totalItems = options.length + 1; // +1 for "All" option
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (!open) {
+      if (e.key === "Enter" || e.key === " " || e.key === "ArrowDown") {
+        e.preventDefault();
+        setOpen(true);
+        setFocusIndex(0);
+      }
+      return;
+    }
+
+    switch (e.key) {
+      case "Escape":
+        e.preventDefault();
+        setOpen(false);
+        break;
+      case "ArrowDown":
+        e.preventDefault();
+        setFocusIndex((prev) => (prev + 1) % totalItems);
+        break;
+      case "ArrowUp":
+        e.preventDefault();
+        setFocusIndex((prev) => (prev - 1 + totalItems) % totalItems);
+        break;
+      case "Enter":
+      case " ":
+        e.preventDefault();
+        if (focusIndex === 0) {
+          onChange([]);
+          setOpen(false);
+        } else if (focusIndex > 0) {
+          const opt = options[focusIndex - 1];
+          toggle(opt.value);
+        }
+        break;
+    }
+  }, [open, focusIndex, totalItems, options]);
+
+  // Scroll focused item into view
+  useEffect(() => {
+    if (!open || focusIndex < 0 || !listRef.current) return;
+    const items = listRef.current.querySelectorAll("[data-filter-item]");
+    items[focusIndex]?.scrollIntoView({ block: "nearest" });
+  }, [focusIndex, open]);
 
   const toggle = (value: string) => {
     const next = selected.includes(value)
@@ -42,12 +96,14 @@ export default function MultiFilterSelect({
     : allLabel;
 
   return (
-    <div className="relative" ref={ref}>
+    <div className="relative" ref={ref} onKeyDown={handleKeyDown}>
       <Button
         variant="outline"
         size="sm"
         onClick={() => setOpen(!open)}
-        className={`h-8 px-2.5 text-sm flex items-center gap-1.5 ${
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        className={`h-10 sm:h-8 px-2.5 text-sm sm:text-xs flex items-center gap-1.5 ${
           hasSelection
             ? "bg-accent border-accent text-accent-foreground"
             : "text-muted-foreground"
@@ -59,15 +115,22 @@ export default function MultiFilterSelect({
       </Button>
 
       {open && (
-        <div className="absolute top-full left-0 mt-1 z-50 bg-popover border border-border rounded-md shadow-md min-w-[220px] py-1 max-h-[320px] overflow-y-auto">
+        <div
+          ref={listRef}
+          role="listbox"
+          aria-multiselectable="true"
+          className="absolute top-full left-0 mt-1 z-50 bg-popover border border-border rounded-md shadow-md min-w-[220px] py-1 max-h-[320px] overflow-y-auto"
+        >
           {/* "All" option — resets this filter */}
-          <Button
-            variant="ghost"
-            size="sm"
+          <button
+            type="button"
+            data-filter-item
+            role="option"
+            aria-selected={!hasSelection}
             onClick={() => { onChange([]); setOpen(false); }}
-            className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm justify-start rounded-none h-auto ${
-              !hasSelection ? "text-foreground font-medium" : "text-muted-foreground"
-            }`}
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 sm:py-2 text-sm text-left transition-colors ${
+              focusIndex === 0 ? "bg-accent" : "hover:bg-muted"
+            } ${!hasSelection ? "text-foreground font-medium" : "text-muted-foreground"}`}
           >
             <span className={`h-4 w-4 rounded border flex items-center justify-center flex-shrink-0 ${
               !hasSelection ? "bg-primary border-primary text-primary-foreground" : "border-input"
@@ -75,19 +138,23 @@ export default function MultiFilterSelect({
               {!hasSelection && <Check className="h-3 w-3" />}
             </span>
             {allLabel}
-          </Button>
+          </button>
 
           <div className="border-t border-border my-1" />
 
-          {options.map((opt) => {
+          {options.map((opt, i) => {
             const isSelected = selected.includes(opt.value);
             return (
-              <Button
+              <button
                 key={opt.value}
-                variant="ghost"
-                size="sm"
+                type="button"
+                data-filter-item
+                role="option"
+                aria-selected={isSelected}
                 onClick={() => toggle(opt.value)}
-                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm justify-start rounded-none h-auto"
+                className={`w-full flex items-center gap-2.5 px-3 py-2.5 sm:py-2 text-sm text-left transition-colors ${
+                  focusIndex === i + 1 ? "bg-accent" : "hover:bg-muted"
+                }`}
               >
                 <span className={`h-4 w-4 rounded border flex items-center justify-center flex-shrink-0 transition-colors ${
                   isSelected ? "bg-primary border-primary text-primary-foreground" : "border-input"
@@ -95,7 +162,7 @@ export default function MultiFilterSelect({
                   {isSelected && <Check className="h-3 w-3" />}
                 </span>
                 {opt.label}
-              </Button>
+              </button>
             );
           })}
         </div>

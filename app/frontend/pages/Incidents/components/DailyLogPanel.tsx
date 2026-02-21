@@ -137,7 +137,7 @@ export default function DailyLogPanel({
             variant={selectedDate === null ? "default" : "ghost"}
             size="sm"
             onClick={() => handleDateChange(null)}
-            className="h-7 text-xs whitespace-nowrap"
+            className="h-10 sm:h-8 text-sm sm:text-xs whitespace-nowrap"
           >
             All Dates
           </Button>
@@ -147,7 +147,7 @@ export default function DailyLogPanel({
               variant={selectedDate === dateEntry.key ? "default" : "ghost"}
               size="sm"
               onClick={() => handleDateChange(dateEntry.key)}
-              className="h-7 text-xs whitespace-nowrap"
+              className="h-10 sm:h-8 text-sm sm:text-xs whitespace-nowrap"
             >
               {dateEntry.label}
             </Button>
@@ -157,8 +157,8 @@ export default function DailyLogPanel({
 
       {can_manage_activities && (
         <div className="flex items-center gap-1 border-b border-border px-4 py-3 shrink-0">
-          <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => setActivityForm({ open: true })}>
-            <Plus className="h-3 w-3" />
+          <Button variant="outline" size="sm" className="h-10 sm:h-8 text-sm sm:text-xs gap-1.5" onClick={() => setActivityForm({ open: true })}>
+            <Plus className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
             Add Activity
           </Button>
         </div>
@@ -233,10 +233,10 @@ export default function DailyLogPanel({
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="h-6 px-2 text-xs gap-1"
+                                  className="h-9 sm:h-7 px-2 text-sm sm:text-xs gap-1"
                                   onClick={(e) => { e.stopPropagation(); handleEdit(row); }}
                                 >
-                                  <Pencil className="h-3 w-3" />
+                                  <Pencil className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
                                 </Button>
                               )}
                             </div>

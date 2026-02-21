@@ -21,8 +21,8 @@ export default function LaborPanel({ labor_log, labor_entries: _labor_entries, c
     <div className="flex flex-col h-full">
       {can_manage_labor && (
         <div className="flex items-center gap-1 border-b border-border px-4 py-3 shrink-0">
-          <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => setShowForm(true)}>
-            <Plus className="h-3 w-3" />
+          <Button variant="outline" size="sm" className="h-10 sm:h-8 text-sm sm:text-xs gap-1.5" onClick={() => setShowForm(true)}>
+            <Plus className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
             Add Labor
           </Button>
         </div>

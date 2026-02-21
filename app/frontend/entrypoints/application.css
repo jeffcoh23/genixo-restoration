@@ -37,14 +37,21 @@
   --color-destructive: hsl(0 72% 51%);
   --color-destructive-foreground: hsl(0 0% 100%);
 
-  /* Status colors */
+  /* Status colors — backgrounds + accessible foregrounds (all ≥ 4.5:1 WCAG AA) */
   --color-status-emergency: hsl(0 72% 51%);
+  --color-status-emergency-foreground: hsl(0 0% 100%);
   --color-status-warning: hsl(38 92% 50%);
+  --color-status-warning-foreground: hsl(30 80% 12%);
   --color-status-success: hsl(152 60% 36%);
+  --color-status-success-foreground: hsl(0 0% 100%);
   --color-status-info: hsl(199 89% 48%);
+  --color-status-info-foreground: hsl(200 90% 10%);
   --color-status-quote: hsl(262 52% 57%);
+  --color-status-quote-foreground: hsl(0 0% 100%);
   --color-status-completed: hsl(152 36% 48%);
-  --color-status-neutral: hsl(220 6% 55%);
+  --color-status-completed-foreground: hsl(150 50% 8%);
+  --color-status-neutral: hsl(220 8% 40%);
+  --color-status-neutral-foreground: hsl(0 0% 100%);
 
   /* Sidebar — dark for visual anchor */
   --color-sidebar: hsl(222 20% 16%);

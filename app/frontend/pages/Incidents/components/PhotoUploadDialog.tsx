@@ -264,7 +264,7 @@ export default function PhotoUploadDialog({
             {photos.map((p) => (
               <span key={p.id}>
                 {p.state === "done" && (
-                  <Check className="h-3.5 w-3.5 text-green-600 inline" />
+                  <Check className="h-3.5 w-3.5 text-status-success inline" />
                 )}
                 {(p.state === "compressing" || p.state === "uploading") && (
                   <Loader2 className="h-3.5 w-3.5 text-muted-foreground animate-spin inline" />

@@ -51,19 +51,19 @@ export default function DocumentPanel({
         <Button
           variant="default"
           size="sm"
-          className="h-7 text-xs gap-1"
+          className="h-10 sm:h-8 text-sm sm:text-xs gap-1.5"
           onClick={() => setShowPhotoDialog(true)}
         >
-          <Camera className="h-3 w-3" />
+          <Camera className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
           Take Photos
         </Button>
         <Button
           variant="outline"
           size="sm"
-          className="h-7 text-xs gap-1"
+          className="h-10 sm:h-8 text-sm sm:text-xs gap-1.5"
           onClick={() => setShowUploadForm(true)}
         >
-          <Upload className="h-3 w-3" />
+          <Upload className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
           Upload Document
         </Button>
       </div>

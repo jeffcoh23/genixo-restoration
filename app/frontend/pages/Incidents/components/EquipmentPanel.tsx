@@ -28,8 +28,8 @@ export default function EquipmentPanel({ equipment_log = [], can_manage_equipmen
     <div className="flex flex-col h-full">
       {can_manage_equipment && (
         <div className="flex items-center gap-1 border-b border-border px-4 py-3 shrink-0">
-          <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => setShowForm(true)}>
-            <Plus className="h-3 w-3" />
+          <Button variant="outline" size="sm" className="h-10 sm:h-8 text-sm sm:text-xs gap-1.5" onClick={() => setShowForm(true)}>
+            <Plus className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
             Add Equipment
           </Button>
         </div>
@@ -74,22 +74,22 @@ export default function EquipmentPanel({ equipment_log = [], can_manage_equipmen
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                              className="h-8 w-8 sm:h-6 sm:w-6 p-0 text-muted-foreground hover:text-foreground"
                               onClick={() => setEditingEntry(item)}
                               title="Edit"
                             >
-                              <Pencil className="h-3 w-3" />
+                              <Pencil className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
                             </Button>
                           )}
                           {item.remove_path && (
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                              className="h-8 w-8 sm:h-6 sm:w-6 p-0 text-muted-foreground hover:text-destructive"
                               onClick={() => handleRemove(item)}
                               title="Mark as removed"
                             >
-                              <Trash2 className="h-3 w-3" />
+                              <Trash2 className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
                             </Button>
                           )}
                         </div>

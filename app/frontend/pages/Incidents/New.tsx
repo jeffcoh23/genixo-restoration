@@ -206,8 +206,8 @@ export default function NewIncident() {
 
         {/* Emergency warning */}
         {isEmergency && (
-          <div className="flex items-start gap-3 rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
-            <AlertTriangle className="h-5 w-5 flex-shrink-0 text-amber-600 mt-0.5" />
+          <div className="flex items-start gap-3 rounded border border-status-warning/40 bg-status-warning/10 p-3 text-sm text-status-warning-foreground">
+            <AlertTriangle className="h-5 w-5 flex-shrink-0 text-status-warning mt-0.5" />
             <p>This will trigger the emergency escalation chain and notify the on-call team immediately.</p>
           </div>
         )}

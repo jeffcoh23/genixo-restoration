@@ -5,6 +5,8 @@ import PageHeader from "@/components/PageHeader";
 import FormField from "@/components/FormField";
 import AddressFields from "@/components/AddressFields";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { SharedProps } from "@/types";
 
 interface PmOrg {
@@ -38,18 +40,20 @@ export default function NewProperty() {
         <FormField id="name" label="Name" value={data.name} onChange={(v) => setData("name", v)} error={errors.name} required />
 
         <div className="space-y-2">
-          <label htmlFor="pm_org" className="text-sm font-medium">PM Organization *</label>
-          <select
-            id="pm_org"
-            value={data.property_management_org_id}
-            onChange={(e) => setData("property_management_org_id", e.target.value)}
-            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs"
+          <Label>PM Organization <span className="text-destructive">*</span></Label>
+          <Select
+            value={data.property_management_org_id || undefined}
+            onValueChange={(v) => setData("property_management_org_id", v)}
           >
-            <option value="">Select an organization...</option>
-            {pm_organizations.map((org) => (
-              <option key={org.id} value={org.id}>{org.name}</option>
-            ))}
-          </select>
+            <SelectTrigger>
+              <SelectValue placeholder="Select an organization..." />
+            </SelectTrigger>
+            <SelectContent>
+              {pm_organizations.map((org) => (
+                <SelectItem key={org.id} value={String(org.id)}>{org.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           {errors.property_management_org_id && (
             <p className="text-sm text-destructive">{errors.property_management_org_id}</p>
           )}
