@@ -5,6 +5,7 @@ import PageHeader from "@/components/PageHeader";
 import FormField from "@/components/FormField";
 import AddressFields from "@/components/AddressFields";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SharedProps } from "@/types";
 
 interface PmOrg {
@@ -56,16 +57,16 @@ export default function EditProperty() {
         {can_change_org && (
           <div className="space-y-2">
             <label htmlFor="pm_org" className="text-sm font-medium">PM Organization *</label>
-            <select
-              id="pm_org"
-              value={data.property_management_org_id}
-              onChange={(e) => setData("property_management_org_id", e.target.value)}
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs"
-            >
-              {pm_organizations.map((org) => (
-                <option key={org.id} value={org.id}>{org.name}</option>
-              ))}
-            </select>
+            <Select value={data.property_management_org_id} onValueChange={(v) => setData("property_management_org_id", v)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {pm_organizations.map((org) => (
+                  <SelectItem key={org.id} value={String(org.id)}>{org.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         )}
 

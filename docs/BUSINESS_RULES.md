@@ -314,7 +314,7 @@ QUOTE / PROPOSAL (RFQ):
 
 - Individual pieces of equipment in a mitigation org's inventory. Each item belongs to an equipment type (category).
 - **Who can manage:** Mitigation managers only (same `MANAGE_EQUIPMENT_TYPES` permission).
-- Each item has a unique `identifier` within its org (e.g., "DH-042"), plus optional `equipment_model` and `serial_number`.
+- Each item has a unique `identifier` within its org (e.g., "DH-042"), plus optional `equipment_model`.
 - Items can be soft-deactivated (`active = false`).
 - When placing equipment on an incident, users can pick from inventory items (cascading dropdown: type → item) or enter details manually.
 - Picking an inventory item auto-fills `equipment_model` and `equipment_identifier` on the equipment entry.

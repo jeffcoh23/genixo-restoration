@@ -11,7 +11,7 @@ interface EquipmentPanelProps {
   can_manage_equipment: boolean;
   equipment_entries_path: string;
   equipment_types: EquipmentType[];
-  equipment_items_by_type?: Record<string, { id: number; identifier: string; model_name: string | null; serial_number: string | null }[]>;
+  equipment_items_by_type?: Record<string, { id: number; identifier: string; model_name: string | null }[]>;
 }
 
 export default function EquipmentPanel({ equipment_log = [], can_manage_equipment, equipment_entries_path, equipment_types, equipment_items_by_type }: EquipmentPanelProps) {

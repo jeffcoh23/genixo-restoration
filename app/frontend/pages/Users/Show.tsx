@@ -3,6 +3,7 @@ import AppLayout from "@/layout/AppLayout";
 import PageHeader from "@/components/PageHeader";
 import DetailList, { DetailRow } from "@/components/DetailList";
 import StatusBadge from "@/components/StatusBadge";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SharedProps } from "@/types";
 
@@ -62,9 +63,7 @@ export default function UserShow() {
         <div>
           <div className="flex items-center gap-3">
             {!user.active && (
-              <span className="text-xs px-2 py-1 rounded-full bg-destructive/10 text-destructive font-medium">
-                Deactivated
-              </span>
+              <Badge variant="destructive">Deactivated</Badge>
             )}
           </div>
           <p className="text-muted-foreground mt-1">{user.role_label} at {user.organization_name}</p>

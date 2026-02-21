@@ -5,6 +5,7 @@ import AppLayout from "@/layout/AppLayout";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { SharedProps } from "@/types";
 
 interface Manager {
@@ -108,19 +109,18 @@ export default function OnCallSettings() {
               <label className="text-xs font-medium text-muted-foreground">
                 Primary On-Call <span className="text-destructive">*</span>
               </label>
-              <select
-                value={primaryUserId}
-                onChange={(e) => setPrimaryUserId(e.target.value)}
-                className="mt-1 w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
-                required
-              >
-                <option value="">Select a manager...</option>
-                {managers.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.full_name} ({m.role_label})
-                  </option>
-                ))}
-              </select>
+              <Select value={String(primaryUserId)} onValueChange={(v) => setPrimaryUserId(v)}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Select a manager..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {managers.map((m) => (
+                    <SelectItem key={m.id} value={String(m.id)}>
+                      {m.full_name} ({m.role_label})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
@@ -204,18 +204,18 @@ export default function OnCallSettings() {
               <form onSubmit={handleAddContact} className="mt-4 flex items-end gap-2 border-t border-border pt-4">
                 <div className="flex-1 max-w-[280px]">
                   <label className="text-xs font-medium text-muted-foreground">Add Contact</label>
-                  <select
-                    value={newContactUserId}
-                    onChange={(e) => setNewContactUserId(e.target.value)}
-                    className="mt-1 w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
-                  >
-                    <option value="">Select...</option>
-                    {availableForEscalation.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.full_name} ({m.role_label})
-                      </option>
-                    ))}
-                  </select>
+                  <Select value={newContactUserId} onValueChange={setNewContactUserId}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Select..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableForEscalation.map((m) => (
+                        <SelectItem key={m.id} value={String(m.id)}>
+                          {m.full_name} ({m.role_label})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <Button type="submit" size="sm" variant="ghost" disabled={addingContact || !newContactUserId} className="gap-1">
                   <Plus className="h-3.5 w-3.5" />

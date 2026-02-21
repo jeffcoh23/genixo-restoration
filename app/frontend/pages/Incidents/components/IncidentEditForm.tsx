@@ -1,8 +1,10 @@
 import { useForm } from "@inertiajs/react";
-import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { IncidentDetail } from "../types";
 
 interface IncidentEditFormProps {
@@ -30,46 +32,42 @@ export default function IncidentEditForm({ incident, project_types, damage_types
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24">
-      <div className="fixed inset-0 bg-black opacity-40" />
-      <div className="relative bg-background border border-border rounded w-full max-w-lg p-5 shadow-lg max-h-[80vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold">Edit Incident</h3>
-          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={onClose}>
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Edit Incident</DialogTitle>
+        </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Project Type */}
           <div className="space-y-1.5">
-            <Label htmlFor="edit_project_type" className="text-xs">Project Type</Label>
-            <select
-              id="edit_project_type"
-              value={data.project_type}
-              onChange={(e) => setData("project_type", e.target.value)}
-              className="flex h-9 w-full rounded border border-input bg-muted px-3 py-1.5 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            >
-              {project_types.map((pt) => (
-                <option key={pt.value} value={pt.value}>{pt.label}</option>
-              ))}
-            </select>
+            <Label className="text-xs">Project Type</Label>
+            <Select value={data.project_type} onValueChange={(v) => setData("project_type", v)}>
+              <SelectTrigger className="h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {project_types.map((pt) => (
+                  <SelectItem key={pt.value} value={pt.value}>{pt.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             {errors.project_type && <p className="text-xs text-destructive">{errors.project_type}</p>}
           </div>
 
           {/* Damage Type */}
           <div className="space-y-1.5">
-            <Label htmlFor="edit_damage_type" className="text-xs">Damage Type</Label>
-            <select
-              id="edit_damage_type"
-              value={data.damage_type}
-              onChange={(e) => setData("damage_type", e.target.value)}
-              className="flex h-9 w-full rounded border border-input bg-muted px-3 py-1.5 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            >
-              {damage_types.map((dt) => (
-                <option key={dt.value} value={dt.value}>{dt.label}</option>
-              ))}
-            </select>
+            <Label className="text-xs">Damage Type</Label>
+            <Select value={data.damage_type} onValueChange={(v) => setData("damage_type", v)}>
+              <SelectTrigger className="h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {damage_types.map((dt) => (
+                  <SelectItem key={dt.value} value={dt.value}>{dt.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             {errors.damage_type && <p className="text-xs text-destructive">{errors.damage_type}</p>}
           </div>
 
@@ -89,12 +87,12 @@ export default function IncidentEditForm({ incident, project_types, damage_types
           {/* Description */}
           <div className="space-y-1.5">
             <Label htmlFor="edit_description" className="text-xs">Description *</Label>
-            <textarea
+            <Textarea
               id="edit_description"
               rows={4}
               value={data.description}
               onChange={(e) => setData("description", e.target.value)}
-              className="flex w-full rounded border border-input bg-muted px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
+              className="resize-none"
             />
             {errors.description && <p className="text-xs text-destructive">{errors.description}</p>}
           </div>
@@ -102,12 +100,12 @@ export default function IncidentEditForm({ incident, project_types, damage_types
           {/* Cause */}
           <div className="space-y-1.5">
             <Label htmlFor="edit_cause" className="text-xs">Cause</Label>
-            <textarea
+            <Textarea
               id="edit_cause"
               rows={2}
               value={data.cause}
               onChange={(e) => setData("cause", e.target.value)}
-              className="flex w-full rounded border border-input bg-muted px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
+              className="resize-none"
             />
             {errors.cause && <p className="text-xs text-destructive">{errors.cause}</p>}
           </div>
@@ -115,12 +113,12 @@ export default function IncidentEditForm({ incident, project_types, damage_types
           {/* Requested Next Steps */}
           <div className="space-y-1.5">
             <Label htmlFor="edit_next_steps" className="text-xs">Requested Next Steps</Label>
-            <textarea
+            <Textarea
               id="edit_next_steps"
               rows={2}
               value={data.requested_next_steps}
               onChange={(e) => setData("requested_next_steps", e.target.value)}
-              className="flex w-full rounded border border-input bg-muted px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
+              className="resize-none"
             />
             {errors.requested_next_steps && <p className="text-xs text-destructive">{errors.requested_next_steps}</p>}
           </div>
@@ -159,7 +157,7 @@ export default function IncidentEditForm({ incident, project_types, damage_types
             </Button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

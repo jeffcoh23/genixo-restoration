@@ -486,7 +486,6 @@ Individual pieces of equipment in the company's inventory. Each item belongs to 
 | equipment_type_id | bigint | NOT NULL, FK → equipment_types | Category (e.g., "Dehumidifier") |
 | organization_id | bigint | NOT NULL, FK → organizations | Owning mitigation org |
 | equipment_model | string | | Model name (e.g., "LGR 7000XLi") |
-| serial_number | string | | Manufacturer serial number |
 | identifier | string | NOT NULL | Short code (e.g., "DH-042") |
 | active | boolean | NOT NULL, default true | Soft-delete flag |
 | created_at | datetime | NOT NULL | |

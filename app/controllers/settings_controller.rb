@@ -164,17 +164,7 @@ class SettingsController < ApplicationController
   end
 
   def equipment_types
-    authorize_manage_equipment_types!
-
-    org = current_user.organization
-    active_types = org.equipment_types.active.order(:name)
-    inactive_types = org.equipment_types.where(active: false).order(:name)
-
-    render inertia: "Settings/EquipmentTypes", props: {
-      active_types: active_types.map { |t| serialize_equipment_type(t) },
-      inactive_types: inactive_types.map { |t| serialize_equipment_type(t) },
-      create_path: create_equipment_type_path
-    }
+    redirect_to equipment_items_path
   end
 
   def create_equipment_type
@@ -182,9 +172,9 @@ class SettingsController < ApplicationController
 
     et = current_user.organization.equipment_types.new(name: params[:name])
     if et.save
-      redirect_to equipment_types_settings_path, notice: "Equipment type added."
+      redirect_to equipment_items_path, notice: "Equipment type added."
     else
-      redirect_to equipment_types_settings_path,
+      redirect_to equipment_items_path,
         inertia: { errors: et.errors.to_hash },
         alert: et.errors.full_messages.join(", ")
     end
@@ -195,7 +185,7 @@ class SettingsController < ApplicationController
 
     et = current_user.organization.equipment_types.find(params[:id])
     et.update!(active: false)
-    redirect_to equipment_types_settings_path, notice: "#{et.name} deactivated."
+    redirect_to equipment_items_path, notice: "#{et.name} deactivated."
   end
 
   def reactivate_equipment_type
@@ -203,7 +193,7 @@ class SettingsController < ApplicationController
 
     et = current_user.organization.equipment_types.find(params[:id])
     et.update!(active: true)
-    redirect_to equipment_types_settings_path, notice: "#{et.name} reactivated."
+    redirect_to equipment_items_path, notice: "#{et.name} reactivated."
   end
 
   private

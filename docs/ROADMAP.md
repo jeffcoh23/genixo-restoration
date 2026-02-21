@@ -322,22 +322,24 @@ Complete the app for production use.
 
 Update `application.css` tokens and global styles. Zero component code changes — the whole app gets prettier instantly.
 
-- [ ] Refresh DESIGN.md with "warm & polished" direction — new color palette, typography, shadow/depth system
-- [ ] Audit every page against new design tokens, document findings in `docs/UI_AUDIT.md`
-- [ ] Update `application.css` — new color tokens, warmer neutrals, richer shadows, refined borders
-- [ ] Typography refresh — font pairing, weight hierarchy, size tuning
-- [ ] Status color tuning — better contrast and vibrancy against warm backgrounds
-- [ ] Deploy and visual QA — verify token changes look good across all pages
+- [x] Refresh DESIGN.md with "warm & polished" direction — new color palette, typography, shadow/depth system
+- [x] Audit every page against new design tokens, document findings in `docs/UI_AUDIT.md`
+- [x] Update `application.css` — new color tokens, warmer neutrals, richer shadows, refined borders
+- [x] Typography refresh — font pairing, weight hierarchy, size tuning
+- [x] Status color tuning — better contrast and vibrancy against warm backgrounds
+- [x] Deploy and visual QA — verify token changes look good across all pages
 
 ### Phase 6B: Structural Polish (component + layout changes)
 
 Component-level work. Only start after 6A is deployed and validated.
 
 - [ ] Replace ugly default flash messages with a polished toast/notification component
-- [ ] Build missing primitives: `Select`, `Textarea`, `Tabs`, `Dialog/Sheet`, reusable `EmptyStateCard`
+- [x] Install missing shadcn primitives: `Select`, `Textarea` (Tabs, Sheet, Dialog already existed)
+- [x] Replace all raw HTML form controls (`<select>`, `<textarea>`, `<button>`) with shadcn components
+- [x] Migrate all hardcoded colors (`text-blue-600`, `bg-red-50`, `bg-amber-100`, etc.) to design tokens
+- [x] Convert all hand-rolled modals to shadcn Dialog (NoteForm, LaborForm, EquipmentForm, ActivityForm, IncidentEditForm, OverviewPanel)
 - [ ] Add composable layout primitives: `SectionCard`, `CardTable`, `EntityHeader`, standardized section actions
 - [ ] Refactor `DataTable`, `DetailList`, and `StatusBadge` to match DESIGN.md surface + hierarchy rules
-- [ ] Replace page-level raw control styling (`<select>`, `<textarea>`, custom tab buttons) with shared primitives
 - [ ] Centralize status + relative time presentation (`statusColor` + `timeAgo`) into shared UI helpers
 - [ ] Migrate high-traffic pages first: Dashboard, Incidents Index, Incident Show (all right-panel tabs)
 - [ ] Migrate remaining CRUD/detail pages to the composable system (Organizations, Properties, Users, Settings, Invitations)
@@ -352,6 +354,7 @@ Component-level work. Only start after 6A is deployed and validated.
 - [ ] Responsive QA — mobile, tablet, desktop
 - [ ] E2E system tests — critical happy paths (see list below)
 - [ ] Cross-browser check
+- [ ] Performance testing — production-scale data (300+ properties per PM org, 1000+ incidents, 50+ users). Profile N+1 queries, pagination efficiency, index page load times, incident show with 100+ attachments
 
 ### E2E Test Paths (Capybara + Playwright)
 

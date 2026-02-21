@@ -1,7 +1,9 @@
 import { useForm, usePage } from "@inertiajs/react";
-import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SharedProps } from "@/types";
 import type { AssignableUser, LaborEntry } from "../types";
 
@@ -44,30 +46,27 @@ export default function LaborForm({ path, users, onClose, entry }: LaborFormProp
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-      <div className="fixed inset-0 bg-black opacity-40" />
-      <div className="relative bg-background border border-border rounded-t sm:rounded w-full sm:max-w-md p-4 shadow-lg">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold">{editing ? "Edit Labor Entry" : "Add Labor Entry"}</h3>
-          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={onClose}>
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{editing ? "Edit Labor Entry" : "Add Labor Entry"}</DialogTitle>
+        </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-3">
           {users.length > 1 && (
             <div>
               <label className="text-xs font-medium text-muted-foreground">Worker</label>
-              <select
-                value={data.user_id}
-                onChange={(e) => handleUserChange(e.target.value)}
-                className="mt-1 w-full rounded border border-input bg-background px-3 py-2 text-sm"
-              >
-                <option value="">Unattributed</option>
-                {users.map((u) => (
-                  <option key={u.id} value={u.id}>{u.full_name} ({u.role_label})</option>
-                ))}
-              </select>
+              <Select value={data.user_id || "unattributed"} onValueChange={(v) => handleUserChange(v === "unattributed" ? "" : v)}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unattributed">Unattributed</SelectItem>
+                  {users.map((u) => (
+                    <SelectItem key={u.id} value={String(u.id)}>{u.full_name} ({u.role_label})</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           )}
 
@@ -129,11 +128,11 @@ export default function LaborForm({ path, users, onClose, entry }: LaborFormProp
             <label className="text-xs font-medium text-muted-foreground">
               Notes <span className="text-muted-foreground font-normal">(optional)</span>
             </label>
-            <textarea
+            <Textarea
               value={data.notes}
               onChange={(e) => setData("notes", e.target.value)}
               rows={2}
-              className="mt-1 w-full rounded border border-input bg-background px-3 py-2 text-sm resize-none"
+              className="mt-1 resize-none"
               placeholder="What was done?"
             />
           </div>
@@ -145,7 +144,7 @@ export default function LaborForm({ path, users, onClose, entry }: LaborFormProp
             </Button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

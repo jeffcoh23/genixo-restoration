@@ -1,7 +1,8 @@
 import { useForm, usePage } from "@inertiajs/react";
-import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SharedProps } from "@/types";
 
 interface NoteFormProps {
@@ -22,24 +23,20 @@ export default function NoteForm({ path, onClose }: NoteFormProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-      <div className="fixed inset-0 bg-black opacity-40" />
-      <div className="relative bg-background border border-border rounded-t sm:rounded w-full sm:max-w-md p-4 shadow-lg">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold">Add Note</h3>
-          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={onClose}>
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Add Note</DialogTitle>
+        </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
             <label className="text-xs font-medium text-muted-foreground">Note</label>
-            <textarea
+            <Textarea
               value={data.note_text}
               onChange={(e) => setData("note_text", e.target.value)}
               rows={4}
-              className="mt-1 w-full rounded border border-input bg-background px-3 py-2 text-sm resize-none"
+              className="mt-1 resize-none"
               placeholder="What was done? Observations, measurements, next steps..."
               autoFocus
             />
@@ -63,7 +60,7 @@ export default function NoteForm({ path, onClose }: NoteFormProps) {
             </Button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { SharedProps } from "@/types";
 import type { NewIncidentProps, NewIncidentAssignableUser } from "./types";
 
@@ -127,35 +129,33 @@ export default function NewIncident() {
         {/* Organization */}
         {organizations.length > 1 && (
           <div className="space-y-2">
-            <Label htmlFor="organization_id">Organization *</Label>
-            <select
-              id="organization_id"
-              value={selectedOrgId}
-              onChange={(e) => handleOrgChange(e.target.value)}
-              className="flex h-10 w-full rounded border border-input bg-muted px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            >
-              <option value="">Select an organization...</option>
-              {organizations.map((o) => (
-                <option key={o.id} value={o.id}>{o.name}</option>
-              ))}
-            </select>
+            <Label>Organization *</Label>
+            <Select value={selectedOrgId} onValueChange={handleOrgChange}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select an organization..." />
+              </SelectTrigger>
+              <SelectContent>
+                {organizations.map((o) => (
+                  <SelectItem key={o.id} value={String(o.id)}>{o.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         )}
 
         {/* Property */}
         <div className="space-y-2">
-          <Label htmlFor="property_id">Property *</Label>
-          <select
-            id="property_id"
-            value={data.property_id}
-            onChange={(e) => handlePropertyChange(e.target.value)}
-            className="flex h-10 w-full rounded border border-input bg-muted px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          >
-            <option value="">Select a property...</option>
-            {filteredProperties.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
+          <Label>Property *</Label>
+          <Select value={data.property_id} onValueChange={handlePropertyChange}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select a property..." />
+            </SelectTrigger>
+            <SelectContent>
+              {filteredProperties.map((p) => (
+                <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           {errors.property_id && <p className="text-sm text-destructive">{errors.property_id}</p>}
         </div>
 
@@ -214,31 +214,29 @@ export default function NewIncident() {
 
         {/* Damage Type */}
         <div className="space-y-2">
-          <Label htmlFor="damage_type">Damage Type *</Label>
-          <select
-            id="damage_type"
-            value={data.damage_type}
-            onChange={(e) => setData("damage_type", e.target.value)}
-            className="flex h-10 w-full rounded border border-input bg-muted px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          >
-            <option value="">Select damage type...</option>
-            {damage_types.map((dt) => (
-              <option key={dt.value} value={dt.value}>{dt.label}</option>
-            ))}
-          </select>
+          <Label>Damage Type *</Label>
+          <Select value={data.damage_type} onValueChange={(v) => setData("damage_type", v)}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select damage type..." />
+            </SelectTrigger>
+            <SelectContent>
+              {damage_types.map((dt) => (
+                <SelectItem key={dt.value} value={dt.value}>{dt.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           {errors.damage_type && <p className="text-sm text-destructive">{errors.damage_type}</p>}
         </div>
 
         {/* Location of Damage */}
         <div className="space-y-2">
           <Label htmlFor="location_of_damage">Location of Damage</Label>
-          <textarea
+          <Textarea
             id="location_of_damage"
             rows={2}
             value={data.location_of_damage}
             onChange={(e) => setData("location_of_damage", e.target.value)}
             placeholder="Address and area affected..."
-            className="flex w-full rounded border border-input bg-muted px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           />
           {errors.location_of_damage && <p className="text-sm text-destructive">{errors.location_of_damage}</p>}
         </div>
@@ -256,13 +254,12 @@ export default function NewIncident() {
         {/* Description */}
         <div className="space-y-2">
           <Label htmlFor="description">Description *</Label>
-          <textarea
+          <Textarea
             id="description"
             rows={6}
             value={data.description}
             onChange={(e) => setData("description", e.target.value)}
             placeholder="Describe the damage and situation..."
-            className="flex w-full rounded border border-input bg-muted px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           />
           {errors.description && <p className="text-sm text-destructive">{errors.description}</p>}
         </div>
@@ -270,13 +267,12 @@ export default function NewIncident() {
         {/* Cause */}
         <div className="space-y-2">
           <Label htmlFor="cause">Cause</Label>
-          <textarea
+          <Textarea
             id="cause"
             rows={4}
             value={data.cause}
             onChange={(e) => setData("cause", e.target.value)}
             placeholder="Known cause of the damage, if any..."
-            className="flex w-full rounded border border-input bg-muted px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           />
           {errors.cause && <p className="text-sm text-destructive">{errors.cause}</p>}
         </div>
@@ -284,13 +280,12 @@ export default function NewIncident() {
         {/* Requested Next Steps */}
         <div className="space-y-2">
           <Label htmlFor="requested_next_steps">Requested Next Steps</Label>
-          <textarea
+          <Textarea
             id="requested_next_steps"
             rows={4}
             value={data.requested_next_steps}
             onChange={(e) => setData("requested_next_steps", e.target.value)}
             placeholder="What would you like us to do first?"
-            className="flex w-full rounded border border-input bg-muted px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           />
           {errors.requested_next_steps && <p className="text-sm text-destructive">{errors.requested_next_steps}</p>}
         </div>

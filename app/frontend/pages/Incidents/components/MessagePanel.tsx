@@ -3,6 +3,7 @@ import { router } from "@inertiajs/react";
 import { Send, Paperclip, FileText, ExternalLink, MessageCircle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import type { Message, MessageAttachment } from "../types";
 
 interface MessagePanelProps {
@@ -112,14 +113,14 @@ export default function MessagePanel({ messages, messages_path }: MessagePanelPr
           >
             <Paperclip className="h-4 w-4" />
           </Button>
-          <textarea
+          <Textarea
             ref={textareaRef}
             value={body}
             onChange={handleBodyChange}
             onKeyDown={handleKeyDown}
             placeholder="Type a message..."
             rows={1}
-            className="flex-1 resize-none rounded border border-input bg-background px-3 py-2 text-sm leading-snug placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring min-h-9 max-h-[120px]"
+            className="flex-1 resize-none min-h-9 max-h-[120px] leading-snug"
           />
           <Button
             size="icon"

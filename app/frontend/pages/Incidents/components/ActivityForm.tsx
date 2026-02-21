@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { router, usePage } from "@inertiajs/react";
-import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SharedProps } from "@/types";
 import type { AttachableEquipmentEntry, DailyActivity, EquipmentType } from "../types";
 
@@ -66,15 +67,11 @@ export default function ActivityForm({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-      <div className="fixed inset-0 bg-black opacity-40" />
-      <div className="relative bg-background border border-border rounded-t sm:rounded w-full sm:max-w-2xl p-4 shadow-lg max-h-[95vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold">{editing ? "Edit Activity" : "Add Activity"}</h3>
-          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={onClose}>
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-2xl max-h-[95vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{editing ? "Edit Activity" : "Add Activity"}</DialogTitle>
+        </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -145,11 +142,11 @@ export default function ActivityForm({
             <label className="text-xs font-medium text-muted-foreground">
               Details / Reasoning <span className="text-muted-foreground font-normal">(optional)</span>
             </label>
-            <textarea
+            <Textarea
               value={details}
               onChange={(e) => setDetails(e.target.value)}
               rows={8}
-              className="mt-1 w-full rounded border border-input bg-background px-3 py-2 text-sm resize-y"
+              className="mt-1 resize-y"
               placeholder="Detailed work performed — per-unit narratives, measurements, observations..."
             />
           </div>
@@ -158,11 +155,11 @@ export default function ActivityForm({
             <label className="text-xs font-medium text-muted-foreground">
               Visitors <span className="text-muted-foreground font-normal">(optional)</span>
             </label>
-            <textarea
+            <Textarea
               value={visitors}
               onChange={(e) => setVisitors(e.target.value)}
               rows={2}
-              className="mt-1 w-full rounded border border-input bg-background px-3 py-2 text-sm resize-none"
+              className="mt-1 resize-none"
               placeholder="People present on-site..."
             />
           </div>
@@ -200,7 +197,7 @@ export default function ActivityForm({
             </Button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
