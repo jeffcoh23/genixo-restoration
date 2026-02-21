@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { router, usePage } from "@inertiajs/react";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Package, Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import EmptyState from "@/components/EmptyState";
 import { SharedProps } from "@/types";
 import type { EquipmentLogItem, EquipmentType } from "../types";
 import EquipmentForm from "./EquipmentForm";
@@ -36,8 +37,12 @@ export default function EquipmentPanel({ equipment_log = [], can_manage_equipmen
       )}
 
       {equipment_log.length === 0 ? (
-        <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm py-12">
-          No equipment recorded yet.
+        <div className="flex-1 flex items-center justify-center">
+          <EmptyState
+            icon={<Package className="h-8 w-8" />}
+            title="No equipment recorded yet"
+            description="Track dehumidifiers, air movers, and other equipment placed on this job."
+          />
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto">

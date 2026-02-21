@@ -20,19 +20,22 @@ const tabs = [
 export default function RightPanelShell({ activeTab, onTabChange, unreadMessages = 0, unreadActivity = 0, children }: RightPanelShellProps) {
   return (
     <div className="flex flex-col h-full">
-      <div className="flex border-b border-border">
+      <div className="flex overflow-x-auto border-b border-border shrink-0" role="tablist">
         {tabs.map((tab) => {
           const badge = tab.key === "messages" ? unreadMessages
             : tab.key === "daily_log" ? unreadActivity
             : 0;
+          const isActive = activeTab === tab.key;
 
           return (
             <Button
               key={tab.key}
               variant="ghost"
+              role="tab"
+              aria-selected={isActive}
               onClick={() => onTabChange(tab.key)}
-              className={`px-4 py-2 h-auto rounded-none text-sm font-medium border-b-2 transition-colors ${
-                activeTab === tab.key
+              className={`px-4 py-2.5 sm:py-2 h-auto rounded-none text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                isActive
                   ? "border-primary text-foreground"
                   : "border-transparent text-muted-foreground hover:text-foreground"
               }`}

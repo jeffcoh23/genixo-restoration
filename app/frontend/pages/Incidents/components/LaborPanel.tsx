@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { Clock, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import EmptyState from "@/components/EmptyState";
 import type { AssignableUser, LaborEntry, LaborLog } from "../types";
 import LaborForm from "./LaborForm";
 
@@ -29,8 +30,12 @@ export default function LaborPanel({ labor_log, labor_entries: _labor_entries, c
       )}
 
       {!hasData ? (
-        <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm py-12">
-          No labor hours recorded yet.
+        <div className="flex-1 flex items-center justify-center">
+          <EmptyState
+            icon={<Clock className="h-8 w-8" />}
+            title="No labor hours recorded yet"
+            description="Log work hours for technicians and crew members on this job."
+          />
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto">

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
-import { ChevronDown, Download, Pencil, Plus } from "lucide-react";
+import { CalendarDays, ChevronDown, Download, Pencil, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import EmptyState from "@/components/EmptyState";
 import type {
   AttachableEquipmentEntry,
   DailyActivity,
@@ -116,8 +117,12 @@ export default function DailyLogPanel({
 
   if (hasNoActivity && !can_manage_activities) {
     return (
-      <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm py-12">
-        No activity recorded yet.
+      <div className="flex-1 flex items-center justify-center">
+        <EmptyState
+          icon={<CalendarDays className="h-8 w-8" />}
+          title="No activity recorded yet"
+          description="Daily field activities, equipment placements, and labor hours will appear here."
+        />
       </div>
     );
   }
