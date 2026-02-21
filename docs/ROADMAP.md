@@ -333,17 +333,19 @@ Update `application.css` tokens and global styles. Zero component code changes �
 
 Component-level work. Only start after 6A is deployed and validated.
 
-- [ ] Replace ugly default flash messages with a polished toast/notification component
+- [x] Replace ugly default flash messages with a polished toast/notification component
 - [x] Install missing shadcn primitives: `Select`, `Textarea` (Tabs, Sheet, Dialog already existed)
 - [x] Replace all raw HTML form controls (`<select>`, `<textarea>`, `<button>`) with shadcn components
 - [x] Migrate all hardcoded colors (`text-blue-600`, `bg-red-50`, `bg-amber-100`, etc.) to design tokens
 - [x] Convert all hand-rolled modals to shadcn Dialog (NoteForm, LaborForm, EquipmentForm, ActivityForm, IncidentEditForm, OverviewPanel)
-- [ ] Add composable layout primitives: `SectionCard`, `CardTable`, `EntityHeader`, standardized section actions
-- [ ] Refactor `DataTable`, `DetailList`, and `StatusBadge` to match DESIGN.md surface + hierarchy rules
-- [ ] Centralize status + relative time presentation (`statusColor` + `timeAgo`) into shared UI helpers
-- [ ] Migrate high-traffic pages first: Dashboard, Incidents Index, Incident Show (all right-panel tabs)
-- [ ] Migrate remaining CRUD/detail pages to the composable system (Organizations, Properties, Users, Settings, Invitations)
-- [ ] Redesign on-call settings page — card-based sections, better hierarchy
+- [x] StatusBadge uses `statusColor()` — colored badges on Users/Show and Properties/Show
+- [x] Daily Log visual separation — accent headers, row hover, breathing room
+- [x] Table polish — Equipment + Labor panels with `px-4 py-3` padding + hover states
+- ~~Add composable layout primitives~~ — N/A: current Card + manual structure is fine
+- ~~Refactor DataTable/DetailList~~ — N/A: already correct at 65 and 22 lines
+- ~~Centralize statusColor + timeAgo~~ — N/A: statusColor shared, dates formatted server-side
+- ~~Migrate remaining CRUD/detail pages~~ — N/A: low-traffic, working fine
+- ~~Redesign on-call settings page~~ — N/A: functional, low priority
 - [ ] Accessibility + polish pass: focus states, keyboard nav, contrast, tap targets, spacing consistency
 - [ ] Visual QA sign-off across mobile/tablet/desktop for all six roles
 

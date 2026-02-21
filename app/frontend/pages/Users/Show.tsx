@@ -16,6 +16,7 @@ interface AssignedProperty {
 interface AssignedIncident {
   id: number;
   summary: string;
+  status: string;
   status_label: string;
   property_name: string;
   path: string;
@@ -109,7 +110,7 @@ export default function UserShow() {
                 <Link href={i.path} className="font-medium text-primary hover:underline">{i.summary}</Link>
                 <span className="text-sm text-muted-foreground ml-2">{i.property_name}</span>
               </div>
-              <StatusBadge label={i.status_label} />
+              <StatusBadge status={i.status} label={i.status_label} />
             </DetailRow>
           ))}
         </DetailList>

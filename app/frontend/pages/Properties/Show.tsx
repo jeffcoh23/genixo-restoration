@@ -27,6 +27,7 @@ interface AssignableUser {
 interface PropertyIncident {
   id: number;
   summary: string;
+  status: string;
   status_label: string;
   path: string;
 }
@@ -143,7 +144,7 @@ export default function PropertyShow() {
           {property.incidents.map((incident) => (
             <DetailRow key={incident.id}>
               <Link href={incident.path} className="font-medium text-primary hover:underline">{incident.summary}</Link>
-              <StatusBadge label={incident.status_label} />
+              <StatusBadge status={incident.status} label={incident.status_label} />
             </DetailRow>
           ))}
         </DetailList>

@@ -27,7 +27,7 @@ export default function EquipmentPanel({ equipment_log = [], can_manage_equipmen
   return (
     <div className="flex flex-col h-full">
       {can_manage_equipment && (
-        <div className="flex items-center gap-1 border-b border-border px-3 py-2 shrink-0">
+        <div className="flex items-center gap-1 border-b border-border px-4 py-3 shrink-0">
           <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => setShowForm(true)}>
             <Plus className="h-3 w-3" />
             Add Equipment
@@ -45,28 +45,28 @@ export default function EquipmentPanel({ equipment_log = [], can_manage_equipmen
             <table className="w-full text-sm">
               <thead className="bg-muted border-b border-border sticky top-0">
                 <tr>
-                  <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Type</th>
-                  <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Model</th>
-                  <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground w-[100px]">ID #</th>
-                  <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Location</th>
-                  <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Placed</th>
-                  <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Removed</th>
-                  <th className="px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground w-[70px]">Hours</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Type</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Model</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground w-[100px]">ID #</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Location</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Placed</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Removed</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground w-[70px]">Hours</th>
                   {can_manage_equipment && (
-                    <th className="px-3 py-2 w-[70px]" />
+                    <th className="px-4 py-3 w-[70px]" />
                   )}
                 </tr>
               </thead>
               <tbody>
                 {equipment_log.map((item) => (
-                  <tr key={item.id} className="border-b border-border last:border-b-0 group">
-                    <td className="px-3 py-2 text-sm font-medium text-foreground">{item.type_name}</td>
-                    <td className="px-3 py-2 text-sm text-muted-foreground">{item.equipment_model || "—"}</td>
-                    <td className="px-3 py-2 text-sm text-muted-foreground">{item.equipment_identifier || "—"}</td>
-                    <td className="px-3 py-2 text-sm text-muted-foreground">{item.location_notes || "—"}</td>
-                    <td className="px-3 py-2 text-sm text-muted-foreground whitespace-nowrap">{item.placed_at_label}</td>
-                    <td className="px-3 py-2 text-sm text-muted-foreground whitespace-nowrap">{item.removed_at_label || "—"}</td>
-                    <td className="px-3 py-2 text-sm text-muted-foreground text-right tabular-nums">{item.total_hours}</td>
+                  <tr key={item.id} className="border-b border-border last:border-b-0 group hover:bg-muted/30 transition-colors">
+                    <td className="px-4 py-3 text-sm font-medium text-foreground">{item.type_name}</td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground">{item.equipment_model || "—"}</td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground">{item.equipment_identifier || "—"}</td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground">{item.location_notes || "—"}</td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">{item.placed_at_label}</td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">{item.removed_at_label || "—"}</td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground text-right tabular-nums">{item.total_hours}</td>
                     {can_manage_equipment && (
                       <td className="px-2 py-2">
                         <div className="flex items-center gap-0.5">

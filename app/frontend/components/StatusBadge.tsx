@@ -1,7 +1,6 @@
-export default function StatusBadge({ label }: { label: string }) {
-  return (
-    <span className="text-xs px-2 py-1 rounded-full bg-muted text-muted-foreground">
-      {label}
-    </span>
-  );
+import { Badge } from "@/components/ui/badge";
+import { statusColor } from "@/lib/statusColor";
+
+export default function StatusBadge({ status, label }: { status: string; label: string }) {
+  return <Badge className={`text-xs ${statusColor(status)}`}>{label}</Badge>;
 }

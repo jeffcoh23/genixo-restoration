@@ -20,7 +20,7 @@ export default function LaborPanel({ labor_log, labor_entries: _labor_entries, c
   return (
     <div className="flex flex-col h-full">
       {can_manage_labor && (
-        <div className="flex items-center gap-1 border-b border-border px-3 py-2 shrink-0">
+        <div className="flex items-center gap-1 border-b border-border px-4 py-3 shrink-0">
           <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => setShowForm(true)}>
             <Plus className="h-3 w-3" />
             Add Labor
@@ -38,40 +38,40 @@ export default function LaborPanel({ labor_log, labor_entries: _labor_entries, c
             <table className="w-full text-sm">
               <thead className="bg-muted border-b border-border sticky top-0">
                 <tr>
-                  <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground sticky left-0 bg-muted z-10 min-w-[140px]">
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground sticky left-0 bg-muted z-10 min-w-[140px]">
                     Employee
                   </th>
-                  <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-[100px]">
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-[100px]">
                     Title
                   </th>
                   {labor_log.date_labels.map((label, i) => (
-                    <th key={labor_log.dates[i]} className="px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-[80px]">
+                    <th key={labor_log.dates[i]} className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-[80px]">
                       {label}
                     </th>
                   ))}
-                  <th className="px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-[70px]">
+                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-[70px]">
                     Total
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {labor_log.employees.map((emp, i) => (
-                    <tr key={i} className="border-b border-border last:border-b-0">
-                      <td className="px-3 py-2 text-sm font-medium text-foreground sticky left-0 bg-background z-10">
+                    <tr key={i} className="border-b border-border last:border-b-0 hover:bg-muted/30 transition-colors">
+                      <td className="px-4 py-3 text-sm font-medium text-foreground sticky left-0 bg-background z-10">
                         {emp.name}
                       </td>
-                      <td className="px-3 py-2 text-sm text-muted-foreground">
+                      <td className="px-4 py-3 text-sm text-muted-foreground">
                         {emp.title}
                       </td>
                       {labor_log.dates.map((dateKey) => {
                         const hours = emp.hours_by_date[dateKey];
                         return (
-                          <td key={dateKey} className="px-3 py-2 text-sm text-muted-foreground text-right tabular-nums">
+                          <td key={dateKey} className="px-4 py-3 text-sm text-muted-foreground text-right tabular-nums">
                             {hours != null ? hours : ""}
                           </td>
                         );
                       })}
-                      <td className="px-3 py-2 text-sm font-medium text-foreground text-right tabular-nums">
+                      <td className="px-4 py-3 text-sm font-medium text-foreground text-right tabular-nums">
                         {emp.total_hours}
                       </td>
                     </tr>

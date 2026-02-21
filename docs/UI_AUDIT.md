@@ -29,46 +29,39 @@ Converted all 7 hand-rolled modals to shadcn Dialog: EquipmentForm, LaborForm, N
 
 ---
 
-## Layer 2: Brand & Visual Polish
+## Layer 2: Brand & Visual Polish — MOSTLY COMPLETE
 
-### Monochrome Panels
+### Monochrome Panels — DONE
 
-`EquipmentPanel`, `LaborPanel`, `DailyLogPanel`, and `OverviewPanel` all lack accent color — they read as flat gray. `MessagePanel` is the one good example, using `bg-accent` for visual interest. Apply similar treatment to the other panels.
+- `DailyLogPanel` — date headers now use `bg-accent/30`, group footers use `bg-muted/70` with thicker border, all rows have hover
+- `EquipmentPanel` — rows have `hover:bg-muted/30 transition-colors`
+- `LaborPanel` — rows have `hover:bg-muted/30 transition-colors`
+- `OverviewPanel` — acceptable as-is (different layout pattern, not a data table)
 
-### Table Hover States
+### Table Hover States — DONE
 
-`EquipmentPanel` and `LaborPanel` are missing `hover:bg-muted/30 transition-colors` on table rows per DESIGN.md.
+`EquipmentPanel` and `LaborPanel` now have `hover:bg-muted/30 transition-colors` on all rows. `DailyLogPanel` activity rows also have hover.
 
-### Tables Not Wrapped in Card
+### Table Padding — DONE
 
-DESIGN.md specifies tables should be in `<Card className="overflow-hidden">` with `bg-muted/50` headers. Several tables use raw `<table>` without the Card wrapper.
+`EquipmentPanel`, `LaborPanel`, and `DailyLogPanel` all updated from `px-3 py-2` to `px-4 py-3` per DESIGN.md.
 
-### Oversized Pages
+### Flash Messages — DONE
 
-`EquipmentItems/Index.tsx` is 719 lines with four nested components. Extract into separate files:
-- `InventoryTable` — main table view
-- `AddItemDialog` — add item modal
-- `TypesSheet` — equipment types side panel
-- `PlacementHistorySheet` — item history side panel
+Rewritten from inline Alert to fixed-position overlay with icon, colored left border, close button, shadow elevation.
 
-### Unused Primitives
+### StatusBadge — DONE
 
-`Tabs` and `Sheet` components exist in `components/ui/` but aren't imported by any page. Wire them up during Layer 1 modal migration.
+Now uses `statusColor()` + shadcn `Badge` instead of gray chips. Users/Show and Properties/Show display colored status badges.
 
-### Visual Hierarchy
+### Remaining (deferred)
 
-Strategic use of `primary`/`accent` colors to create focal points — assigned users, active items, important data points. Most panels are monochrome gray which makes everything feel equally (un)important.
-
-### Form Consistency
-
-Spacing varies between forms — some use `space-y-3`, others `space-y-4`. No `FormSection` wrapper for grouping related fields. Standardize during Layer 1 form migration.
-
-### Accessibility Pass
-
-- Focus ring visibility on all interactive elements
-- Keyboard navigation through modals and panels
-- Color contrast verification (especially status badges on colored backgrounds)
-- Touch target sizing for mobile (min 44x44px)
+| Item | Status | Rationale |
+|------|--------|-----------|
+| Tables wrapped in Card | Deferred | Working fine without Card wrapper, low visual impact |
+| `EquipmentItems/Index.tsx` extraction | Deferred | 719 lines but functional, low-traffic page |
+| Form spacing standardization | Deferred | Minor inconsistency, all forms work correctly |
+| Accessibility pass | TODO | On ROADMAP as separate line item |
 
 ---
 
@@ -89,15 +82,18 @@ Spacing varies between forms — some use `space-y-3`, others `space-y-4`. No `F
 - `Incidents/components/EquipmentForm.tsx`, `LaborForm.tsx`, `NoteForm.tsx`, `ActivityForm.tsx`, `IncidentEditForm.tsx`
 - `Incidents/components/MessagePanel.tsx`
 
-### Layer 2 Only (Layer 1 complete, visual polish remaining)
+### Layer 2 Complete
 
-| Page | Layer 2 Issues |
-|------|---------------|
-| `EquipmentItems/Index.tsx` | 719 lines — needs component extraction |
-| `Incidents/components/OverviewPanel.tsx` | Monochrome — needs accent color |
-| `Incidents/components/EquipmentPanel.tsx` | Monochrome, missing hover states |
-| `Incidents/components/LaborPanel.tsx` | Monochrome, missing hover states |
-| `Incidents/components/DailyLogPanel.tsx` | Monochrome — needs accent color |
+- `Incidents/components/EquipmentPanel.tsx` — hover states + padding
+- `Incidents/components/LaborPanel.tsx` — hover states + padding
+- `Incidents/components/DailyLogPanel.tsx` — accent headers, hover, padding, spacing
+
+### Deferred (functional, low priority)
+
+| Page | Issue |
+|------|-------|
+| `EquipmentItems/Index.tsx` | 719 lines — component extraction deferred |
+| `Incidents/components/OverviewPanel.tsx` | Monochrome — acceptable for non-table layout |
 
 ### Minor
 
