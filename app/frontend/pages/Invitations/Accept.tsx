@@ -14,8 +14,9 @@ interface InvitationData {
 }
 
 export default function AcceptInvitation() {
-  const { invitation, errors } = usePage<{
+  const { invitation, accept_path, errors } = usePage<{
     invitation: InvitationData;
+    accept_path: string;
     errors?: Record<string, string[]>;
   }>().props;
 
@@ -29,7 +30,7 @@ export default function AcceptInvitation() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    form.post(`/invitations/${invitation.token}/accept`);
+    form.post(accept_path);
   }
 
   return (

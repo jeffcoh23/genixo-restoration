@@ -55,7 +55,8 @@ class InvitationsController < ApplicationController
         first_name: @invitation.first_name,
         last_name: @invitation.last_name,
         phone: @invitation.phone
-      }
+      },
+      accept_path: accept_invitation_path(@invitation.token)
     }
   end
 
