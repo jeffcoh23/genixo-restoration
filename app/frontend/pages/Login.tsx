@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle, CheckCircle } from "lucide-react";
 import { FormEvent } from "react";
 
 interface FlashMessages {
@@ -40,14 +42,16 @@ export default function Login() {
         </CardHeader>
         <CardContent>
           {flash.alert && (
-            <div className="mb-4 rounded bg-destructive-foreground px-3 py-2 text-sm text-destructive">
-              {flash.alert}
-            </div>
+            <Alert variant="destructive" className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{flash.alert}</AlertDescription>
+            </Alert>
           )}
           {flash.notice && (
-            <div className="mb-4 rounded bg-muted px-3 py-2 text-sm text-primary">
-              {flash.notice}
-            </div>
+            <Alert className="mb-4 border-status-success/40 bg-status-success/10">
+              <CheckCircle className="h-4 w-4 text-status-success" />
+              <AlertDescription>{flash.notice}</AlertDescription>
+            </Alert>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">

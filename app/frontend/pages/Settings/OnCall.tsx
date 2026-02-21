@@ -5,6 +5,7 @@ import AppLayout from "@/layout/AppLayout";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { SharedProps } from "@/types";
 
@@ -106,9 +107,9 @@ export default function OnCallSettings() {
           <h2 className="text-sm font-semibold text-foreground mb-4">Primary Contact</h2>
           <form onSubmit={handleSaveConfig} className="space-y-4 max-w-md">
             <div>
-              <label className="text-xs font-medium text-muted-foreground">
+              <Label>
                 Primary On-Call <span className="text-destructive">*</span>
-              </label>
+              </Label>
               <Select value={String(primaryUserId)} onValueChange={(v) => setPrimaryUserId(v)}>
                 <SelectTrigger className="mt-1">
                   <SelectValue placeholder="Select a manager..." />
@@ -124,9 +125,7 @@ export default function OnCallSettings() {
             </div>
 
             <div>
-              <label className="text-xs font-medium text-muted-foreground">
-                Escalation Timeout (minutes)
-              </label>
+              <Label>Escalation Timeout (minutes)</Label>
               <Input
                 type="number"
                 min={1}
@@ -206,7 +205,7 @@ export default function OnCallSettings() {
             {availableForEscalation.length > 0 && (
               <form onSubmit={handleAddContact} className="mt-4 flex items-end gap-2 border-t border-border pt-4">
                 <div className="flex-1 max-w-[280px]">
-                  <label className="text-xs font-medium text-muted-foreground">Add Contact</label>
+                  <Label>Add Contact</Label>
                   <Select value={newContactUserId} onValueChange={setNewContactUserId}>
                     <SelectTrigger className="mt-1">
                       <SelectValue placeholder="Select..." />
