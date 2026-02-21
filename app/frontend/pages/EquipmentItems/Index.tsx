@@ -179,15 +179,16 @@ export default function EquipmentIndex() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search identifier or model..."
-            className="h-8 pl-8 pr-8 w-64 text-sm"
+            className="h-10 sm:h-8 pl-8 pr-8 w-64 text-sm"
           />
           {search && (
             <Button
               type="button"
               variant="ghost"
               size="sm"
-              className="absolute right-2 top-1/2 -translate-y-1/2 h-5 w-5 p-0 text-muted-foreground hover:text-foreground"
+              className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 sm:h-5 sm:w-5 p-0 text-muted-foreground hover:text-foreground"
               onClick={() => setSearch("")}
+              aria-label="Clear search"
             >
               <X className="h-3.5 w-3.5" />
             </Button>
@@ -195,7 +196,7 @@ export default function EquipmentIndex() {
         </div>
 
         <Select value={typeFilter || "all"} onValueChange={(v) => setTypeFilter(v === "all" ? "" : v)}>
-          <SelectTrigger className="h-8 w-[160px] text-sm">
+          <SelectTrigger className="h-10 sm:h-8 w-[160px] text-sm">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -207,7 +208,7 @@ export default function EquipmentIndex() {
         </Select>
 
         <Select value={statusFilter || "all"} onValueChange={(v) => setStatusFilter(v === "all" ? "" : v)}>
-          <SelectTrigger className="h-8 w-[140px] text-sm">
+          <SelectTrigger className="h-10 sm:h-8 w-[140px] text-sm">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -218,7 +219,7 @@ export default function EquipmentIndex() {
         </Select>
 
         {hasFilters && (
-          <Button variant="ghost" size="sm" className="h-8 text-xs text-muted-foreground" onClick={clearFilters}>
+          <Button variant="ghost" size="sm" className="h-10 sm:h-8 text-sm sm:text-xs text-muted-foreground" onClick={clearFilters}>
             Clear filters
           </Button>
         )}
@@ -230,7 +231,7 @@ export default function EquipmentIndex() {
           <Button
             variant="outline"
             size="sm"
-            className="h-8 gap-1.5 text-xs"
+            className="h-10 sm:h-8 gap-1.5 text-sm sm:text-xs"
             onClick={() => setTypesOpen(true)}
           >
             <Settings2 className="h-3.5 w-3.5" />
@@ -435,7 +436,7 @@ function TypesSheet({
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-7 text-xs text-muted-foreground hover:text-destructive"
+                          className="h-8 sm:h-7 text-sm sm:text-xs text-muted-foreground hover:text-destructive"
                           onClick={() => router.patch(et.deactivate_path!)}
                         >
                           Deactivate
@@ -445,7 +446,7 @@ function TypesSheet({
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-7 text-xs"
+                          className="h-8 sm:h-7 text-sm sm:text-xs"
                           onClick={() => router.patch(et.reactivate_path!)}
                         >
                           Reactivate
@@ -593,15 +594,16 @@ function InventoryTable({
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-7 w-7 p-0 text-muted-foreground"
+                          className="h-8 w-8 sm:h-7 sm:w-7 p-0 text-muted-foreground"
                           onClick={() => onStartEdit(item)}
+                          aria-label={`Edit ${item.identifier}`}
                         >
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-7 text-xs text-muted-foreground"
+                          className="h-8 sm:h-7 text-sm sm:text-xs text-muted-foreground hover:text-destructive"
                           onClick={() => onDeactivate(item)}
                         >
                           Remove

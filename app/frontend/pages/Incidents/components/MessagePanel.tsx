@@ -25,12 +25,13 @@ export default function MessagePanel({ messages, messages_path }: MessagePanelPr
     }
   }, [messages.length]);
 
+  const hasContent = body.trim().length > 0 || files.length > 0;
+
   const handleSend = () => {
-    const trimmed = body.trim();
-    if (!trimmed || sending) return;
+    if (!hasContent || sending) return;
     setSending(true);
 
-    router.post(messages_path, { message: { body: trimmed, files } }, {
+    router.post(messages_path, { message: { body: body.trim(), files } }, {
       forceFormData: files.length > 0,
       preserveScroll: true,
       onSuccess: () => {
@@ -125,7 +126,7 @@ export default function MessagePanel({ messages, messages_path }: MessagePanelPr
           <Button
             size="icon"
             onClick={handleSend}
-            disabled={!body.trim() || sending}
+            disabled={!hasContent || sending}
             className="shrink-0 h-9 w-9"
           >
             <Send className="h-4 w-4" />

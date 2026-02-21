@@ -346,8 +346,8 @@ export default function NewIncident() {
               <div key={index} className="rounded border border-input p-3 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-medium text-muted-foreground">Contact {index + 1}</span>
-                  <Button type="button" variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive" onClick={() => removeContact(index)}>
-                    <Trash2 className="h-3 w-3" />
+                  <Button type="button" variant="ghost" size="sm" className="h-8 w-8 sm:h-6 sm:w-6 p-0 text-muted-foreground hover:text-destructive" onClick={() => removeContact(index)} aria-label={`Remove contact ${index + 1}`}>
+                    <Trash2 className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
                   </Button>
                 </div>
                 <Input

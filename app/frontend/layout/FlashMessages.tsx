@@ -33,7 +33,7 @@ export default function FlashMessages({ flash }: FlashMessagesProps) {
           <div className="flex items-start gap-3">
             <CheckCircle className="h-5 w-5 text-status-success shrink-0 mt-0.5" />
             <AlertDescription className="flex-1 text-sm text-foreground">{flash.notice}</AlertDescription>
-            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0 text-muted-foreground hover:text-foreground" onClick={dismiss}>
+            <Button variant="ghost" size="sm" className="h-8 w-8 sm:h-6 sm:w-6 p-0 shrink-0 text-muted-foreground hover:text-foreground" onClick={dismiss}>
               <X className="h-4 w-4" />
             </Button>
           </div>
@@ -44,7 +44,7 @@ export default function FlashMessages({ flash }: FlashMessagesProps) {
           <div className="flex items-start gap-3">
             <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
             <AlertDescription className="flex-1 text-sm">{flash.alert}</AlertDescription>
-            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0 text-muted-foreground hover:text-foreground" onClick={dismiss}>
+            <Button variant="ghost" size="sm" className="h-8 w-8 sm:h-6 sm:w-6 p-0 shrink-0 text-muted-foreground hover:text-foreground" onClick={dismiss}>
               <X className="h-4 w-4" />
             </Button>
           </div>

@@ -75,7 +75,7 @@ export default function EquipmentTypesSettings() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-7 text-xs text-muted-foreground hover:text-destructive"
+                        className="h-10 sm:h-7 text-sm sm:text-xs text-muted-foreground hover:text-destructive"
                         onClick={() => router.patch(et.deactivate_path!)}
                       >
                         Deactivate
@@ -98,7 +98,7 @@ export default function EquipmentTypesSettings() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-7 text-xs"
+                        className="h-10 sm:h-7 text-sm sm:text-xs"
                         onClick={() => router.patch(et.reactivate_path!)}
                       >
                         Reactivate
