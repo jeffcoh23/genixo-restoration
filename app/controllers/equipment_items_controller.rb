@@ -79,7 +79,9 @@ class EquipmentItemsController < ApplicationController
       property_name: entry.incident.property.name,
       job_id: entry.incident.job_id,
       placed_at: entry.placed_at.iso8601,
+      placed_at_formatted: I18n.l(entry.placed_at.to_date, format: :short),
       removed_at: entry.removed_at&.iso8601,
+      removed_at_formatted: entry.removed_at ? I18n.l(entry.removed_at.to_date, format: :short) : nil,
       location_notes: entry.location_notes
     }
   end

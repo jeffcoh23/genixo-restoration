@@ -27,7 +27,9 @@ interface Placement {
   property_name: string;
   job_id: string | null;
   placed_at: string;
+  placed_at_formatted: string;
   removed_at: string | null;
+  removed_at_formatted: string | null;
   location_notes: string | null;
 }
 
@@ -573,13 +575,13 @@ function InventoryTable({
                 ) : (
                   <>
                     <td className="px-4 py-3">
-                      <button
-                        type="button"
+                      <Button
+                        variant="link"
+                        className="h-auto p-0 font-medium"
                         onClick={() => onViewHistory(item)}
-                        className="font-medium text-primary hover:underline cursor-pointer"
                       >
                         {item.identifier}
-                      </button>
+                      </Button>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">{item.type_name}</td>
                     <td className="px-4 py-3 text-muted-foreground">{item.equipment_model || "—"}</td>
@@ -644,13 +646,6 @@ function PlacementHistorySheet({
 }) {
   if (!item) return null;
 
-  const formatDate = (iso: string) => {
-    return new Date(iso).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-  };
 
   return (
     <Sheet open={!!item} onOpenChange={(open) => !open && onClose()}>
@@ -695,14 +690,14 @@ function PlacementHistorySheet({
                           )}
                         </div>
                         {!p.removed_at && (
-                          <span className="shrink-0 rounded bg-status-warning/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-status-warning">
+                          <span className="shrink-0 rounded bg-status-warning/15 px-1.5 py-0.5 text-xs font-semibold uppercase text-status-warning">
                             Active
                           </span>
                         )}
                       </div>
                       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                        <span>Placed: {formatDate(p.placed_at)}</span>
-                        {p.removed_at && <span>Removed: {formatDate(p.removed_at)}</span>}
+                        <span>Placed: {p.placed_at_formatted}</span>
+                        {p.removed_at_formatted && <span>Removed: {p.removed_at_formatted}</span>}
                       </div>
                       {p.location_notes && (
                         <p className="mt-1.5 text-xs text-muted-foreground italic">
