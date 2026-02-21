@@ -167,29 +167,32 @@ export default function OnCallSettings() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                        className="h-8 w-8 sm:h-6 sm:w-6 p-0 text-muted-foreground hover:text-foreground"
                         onClick={() => handleMoveContact(idx, "up")}
                         disabled={idx === 0}
                         title="Move up"
+                        aria-label="Move up"
                       >
                         <ArrowUp className="h-3.5 w-3.5" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                        className="h-8 w-8 sm:h-6 sm:w-6 p-0 text-muted-foreground hover:text-foreground"
                         onClick={() => handleMoveContact(idx, "down")}
                         disabled={idx === config.contacts.length - 1}
                         title="Move down"
+                        aria-label="Move down"
                       >
                         <ArrowDown className="h-3.5 w-3.5" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                        className="h-8 w-8 sm:h-6 sm:w-6 p-0 text-muted-foreground hover:text-destructive"
                         onClick={() => handleRemoveContact(contact.remove_path)}
                         title={`Remove ${contact.full_name}`}
+                        aria-label={`Remove ${contact.full_name}`}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>

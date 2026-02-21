@@ -1,9 +1,10 @@
 import { Link, router, usePage } from "@inertiajs/react";
-import { AlertTriangle, Search, X, ChevronLeft, ChevronRight, ArrowUpDown, MessageSquare, Activity } from "lucide-react";
+import { AlertTriangle, Search, X, ChevronLeft, ChevronRight, ArrowUpDown, MessageSquare, Activity, Inbox } from "lucide-react";
 import { useState, useCallback } from "react";
 import AppLayout from "@/layout/AppLayout";
 import PageHeader from "@/components/PageHeader";
 import MultiFilterSelect from "@/components/MultiFilterSelect";
+import EmptyState from "@/components/EmptyState";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -118,14 +119,14 @@ export default function IncidentsIndex() {
       />
 
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-2 mb-4">
+      <div className="flex flex-wrap items-center gap-2 mb-3">
         <form onSubmit={handleSearch} className="relative w-52 flex items-center">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search..."
-            className="pl-8 pr-16 h-8 text-sm"
+            className="pl-8 pr-16 h-10 sm:h-8 text-sm"
           />
           <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
             {search && (
@@ -133,7 +134,7 @@ export default function IncidentsIndex() {
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                className="h-8 w-8 sm:h-6 sm:w-6 p-0 text-muted-foreground hover:text-foreground"
                 onClick={() => { setSearch(""); navigate({ search: null }); }}
               >
                 <X className="h-3.5 w-3.5" />
@@ -143,7 +144,7 @@ export default function IncidentsIndex() {
               type="submit"
               variant="ghost"
               size="sm"
-              className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+              className="h-8 w-8 sm:h-6 sm:w-6 p-0 text-muted-foreground hover:text-foreground"
             >
               <Search className="h-3.5 w-3.5" />
             </Button>
@@ -186,10 +187,17 @@ export default function IncidentsIndex() {
         />
       </div>
 
+      {/* Active filter chips */}
+      <ActiveFilterChips filters={filters} filterOptions={filter_options} navigate={navigate} onClearSearch={() => setSearch("")} />
+
       {/* Table */}
       {incidents.length === 0 ? (
-        <div className="rounded-lg border border-border bg-card shadow-sm p-8 text-center">
-          <p className="text-muted-foreground">No incidents match your filters.</p>
+        <div className="rounded-lg border border-border bg-card shadow-sm">
+          <EmptyState
+            icon={<Inbox className="h-8 w-8" />}
+            title="No incidents match your filters"
+            description="Try adjusting your search or filter criteria."
+          />
         </div>
       ) : (
         <div className="rounded-lg border border-border bg-card shadow-sm overflow-hidden">
@@ -284,6 +292,73 @@ export default function IncidentsIndex() {
         </div>
       )}
     </AppLayout>
+  );
+}
+
+function ActiveFilterChips({
+  filters,
+  filterOptions,
+  navigate,
+  onClearSearch,
+}: {
+  filters: Filters;
+  filterOptions: FilterOptions;
+  navigate: (params: Record<string, string | number | null | undefined>) => void;
+  onClearSearch: () => void;
+}) {
+  const chips: { label: string; onClear: () => void }[] = [];
+
+  if (filters.search) {
+    chips.push({ label: `Search: "${filters.search}"`, onClear: () => { onClearSearch(); navigate({ search: null }); } });
+  }
+  if (filters.status) {
+    const labels = filters.status.split(",").map((v) => filterOptions.statuses.find((s) => s.value === v)?.label || v);
+    chips.push({ label: `Status: ${labels.join(", ")}`, onClear: () => navigate({ status: null }) });
+  }
+  if (filters.property_id) {
+    const labels = String(filters.property_id).split(",").map((v) => filterOptions.properties.find((p) => String(p.id) === v)?.name || v);
+    chips.push({ label: `Property: ${labels.join(", ")}`, onClear: () => navigate({ property_id: null }) });
+  }
+  if (filters.project_type) {
+    const labels = filters.project_type.split(",").map((v) => filterOptions.project_types.find((t) => t.value === v)?.label || v);
+    chips.push({ label: `Type: ${labels.join(", ")}`, onClear: () => navigate({ project_type: null }) });
+  }
+  if (filters.emergency) {
+    chips.push({ label: filters.emergency === "1" ? "Emergency Only" : "Non-Emergency Only", onClear: () => navigate({ emergency: null }) });
+  }
+
+  if (chips.length === 0) return null;
+
+  return (
+    <div className="flex flex-wrap items-center gap-1.5 mb-3">
+      {chips.map((chip) => (
+        <Badge
+          key={chip.label}
+          variant="secondary"
+          className="gap-1 pr-1 text-xs font-normal"
+        >
+          {chip.label}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-4 w-4 p-0 text-muted-foreground hover:text-foreground"
+            onClick={chip.onClear}
+          >
+            <X className="h-3 w-3" />
+          </Button>
+        </Badge>
+      ))}
+      {chips.length > 1 && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-6 text-xs text-muted-foreground hover:text-foreground"
+          onClick={() => { onClearSearch(); navigate({ search: null, status: null, property_id: null, project_type: null, emergency: null }); }}
+        >
+          Clear all
+        </Button>
+      )}
+    </div>
   );
 }
 
