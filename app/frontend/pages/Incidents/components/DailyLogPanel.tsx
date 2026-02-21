@@ -269,7 +269,7 @@ export default function DailyLogPanel({
                 <div className="border-t border-border bg-muted/30 px-4 py-3">
                   <div className="grid grid-cols-1 md:grid-cols-5 gap-x-4 gap-y-3 text-sm">
                     <div>
-                      <div className="text-[11px] text-muted-foreground uppercase tracking-wide font-semibold mb-1">Equipment</div>
+                      <div className="text-xs text-muted-foreground uppercase tracking-wide font-semibold mb-1">Equipment</div>
                       {hasEquipment ? (
                         <div className="space-y-0.5">
                           {group.equipment_summary.map((eq) => (
@@ -283,7 +283,7 @@ export default function DailyLogPanel({
                       )}
                     </div>
                     <div>
-                      <div className="text-[11px] text-muted-foreground uppercase tracking-wide font-semibold mb-1">Labor</div>
+                      <div className="text-xs text-muted-foreground uppercase tracking-wide font-semibold mb-1">Labor</div>
                       {hasLabor ? (
                         <div className="space-y-0.5">
                           {group.laborByRole.map((lr) => (
@@ -297,15 +297,15 @@ export default function DailyLogPanel({
                       )}
                     </div>
                     <div>
-                      <div className="text-[11px] text-muted-foreground uppercase tracking-wide font-semibold mb-1">Units Affected</div>
+                      <div className="text-xs text-muted-foreground uppercase tracking-wide font-semibold mb-1">Units Affected</div>
                       <div className="text-foreground">{group.situation?.units_label || <span className="text-muted-foreground">—</span>}</div>
                     </div>
                     <div>
-                      <div className="text-[11px] text-muted-foreground uppercase tracking-wide font-semibold mb-1">Rooms Returned</div>
+                      <div className="text-xs text-muted-foreground uppercase tracking-wide font-semibold mb-1">Rooms Returned</div>
                       <div className="text-foreground">{group.situation?.usable_rooms_returned || <span className="text-muted-foreground">—</span>}</div>
                     </div>
                     <div>
-                      <div className="text-[11px] text-muted-foreground uppercase tracking-wide font-semibold mb-1">Est. Return</div>
+                      <div className="text-xs text-muted-foreground uppercase tracking-wide font-semibold mb-1">Est. Return</div>
                       <div className="text-foreground">{group.situation?.estimated_date_of_return || <span className="text-muted-foreground">—</span>}</div>
                     </div>
                   </div>

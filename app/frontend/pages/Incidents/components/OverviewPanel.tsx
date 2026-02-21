@@ -295,13 +295,13 @@ function UserList({ users, expandedUserId, onToggleExpand, onRemove }: {
                       {u.initials}
                     </div>
                     {hasContact ? (
-                      <button
-                        type="button"
-                        className="text-foreground text-left hover:underline"
+                      <Button
+                        variant="link"
+                        className="text-foreground text-left h-auto p-0"
                         onClick={() => onToggleExpand(isExpanded ? null : u.id)}
                       >
                         {u.full_name}
-                      </button>
+                      </Button>
                     ) : (
                       <span className="text-foreground">{u.full_name}</span>
                     )}

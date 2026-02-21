@@ -260,7 +260,7 @@ export default function PhotosPanel({ attachments, messages, upload_photo_path }
                       </div>
                     )}
                     {photo.source === "message" && (
-                      <span className="absolute top-1.5 right-1.5 rounded bg-black/65 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-white">
+                      <span className="absolute top-1.5 right-1.5 rounded bg-black/65 px-1.5 py-0.5 text-xs font-medium uppercase tracking-wide text-white">
                         Msg
                       </span>
                     )}
@@ -269,10 +269,10 @@ export default function PhotosPanel({ attachments, messages, upload_photo_path }
                     <p className="text-xs font-medium text-foreground truncate">
                       {photo.description || photo.filename}
                     </p>
-                    <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                    <p className="text-xs text-muted-foreground truncate mt-0.5">
                       {photo.date_label}
                     </p>
-                    <p className="text-[11px] text-muted-foreground truncate">
+                    <p className="text-xs text-muted-foreground truncate">
                       {photo.uploaded_by_name}
                     </p>
                   </div>
