@@ -84,34 +84,37 @@ export default function DocumentPanel({
             <>
               <div className="grid grid-cols-4 gap-2">
                 {visiblePhotos.map((att) => (
-                  <button
+                  <Button
                     key={att.id}
+                    variant="ghost"
                     onClick={() => window.open(att.url, "_blank")}
-                    className="group rounded border border-border overflow-hidden hover:border-primary transition-colors text-left"
+                    className="h-auto p-0 rounded border border-border overflow-hidden hover:border-primary text-left"
                   >
-                    <div className="aspect-square bg-muted">
-                      {att.thumbnail_url ? (
-                        <img
-                          src={att.thumbnail_url}
-                          alt={att.description || att.filename}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
-                          No preview
-                        </div>
-                      )}
+                    <div className="w-full">
+                      <div className="aspect-square bg-muted">
+                        {att.thumbnail_url ? (
+                          <img
+                            src={att.thumbnail_url}
+                            alt={att.description || att.filename}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
+                            No preview
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-1.5">
+                        <p className="text-xs font-medium truncate">
+                          {att.description || att.filename}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {att.log_date_label ?? att.created_at_label}
+                        </p>
+                      </div>
                     </div>
-                    <div className="p-1.5">
-                      <p className="text-xs font-medium truncate">
-                        {att.description || att.filename}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {att.log_date_label ?? att.created_at_label}
-                      </p>
-                    </div>
-                  </button>
+                  </Button>
                 ))}
               </div>
               {overflowCount > 0 && (

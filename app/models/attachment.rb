@@ -5,7 +5,7 @@ class Attachment < ApplicationRecord
   belongs_to :uploaded_by_user, class_name: "User"
 
   has_one_attached :file do |attachable|
-    attachable.variant :thumbnail, resize_to_fill: [200, 200]
+    attachable.variant :thumbnail, resize_to_fill: [ 200, 200 ]
   end
 
   validates :category, presence: true, inclusion: { in: CATEGORIES }

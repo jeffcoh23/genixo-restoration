@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -33,34 +34,37 @@ export default function PhotoGallery({
         <div className="flex-1 overflow-y-auto p-4">
           <div className="grid grid-cols-4 gap-2">
             {photos.map((photo) => (
-              <button
+              <Button
                 key={photo.id}
+                variant="ghost"
                 onClick={() => window.open(photo.url, "_blank")}
-                className="group rounded border border-border overflow-hidden hover:border-primary transition-colors text-left"
+                className="h-auto p-0 rounded border border-border overflow-hidden hover:border-primary text-left"
               >
-                <div className="aspect-square bg-muted">
-                  {photo.thumbnail_url ? (
-                    <img
-                      src={photo.thumbnail_url}
-                      alt={photo.description || photo.filename}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
-                      No preview
-                    </div>
-                  )}
+                <div className="w-full">
+                  <div className="aspect-square bg-muted">
+                    {photo.thumbnail_url ? (
+                      <img
+                        src={photo.thumbnail_url}
+                        alt={photo.description || photo.filename}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
+                        No preview
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-1.5">
+                    <p className="text-xs font-medium truncate">
+                      {photo.description || photo.filename}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {photo.log_date_label ?? photo.created_at_label}
+                    </p>
+                  </div>
                 </div>
-                <div className="p-1.5">
-                  <p className="text-xs font-medium truncate">
-                    {photo.description || photo.filename}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {photo.log_date_label ?? photo.created_at_label}
-                  </p>
-                </div>
-              </button>
+              </Button>
             ))}
           </div>
         </div>

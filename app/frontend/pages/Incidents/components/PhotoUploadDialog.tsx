@@ -249,7 +249,7 @@ export default function PhotoUploadDialog({
               <ImagePlus className="h-3.5 w-3.5" />
               Gallery
             </Button>
-            <input
+            <Input
               ref={galleryInputRef}
               type="file"
               accept="image/*"

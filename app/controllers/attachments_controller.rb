@@ -3,7 +3,7 @@ class AttachmentsController < ApplicationController
 
   def upload_photo
     unless params[:file].present?
-      render json: { errors: ["File is required"] }, status: :unprocessable_entity
+      render json: { errors: [ "File is required" ] }, status: :unprocessable_entity
       return
     end
 
