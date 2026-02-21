@@ -1,6 +1,8 @@
 import { useForm, usePage } from "@inertiajs/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -53,13 +55,13 @@ export default function AttachmentForm({ path, onClose }: AttachmentFormProps) {
 
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="text-xs font-medium text-muted-foreground">
+            <Label className="text-sm">
               File
-            </label>
+            </Label>
             <Input
               type="file"
               onChange={(e) => setData("file", e.target.files?.[0] ?? null)}
-              className="mt-1"
+              className="mt-1 h-11 sm:h-10"
             />
             {errors.file && (
               <p className="text-xs text-destructive mt-1">{errors.file}</p>
@@ -68,20 +70,21 @@ export default function AttachmentForm({ path, onClose }: AttachmentFormProps) {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-medium text-muted-foreground">
+              <Label className="text-sm">
                 Category
-              </label>
-              <select
-                value={data.category}
-                onChange={(e) => setData("category", e.target.value)}
-                className="mt-1 w-full rounded border border-input bg-background px-3 py-2 text-sm"
-              >
+              </Label>
+              <Select value={data.category} onValueChange={(value) => setData("category", value)}>
+                <SelectTrigger className="mt-1 h-11 sm:h-10">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
                 {CATEGORIES.map((c) => (
-                  <option key={c.value} value={c.value}>
+                  <SelectItem key={c.value} value={c.value}>
                     {c.label}
-                  </option>
+                  </SelectItem>
                 ))}
-              </select>
+                </SelectContent>
+              </Select>
               {errors.category && (
                 <p className="text-xs text-destructive mt-1">
                   {errors.category}
@@ -89,27 +92,27 @@ export default function AttachmentForm({ path, onClose }: AttachmentFormProps) {
               )}
             </div>
             <div>
-              <label className="text-xs font-medium text-muted-foreground">
+              <Label className="text-sm">
                 Date
-              </label>
+              </Label>
               <Input
                 type="date"
                 value={data.log_date}
                 onChange={(e) => setData("log_date", e.target.value)}
-                className="mt-1"
+                className="mt-1 h-11 sm:h-10"
               />
             </div>
           </div>
 
           <div>
-            <label className="text-xs font-medium text-muted-foreground">
+            <Label className="text-sm">
               Description
-            </label>
+            </Label>
             <Input
               value={data.description}
               onChange={(e) => setData("description", e.target.value)}
               placeholder="Optional description"
-              className="mt-1"
+              className="mt-1 h-11 sm:h-10"
             />
           </div>
 

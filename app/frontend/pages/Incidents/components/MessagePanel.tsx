@@ -27,7 +27,7 @@ export default function MessagePanel({ messages, messages_path }: MessagePanelPr
 
   const handleSend = () => {
     const trimmed = body.trim();
-    if (!trimmed || sending) return;
+    if ((!trimmed && files.length === 0) || sending) return;
     setSending(true);
 
     router.post(messages_path, { message: { body: trimmed, files } }, {
@@ -110,6 +110,7 @@ export default function MessagePanel({ messages, messages_path }: MessagePanelPr
             size="icon"
             className="shrink-0 h-9 w-9"
             onClick={() => fileInputRef.current?.click()}
+            aria-label="Attach files"
           >
             <Paperclip className="h-4 w-4" />
           </Button>
@@ -125,7 +126,7 @@ export default function MessagePanel({ messages, messages_path }: MessagePanelPr
           <Button
             size="icon"
             onClick={handleSend}
-            disabled={!body.trim() || sending}
+            disabled={(!body.trim() && files.length === 0) || sending}
             className="shrink-0 h-9 w-9"
           >
             <Send className="h-4 w-4" />

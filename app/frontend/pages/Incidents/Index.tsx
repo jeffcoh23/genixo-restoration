@@ -1,6 +1,6 @@
 import { Link, router, usePage } from "@inertiajs/react";
 import { AlertTriangle, Search, X, ChevronLeft, ChevronRight, ArrowUpDown, MessageSquare, Activity } from "lucide-react";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import AppLayout from "@/layout/AppLayout";
 import PageHeader from "@/components/PageHeader";
 import MultiFilterSelect from "@/components/MultiFilterSelect";
@@ -72,6 +72,17 @@ interface IncidentsIndexProps {
   can_create: boolean;
 }
 
+const emergencyOptions = [
+  { value: "1", label: "Emergency" },
+  { value: "0", label: "Non-Emergency" },
+];
+
+function removeCsvValue(csv: string | null, value: string): string | null {
+  if (!csv) return null;
+  const values = csv.split(",").filter((v) => v !== value);
+  return values.length > 0 ? values.join(",") : null;
+}
+
 export default function IncidentsIndex() {
   const { incidents, pagination, filters, sort, filter_options, can_create, routes } =
     usePage<SharedProps & IncidentsIndexProps>().props;
@@ -110,6 +121,65 @@ export default function IncidentsIndex() {
     navigate({ sort: column, direction: newDir });
   };
 
+  const activeFilterCount = [filters.search, filters.status, filters.property_id, filters.project_type, filters.emergency]
+    .filter((value) => !!value).length;
+
+  const filterChips = useMemo(() => {
+    const chips: Array<{ key: string; label: string; onRemove: () => void }> = [];
+
+    if (filters.search) {
+      chips.push({
+        key: `search-${filters.search}`,
+        label: `Search: ${filters.search}`,
+        onRemove: () => { setSearch(""); navigate({ search: null }); },
+      });
+    }
+
+    if (filters.status) {
+      filters.status.split(",").forEach((value) => {
+        const label = filter_options.statuses.find((s) => s.value === value)?.label || value;
+        chips.push({
+          key: `status-${value}`,
+          label: `Status: ${label}`,
+          onRemove: () => navigate({ status: removeCsvValue(filters.status, value) }),
+        });
+      });
+    }
+
+    if (filters.property_id) {
+      filters.property_id.split(",").forEach((value) => {
+        const label = filter_options.properties.find((p) => String(p.id) === value)?.name || value;
+        chips.push({
+          key: `property-${value}`,
+          label: `Property: ${label}`,
+          onRemove: () => navigate({ property_id: removeCsvValue(filters.property_id, value) }),
+        });
+      });
+    }
+
+    if (filters.project_type) {
+      filters.project_type.split(",").forEach((value) => {
+        const label = filter_options.project_types.find((p) => p.value === value)?.label || value;
+        chips.push({
+          key: `project-${value}`,
+          label: `Type: ${label}`,
+          onRemove: () => navigate({ project_type: removeCsvValue(filters.project_type, value) }),
+        });
+      });
+    }
+
+    if (filters.emergency) {
+      const label = emergencyOptions.find((e) => e.value === filters.emergency)?.label || filters.emergency;
+      chips.push({
+        key: `emergency-${filters.emergency}`,
+        label,
+        onRemove: () => navigate({ emergency: null }),
+      });
+    }
+
+    return chips;
+  }, [filters, filter_options, navigate]);
+
   return (
     <AppLayout wide>
       <PageHeader
@@ -117,147 +187,220 @@ export default function IncidentsIndex() {
         action={can_create ? { href: routes.new_incident, label: "Create Request" } : undefined}
       />
 
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-2 mb-4">
-        <form onSubmit={handleSearch} className="relative w-52 flex items-center">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search..."
-            className="pl-8 pr-16 h-8 text-sm"
-          />
-          <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
-            {search && (
+      <div className="mb-4 rounded-lg border border-border bg-card p-3 shadow-sm">
+        <div className="flex flex-col xl:flex-row xl:items-center gap-2">
+          <form onSubmit={handleSearch} className="relative w-full sm:w-64 flex items-center">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search incidents..."
+              className="pl-8 pr-16 h-11 sm:h-8 text-sm"
+            />
+            <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
+              {search && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 sm:h-6 sm:w-6 p-0 text-muted-foreground hover:text-foreground"
+                  onClick={() => { setSearch(""); navigate({ search: null }); }}
+                  aria-label="Clear search"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              )}
               <Button
-                type="button"
+                type="submit"
                 variant="ghost"
                 size="sm"
-                className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
-                onClick={() => { setSearch(""); navigate({ search: null }); }}
+                className="h-8 w-8 sm:h-6 sm:w-6 p-0 text-muted-foreground hover:text-foreground"
+                aria-label="Run search"
               >
-                <X className="h-3.5 w-3.5" />
+                <Search className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </form>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <MultiFilterSelect
+              selected={filters.status ? filters.status.split(",") : []}
+              onChange={(values) => navigate({ status: values.length ? values.join(",") : null })}
+              allLabel="All Statuses"
+              options={filter_options.statuses.map((s) => ({ value: s.value, label: s.label }))}
+              width="150px"
+            />
+
+            <MultiFilterSelect
+              selected={filters.property_id ? String(filters.property_id).split(",") : []}
+              onChange={(values) => navigate({ property_id: values.length ? values.join(",") : null })}
+              allLabel="All Properties"
+              options={filter_options.properties.map((p) => ({ value: String(p.id), label: p.name }))}
+              width="170px"
+            />
+
+            <MultiFilterSelect
+              selected={filters.project_type ? filters.project_type.split(",") : []}
+              onChange={(values) => navigate({ project_type: values.length ? values.join(",") : null })}
+              allLabel="All Types"
+              options={filter_options.project_types.map((t) => ({ value: t.value, label: t.label }))}
+              width="140px"
+            />
+
+            <MultiFilterSelect
+              selected={filters.emergency ? [filters.emergency] : []}
+              onChange={(values) => navigate({ emergency: values.length ? values[values.length - 1] : null })}
+              allLabel="All Emergencies"
+              options={emergencyOptions}
+              width="170px"
+            />
+
+            {activeFilterCount > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-11 sm:h-8 text-sm sm:text-xs"
+                onClick={() => { setSearch(""); navigate({ search: null, status: null, property_id: null, project_type: null, emergency: null }); }}
+              >
+                Clear all
               </Button>
             )}
-            <Button
-              type="submit"
-              variant="ghost"
-              size="sm"
-              className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
-            >
-              <Search className="h-3.5 w-3.5" />
-            </Button>
           </div>
-        </form>
+        </div>
 
-        <MultiFilterSelect
-          selected={filters.status ? filters.status.split(",") : []}
-          onChange={(values) => navigate({ status: values.length ? values.join(",") : null })}
-          allLabel="All Statuses"
-          options={filter_options.statuses.map((s) => ({ value: s.value, label: s.label }))}
-          width="140px"
-        />
-
-        <MultiFilterSelect
-          selected={filters.property_id ? String(filters.property_id).split(",") : []}
-          onChange={(values) => navigate({ property_id: values.length ? values.join(",") : null })}
-          allLabel="All Properties"
-          options={filter_options.properties.map((p) => ({ value: String(p.id), label: p.name }))}
-          width="150px"
-        />
-
-        <MultiFilterSelect
-          selected={filters.project_type ? filters.project_type.split(",") : []}
-          onChange={(values) => navigate({ project_type: values.length ? values.join(",") : null })}
-          allLabel="All Types"
-          options={filter_options.project_types.map((t) => ({ value: t.value, label: t.label }))}
-          width="120px"
-        />
-
-        <MultiFilterSelect
-          selected={filters.emergency ? [filters.emergency] : []}
-          onChange={(values) => navigate({ emergency: values.length ? values[values.length - 1] : null })}
-          allLabel="All Emergencies"
-          options={[
-            { value: "1", label: "Emergency" },
-            { value: "0", label: "Non-Emergency" },
-          ]}
-          width="155px"
-        />
+        {filterChips.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {filterChips.map((chip) => (
+              <Button
+                key={chip.key}
+                variant="secondary"
+                size="sm"
+                className="h-8 text-xs gap-1"
+                onClick={chip.onRemove}
+              >
+                {chip.label}
+                <X className="h-3 w-3" />
+              </Button>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Table */}
       {incidents.length === 0 ? (
         <div className="rounded-lg border border-border bg-card shadow-sm p-8 text-center">
           <p className="text-muted-foreground">No incidents match your filters.</p>
         </div>
       ) : (
-        <div className="rounded-lg border border-border bg-card shadow-sm overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b bg-muted">
-                <SortHeader label="Property" column="property" sort={sort} onSort={handleSort} />
-                <th className="px-4 py-3 font-medium text-left">Description</th>
-                <SortHeader label="Status" column="status" sort={sort} onSort={handleSort} />
-                <th className="px-4 py-3 font-medium text-left">Type</th>
-                <SortHeader label="Activity" column="last_activity_at" sort={sort} onSort={handleSort} align="right" />
-              </tr>
-            </thead>
-            <tbody>
-              {incidents.map((incident) => {
-                const showEmergency = incident.emergency && (incident.status === "new" || incident.status === "acknowledged");
-                return (
-                <tr
-                  key={incident.id}
-                  className={`border-b last:border-0 hover:bg-muted transition-colors ${
-                    showEmergency ? "bg-status-emergency/10" : ""
-                  }`}
-                >
-                  <td className="px-4 py-3">
-                    <Link href={incident.path} className="font-medium text-primary hover:underline flex items-center gap-1.5">
-                      {showEmergency && (
-                        <AlertTriangle className="h-3.5 w-3.5 text-destructive flex-shrink-0" />
-                      )}
+        <>
+          <div className="md:hidden space-y-3">
+            {incidents.map((incident) => {
+              const showEmergency = incident.emergency && (incident.status === "new" || incident.status === "acknowledged");
+              return (
+                <div key={incident.id} className={`rounded-lg border border-border bg-card p-4 shadow-sm ${showEmergency ? "ring-1 ring-status-emergency/40" : ""}`}>
+                  <div className="flex items-start justify-between gap-2">
+                    <Link href={incident.path} className="font-semibold text-foreground hover:text-primary transition-colors">
                       {incident.property_name}
                     </Link>
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground max-w-[300px] truncate">
-                    {incident.description}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge className={`text-xs ${statusColor(incident.status)}`}>
-                      {incident.status_label}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {incident.project_type_label}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      {incident.unread_messages > 0 && (
-                        <span className="inline-flex items-center gap-0.5 text-xs font-medium text-status-info">
-                          <MessageSquare className="h-3 w-3" />
-                          {incident.unread_messages}
-                        </span>
-                      )}
-                      {incident.unread_activity > 0 && (
-                        <span className="inline-flex items-center gap-0.5 text-xs font-medium text-status-warning">
-                          <Activity className="h-3 w-3" />
-                          {incident.unread_activity}
-                        </span>
-                      )}
-                      <span className="text-muted-foreground">{incident.last_activity_label}</span>
-                    </div>
-                  </td>
-                </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                    <Badge className={`text-xs ${statusColor(incident.status)}`}>{incident.status_label}</Badge>
+                  </div>
+                  <p className="mt-2 text-sm text-muted-foreground line-clamp-2">{incident.description}</p>
+                  <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+                    {showEmergency && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-status-emergency/15 px-2 py-0.5 font-semibold text-status-emergency">
+                        <AlertTriangle className="h-3 w-3" />
+                        Emergency
+                      </span>
+                    )}
+                    {incident.unread_messages > 0 && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 font-medium text-foreground">
+                        <MessageSquare className="h-3 w-3" />
+                        Msgs {incident.unread_messages}
+                      </span>
+                    )}
+                    {incident.unread_activity > 0 && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-status-warning/20 px-2 py-0.5 font-medium text-foreground">
+                        <Activity className="h-3 w-3" />
+                        Activity {incident.unread_activity}
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
+                    <span>{incident.project_type_label}</span>
+                    <span>{incident.last_activity_label || "No activity yet"}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="hidden md:block rounded-lg border border-border bg-card shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm min-w-[960px]">
+                <thead>
+                  <tr className="border-b bg-muted/70">
+                    <SortHeader label="Property" column="property" sort={sort} onSort={handleSort} />
+                    <th className="px-4 py-3 font-medium text-left">Description</th>
+                    <SortHeader label="Status" column="status" sort={sort} onSort={handleSort} />
+                    <th className="px-4 py-3 font-medium text-left">Type</th>
+                    <SortHeader label="Activity" column="last_activity_at" sort={sort} onSort={handleSort} align="right" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {incidents.map((incident) => {
+                    const showEmergency = incident.emergency && (incident.status === "new" || incident.status === "acknowledged");
+                    return (
+                      <tr
+                        key={incident.id}
+                        className={`border-b last:border-0 hover:bg-muted/35 transition-colors ${
+                          showEmergency ? "bg-status-emergency/10" : ""
+                        }`}
+                      >
+                        <td className="px-4 py-3">
+                          <Link href={incident.path} className="font-medium text-primary hover:underline flex items-center gap-1.5">
+                            {showEmergency && (
+                              <AlertTriangle className="h-3.5 w-3.5 text-destructive flex-shrink-0" />
+                            )}
+                            {incident.property_name}
+                          </Link>
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground max-w-[320px] truncate">
+                          {incident.description}
+                        </td>
+                        <td className="px-4 py-3">
+                          <Badge className={`text-xs ${statusColor(incident.status)}`}>
+                            {incident.status_label}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">
+                          {incident.project_type_label}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            {incident.unread_messages > 0 && (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-foreground">
+                                <MessageSquare className="h-3 w-3" />
+                                Msgs {incident.unread_messages}
+                              </span>
+                            )}
+                            {incident.unread_activity > 0 && (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-status-warning/20 px-2 py-0.5 text-xs font-medium text-foreground">
+                                <Activity className="h-3 w-3" />
+                                Activity {incident.unread_activity}
+                              </span>
+                            )}
+                            <span className="text-muted-foreground">{incident.last_activity_label}</span>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
       )}
 
-      {/* Pagination */}
       {pagination.total_pages > 1 && (
         <div className="flex items-center justify-between mt-4 text-sm text-muted-foreground">
           <span>
@@ -267,6 +410,7 @@ export default function IncidentsIndex() {
             <Button
               variant="outline"
               size="sm"
+              className="h-10 sm:h-8"
               disabled={pagination.page <= 1}
               onClick={() => navigate({ page: pagination.page - 1 })}
             >
@@ -275,6 +419,7 @@ export default function IncidentsIndex() {
             <Button
               variant="outline"
               size="sm"
+              className="h-10 sm:h-8"
               disabled={pagination.page >= pagination.total_pages}
               onClick={() => navigate({ page: pagination.page + 1 })}
             >

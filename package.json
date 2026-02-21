@@ -4,7 +4,8 @@
   "scripts": {
     "postinstall": "node scripts/patch-vite-plugin-ruby.js",
     "lint": "eslint app/frontend/",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "contrast:status": "node scripts/check-status-contrast.js"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",

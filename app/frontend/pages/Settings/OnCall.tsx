@@ -106,11 +106,11 @@ export default function OnCallSettings() {
           <h2 className="text-sm font-semibold text-foreground mb-4">Primary Contact</h2>
           <form onSubmit={handleSaveConfig} className="space-y-4 max-w-md">
             <div>
-              <label className="text-xs font-medium text-muted-foreground">
+              <label className="text-sm font-medium text-foreground">
                 Primary On-Call <span className="text-destructive">*</span>
               </label>
               <Select value={String(primaryUserId)} onValueChange={(v) => setPrimaryUserId(v)}>
-                <SelectTrigger className="mt-1">
+                <SelectTrigger className="mt-1 h-11 sm:h-10">
                   <SelectValue placeholder="Select a manager..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -124,7 +124,7 @@ export default function OnCallSettings() {
             </div>
 
             <div>
-              <label className="text-xs font-medium text-muted-foreground">
+              <label className="text-sm font-medium text-foreground">
                 Escalation Timeout (minutes)
               </label>
               <Input
@@ -133,14 +133,14 @@ export default function OnCallSettings() {
                 max={60}
                 value={timeoutMinutes}
                 onChange={(e) => setTimeoutMinutes(Number(e.target.value))}
-                className="mt-1 max-w-[120px]"
+                className="mt-1 max-w-[140px] h-11 sm:h-10"
               />
-              <p className="mt-1 text-xs text-muted-foreground">
+              <p className="mt-1 text-sm text-muted-foreground">
                 Time to wait before contacting the next person in the escalation chain.
               </p>
             </div>
 
-            <Button type="submit" size="sm" disabled={saving}>
+            <Button type="submit" size="sm" className="h-11 sm:h-10" disabled={saving}>
               {saving ? "Saving..." : "Save Configuration"}
             </Button>
           </form>
@@ -159,39 +159,39 @@ export default function OnCallSettings() {
             ) : (
               <div className="mt-3 divide-y divide-border">
                 {config.contacts.map((contact, idx) => (
-                  <div key={contact.id} className="flex items-center gap-3 px-3 py-2.5 hover:bg-muted/30 transition-colors">
-                    <span className="text-xs font-medium text-muted-foreground w-5 tabular-nums">{idx + 1}.</span>
+                  <div key={contact.id} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 px-3 py-3 hover:bg-muted/30 transition-colors">
+                    <span className="text-sm font-semibold text-muted-foreground w-6 tabular-nums">{idx + 1}.</span>
                     <span className="text-sm text-foreground">{contact.full_name}</span>
-                    <span className="text-xs text-muted-foreground">{contact.role_label}</span>
-                    <div className="ml-auto flex items-center gap-1">
+                    <span className="text-sm text-muted-foreground">{contact.role_label}</span>
+                    <div className="sm:ml-auto flex items-center gap-2">
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
-                        className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                        className="h-10 sm:h-8 gap-1 text-sm sm:text-xs"
                         onClick={() => handleMoveContact(idx, "up")}
                         disabled={idx === 0}
-                        title="Move up"
                       >
                         <ArrowUp className="h-3.5 w-3.5" />
+                        Up
                       </Button>
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
-                        className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                        className="h-10 sm:h-8 gap-1 text-sm sm:text-xs"
                         onClick={() => handleMoveContact(idx, "down")}
                         disabled={idx === config.contacts.length - 1}
-                        title="Move down"
                       >
                         <ArrowDown className="h-3.5 w-3.5" />
+                        Down
                       </Button>
                       <Button
-                        variant="ghost"
+                        variant="destructive"
                         size="sm"
-                        className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                        className="h-10 sm:h-8 gap-1 text-sm sm:text-xs"
                         onClick={() => handleRemoveContact(contact.remove_path)}
-                        title={`Remove ${contact.full_name}`}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
+                        Remove
                       </Button>
                     </div>
                   </div>
@@ -203,9 +203,9 @@ export default function OnCallSettings() {
             {availableForEscalation.length > 0 && (
               <form onSubmit={handleAddContact} className="mt-4 flex items-end gap-2 border-t border-border pt-4">
                 <div className="flex-1 max-w-[280px]">
-                  <label className="text-xs font-medium text-muted-foreground">Add Contact</label>
+                  <label className="text-sm font-medium text-foreground">Add Contact</label>
                   <Select value={newContactUserId} onValueChange={setNewContactUserId}>
-                    <SelectTrigger className="mt-1">
+                    <SelectTrigger className="mt-1 h-11 sm:h-10">
                       <SelectValue placeholder="Select..." />
                     </SelectTrigger>
                     <SelectContent>
@@ -217,7 +217,7 @@ export default function OnCallSettings() {
                     </SelectContent>
                   </Select>
                 </div>
-                <Button type="submit" size="sm" variant="ghost" disabled={addingContact || !newContactUserId} className="gap-1">
+                <Button type="submit" size="sm" variant="outline" disabled={addingContact || !newContactUserId} className="gap-1 h-11 sm:h-10">
                   <Plus className="h-3.5 w-3.5" />
                   Add
                 </Button>

@@ -142,12 +142,12 @@ export default function IncidentShow() {
 
             {can_edit && incident.edit_path && (
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
-                className="h-7 text-xs gap-1 text-muted-foreground"
+                className="h-10 sm:h-8 text-sm sm:text-xs gap-1.5"
                 onClick={() => setEditFormOpen(true)}
               >
-                <Pencil className="h-3 w-3" />
+                <Pencil className="h-3.5 w-3.5" />
                 Edit
               </Button>
             )}
@@ -225,7 +225,7 @@ export default function IncidentShow() {
       </div>
 
       {/* Tabbed content card */}
-      <div className="bg-card rounded-lg border border-border shadow-sm h-[calc(100vh-400px)] overflow-hidden">
+      <div className="bg-card rounded-lg border border-border shadow-sm overflow-hidden min-h-[560px] lg:min-h-[640px] lg:h-[calc(100vh-360px)]">
         <RightPanelShell activeTab={activeTab} onTabChange={handleTabChange} unreadMessages={displayUnreadMessages} unreadActivity={displayUnreadActivity}>
           {activeTab === "daily_log" && (
             <DailyLogPanel

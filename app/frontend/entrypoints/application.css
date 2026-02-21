@@ -15,21 +15,21 @@
   --color-secondary-foreground: hsl(224 10% 14%);
 
   /* Accent */
-  --color-accent: hsl(187 12% 93%);
+  --color-accent: hsl(188 24% 90%);
   --color-accent-foreground: hsl(187 65% 24%);
 
   /* Muted */
-  --color-muted: hsl(220 12% 93.5%);
-  --color-muted-foreground: hsl(220 6% 44%);
+  --color-muted: hsl(208 18% 90%);
+  --color-muted-foreground: hsl(220 10% 36%);
 
   /* Neutrals — warm-tinted grays for surface depth */
-  --color-background: hsl(220 14% 96%);
+  --color-background: hsl(204 28% 95%);
   --color-foreground: hsl(224 10% 14%);
   --color-card: hsl(0 0% 100%);
   --color-card-foreground: hsl(224 10% 14%);
   --color-popover: hsl(0 0% 100%);
   --color-popover-foreground: hsl(224 10% 14%);
-  --color-border: hsl(220 10% 90%);
+  --color-border: hsl(216 16% 84%);
   --color-input: hsl(220 10% 76%);
   --color-ring: hsl(187 65% 32%);
 
@@ -74,5 +74,8 @@
 
   body {
     @apply bg-background text-foreground antialiased font-sans;
+    background-image:
+      radial-gradient(1200px 600px at 15% -10%, hsl(188 45% 90% / 0.55), transparent 65%),
+      radial-gradient(900px 520px at 88% 0%, hsl(202 34% 90% / 0.45), transparent 62%);
   }
 }

@@ -93,7 +93,11 @@ export default function UsersIndex() {
       {showInviteForm && (
         <div className="bg-card rounded-lg border border-border shadow-sm p-6 mb-6">
           <h2 className="text-lg font-semibold text-foreground mb-4">Invite User</h2>
-          <form onSubmit={handleInvite} className="space-y-4">
+          <form onSubmit={handleInvite} className="space-y-5">
+            <div className="text-sm text-muted-foreground">
+              Choose the organization first, then select one of the roles available for that organization.
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <FormField id="invite_email" label="Email" type="email" value={form.data.email}
                 onChange={(v) => form.setData("email", v)} error={form.errors.email} required />
@@ -102,7 +106,7 @@ export default function UsersIndex() {
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Organization</label>
                   <Select value={form.data.organization_id} onValueChange={(v) => { form.setData("organization_id", v); form.setData("user_type", ""); }}>
-                    <SelectTrigger>
+                    <SelectTrigger className="h-11 sm:h-10">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -115,7 +119,7 @@ export default function UsersIndex() {
               <div className="space-y-2">
                 <label className="text-sm font-medium">Role</label>
                 <Select value={form.data.user_type} onValueChange={(v) => form.setData("user_type", v)}>
-                  <SelectTrigger>
+                  <SelectTrigger className="h-11 sm:h-10">
                     <SelectValue placeholder="Select a role..." />
                   </SelectTrigger>
                   <SelectContent>
@@ -123,6 +127,9 @@ export default function UsersIndex() {
                   </SelectContent>
                 </Select>
                 {form.errors.user_type && <p className="text-sm text-destructive mt-1">{form.errors.user_type}</p>}
+                {!form.errors.user_type && (
+                  <p className="text-sm text-muted-foreground">Role options are scoped to the selected organization.</p>
+                )}
               </div>
             </div>
 
@@ -136,7 +143,7 @@ export default function UsersIndex() {
             </div>
 
             <div className="flex justify-end">
-              <Button type="submit" disabled={form.processing}>
+              <Button type="submit" className="h-11 sm:h-10" disabled={form.processing}>
                 {form.processing ? "Sending..." : "Send Invitation"}
               </Button>
             </div>
@@ -159,10 +166,10 @@ export default function UsersIndex() {
               { header: "", align: "right", render: (inv) => (
                 <div className="flex items-center gap-2 justify-end">
                   {inv.expired
-                    ? <span className="text-xs text-destructive">Expired</span>
-                    : <span className="text-xs text-muted-foreground">Pending</span>
+                    ? <span className="text-sm text-destructive">Expired</span>
+                    : <span className="text-sm text-muted-foreground">Pending</span>
                   }
-                  <Button variant="ghost" size="sm" onClick={() => router.patch(inv.resend_path)} className="text-xs text-primary hover:underline h-auto py-0 px-1">
+                  <Button variant="outline" size="sm" onClick={() => router.patch(inv.resend_path)} className="h-9 sm:h-8 text-sm sm:text-xs">
                     Resend
                   </Button>
                 </div>
@@ -193,8 +200,8 @@ export default function UsersIndex() {
       {deactivated_users.length > 0 && (
         <div className="mt-6">
           <Button variant="ghost" onClick={() => setShowDeactivated(!showDeactivated)}
-            className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1 h-auto px-0 py-1">
-            <span className="text-xs">{showDeactivated ? "▼" : "▶"}</span>
+            className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1 h-10 sm:h-8 px-2">
+            <span className="text-sm">{showDeactivated ? "▼" : "▶"}</span>
             Deactivated Users ({deactivated_users.length})
           </Button>
           {showDeactivated && (

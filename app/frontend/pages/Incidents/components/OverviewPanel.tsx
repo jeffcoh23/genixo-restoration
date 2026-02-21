@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Contact, IncidentDetail, AssignableUser, TeamUser } from "../types";
 
 interface OverviewPanelProps {
@@ -16,14 +17,12 @@ interface OverviewPanelProps {
 }
 
 export default function OverviewPanel({ incident, can_assign, can_manage_contacts, assignable_mitigation_users, assignable_pm_users }: OverviewPanelProps) {
-  const [assignOpenFor, setAssignOpenFor] = useState<"mitigation" | "pm" | null>(null);
   const [contactFormOpen, setContactFormOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [confirmRemoveUser, setConfirmRemoveUser] = useState<{ name: string; path: string } | null>(null);
   const [expandedUserId, setExpandedUserId] = useState<number | null>(null);
 
   const handleAssign = (userId: number) => {
-    setAssignOpenFor(null);
     router.post(incident.assignments_path, { user_id: userId }, { preserveScroll: true });
   };
 
@@ -48,13 +47,7 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
               <span className="text-muted-foreground tabular-nums ml-1.5">{incident.mitigation_team.length}</span>
             </h3>
             {can_assign && assignable_mitigation_users.length > 0 && (
-              <AssignDropdown
-                users={assignable_mitigation_users}
-                open={assignOpenFor === "mitigation"}
-                onToggle={() => setAssignOpenFor(assignOpenFor === "mitigation" ? null : "mitigation")}
-                onAssign={handleAssign}
-                onClose={() => setAssignOpenFor(null)}
-              />
+              <AssignSelect users={assignable_mitigation_users} onAssign={handleAssign} />
             )}
           </div>
 
@@ -78,13 +71,7 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
               <span className="text-muted-foreground tabular-nums ml-1.5">{incident.pm_team.length}</span>
             </h3>
             {can_assign && assignable_pm_users.length > 0 && (
-              <AssignDropdown
-                users={assignable_pm_users}
-                open={assignOpenFor === "pm"}
-                onToggle={() => setAssignOpenFor(assignOpenFor === "pm" ? null : "pm")}
-                onAssign={handleAssign}
-                onClose={() => setAssignOpenFor(null)}
-              />
+              <AssignSelect users={assignable_pm_users} onAssign={handleAssign} />
             )}
           </div>
 
@@ -144,7 +131,7 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
               <span className="text-muted-foreground tabular-nums ml-1.5">{incident.contacts.length}</span>
             </h3>
             {can_manage_contacts && (
-              <Button variant="ghost" size="sm" className="h-6 text-xs gap-1 text-muted-foreground" onClick={() => setContactFormOpen(true)}>
+              <Button variant="outline" size="sm" className="h-10 sm:h-8 text-sm sm:text-xs gap-1" onClick={() => setContactFormOpen(true)}>
                 <Plus className="h-3 w-3" />
                 Add
               </Button>
@@ -185,7 +172,7 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
                           variant="ghost"
                           size="sm"
                           onClick={() => setEditingContact(c)}
-                          className="h-5 w-5 p-0 text-muted-foreground hover:text-foreground transition-colors"
+                          className="h-8 w-8 sm:h-6 sm:w-6 p-0 text-muted-foreground hover:text-foreground transition-colors"
                           title={`Edit ${c.name}`}
                         >
                           <Pencil className="h-3 w-3" />
@@ -196,7 +183,7 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
                           variant="ghost"
                           size="sm"
                           onClick={() => handleRemoveContact(c.remove_path!)}
-                          className="h-5 w-5 p-0 text-muted-foreground hover:text-destructive transition-colors"
+                          className="h-8 w-8 sm:h-6 sm:w-6 p-0 text-muted-foreground hover:text-destructive transition-colors"
                           title={`Remove ${c.name}`}
                         >
                           <X className="h-3 w-3" />
@@ -247,38 +234,34 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
   );
 }
 
-function AssignDropdown({ users, open, onToggle, onAssign, onClose }: {
+function AssignSelect({ users, onAssign }: {
   users: AssignableUser[];
-  open: boolean;
-  onToggle: () => void;
   onAssign: (userId: number) => void;
-  onClose: () => void;
 }) {
+  const [value, setValue] = useState("");
+
   return (
-    <div className="relative">
-      <Button variant="ghost" size="sm" className="h-6 text-xs gap-1 text-muted-foreground" onClick={onToggle}>
+    <Select
+      value={value}
+      onValueChange={(next) => {
+        setValue("");
+        onAssign(Number(next));
+      }}
+    >
+      <SelectTrigger className="h-10 sm:h-8 w-[180px] text-sm sm:text-xs">
+        <div className="flex items-center gap-1">
         <UserPlus className="h-3 w-3" />
-        Assign
-      </Button>
-      {open && (
-        <>
-          <div className="fixed inset-0 z-10" onClick={onClose} />
-          <div className="absolute right-0 top-full mt-1 z-20 bg-popover border border-border rounded shadow-md py-1 min-w-[220px] max-h-[200px] overflow-y-auto">
-            {users.map((u) => (
-              <Button
-                key={u.id}
-                variant="ghost"
-                onClick={() => onAssign(u.id)}
-                className="w-full justify-between px-3 py-1.5 h-auto text-xs hover:bg-muted transition-colors rounded-none"
-              >
-                <span>{u.full_name}</span>
-                <span className="text-muted-foreground">{u.role_label}</span>
-              </Button>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
+          <SelectValue placeholder="Assign User" />
+        </div>
+      </SelectTrigger>
+      <SelectContent>
+        {users.map((u) => (
+          <SelectItem key={u.id} value={String(u.id)}>
+            {u.full_name} ({u.role_label})
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
 
@@ -310,20 +293,27 @@ function UserList({ users, expandedUserId, onToggleExpand, onRemove }: {
               const hasContact = u.email || u.phone;
               return (
                 <div key={u.id}>
-                  <div
-                    className={`flex items-center gap-1.5 text-xs -mx-1 px-1 py-0.5 rounded hover:bg-muted transition-colors ${hasContact ? "cursor-pointer" : ""}`}
-                    onClick={hasContact ? () => onToggleExpand(isExpanded ? null : u.id) : undefined}
-                  >
+                  <div className="flex items-center gap-1.5 text-xs -mx-1 px-1 py-0.5 rounded hover:bg-muted transition-colors">
                     <div className="h-5 w-5 rounded-full bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground shrink-0">
                       {u.initials}
                     </div>
-                    <span className="text-foreground">{u.full_name}</span>
+                    {hasContact ? (
+                      <button
+                        type="button"
+                        className="text-foreground text-left hover:underline"
+                        onClick={() => onToggleExpand(isExpanded ? null : u.id)}
+                      >
+                        {u.full_name}
+                      </button>
+                    ) : (
+                      <span className="text-foreground">{u.full_name}</span>
+                    )}
                     {u.remove_path && (
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={(e) => { e.stopPropagation(); onRemove(u.full_name, u.remove_path!); }}
-                        className="h-5 w-5 p-0 ml-1 text-muted-foreground hover:text-destructive transition-colors"
+                        className="h-8 w-8 sm:h-6 sm:w-6 p-0 ml-1 text-muted-foreground hover:text-destructive transition-colors"
                         title={`Remove ${u.full_name}`}
                       >
                         <X className="h-3 w-3" />

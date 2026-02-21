@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, router, usePage } from "@inertiajs/react";
-import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, X } from "lucide-react";
 import AppLayout from "@/layout/AppLayout";
 import PageHeader from "@/components/PageHeader";
 import MultiFilterSelect from "@/components/MultiFilterSelect";
@@ -77,6 +77,7 @@ export default function PropertiesIndex() {
   };
 
   const sorted = sortProperties(properties, sortKey, sortDir);
+  const selectedPmOrgIds = filters.pm_org_id ? filters.pm_org_id.split(",") : [];
 
   return (
     <AppLayout wide>
@@ -86,70 +87,139 @@ export default function PropertiesIndex() {
       />
 
       {pmOrgs && pmOrgs.length > 1 && (
-        <div className="flex flex-wrap items-center gap-2 mb-4">
-          <MultiFilterSelect
-            selected={filters.pm_org_id ? filters.pm_org_id.split(",") : []}
-            onChange={(values) =>
-              router.get(routes.properties, values.length ? { pm_org_id: values.join(",") } : {}, { preserveState: true, preserveScroll: true })
-            }
-            allLabel="All PM Companies"
-            options={pmOrgs.map((o) => ({ value: String(o.id), label: o.name }))}
-          />
+        <div className="mb-4 rounded-lg border border-border bg-card p-3 shadow-sm">
+          <div className="flex items-center flex-wrap gap-2">
+            <MultiFilterSelect
+              selected={selectedPmOrgIds}
+              onChange={(values) =>
+                router.get(routes.properties, values.length ? { pm_org_id: values.join(",") } : {}, { preserveState: true, preserveScroll: true })
+              }
+              allLabel="All PM Companies"
+              options={pmOrgs.map((o) => ({ value: String(o.id), label: o.name }))}
+              width="220px"
+            />
+            {selectedPmOrgIds.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-11 sm:h-8 text-sm sm:text-xs"
+                onClick={() => router.get(routes.properties, {}, { preserveState: true, preserveScroll: true })}
+              >
+                Clear filters
+              </Button>
+            )}
+          </div>
+          {selectedPmOrgIds.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {selectedPmOrgIds.map((orgId) => {
+                const orgName = pmOrgs.find((o) => String(o.id) === orgId)?.name || orgId;
+                return (
+                  <Button
+                    key={orgId}
+                    variant="secondary"
+                    size="sm"
+                    className="h-8 text-xs gap-1"
+                    onClick={() => {
+                      const remaining = selectedPmOrgIds.filter((id) => id !== orgId);
+                      router.get(
+                        routes.properties,
+                        remaining.length ? { pm_org_id: remaining.join(",") } : {},
+                        { preserveState: true, preserveScroll: true }
+                      );
+                    }}
+                  >
+                    PM: {orgName}
+                    <X className="h-3 w-3" />
+                  </Button>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
       {sorted.length === 0 ? (
-        <p className="text-muted-foreground">
-          {can_create ? 'No properties yet. Use "New Property" to add one.' : "No properties yet."}
-        </p>
-      ) : (
-        <div className="rounded-lg border bg-card shadow-sm">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b bg-muted">
-                {COLUMNS.map((col) => (
-                  <th
-                    key={col.key}
-                    className={`px-4 py-3 font-medium ${col.align === "right" ? "text-right" : "text-left"}`}
-                  >
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleSort(col.key)}
-                      className={`h-auto p-0 font-medium hover:text-foreground ${col.align === "right" ? "ml-auto" : ""}`}
-                    >
-                      {col.header}
-                      {sortKey === col.key ? (
-                        sortDir === "asc" ? (
-                          <ArrowUp className="ml-1 h-3 w-3" />
-                        ) : (
-                          <ArrowDown className="ml-1 h-3 w-3" />
-                        )
-                      ) : (
-                        <ArrowUpDown className="ml-1 h-3 w-3 text-muted-foreground" />
-                      )}
-                    </Button>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {sorted.map((p) => (
-                <tr key={p.id} className="border-b last:border-0 hover:bg-muted">
-                  <td className="px-4 py-3">
-                    <Link href={p.path} className="font-medium text-primary hover:underline">
-                      {p.name}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">{p.address || "—"}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{p.pm_org_name}</td>
-                  <td className="px-4 py-3 text-right">{p.active_incident_count}</td>
-                  <td className="px-4 py-3 text-right">{p.total_incident_count}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="rounded-lg border border-border bg-card shadow-sm p-8 text-center">
+          <p className="text-muted-foreground">
+            {can_create ? "No properties yet. Use New Property to add one." : "No properties yet."}
+          </p>
         </div>
+      ) : (
+        <>
+          <div className="md:hidden space-y-3">
+            {sorted.map((p) => (
+              <div key={p.id} className="rounded-lg border border-border bg-card p-4 shadow-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <Link href={p.path} className="font-semibold text-foreground hover:text-primary transition-colors">
+                    {p.name}
+                  </Link>
+                  <span className="text-xs text-muted-foreground">{p.pm_org_name}</span>
+                </div>
+                <p className="mt-2 text-sm text-muted-foreground">{p.address || "No address"}</p>
+                <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+                  <div className="rounded border border-border bg-muted/25 px-2 py-1.5">
+                    <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Active</div>
+                    <div className="font-semibold text-foreground">{p.active_incident_count}</div>
+                  </div>
+                  <div className="rounded border border-border bg-muted/25 px-2 py-1.5">
+                    <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Total</div>
+                    <div className="font-semibold text-foreground">{p.total_incident_count}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="hidden md:block rounded-lg border bg-card shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm min-w-[860px]">
+                <thead>
+                  <tr className="border-b bg-muted/70">
+                    {COLUMNS.map((col) => (
+                      <th
+                        key={col.key}
+                        className={`px-4 py-3 font-medium ${col.align === "right" ? "text-right" : "text-left"}`}
+                      >
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleSort(col.key)}
+                          className={`h-auto p-0 font-medium hover:text-foreground ${col.align === "right" ? "ml-auto" : ""}`}
+                        >
+                          {col.header}
+                          {sortKey === col.key ? (
+                            sortDir === "asc" ? (
+                              <ArrowUp className="ml-1 h-3 w-3" />
+                            ) : (
+                              <ArrowDown className="ml-1 h-3 w-3" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="ml-1 h-3 w-3 text-muted-foreground" />
+                          )}
+                        </Button>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {sorted.map((p) => (
+                    <tr key={p.id} className="border-b last:border-0 hover:bg-muted/35">
+                      <td className="px-4 py-3">
+                        <Link href={p.path} className="font-medium text-primary hover:underline">
+                          {p.name}
+                        </Link>
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">{p.address || "—"}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{p.pm_org_name}</td>
+                      <td className="px-4 py-3 text-right">{p.active_incident_count}</td>
+                      <td className="px-4 py-3 text-right">{p.total_incident_count}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
       )}
     </AppLayout>
   );

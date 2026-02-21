@@ -1,10 +1,12 @@
 import { Link, usePage, router } from "@inertiajs/react";
+import { useState } from "react";
 import AppLayout from "@/layout/AppLayout";
 import PageHeader from "@/components/PageHeader";
 import DetailList, { DetailRow } from "@/components/DetailList";
 import StatusBadge from "@/components/StatusBadge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SharedProps } from "@/types";
 
 interface AssignedProperty {
@@ -46,14 +48,18 @@ export default function UserShow() {
     user: UserDetail;
     can_deactivate: boolean;
   }>().props;
+  const [confirmDeactivate, setConfirmDeactivate] = useState(false);
 
   function handleDeactivate() {
-    if (!confirm(`Deactivate ${user.full_name}? They will no longer be able to log in.`)) return;
-    router.patch(user.deactivate_path);
+    setConfirmDeactivate(true);
   }
 
   function handleReactivate() {
     router.patch(user.reactivate_path);
+  }
+
+  function confirmAndDeactivate() {
+    router.patch(user.deactivate_path, {}, { onSuccess: () => setConfirmDeactivate(false) });
   }
 
   return (
@@ -115,6 +121,21 @@ export default function UserShow() {
           ))}
         </DetailList>
       </section>
+
+      <Dialog open={confirmDeactivate} onOpenChange={setConfirmDeactivate}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Deactivate User</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Deactivate <span className="font-medium text-foreground">{user.full_name}</span>? They will no longer be able to sign in.
+          </p>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="ghost" onClick={() => setConfirmDeactivate(false)}>Cancel</Button>
+            <Button type="button" variant="destructive" onClick={confirmAndDeactivate}>Deactivate</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }

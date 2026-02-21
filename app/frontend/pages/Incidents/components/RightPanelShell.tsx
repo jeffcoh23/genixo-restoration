@@ -10,17 +10,18 @@ interface RightPanelShellProps {
 
 const tabs = [
   { key: "daily_log", label: "Daily Log" },
-  { key: "equipment", label: "Equipment" },
-  { key: "labor", label: "Labor" },
   { key: "messages", label: "Messages" },
   { key: "documents", label: "Documents" },
+  { key: "equipment", label: "Equipment" },
+  { key: "labor", label: "Labor" },
   { key: "manage", label: "Manage" },
 ];
 
 export default function RightPanelShell({ activeTab, onTabChange, unreadMessages = 0, unreadActivity = 0, children }: RightPanelShellProps) {
   return (
     <div className="flex flex-col h-full">
-      <div className="flex border-b border-border">
+      <div className="border-b border-border overflow-x-auto">
+        <div className="flex min-w-max">
         {tabs.map((tab) => {
           const badge = tab.key === "messages" ? unreadMessages
             : tab.key === "daily_log" ? unreadActivity
@@ -31,7 +32,7 @@ export default function RightPanelShell({ activeTab, onTabChange, unreadMessages
               key={tab.key}
               variant="ghost"
               onClick={() => onTabChange(tab.key)}
-              className={`px-4 py-2 h-auto rounded-none text-sm font-medium border-b-2 transition-colors ${
+              className={`px-3 sm:px-4 py-3 sm:py-2 h-auto rounded-none text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === tab.key
                   ? "border-primary text-foreground"
                   : "border-transparent text-muted-foreground hover:text-foreground"
@@ -46,6 +47,7 @@ export default function RightPanelShell({ activeTab, onTabChange, unreadMessages
             </Button>
           );
         })}
+        </div>
       </div>
 
       <div className="flex-1 overflow-hidden">

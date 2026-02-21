@@ -46,6 +46,7 @@ export default function ResetPassword() {
                 value={data.password}
                 onChange={(e) => setData("password", e.target.value)}
               />
+              <p className="text-sm text-muted-foreground">Use at least 8 characters with a mix of letters and numbers.</p>
               {errors.password && (
                 <p className="text-sm text-destructive">{errors.password}</p>
               )}

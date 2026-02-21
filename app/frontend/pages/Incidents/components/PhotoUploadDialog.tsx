@@ -21,6 +21,7 @@ interface PhotoUploadDialogProps {
 
 interface PhotoStatus {
   id: string;
+  name: string;
   state: "compressing" | "uploading" | "done" | "error";
 }
 
@@ -48,11 +49,13 @@ export default function PhotoUploadDialog({
   const [photos, setPhotos] = useState<PhotoStatus[]>([]);
   const [logDate, setLogDate] = useState(today);
   const [description, setDescription] = useState("");
+  const [closeBlocked, setCloseBlocked] = useState(false);
 
   const doneCount = photos.filter((p) => p.state === "done").length;
   const activeCount = photos.filter(
     (p) => p.state === "compressing" || p.state === "uploading"
   ).length;
+  const errorCount = photos.filter((p) => p.state === "error").length;
 
   const startCamera = useCallback(async () => {
     try {
@@ -86,6 +89,7 @@ export default function PhotoUploadDialog({
   useEffect(() => {
     if (open) {
       startCamera();
+      setCloseBlocked(false);
     }
     return () => {
       stopCamera();
@@ -96,7 +100,7 @@ export default function PhotoUploadDialog({
     async (file: File) => {
       const photoId = `photo-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 
-      setPhotos((prev) => [...prev, { id: photoId, state: "compressing" }]);
+      setPhotos((prev) => [...prev, { id: photoId, name: file.name, state: "compressing" }]);
 
       try {
         const compressed = await compressPhoto(file);
@@ -169,10 +173,14 @@ export default function PhotoUploadDialog({
   );
 
   const handleDone = useCallback(() => {
+    if (activeCount > 0) {
+      setCloseBlocked(true);
+      return;
+    }
     stopCamera();
     router.reload();
     onClose();
-  }, [stopCamera, onClose]);
+  }, [activeCount, stopCamera, onClose]);
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleDone()}>
@@ -260,7 +268,14 @@ export default function PhotoUploadDialog({
           </div>
 
           {/* Photo counter */}
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <div className="flex flex-col items-center text-xs text-muted-foreground">
+            {closeBlocked && (
+              <span className="mb-1 text-destructive font-medium">Uploads still running. Please wait before closing.</span>
+            )}
+            {errorCount > 0 && (
+              <span className="mb-1 text-destructive font-medium">{errorCount} photo upload{errorCount !== 1 ? "s" : ""} failed.</span>
+            )}
+            <div className="flex items-center gap-1.5">
             {photos.map((p) => (
               <span key={p.id}>
                 {p.state === "done" && (
@@ -277,20 +292,26 @@ export default function PhotoUploadDialog({
             {photos.length > 0 && (
               <span className="ml-1">
                 {photos.length} photo{photos.length !== 1 ? "s" : ""}
-                {activeCount > 0 && ` (${doneCount} uploaded)`}
+                {activeCount > 0 && ` (${doneCount} uploaded, ${activeCount} in progress)`}
               </span>
+            )}
+            </div>
+            {photos.length > 0 && (
+              <div className="mt-1 max-w-[280px] truncate text-center">
+                Latest: {photos[photos.length - 1].name}
+              </div>
             )}
           </div>
 
           <div className="flex items-center gap-2">
             {cameraActive && (
-              <Button size="sm" onClick={handleSnap} className="gap-1.5">
+              <Button size="sm" onClick={handleSnap} className="gap-1.5 h-10 sm:h-9" disabled={activeCount > 0}>
                 <Camera className="h-4 w-4" />
                 Snap
               </Button>
             )}
-            <Button variant="outline" size="sm" onClick={handleDone}>
-              Done
+            <Button variant="outline" size="sm" className="h-10 sm:h-9" onClick={handleDone} disabled={activeCount > 0}>
+              {activeCount > 0 ? "Uploading..." : "Done"}
             </Button>
           </div>
         </div>

@@ -1,6 +1,7 @@
 import { useForm, usePage } from "@inertiajs/react";
 import FormField from "@/components/FormField";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
 interface InvitationData {
   token: string;
@@ -33,44 +34,45 @@ export default function AcceptInvitation() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center pb-2">
           <h1 className="text-2xl font-semibold text-foreground mb-2">You've been invited!</h1>
           <p className="text-muted-foreground">
             Join <span className="font-medium text-foreground">{invitation.organization_name}</span> as a{" "}
             <span className="font-medium text-foreground">{invitation.role_label}</span>
           </p>
           <p className="text-sm text-muted-foreground mt-1">{invitation.email}</p>
-        </div>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <FormField id="first_name" label="First Name" value={form.data.first_name}
+                onChange={(v) => form.setData("first_name", v)}
+                error={form.errors.first_name || errors?.first_name?.[0]} required />
+              <FormField id="last_name" label="Last Name" value={form.data.last_name}
+                onChange={(v) => form.setData("last_name", v)}
+                error={form.errors.last_name || errors?.last_name?.[0]} required />
+            </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <FormField id="first_name" label="First Name" value={form.data.first_name}
-              onChange={(v) => form.setData("first_name", v)}
-              error={form.errors.first_name || errors?.first_name?.[0]} required />
-            <FormField id="last_name" label="Last Name" value={form.data.last_name}
-              onChange={(v) => form.setData("last_name", v)}
-              error={form.errors.last_name || errors?.last_name?.[0]} required />
-          </div>
+            <FormField id="phone" label="Phone" type="tel" value={form.data.phone}
+              onChange={(v) => form.setData("phone", v)}
+              error={form.errors.phone || errors?.phone?.[0]} />
 
-          <FormField id="phone" label="Phone" type="tel" value={form.data.phone}
-            onChange={(v) => form.setData("phone", v)}
-            error={form.errors.phone || errors?.phone?.[0]} />
+            <FormField id="password" label="Password" type="password" value={form.data.password}
+              onChange={(v) => form.setData("password", v)}
+              error={form.errors.password || errors?.password?.[0]} required />
 
-          <FormField id="password" label="Password" type="password" value={form.data.password}
-            onChange={(v) => form.setData("password", v)}
-            error={form.errors.password || errors?.password?.[0]} required />
+            <FormField id="password_confirmation" label="Confirm Password" type="password"
+              value={form.data.password_confirmation}
+              onChange={(v) => form.setData("password_confirmation", v)}
+              error={form.errors.password_confirmation || errors?.password_confirmation?.[0]} required />
 
-          <FormField id="password_confirmation" label="Confirm Password" type="password"
-            value={form.data.password_confirmation}
-            onChange={(v) => form.setData("password_confirmation", v)}
-            error={form.errors.password_confirmation || errors?.password_confirmation?.[0]} required />
-
-          <Button type="submit" className="w-full" disabled={form.processing}>
-            {form.processing ? "Creating Account..." : "Create Account"}
-          </Button>
-        </form>
-      </div>
+            <Button type="submit" className="w-full" disabled={form.processing}>
+              {form.processing ? "Creating Account..." : "Create Account"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }

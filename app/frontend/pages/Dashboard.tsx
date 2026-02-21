@@ -136,15 +136,15 @@ function IncidentGroup({
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   {incident.unread_messages > 0 && (
-                    <span className="inline-flex items-center gap-0.5 text-xs font-medium text-status-info">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-foreground">
                       <MessageSquare className="h-3 w-3" />
-                      {incident.unread_messages}
+                      Msgs {incident.unread_messages}
                     </span>
                   )}
                   {incident.unread_activity > 0 && (
-                    <span className="inline-flex items-center gap-0.5 text-xs font-medium text-status-warning">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-status-warning/20 px-2 py-0.5 text-xs font-medium text-foreground">
                       <Activity className="h-3 w-3" />
-                      {incident.unread_activity}
+                      Activity {incident.unread_activity}
                     </span>
                   )}
                   <Badge className={`text-xs ${statusColor(incident.status)}`}>

@@ -132,12 +132,12 @@ export default function DailyLogPanel({
   return (
     <div className="flex flex-col h-full">
       {daily_log_dates.length > 0 && (
-        <div className="flex gap-1 p-3 border-b border-border overflow-x-auto shrink-0">
+        <div className="flex gap-2 px-4 py-3 border-b border-border overflow-x-auto shrink-0 bg-background/70">
           <Button
             variant={selectedDate === null ? "default" : "ghost"}
             size="sm"
             onClick={() => handleDateChange(null)}
-            className="h-7 text-xs whitespace-nowrap"
+            className="h-10 sm:h-8 text-sm sm:text-xs whitespace-nowrap"
           >
             All Dates
           </Button>
@@ -147,7 +147,7 @@ export default function DailyLogPanel({
               variant={selectedDate === dateEntry.key ? "default" : "ghost"}
               size="sm"
               onClick={() => handleDateChange(dateEntry.key)}
-              className="h-7 text-xs whitespace-nowrap"
+              className="h-10 sm:h-8 text-sm sm:text-xs whitespace-nowrap"
             >
               {dateEntry.label}
             </Button>
@@ -156,8 +156,8 @@ export default function DailyLogPanel({
       )}
 
       {can_manage_activities && (
-        <div className="flex items-center gap-1 border-b border-border px-4 py-3 shrink-0">
-          <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => setActivityForm({ open: true })}>
+        <div className="flex items-center gap-1 border-b border-border px-4 py-3 shrink-0 bg-background/70">
+          <Button variant="outline" size="sm" className="h-10 sm:h-8 text-sm sm:text-xs gap-1.5" onClick={() => setActivityForm({ open: true })}>
             <Plus className="h-3 w-3" />
             Add Activity
           </Button>
@@ -175,17 +175,17 @@ export default function DailyLogPanel({
             const hasLabor = group.laborByRole.length > 0;
 
             return (
-              <div key={group.date_key} className="rounded-lg border border-border overflow-hidden">
+              <div key={group.date_key} className="rounded-xl border border-border overflow-hidden bg-card/95 shadow-sm">
                 {/* Date header */}
-                <div className="px-4 py-3 border-b border-border bg-accent/30 flex items-center justify-between">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <div className="px-4 py-3 border-b border-border bg-gradient-to-r from-accent/85 to-muted/45 flex items-center justify-between">
+                  <span className="text-sm font-semibold uppercase tracking-wide text-foreground/85">
                     {group.date_label}
                   </span>
                   <a
                     href={`${dfr_path}?date=${group.date_key}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    className="flex items-center gap-1 text-sm text-foreground/75 hover:text-foreground transition-colors"
                     title="Download Daily Field Report"
                   >
                     <Download className="h-3 w-3" />
@@ -205,23 +205,35 @@ export default function DailyLogPanel({
                       return (
                         <div
                           key={row.id}
-                          className={`${isExpandable ? "cursor-pointer" : ""} hover:bg-muted/30 transition-colors`}
+                          role={isExpandable ? "button" : undefined}
+                          tabIndex={isExpandable ? 0 : undefined}
+                          onKeyDown={isExpandable ? (e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              toggleRow(row.id);
+                            }
+                          } : undefined}
+                          className={`${isExpandable ? "cursor-pointer" : ""} hover:bg-muted/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset transition-colors`}
                           onClick={isExpandable ? () => toggleRow(row.id) : undefined}
                         >
                           <div className="flex items-start gap-2 px-4 py-3">
-                            <div className="w-[80px] shrink-0 text-xs text-muted-foreground pt-0.5">{row.time_label}</div>
+                            <div className="w-[88px] shrink-0 text-sm text-muted-foreground pt-0.5">{row.time_label}</div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-start gap-1">
                                 {isExpandable && (
                                   <ChevronDown className={`h-3.5 w-3.5 mt-0.5 shrink-0 text-muted-foreground transition-transform ${isExpanded ? "" : "-rotate-90"}`} />
                                 )}
                                 <div className="min-w-0 flex-1">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-sm font-medium text-foreground">{row.primary_label}</span>
-                                    {row.status_label && <span className="text-xs text-muted-foreground">{row.status_label}</span>}
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <span className="text-sm font-semibold text-foreground">{row.primary_label}</span>
+                                    {row.status_label && (
+                                      <span className="rounded-full border border-border bg-muted/60 px-2 py-0.5 text-xs text-foreground/80">
+                                        {row.status_label}
+                                      </span>
+                                    )}
                                   </div>
                                   {hasDetail && (
-                                    <div className={`text-xs text-muted-foreground mt-1 whitespace-pre-wrap ${!isExpanded && isLong ? "line-clamp-2" : ""}`}>
+                                    <div className={`text-sm text-muted-foreground mt-1 whitespace-pre-wrap ${!isExpanded && isLong ? "line-clamp-2" : ""}`}>
                                       {row.detail_label}
                                     </div>
                                   )}
@@ -233,7 +245,7 @@ export default function DailyLogPanel({
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="h-6 px-2 text-xs gap-1"
+                                  className="h-9 sm:h-7 px-2 text-sm sm:text-xs gap-1"
                                   onClick={(e) => { e.stopPropagation(); handleEdit(row); }}
                                 >
                                   <Pencil className="h-3 w-3" />
@@ -248,10 +260,10 @@ export default function DailyLogPanel({
                 )}
 
                 {/* Group-level resource summary */}
-                <div className="border-t-2 border-border/50 bg-muted/70 px-4 py-3">
-                  <div className="grid grid-cols-5 gap-x-4 text-xs" style={{ gridTemplateColumns: "2fr 2fr 3fr 2fr 1.5fr" }}>
+                <div className="border-t border-border bg-accent/35 px-4 py-3">
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-x-4 gap-y-3 text-sm">
                     <div>
-                      <div className="text-muted-foreground uppercase tracking-wide font-semibold mb-1">Equipment</div>
+                      <div className="text-[11px] text-muted-foreground uppercase tracking-wide font-semibold mb-1">Equipment</div>
                       {hasEquipment ? (
                         <div className="space-y-0.5">
                           {group.equipment_summary.map((eq) => (
@@ -265,7 +277,7 @@ export default function DailyLogPanel({
                       )}
                     </div>
                     <div>
-                      <div className="text-muted-foreground uppercase tracking-wide font-semibold mb-1">Labor</div>
+                      <div className="text-[11px] text-muted-foreground uppercase tracking-wide font-semibold mb-1">Labor</div>
                       {hasLabor ? (
                         <div className="space-y-0.5">
                           {group.laborByRole.map((lr) => (
@@ -279,15 +291,15 @@ export default function DailyLogPanel({
                       )}
                     </div>
                     <div>
-                      <div className="text-muted-foreground uppercase tracking-wide font-semibold mb-1">Units Affected</div>
+                      <div className="text-[11px] text-muted-foreground uppercase tracking-wide font-semibold mb-1">Units Affected</div>
                       <div className="text-foreground">{group.situation?.units_label || <span className="text-muted-foreground">—</span>}</div>
                     </div>
                     <div>
-                      <div className="text-muted-foreground uppercase tracking-wide font-semibold mb-1">Rooms Returned</div>
+                      <div className="text-[11px] text-muted-foreground uppercase tracking-wide font-semibold mb-1">Rooms Returned</div>
                       <div className="text-foreground">{group.situation?.usable_rooms_returned || <span className="text-muted-foreground">—</span>}</div>
                     </div>
                     <div>
-                      <div className="text-muted-foreground uppercase tracking-wide font-semibold mb-1">Est. Return</div>
+                      <div className="text-[11px] text-muted-foreground uppercase tracking-wide font-semibold mb-1">Est. Return</div>
                       <div className="text-foreground">{group.situation?.estimated_date_of_return || <span className="text-muted-foreground">—</span>}</div>
                     </div>
                   </div>
