@@ -32,11 +32,6 @@ export default function MultiFilterSelect({
     return () => document.removeEventListener("mousedown", handleClick);
   }, [open]);
 
-  // Reset focus when opened
-  useEffect(() => {
-    if (open) setFocusIndex(-1);
-  }, [open]);
-
   const totalItems = options.length + 1; // +1 for "All" option
 
   const toggle = useCallback((value: string) => {
@@ -100,7 +95,7 @@ export default function MultiFilterSelect({
       <Button
         variant="outline"
         size="sm"
-        onClick={() => setOpen(!open)}
+        onClick={() => { setOpen(!open); setFocusIndex(-1); }}
         aria-expanded={open}
         aria-haspopup="listbox"
         className={`h-10 sm:h-8 px-2.5 text-sm sm:text-xs flex items-center gap-1.5 ${
