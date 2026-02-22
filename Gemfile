@@ -12,6 +12,9 @@ gem "inertia_rails"
 # Auth
 gem "bcrypt", "~> 3.1.7"
 
+# File storage (S3 in production)
+gem "aws-sdk-s3", require: false
+
 # Background jobs + cache
 gem "solid_cache"
 gem "solid_queue"
