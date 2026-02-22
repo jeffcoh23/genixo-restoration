@@ -30,10 +30,11 @@ class IncidentsTest < ApplicationSystemTestCase
 
     click_link "Create Request"
 
-    # Fill out the form
-    select "Sunset Apartments", from: "property_id"
+    # Property is auto-selected when only one property is available
+    assert_text "Sunset Apartments"
     find("label", text: "Emergency Response").click
-    select "Flood", from: "damage_type"
+    open_radix_select("Damage Type")
+    click_radix_option("Flood")
     fill_in "description", with: "Major water leak in unit 4B. Pipe burst overnight."
 
     click_button "Create Request"
@@ -70,9 +71,9 @@ class IncidentsTest < ApplicationSystemTestCase
     assert_no_text "Hidden Building"
 
     # Fill and submit
-    select "Sunset Apartments", from: "property_id"
     find("label", text: "Emergency Response").click
-    select "Flood", from: "damage_type"
+    open_radix_select("Damage Type")
+    click_radix_option("Flood")
     fill_in "description", with: "Water damage in lobby area"
 
     click_button "Create Request"
@@ -97,8 +98,8 @@ class IncidentsTest < ApplicationSystemTestCase
     visit incident_path(incident)
 
     # Status button should be clickable for managers
-    assert_text "Acknowledged"
-    click_button "Acknowledged"
+    assert_text "Emergency"
+    click_button "Emergency"
 
     # Dropdown appears with valid transitions
     click_button "Active"
@@ -112,15 +113,15 @@ class IncidentsTest < ApplicationSystemTestCase
   test "manager walks through quote path statuses" do
     incident = Incident.create!(
       property: @property, created_by_user: @manager,
-      status: "acknowledged", project_type: "mitigation_rfq",
+      status: "new", project_type: "mitigation_rfq",
       damage_type: "flood", description: "RFQ for flood mitigation"
     )
 
     login_as @manager
     visit incident_path(incident)
 
-    # Acknowledged → Proposal Requested
-    click_button "Acknowledged"
+    # New → Proposal Requested
+    click_button "New"
     click_button "Proposal Requested"
     assert_text "Proposal Requested"
     assert_equal "proposal_requested", incident.reload.status
@@ -142,5 +143,17 @@ class IncidentsTest < ApplicationSystemTestCase
     click_button "Active"
     assert_text "Active"
     assert_equal "active", incident.reload.status
+  end
+
+  private
+
+  def open_radix_select(label_text)
+    label = find("label", text: label_text, exact_text: false)
+    field = label.find(:xpath, "./following::*[@role='combobox'][1]")
+    field.click
+  end
+
+  def click_radix_option(text)
+    find("[role='option']", text: text, exact_text: true).click
   end
 end

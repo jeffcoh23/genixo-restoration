@@ -42,12 +42,12 @@ class TeamManagementTest < ApplicationSystemTestCase
     click_button "Manage"
     assert_text "Mitigation Team"
 
-    # The first "Assign" button is in the Mitigation Team section
-    assign_buttons = all("button", text: "Assign")
+    # The first "Assign User" trigger is in the Mitigation Team section
+    assign_buttons = all("button", text: "Assign User")
     assign_buttons[0].click
 
     # Select the tech from the dropdown
-    click_button "Bob Tech"
+    find("[role='option']", text: "Bob Tech").click
 
     # Tech should now appear in the team list
     assert_text "Bob Tech"
@@ -66,11 +66,11 @@ class TeamManagementTest < ApplicationSystemTestCase
     click_button "Manage"
     assert_text "Property Management"
 
-    # PM user only sees one Assign button (in PM section — mitigation assignable list is empty for PM users)
-    click_button "Assign"
+    # PM user only sees one Assign User trigger (PM section)
+    click_button "Assign User"
 
     # Select the PM Manager from the dropdown
-    click_button "Dan PMMgr"
+    find("[role='option']", text: "Dan PMMgr").click
 
     # PM Manager should now appear in the team
     assert_text "Dan PMMgr"

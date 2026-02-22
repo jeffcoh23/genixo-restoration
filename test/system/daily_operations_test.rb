@@ -57,14 +57,17 @@ class DailyOperationsTest < ApplicationSystemTestCase
     assert_text "No labor hours recorded yet."
 
     # Open the labor form modal
-    click_button "Add Labor"
+    click_button "Add Labor", match: :first
+    assert_text "Add Labor Entry"
 
     # Fill date and time inputs (no id attributes — find by type within the modal)
-    find("input[type='date']").fill_in with: Date.current.iso8601
-    all("input[type='time']")[0].fill_in with: "08:00"
-    all("input[type='time']")[1].fill_in with: "16:30"
+    within("[role='dialog']") do
+      find("input[type='date']").fill_in with: Date.current.iso8601
+      all("input[type='time']")[0].fill_in with: "08:00"
+      all("input[type='time']")[1].fill_in with: "16:30"
 
-    click_button "Add Labor"
+      click_button "Add Labor"
+    end
 
     # Labor entry should appear in the table
     assert_text "Bob Tech"

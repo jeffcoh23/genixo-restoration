@@ -56,27 +56,36 @@ class SecurityTest < ApplicationSystemTestCase
   test "pm user cannot view incident from another org" do
     login_as @pm_greystar
     visit incident_path(@incident_on_sandalwood)
-    assert_text "The page you were looking for doesn't exist"
+    assert_not_found_rendered
   end
 
   # H2: PM user cannot view unassigned property
   test "pm user cannot view unassigned property" do
     login_as @pm_greystar
     visit property_path(@other_property)
-    assert_text "The page you were looking for doesn't exist"
+    assert_not_found_rendered
   end
 
   # H3: PM user cannot access equipment items page (mitigation-only)
   test "pm user cannot access equipment items page" do
     login_as @pm_greystar
     visit equipment_items_path
-    assert_text "The page you were looking for doesn't exist"
+    assert_not_found_rendered
   end
 
   # H4: Technician cannot see unassigned incident
   test "technician cannot view incident they are not assigned to" do
     login_as @tech
     visit incident_path(@incident_on_sunset)
-    assert_text "The page you were looking for doesn't exist"
+    assert_not_found_rendered
+  end
+
+  private
+
+  def assert_not_found_rendered
+    production_404 = page.has_text?("The page you were looking for") && page.has_text?("exist")
+    debug_404 = page.has_text?("ActiveRecord::RecordNotFound")
+
+    assert(production_404 || debug_404, "Expected production 404 page or test debug not-found page, but got:\n#{page.text}")
   end
 end
