@@ -120,7 +120,7 @@ If a behavior can be verified without rendering React components, test it at the
 
 > Comprehensive catalog of every user flow that needs browser-level E2E coverage. Organized by feature group with build priority.
 >
-> **Current state:** `test/system/` is empty. All flows below are unwritten.
+> **Current state (February 21, 2026):** `test/system/` has 7 files. Two new files were added (`incident_panels_test.rb`, `user_profile_test.rb`) and need a full run.
 
 ### Priority Guide
 
@@ -129,6 +129,30 @@ If a behavior can be verified without rendering React components, test it at the
 | **P1 — Critical** | Auth, data isolation, primary value flows | First — gates production |
 | **P2 — Core** | Standard CRUD, dashboard, team management | After P1 passes |
 | **P3 — Edge** | Role restrictions, form validation, UI states | After P2 passes |
+
+---
+
+### Current Coverage Snapshot (February 21, 2026)
+
+| File | Tests | Current Status |
+|------|-------|----------------|
+| `test/system/authentication_test.rb` | 8 | Passing |
+| `test/system/incidents_test.rb` | 4 | Failing after UI refactor (selectors + status UI expectations) |
+| `test/system/team_management_test.rb` | 2 | Failing after Manage tab interaction changes |
+| `test/system/daily_operations_test.rb` | 3 | One failing due ambiguous selectors |
+| `test/system/security_test.rb` | 4 | Failing because assertions expect static 404 copy but test env renders exception details |
+| `test/system/incident_panels_test.rb` | 3 | New coverage: incident tab order + messages/photos controls |
+| `test/system/user_profile_test.rb` | 2 | New coverage: user edit modal open/cancel/save flows |
+
+Latest full local run (before adding new files): `21 runs, 57 assertions, 5 failures, 6 errors`.
+
+### Immediate E2E Maintenance (P0)
+
+1. Add stable selectors (`data-testid`) for key interaction points: incident create property picker, status transition control, assign-user controls, and labor/equipment add actions.
+2. Update tests to use current tab structure and button labels (Manage, Documents, Photos, Messages).
+3. Replace brittle text-only 404 assertions with assertions that survive exception rendering mode in system tests.
+4. Fix ambiguous selectors in modals (`Add Labor`, assign dropdown options) by scoping to dialog containers.
+5. Keep CI Playwright install/version wiring in sync with `playwright-ruby-client` before running `test:system`.
 
 ---
 
@@ -316,16 +340,35 @@ If a behavior can be verified without rendering React components, test it at the
 
 ---
 
+### I. Recent Refactor Coverage (new)
+
+| ID | Test | Roles | Flow | Verify |
+|----|------|-------|------|--------|
+| I1 | Incident tab order remains fixed | Any | Incident show page | Tab order is stable and does not regress after UI refactors |
+| I2 | Activity badge only tracks daily log activity entries | Any | Create message/labor/equipment vs daily activity entry | Daily Log unread badge increments only for `activity_logged` events |
+| I3 | Photos panel includes incident + message image attachments | Any | Upload photo in Photos tab + send image in Messages | Both appear in Photos library with source marker |
+| I4 | Photos filters work at scale | Any | Seed large photo set, filter by search/uploader/date, load more | Correct subset shown and pagination batch increases deterministically |
+| I5 | Photo upload actions preserve scroll/state | Any | Upload Photos and Take Photos actions | Panel updates without full-page jump/reset |
+| I6 | Documents grouped by type + ordered + paged | Any | Upload mixed categories, browse with filters | Group ordering and per-type ordering are correct; load-more works |
+| I7 | Messages allow attachment-only send | Any | Send message with file but empty body | Message persists and renders attachments in thread |
+| I8 | Manage tab assignment flows remain operable | Manager, PM user | Assign mitigation and PM-side users from Manage | Assignment succeeds; role scoping enforced |
+| I9 | User edit is modal and permission-scoped | Manager, non-manager | Open User page and edit self/others | Mitigation manager can edit others; everyone else can edit self only |
+| I10 | User role field locking rules | Manager, non-manager | Open edit modal for self/other | Only allowed editors can change role; restricted users see locked role control |
+
+**Priority:** I2, I8, I9 = P1. I3–I7, I10 = P2. I1 = P3.
+
+---
+
 ### Build Order
 
 Write E2E tests in this order — each group builds on the previous:
 
-1. **Auth basics** (A1–A4, A12–A13) — can't test anything else without login working
-2. **Data isolation** (H1–H4) — security gates production
-3. **Incident create + status** (C1, C3, C15–C16) — primary value loop
-4. **Daily ops core** (E1, E4, E9) — messages, labor, equipment
-5. **Team management** (D1–D2) — assignments
-6. **Dashboard + list** (B1–B3, C7–C13) — navigation and filtering
+1. **Repair current failures first** (P0 maintenance above) — keep the suite trusted
+2. **Auth basics** (A1–A4, A12–A13) — can't test anything else without login working
+3. **Data isolation** (H1–H4) — security gates production
+4. **Incident create + status** (C1, C3, C15–C16) — primary value loop
+5. **Daily ops core + refactor criticals** (E1, E4, E9, I2, I8, I9)
+6. **Dashboard + list + media browsing** (B1–B3, C7–C13, I3–I7)
 7. **Admin CRUD** (F1, F3, F6, F9) — org, property, user management
 8. **Settings** (G1–G2) — profile and password
 9. **Remaining P2 + P3** — edge cases, validation, role restrictions
@@ -335,13 +378,19 @@ Write E2E tests in this order — each group builds on the previous:
 ```
 test/system/
 ├── authentication_test.rb    # A1–A13
-├── dashboard_test.rb         # B1–B6
 ├── incidents_test.rb         # C1–C23
 ├── team_management_test.rb   # D1–D7
 ├── daily_operations_test.rb  # E1–E20
-├── admin_operations_test.rb  # F1–F22
-├── settings_test.rb          # G1–G6
-└── security_test.rb          # H1–H15
+├── security_test.rb          # H1–H15
+├── incident_panels_test.rb   # I1 + media controls (implemented)
+├── user_profile_test.rb      # user edit modal workflows (implemented)
+├── media_workflows_test.rb   # I3–I7 (planned)
+├── user_permissions_test.rb  # I9–I10 + relevant F/H permissions (planned)
+├── dashboard_test.rb         # B1–B6 (planned)
+├── admin_operations_test.rb  # F1–F22 (planned)
+├── settings_test.rb          # G1–G6 (planned)
+└── navigation_ui_test.rb     # I1 + tab-order and badge smoke checks (planned)
 ```
 
-**Total:** 8 files, ~100 test cases. Write P1 first (~20 tests), then P2 (~40 tests), then P3 (~40 tests).
+**Current:** 7 implemented files (test count pending next full run).  
+**Target:** 11 files after planned expansion, with P0 + P1 completed first.

@@ -1,4 +1,5 @@
 require "test_helper"
+require "cgi"
 
 class IncidentsControllerTest < ActionDispatch::IntegrationTest
   setup do
@@ -364,7 +365,109 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
+  test "show unread activity only counts daily log activity entries" do
+    incident = create_test_incident(status: "active")
+
+    ActivityEvent.create!(
+      incident: incident,
+      performed_by_user: @tech,
+      event_type: "status_changed",
+      metadata: {}
+    )
+    ActivityEvent.create!(
+      incident: incident,
+      performed_by_user: @tech,
+      event_type: "activity_updated",
+      metadata: {}
+    )
+    ActivityEvent.create!(
+      incident: incident,
+      performed_by_user: @tech,
+      event_type: "activity_logged",
+      metadata: {}
+    )
+
+    login_as @manager
+    get incident_path(incident)
+    assert_response :success
+
+    props = inertia_props
+    assert_equal 1, props.dig("incident", "unread_activity")
+  end
+
+  test "show serializes incident attachments newest first" do
+    incident = create_test_incident(status: "active")
+
+    older = incident.attachments.create!(
+      uploaded_by_user: @manager,
+      category: "general",
+      description: "Older doc"
+    )
+    File.open(Rails.root.join("test/fixtures/files/test_photo.jpg"), "rb") do |io|
+      older.file.attach(io: io, filename: "older.jpg", content_type: "image/jpeg")
+    end
+    older.update_column(:created_at, 2.days.ago)
+
+    newer = incident.attachments.create!(
+      uploaded_by_user: @manager,
+      category: "photo",
+      description: "Newer photo"
+    )
+    File.open(Rails.root.join("test/fixtures/files/test_photo.jpg"), "rb") do |io|
+      newer.file.attach(io: io, filename: "newer.jpg", content_type: "image/jpeg")
+    end
+    newer.update_column(:created_at, 1.hour.ago)
+
+    login_as @manager
+    get incident_path(incident)
+    assert_response :success
+
+    attachment_ids = inertia_props.fetch("attachments").map { |att| att.fetch("id") }
+    assert_equal [ newer.id, older.id ], attachment_ids.first(2)
+  end
+
+  test "show serializes image attachments for message thread" do
+    incident = create_test_incident(status: "active")
+    message = Message.create!(incident: incident, user: @tech, body: "See attached image")
+    message_attachment = message.attachments.create!(
+      uploaded_by_user: @tech,
+      category: "general"
+    )
+    File.open(Rails.root.join("test/fixtures/files/test_photo.jpg"), "rb") do |io|
+      message_attachment.file.attach(io: io, filename: "thread_photo.jpg", content_type: "image/jpeg")
+    end
+
+    login_as @manager
+    get incident_path(incident)
+    assert_response :success
+
+    serialized = inertia_props.fetch("messages").find { |msg| msg.fetch("id") == message.id }
+    assert_equal "See attached image", serialized.fetch("body")
+    assert_equal 1, serialized.fetch("attachments").length
+    assert_equal "image/jpeg", serialized.dig("attachments", 0, "content_type")
+  end
+
+  test "mark_read with unknown tab leaves read timestamps nil" do
+    incident = create_test_incident(status: "active")
+    login_as @manager
+
+    assert_difference "IncidentReadState.count", 1 do
+      patch mark_read_incident_path(incident), params: { tab: "unknown" }
+    end
+
+    read_state = IncidentReadState.find_by!(incident: incident, user: @manager)
+    assert_nil read_state.last_message_read_at
+    assert_nil read_state.last_activity_read_at
+  end
+
   private
+
+  def inertia_props
+    encoded = response.body.match(/data-page="([^"]+)"/m)&.captures&.first
+    raise "Missing Inertia data-page payload" unless encoded
+
+    JSON.parse(CGI.unescapeHTML(encoded)).fetch("props")
+  end
 
   def login_as(user)
     post login_path, params: { email_address: user.email_address, password: "password123" }

@@ -97,6 +97,12 @@ jobs:
       - name: Install Node packages
         run: npm ci
 
+      - name: Resolve Playwright CLI version
+        run: echo "PLAYWRIGHT_VERSION=$(bundle exec ruby -e 'require \"playwright\"; puts Playwright::COMPATIBLE_PLAYWRIGHT_VERSION.strip')" >> "$GITHUB_ENV"
+
+      - name: Install Playwright browsers
+        run: npx -y playwright@${PLAYWRIGHT_VERSION} install --with-deps chromium
+
       - name: Pre-build Vite assets
         env:
           RAILS_ENV: test
@@ -107,6 +113,7 @@ jobs:
           RAILS_ENV: test
           DATABASE_URL: postgres://postgres:postgres@localhost:5432
           VITE_RUBY_AUTO_BUILD: false
+          PLAYWRIGHT_CLI_EXECUTABLE_PATH: npx -y playwright@${{ env.PLAYWRIGHT_VERSION }}
           # REDIS_URL: redis://localhost:6379/0
         run: bin/rails db:test:prepare test test:system
 

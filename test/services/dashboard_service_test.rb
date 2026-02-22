@@ -164,6 +164,50 @@ class DashboardServiceTest < ActiveSupport::TestCase
     assert_nil counts.dig(@active.id, :activity)
   end
 
+  test "unread_counts excludes activity_updated from activity badge" do
+    ActivityEvent.create!(
+      incident: @active, performed_by_user: @tech,
+      event_type: "activity_updated", metadata: {}
+    )
+
+    counts = DashboardService.new(user: @manager).unread_counts
+    assert_nil counts.dig(@active.id, :activity)
+  end
+
+  test "unread_counts only counts activity_logged after threshold" do
+    IncidentReadState.create!(incident: @active, user: @manager, last_activity_read_at: 10.minutes.ago)
+
+    ActivityEvent.create!(
+      incident: @active, performed_by_user: @tech,
+      event_type: "status_changed", metadata: {}, created_at: 5.minutes.ago
+    )
+    ActivityEvent.create!(
+      incident: @active, performed_by_user: @tech,
+      event_type: "activity_updated", metadata: {}, created_at: 4.minutes.ago
+    )
+    ActivityEvent.create!(
+      incident: @active, performed_by_user: @tech,
+      event_type: "activity_logged", metadata: {}, created_at: 3.minutes.ago
+    )
+    ActivityEvent.create!(
+      incident: @active, performed_by_user: @tech,
+      event_type: "activity_logged", metadata: {}, created_at: 2.minutes.ago
+    )
+
+    counts = DashboardService.new(user: @manager).unread_counts
+    assert_equal 2, counts.dig(@active.id, :activity)
+  end
+
+  test "unread_counts excludes current user's own activity_logged events" do
+    ActivityEvent.create!(
+      incident: @active, performed_by_user: @manager,
+      event_type: "activity_logged", metadata: {}
+    )
+
+    counts = DashboardService.new(user: @manager).unread_counts
+    assert_nil counts.dig(@active.id, :activity)
+  end
+
   test "unread_counts respects last_activity_read_at" do
     ActivityEvent.create!(
       incident: @active, performed_by_user: @tech,

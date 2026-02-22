@@ -110,6 +110,55 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to incident_path(@incident)
   end
 
+  test "manager can send attachment-only message" do
+    login_as @manager
+
+    assert_difference "Message.count", 1 do
+      assert_difference "Attachment.count", 1 do
+        post incident_messages_path(@incident), params: {
+          message: {
+            body: "",
+            files: [ fixture_file_upload("test_photo.jpg", "image/jpeg") ]
+          }
+        }
+      end
+    end
+
+    assert_redirected_to incident_path(@incident)
+
+    message = Message.last
+    attachment = message.attachments.last
+
+    assert_equal "", message.body
+    assert_equal @manager.id, attachment.uploaded_by_user_id
+    assert_equal "general", attachment.category
+    assert attachment.file.attached?
+  end
+
+  test "missing message payload is handled with alert" do
+    login_as @manager
+    assert_no_difference "Message.count" do
+      post incident_messages_path(@incident)
+    end
+    assert_redirected_to incident_path(@incident)
+    assert_equal "Message or attachment required.", flash[:alert]
+  end
+
+  test "attachment-only message updates incident activity timestamp" do
+    login_as @manager
+    @incident.update_column(:last_activity_at, 2.hours.ago)
+
+    post incident_messages_path(@incident), params: {
+      message: {
+        body: "",
+        files: [ fixture_file_upload("test_photo.jpg", "image/jpeg") ]
+      }
+    }
+
+    assert_redirected_to incident_path(@incident)
+    assert @incident.reload.last_activity_at > 1.minute.ago
+  end
+
   private
 
   def login_as(user)
