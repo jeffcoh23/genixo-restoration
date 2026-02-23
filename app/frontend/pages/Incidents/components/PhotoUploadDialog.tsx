@@ -200,6 +200,7 @@ export default function PhotoUploadDialog({
                 value={logDate}
                 onChange={(e) => setLogDate(e.target.value)}
                 className="h-8 text-xs w-36 mt-0.5"
+                data-testid="photo-dialog-date"
               />
             </div>
             <div className="flex-1">
@@ -211,6 +212,7 @@ export default function PhotoUploadDialog({
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Optional — applies to all photos"
                 className="h-8 text-xs mt-0.5"
+                data-testid="photo-dialog-description"
               />
             </div>
           </div>
@@ -253,6 +255,7 @@ export default function PhotoUploadDialog({
               size="sm"
               className="h-8 text-xs gap-1.5"
               onClick={() => galleryInputRef.current?.click()}
+              data-testid="photo-dialog-gallery-button"
             >
               <ImagePlus className="h-3.5 w-3.5" />
               Gallery
@@ -264,6 +267,7 @@ export default function PhotoUploadDialog({
               multiple
               className="hidden"
               onChange={handleGallerySelect}
+              data-testid="photo-dialog-gallery-input"
             />
           </div>
 
@@ -305,12 +309,25 @@ export default function PhotoUploadDialog({
 
           <div className="flex items-center gap-2">
             {cameraActive && (
-              <Button size="sm" onClick={handleSnap} className="gap-1.5 h-10 sm:h-9" disabled={activeCount > 0}>
+              <Button
+                size="sm"
+                onClick={handleSnap}
+                className="gap-1.5 h-10 sm:h-9"
+                disabled={activeCount > 0}
+                data-testid="photo-dialog-snap"
+              >
                 <Camera className="h-4 w-4" />
                 Snap
               </Button>
             )}
-            <Button variant="outline" size="sm" className="h-10 sm:h-9" onClick={handleDone} disabled={activeCount > 0}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-10 sm:h-9"
+              onClick={handleDone}
+              disabled={activeCount > 0}
+              data-testid="photo-dialog-done"
+            >
               {activeCount > 0 ? "Uploading..." : "Done"}
             </Button>
           </div>

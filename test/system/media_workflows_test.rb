@@ -1,5 +1,6 @@
 require "application_system_test_case"
 require_relative "planned_system_test_support"
+require "tempfile"
 
 class MediaWorkflowsTest < ApplicationSystemTestCase
   include PlannedSystemTestSupport
@@ -114,6 +115,34 @@ class MediaWorkflowsTest < ApplicationSystemTestCase
     assert_equal "image/jpeg", uploaded_photo.file.blob.content_type
   end
 
+  test "take photos dialog snap uploads using mocked camera and persists" do
+    login_as @manager
+    visit incident_path(@incident)
+    click_button "Photos"
+
+    install_mock_camera_for_snap
+
+    find("[data-testid='photos-panel-take-photos-button']").click
+
+    within("[role='dialog']") do
+      find("[data-testid='photo-dialog-description']").fill_in with: "Snapped in dialog"
+      assert_selector "[data-testid='photo-dialog-snap']"
+
+      find("[data-testid='photo-dialog-snap']").click
+
+      assert_text "Latest: photo-"
+      assert_no_text "in progress"
+
+      find("[data-testid='photo-dialog-done']").click
+    end
+
+    assert_text "Snapped in dialog"
+    uploaded_photo = @incident.attachments.order(:id).last
+    assert_equal "photo", uploaded_photo.category
+    assert_equal "Snapped in dialog", uploaded_photo.description
+    assert_equal "image/jpeg", uploaded_photo.file.blob.content_type
+  end
+
   test "documents are grouped by type ordered and paginated" do
     32.times do |i|
       category = if i < 10
@@ -143,18 +172,43 @@ class MediaWorkflowsTest < ApplicationSystemTestCase
     assert_text "Showing 32 of 32"
   end
 
-  test "messages allow attachment only send" do
+  test "messages composer sends attachment only via file picker UI" do
     login_as @manager
     visit incident_path(@incident)
     click_button "Messages"
 
-    post_message_via_fetch(body: "", filename: "attachment-only.txt", content_type: "text/plain")
-    assert_text "No entries for this date."
-    click_button "Messages"
-    assert_text "attachment-only.txt"
+    with_temp_text_attachment("attachment-only") do |path, filename|
+      find("[data-testid='message-file-input']", visible: :all).set(path)
+      assert_no_selector "[data-testid='message-send'][disabled]"
+      find("[data-testid='message-send']").click
+      assert_no_text "No messages yet"
+      assert_selector "a", text: filename
+    end
+
     last_message = @incident.messages.order(:id).last
     assert_equal "", last_message.body.to_s
     assert_equal 1, last_message.attachments.count
+    assert_equal "text/plain", last_message.attachments.first.file.blob.content_type
+  end
+
+  test "messages composer camera input sends image attachment via UI" do
+    login_as @manager
+    visit incident_path(@incident)
+    click_button "Messages"
+
+    find("[data-testid='message-camera-input']", visible: :all).set(fixture_photo_path.to_s)
+    fill_in "Type a message...", with: "Photo from messages UI"
+
+    assert_no_selector "[data-testid='message-send'][disabled]"
+    find("[data-testid='message-send']").click
+
+    assert_text "Photo from messages UI"
+    assert_selector "a[title='test_photo.jpg']"
+
+    last_message = @incident.messages.order(:id).last
+    assert_equal "Photo from messages UI", last_message.body
+    assert_equal 1, last_message.attachments.count
+    assert_equal "image/jpeg", last_message.attachments.first.file.blob.content_type
   end
 
   private
@@ -195,19 +249,61 @@ class MediaWorkflowsTest < ApplicationSystemTestCase
     attachment
   end
 
-  def post_message_via_fetch(body:, filename:, content_type:)
+  def with_temp_text_attachment(prefix)
+    file = Tempfile.new([prefix, ".txt"])
+    file.write("hello from ui e2e")
+    file.flush
+    yield file.path, File.basename(file.path)
+  ensure
+    file&.close
+    file&.unlink
+  end
+
+  def install_mock_camera_for_snap
     js = <<~JS
-      const [path, body, filename, contentType] = arguments;
-      const token = document.querySelector('meta[name=\"csrf-token\"]')?.content;
-      const fd = new FormData();
-      fd.append('message[body]', body);
-      fd.append('message[files][]', new File(['hello from e2e'], filename, { type: contentType }));
-      fetch(path, {
-        method: 'POST',
-        headers: token ? { 'X-CSRF-Token': token, 'X-Requested-With': 'XMLHttpRequest' } : { 'X-Requested-With': 'XMLHttpRequest' },
-        body: fd
-      }).then(() => window.location.reload());
+      (() => {
+        const jpegBase64 = "/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////2wBDAf//////////////////////////////////////////////////////////////////////////////////////wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAVAQEBAAAAAAAAAAAAAAAAAAACAf/aAAwDAQACEAMQAAAB6AA//8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABBQL/xAAVEQEBAAAAAAAAAAAAAAAAAAABAP/aAAgBAwEBPwF//8QAFBEBAAAAAAAAAAAAAAAAAAAAEP/aAAgBAgEBPwF//8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQAGPwJ//8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPyF//9k=";
+        const bytes = Uint8Array.from(atob(jpegBase64), (c) => c.charCodeAt(0));
+        const blob = new Blob([bytes], { type: "image/jpeg" });
+
+        navigator.mediaDevices ||= {};
+        navigator.mediaDevices.getUserMedia = async () => {
+          if (typeof MediaStream !== "undefined") return new MediaStream();
+          return { getTracks: () => [] };
+        };
+
+        if (!window.__e2ePatchedVideoDims) {
+          window.__e2ePatchedVideoDims = true;
+          Object.defineProperty(HTMLVideoElement.prototype, "videoWidth", {
+            configurable: true,
+            get() { return 640; }
+          });
+          Object.defineProperty(HTMLVideoElement.prototype, "videoHeight", {
+            configurable: true,
+            get() { return 480; }
+          });
+        }
+
+        if (window.CanvasRenderingContext2D && !window.__e2ePatchedDrawImage) {
+          window.__e2ePatchedDrawImage = true;
+          const originalDrawImage = CanvasRenderingContext2D.prototype.drawImage;
+          CanvasRenderingContext2D.prototype.drawImage = function(...args) {
+            try {
+              return originalDrawImage.apply(this, args);
+            } catch (_e) {
+              return undefined;
+            }
+          };
+        }
+
+        if (!window.__e2ePatchedCanvasToBlob) {
+          window.__e2ePatchedCanvasToBlob = true;
+          HTMLCanvasElement.prototype.toBlob = function(callback) {
+            callback(blob);
+          };
+        }
+      })();
     JS
-    page.execute_script(js, incident_messages_path(@incident), body, filename, content_type)
+    page.execute_script(js)
   end
 end

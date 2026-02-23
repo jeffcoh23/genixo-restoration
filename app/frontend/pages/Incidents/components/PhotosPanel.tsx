@@ -155,6 +155,7 @@ export default function PhotosPanel({ attachments, messages, upload_photo_path }
               multiple
               className="hidden"
               onChange={handleUploadPhotos}
+              data-testid="photos-panel-upload-input"
             />
             <Button
               variant="outline"
@@ -162,6 +163,7 @@ export default function PhotosPanel({ attachments, messages, upload_photo_path }
               className="h-10 sm:h-8 text-sm sm:text-xs gap-1"
               onClick={() => uploadInputRef.current?.click()}
               disabled={bulkUploading}
+              data-testid="photos-panel-upload-button"
             >
               <Upload className="h-3 w-3" />
               {bulkUploading ? "Uploading..." : "Upload Photos"}
@@ -172,6 +174,7 @@ export default function PhotosPanel({ attachments, messages, upload_photo_path }
               className="h-10 sm:h-8 text-sm sm:text-xs gap-1"
               onClick={() => setShowPhotoDialog(true)}
               disabled={bulkUploading}
+              data-testid="photos-panel-take-photos-button"
             >
               <Camera className="h-3 w-3" />
               Take Photos

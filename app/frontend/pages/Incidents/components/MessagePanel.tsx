@@ -104,6 +104,7 @@ export default function MessagePanel({ messages, messages_path }: MessagePanelPr
             multiple
             className="hidden"
             onChange={handleFileSelect}
+            data-testid="message-file-input"
           />
           <Input
             ref={cameraInputRef}
@@ -112,6 +113,7 @@ export default function MessagePanel({ messages, messages_path }: MessagePanelPr
             capture="environment"
             className="hidden"
             onChange={handleFileSelect}
+            data-testid="message-camera-input"
           />
           <Button
             type="button"

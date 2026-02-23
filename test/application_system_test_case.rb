@@ -1,7 +1,12 @@
 require "test_helper"
 
 Capybara.register_driver(:playwright) do |app|
-  Capybara::Playwright::Driver.new(app, browser_type: :chromium, headless: true)
+  Capybara::Playwright::Driver.new(
+    app,
+    browser_type: :chromium,
+    headless: true,
+    default_navigation_timeout: 60
+  )
 end
 
 class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
