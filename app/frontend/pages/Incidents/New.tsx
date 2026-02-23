@@ -36,8 +36,13 @@ export default function NewIncident() {
     ? properties.filter((p) => String(p.organization_id) === selectedOrgId)
     : properties;
 
+  const initialPropertyId = properties.length === 1 ? String(properties[0].id) : "";
+  const initialAutoAssignIds = initialPropertyId
+    ? (property_users[initialPropertyId] || []).filter((u) => u.auto_assign).map((u) => u.id)
+    : [];
+
   const { data, setData, post, processing, errors, transform } = useForm({
-    property_id: properties.length === 1 ? String(properties[0].id) : "",
+    property_id: initialPropertyId,
     job_id: "",
     project_type: "",
     damage_type: "",
@@ -48,7 +53,7 @@ export default function NewIncident() {
     affected_room_numbers: "",
     location_of_damage: "",
     do_not_exceed_limit: "",
-    additional_user_ids: [] as number[],
+    additional_user_ids: initialAutoAssignIds as number[],
   });
 
   const [contacts, setContacts] = useState<ContactRow[]>([]);

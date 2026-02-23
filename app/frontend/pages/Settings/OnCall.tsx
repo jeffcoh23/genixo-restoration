@@ -110,7 +110,7 @@ export default function OnCallSettings() {
                 Primary On-Call <span className="text-destructive">*</span>
               </label>
               <Select value={String(primaryUserId)} onValueChange={(v) => setPrimaryUserId(v)}>
-                <SelectTrigger className="mt-1 h-11 sm:h-10">
+                <SelectTrigger className="mt-1 h-11 sm:h-10" data-testid="oncall-primary-select">
                   <SelectValue placeholder="Select a manager..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -134,13 +134,14 @@ export default function OnCallSettings() {
                 value={timeoutMinutes}
                 onChange={(e) => setTimeoutMinutes(Number(e.target.value))}
                 className="mt-1 max-w-[140px] h-11 sm:h-10"
+                data-testid="oncall-timeout"
               />
               <p className="mt-1 text-sm text-muted-foreground">
                 Time to wait before contacting the next person in the escalation chain.
               </p>
             </div>
 
-            <Button type="submit" size="sm" className="h-11 sm:h-10" disabled={saving}>
+            <Button type="submit" size="sm" className="h-11 sm:h-10" disabled={saving} data-testid="oncall-save-config">
               {saving ? "Saving..." : "Save Configuration"}
             </Button>
           </form>
@@ -159,7 +160,7 @@ export default function OnCallSettings() {
             ) : (
               <div className="mt-3 divide-y divide-border">
                 {config.contacts.map((contact, idx) => (
-                  <div key={contact.id} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 px-3 py-3 hover:bg-muted/30 transition-colors">
+                  <div key={contact.id} data-testid={`escalation-contact-row-${contact.id}`} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 px-3 py-3 hover:bg-muted/30 transition-colors">
                     <span className="text-sm font-semibold text-muted-foreground w-6 tabular-nums">{idx + 1}.</span>
                     <span className="text-sm text-foreground">{contact.full_name}</span>
                     <span className="text-sm text-muted-foreground">{contact.role_label}</span>
@@ -170,6 +171,7 @@ export default function OnCallSettings() {
                         className="h-10 sm:h-8 gap-1 text-sm sm:text-xs"
                         onClick={() => handleMoveContact(idx, "up")}
                         disabled={idx === 0}
+                        data-testid={`escalation-contact-up-${contact.id}`}
                       >
                         <ArrowUp className="h-3.5 w-3.5" />
                         Up
@@ -180,6 +182,7 @@ export default function OnCallSettings() {
                         className="h-10 sm:h-8 gap-1 text-sm sm:text-xs"
                         onClick={() => handleMoveContact(idx, "down")}
                         disabled={idx === config.contacts.length - 1}
+                        data-testid={`escalation-contact-down-${contact.id}`}
                       >
                         <ArrowDown className="h-3.5 w-3.5" />
                         Down
@@ -189,6 +192,7 @@ export default function OnCallSettings() {
                         size="sm"
                         className="h-10 sm:h-8 gap-1 text-sm sm:text-xs"
                         onClick={() => handleRemoveContact(contact.remove_path)}
+                        data-testid={`escalation-contact-remove-${contact.id}`}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                         Remove
@@ -205,7 +209,7 @@ export default function OnCallSettings() {
                 <div className="flex-1 max-w-[280px]">
                   <label className="text-sm font-medium text-foreground">Add Contact</label>
                   <Select value={newContactUserId} onValueChange={setNewContactUserId}>
-                    <SelectTrigger className="mt-1 h-11 sm:h-10">
+                    <SelectTrigger className="mt-1 h-11 sm:h-10" data-testid="escalation-add-select">
                       <SelectValue placeholder="Select..." />
                     </SelectTrigger>
                     <SelectContent>
@@ -217,7 +221,7 @@ export default function OnCallSettings() {
                     </SelectContent>
                   </Select>
                 </div>
-                <Button type="submit" size="sm" variant="outline" disabled={addingContact || !newContactUserId} className="gap-1 h-11 sm:h-10">
+                <Button type="submit" size="sm" variant="outline" disabled={addingContact || !newContactUserId} className="gap-1 h-11 sm:h-10" data-testid="escalation-add-button">
                   <Plus className="h-3.5 w-3.5" />
                   Add
                 </Button>

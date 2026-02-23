@@ -100,7 +100,7 @@ export default function DailyLogPanel({
           estimated_date_of_return: latestWithMeta.estimated_date_of_return || null,
         } : null,
       };
-    }).filter((g) => g.activityRows.length > 0 || g.laborByRole.length > 0);
+    }).filter((g) => g.rows.length > 0 || g.laborByRole.length > 0 || g.equipment_summary.length > 0);
 
     if (!selectedDate) return groups;
     return groups.filter((g) => g.date_key === selectedDate);
@@ -194,10 +194,10 @@ export default function DailyLogPanel({
                   </a>
                 </div>
 
-                {/* Activity rows */}
-                {group.activityRows.length > 0 && (
+                {/* Timeline rows (activities, notes, documents, etc.) */}
+                {group.rows.length > 0 && (
                   <div className="divide-y divide-border bg-card">
-                    {group.activityRows.map((row) => {
+                    {group.rows.map((row) => {
                       const isExpanded = isRowExpanded(row.id);
                       const hasDetail = row.detail_label !== "—" && row.detail_label.length > 0;
                       const isLong = hasDetail && row.detail_label.length > 120;
@@ -242,7 +242,7 @@ export default function DailyLogPanel({
                               </div>
                             </div>
                             <div className="shrink-0 flex items-center gap-2">
-                              {row.edit_path && (
+                              {row.row_type === "activity" && row.edit_path && (
                                 <Button
                                   variant="ghost"
                                   size="sm"

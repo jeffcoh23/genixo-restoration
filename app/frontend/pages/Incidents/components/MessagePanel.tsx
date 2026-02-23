@@ -120,6 +120,7 @@ export default function MessagePanel({ messages, messages_path }: MessagePanelPr
             className="shrink-0 h-9 w-9"
             onClick={() => fileInputRef.current?.click()}
             aria-label="Attach files"
+            data-testid="message-attach-files"
           >
             <Paperclip className="h-4 w-4" />
           </Button>
@@ -130,6 +131,7 @@ export default function MessagePanel({ messages, messages_path }: MessagePanelPr
             className="shrink-0 h-9 w-9"
             onClick={() => cameraInputRef.current?.click()}
             aria-label="Take photo"
+            data-testid="message-take-photo"
           >
             <Camera className="h-4 w-4" />
           </Button>
@@ -147,6 +149,7 @@ export default function MessagePanel({ messages, messages_path }: MessagePanelPr
             onClick={handleSend}
             disabled={(!body.trim() && files.length === 0) || sending}
             className="shrink-0 h-9 w-9"
+            data-testid="message-send"
           >
             <Send className="h-4 w-4" />
           </Button>

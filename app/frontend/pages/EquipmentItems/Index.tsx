@@ -232,6 +232,7 @@ export default function EquipmentIndex() {
             size="sm"
             className="h-8 gap-1.5 text-xs"
             onClick={() => setTypesOpen(true)}
+            data-testid="equipment-manage-types"
           >
             <Settings2 className="h-3.5 w-3.5" />
             Manage Types
@@ -421,7 +422,7 @@ function TypesSheet({
               </thead>
               <tbody>
                 {all_types.map((et) => (
-                  <tr key={et.id} className={`border-b last:border-0 ${!et.active ? "opacity-50" : ""}`}>
+                  <tr key={et.id} data-testid={`equipment-type-row-${et.id}`} className={`border-b last:border-0 ${!et.active ? "opacity-50" : ""}`}>
                     <td className="px-3 py-2.5 font-medium">{et.name}</td>
                     <td className="px-3 py-2.5">
                       {et.active ? (
@@ -437,6 +438,7 @@ function TypesSheet({
                           size="sm"
                           className="h-7 text-xs text-muted-foreground hover:text-destructive"
                           onClick={() => router.patch(et.deactivate_path!)}
+                          data-testid={`equipment-type-deactivate-${et.id}`}
                         >
                           Deactivate
                         </Button>
@@ -447,6 +449,7 @@ function TypesSheet({
                           size="sm"
                           className="h-7 text-xs"
                           onClick={() => router.patch(et.reactivate_path!)}
+                          data-testid={`equipment-type-reactivate-${et.id}`}
                         >
                           Reactivate
                         </Button>
@@ -531,7 +534,7 @@ function InventoryTable({
           {items.map((item) => {
             const isEditing = editingId === item.id;
             return (
-              <tr key={item.id} className="border-b last:border-0 hover:bg-muted">
+              <tr key={item.id} data-testid={`equipment-item-row-${item.id}`} className="border-b last:border-0 hover:bg-muted">
                 {isEditing ? (
                   <>
                     <td className="px-4 py-2">
@@ -579,6 +582,7 @@ function InventoryTable({
                         variant="link"
                         className="h-auto p-0 font-medium"
                         onClick={() => onViewHistory(item)}
+                        data-testid={`equipment-item-history-${item.id}`}
                       >
                         {item.identifier}
                       </Button>
@@ -595,6 +599,7 @@ function InventoryTable({
                           size="sm"
                           className="h-7 w-7 p-0 text-muted-foreground"
                           onClick={() => onStartEdit(item)}
+                          data-testid={`equipment-item-edit-${item.id}`}
                         >
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
@@ -603,6 +608,7 @@ function InventoryTable({
                           size="sm"
                           className="h-7 text-xs text-muted-foreground"
                           onClick={() => onDeactivate(item)}
+                          data-testid={`equipment-item-deactivate-${item.id}`}
                         >
                           Remove
                         </Button>

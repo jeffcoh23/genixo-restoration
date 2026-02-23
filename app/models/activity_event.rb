@@ -2,7 +2,7 @@ class ActivityEvent < ApplicationRecord
   EVENT_TYPES = %w[
     incident_created status_changed
     user_assigned user_unassigned
-    labor_created labor_updated
+    labor_created labor_updated labor_deleted
     activity_logged activity_updated
     equipment_placed equipment_removed equipment_updated
     attachment_uploaded

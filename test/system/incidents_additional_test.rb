@@ -74,10 +74,10 @@ class IncidentsAdditionalTest < ApplicationSystemTestCase
   test "incidents index sort toggles column direction" do
     login_as @manager
     visit incidents_path(sort: "property", direction: "asc")
-    assert_equal ["River Oaks", "River Oaks", "Sandalwood Towers"], visible_property_names
+    assert_equal [ "River Oaks", "River Oaks", "Sandalwood Towers" ], visible_property_names
 
     visit incidents_path(sort: "property", direction: "desc")
-    assert_equal ["Sandalwood Towers", "River Oaks", "River Oaks"], visible_property_names
+    assert_equal [ "Sandalwood Towers", "River Oaks", "River Oaks" ], visible_property_names
   end
 
   test "incidents index pagination navigates page 2" do

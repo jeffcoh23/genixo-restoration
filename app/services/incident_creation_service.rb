@@ -52,11 +52,15 @@ class IncidentCreationService
     users_to_assign = default_auto_assign_users
 
     # When the UI sends assignment selections, treat them as the full selected set
-    # (auto + manually checked), not just "additional" users.
+    # (auto + manually checked), not just "additional" users — but only for the
+    # users this creator can actually see/select in the UI. Hidden auto-assigns
+    # (e.g., mitigation-side managers when a PM user creates an incident) are preserved.
     if @params.key?(:additional_user_ids)
       selected_ids = Array(@params[:additional_user_ids]).map(&:to_i).reject(&:zero?)
-      allowed_ids = assignable_user_ids_for_property
-      users_to_assign = User.where(id: selected_ids & allowed_ids, active: true).to_a.to_set
+      selectable_ids = selectable_user_ids_for_creator
+      preserved_default_users = users_to_assign.reject { |u| selectable_ids.include?(u.id) }
+      selected_users = User.where(id: selected_ids & selectable_ids, active: true).to_a
+      users_to_assign = preserved_default_users.to_set.merge(selected_users)
     end
 
     users_to_assign.each do |u|
@@ -85,8 +89,13 @@ class IncidentCreationService
     users_to_assign
   end
 
-  def assignable_user_ids_for_property
-    org_ids = [ @property.mitigation_org_id, @property.property_management_org_id ]
+  def selectable_user_ids_for_creator
+    org_ids = if @user.pm_user?
+      [ @property.property_management_org_id ]
+    else
+      [ @property.mitigation_org_id, @property.property_management_org_id ]
+    end
+
     User.where(active: true, organization_id: org_ids).pluck(:id)
   end
 
