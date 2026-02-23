@@ -7,9 +7,11 @@ class MessageNotificationJobTest < ActiveSupport::TestCase
     @property = Property.create!(name: "Sunset Apts", mitigation_org: @genixo, property_management_org: @greystar)
 
     @manager = User.create!(organization: @genixo, user_type: "manager",
-      email_address: "mgr@genixo.com", first_name: "Test", last_name: "Manager", password: "password123")
+      email_address: "mgr@genixo.com", first_name: "Test", last_name: "Manager", password: "password123",
+      notification_preferences: { "new_message" => true })
     @tech = User.create!(organization: @genixo, user_type: "technician",
-      email_address: "tech@genixo.com", first_name: "Test", last_name: "Tech", password: "password123")
+      email_address: "tech@genixo.com", first_name: "Test", last_name: "Tech", password: "password123",
+      notification_preferences: { "new_message" => true })
 
     @incident = Incident.create!(
       property: @property, created_by_user: @manager, status: "active",

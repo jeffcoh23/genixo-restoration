@@ -9,8 +9,7 @@ class IncidentCreationService
     ActiveRecord::Base.transaction do
       @incident = create_incident
       auto_transition_status
-      auto_assign_users
-      assign_additional_users
+      assign_users
       create_contacts
       log_creation_events
       send_notifications
@@ -49,7 +48,23 @@ class IncidentCreationService
     @incident.update!(status: new_status)
   end
 
-  def auto_assign_users
+  def assign_users
+    users_to_assign = default_auto_assign_users
+
+    # When the UI sends assignment selections, treat them as the full selected set
+    # (auto + manually checked), not just "additional" users.
+    if @params.key?(:additional_user_ids)
+      selected_ids = Array(@params[:additional_user_ids]).map(&:to_i).reject(&:zero?)
+      allowed_ids = assignable_user_ids_for_property
+      users_to_assign = User.where(id: selected_ids & allowed_ids, active: true).to_a.to_set
+    end
+
+    users_to_assign.each do |u|
+      @incident.incident_assignments.create!(user: u, assigned_by_user: @user)
+    end
+  end
+
+  def default_auto_assign_users
     users_to_assign = Set.new
 
     # PM-side: property assignees (property_managers, area_managers on this property)
@@ -67,24 +82,12 @@ class IncidentCreationService
       users_to_assign << u
     end
 
-    users_to_assign.each do |u|
-      @incident.incident_assignments.create!(user: u, assigned_by_user: @user)
-    end
+    users_to_assign
   end
 
-  def assign_additional_users
-    additional_ids = Array(@params[:additional_user_ids]).map(&:to_i).reject(&:zero?)
-    return if additional_ids.empty?
-
-    already_assigned = @incident.assigned_user_ids
-    additional_ids.each do |user_id|
-      next if already_assigned.include?(user_id)
-
-      user = User.find_by(id: user_id, active: true)
-      next unless user
-
-      @incident.incident_assignments.create!(user: user, assigned_by_user: @user)
-    end
+  def assignable_user_ids_for_property
+    org_ids = [ @property.mitigation_org_id, @property.property_management_org_id ]
+    User.where(active: true, organization_id: org_ids).pluck(:id)
   end
 
   def create_contacts
@@ -113,7 +116,9 @@ class IncidentCreationService
   end
 
   def send_notifications
-    IncidentMailer.creation_confirmation(@incident).deliver_later
+    if @user.notification_preference("incident_creation")
+      IncidentMailer.creation_confirmation(@incident).deliver_later
+    end
     EscalationJob.perform_later(@incident.id) if @incident.emergency?
   end
 end

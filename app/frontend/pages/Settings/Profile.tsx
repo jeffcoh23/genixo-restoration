@@ -14,6 +14,8 @@ interface NotificationPreferences {
   status_change: boolean;
   new_message: boolean;
   daily_digest: boolean;
+  incident_creation: boolean;
+  user_assignment: boolean;
 }
 
 interface UserProfile {
@@ -155,6 +157,8 @@ function NotificationPreferencesForm({ preferences, preferencesPath }: {
     status_change: preferences.status_change,
     new_message: preferences.new_message,
     daily_digest: preferences.daily_digest,
+    incident_creation: preferences.incident_creation,
+    user_assignment: preferences.user_assignment,
   });
 
   function handleSubmit(e: FormEvent) {
@@ -167,6 +171,8 @@ function NotificationPreferencesForm({ preferences, preferencesPath }: {
       {[
         { key: "status_change" as const, label: "Status changes", description: "Get notified when an incident status changes" },
         { key: "new_message" as const, label: "New messages", description: "Get notified when someone sends a message on your incidents" },
+        { key: "incident_creation" as const, label: "Incident creation", description: "Get notified when a new incident is created that involves you" },
+        { key: "user_assignment" as const, label: "Assignment alerts", description: "Get notified when you're assigned to an incident" },
         { key: "daily_digest" as const, label: "Daily digest email", description: "Receive a daily summary of activity across your incidents" },
       ].map((pref) => (
         <div key={pref.key} className="flex items-start gap-3">

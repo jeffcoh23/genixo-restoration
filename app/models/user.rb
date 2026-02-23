@@ -78,9 +78,11 @@ class User < ApplicationRecord
   end
 
   NOTIFICATION_DEFAULTS = {
-    "status_change" => true,
-    "new_message" => true,
-    "daily_digest" => false
+    "status_change" => false,
+    "new_message" => false,
+    "daily_digest" => true,
+    "incident_creation" => false,
+    "user_assignment" => false
   }.freeze
 
   def notification_preference(key)
