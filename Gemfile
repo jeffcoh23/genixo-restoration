@@ -25,6 +25,10 @@ gem "prawn", require: false
 gem "prawn-table", require: false
 gem "matrix"  # Required by Prawn, removed from Ruby stdlib in 3.1+
 
+# Monitoring
+gem "honeybadger"
+gem "newrelic_rpm"
+
 # Boot performance
 gem "bootsnap", require: false
 
