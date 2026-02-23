@@ -120,6 +120,65 @@ class ActivityEntriesControllerTest < ActionDispatch::IntegrationTest
     assert_equal %w[add remove], entry.equipment_actions.order(:position).map(&:action_type)
   end
 
+  test "create accepts indexed equipment_actions hash from Inertia-style payload" do
+    login_as @manager
+
+    assert_difference [ "ActivityEntry.count", "ActivityEquipmentAction.count" ], 1 do
+      post incident_activity_entries_path(@incident), params: {
+        activity_entry: {
+          title: "Indexed equipment actions payload",
+          status: "active",
+          occurred_at: Time.current.iso8601,
+          equipment_actions: {
+            "0" => {
+              action_type: "add",
+              quantity: 2,
+              equipment_type_id: @dehumidifier.id,
+              note: "Placed in unit 101",
+              position: 0
+            }
+          }
+        }
+      }
+    end
+
+    entry = ActivityEntry.last
+    assert_equal 1, entry.equipment_actions.count
+    action = entry.equipment_actions.first
+    assert_equal "add", action.action_type
+    assert_equal 2, action.quantity
+    assert_equal @dehumidifier.id, action.equipment_type_id
+  end
+
+  test "create persists daily log fields from UI payload" do
+    login_as @manager
+
+    post incident_activity_entries_path(@incident), params: {
+      activity_entry: {
+        title: "Daily log update",
+        status: "Complete",
+        occurred_at: Date.current.iso8601,
+        units_affected: "2",
+        units_affected_description: "Units 101 and 102",
+        details: "Removed baseboards and set containment",
+        visitors: "Resident in unit 101",
+        usable_rooms_returned: "Unit 100 kitchen",
+        estimated_date_of_return: (Date.current + 2.days).iso8601
+      }
+    }
+
+    assert_redirected_to incident_path(@incident)
+    entry = ActivityEntry.last
+    assert_equal "Daily log update", entry.title
+    assert_equal "Complete", entry.status
+    assert_equal 2, entry.units_affected
+    assert_equal "Units 101 and 102", entry.units_affected_description
+    assert_equal "Removed baseboards and set containment", entry.details
+    assert_equal "Resident in unit 101", entry.visitors
+    assert_equal "Unit 100 kitchen", entry.usable_rooms_returned
+    assert_equal Date.current + 2.days, entry.estimated_date_of_return
+  end
+
   test "create with freeform equipment type" do
     login_as @tech
     post incident_activity_entries_path(@incident), params: {

@@ -2,12 +2,10 @@ import { useMemo, useState } from "react";
 import { ChevronDown, Download, Pencil, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type {
-  AttachableEquipmentEntry,
   DailyActivity,
   DailyLogDate,
   DailyLogTableGroup,
   DailyLogTableRow,
-  EquipmentType,
   LaborEntry,
 } from "../types";
 import ActivityForm from "./ActivityForm";
@@ -19,8 +17,6 @@ interface DailyLogPanelProps {
   labor_entries: LaborEntry[];
   can_manage_activities: boolean;
   activity_entries_path: string;
-  equipment_types: EquipmentType[];
-  attachable_equipment_entries: AttachableEquipmentEntry[];
   dfr_path: string;
 }
 
@@ -31,8 +27,6 @@ export default function DailyLogPanel({
   labor_entries = [],
   can_manage_activities,
   activity_entries_path,
-  equipment_types,
-  attachable_equipment_entries,
   dfr_path,
 }: DailyLogPanelProps) {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -191,6 +185,7 @@ export default function DailyLogPanel({
                     href={`${dfr_path}?date=${group.date_key}`}
                     target="_blank"
                     rel="noopener noreferrer"
+                    data-testid={`dfr-link-${group.date_key}`}
                     className="flex items-center gap-1 text-sm text-foreground/75 hover:text-foreground transition-colors"
                     title="Download Daily Field Report"
                   >
@@ -320,8 +315,6 @@ export default function DailyLogPanel({
         <ActivityForm
           path={activity_entries_path}
           entry={activityForm.entry}
-          equipment_types={equipment_types}
-          attachable_equipment_entries={attachable_equipment_entries}
           onClose={() => setActivityForm({ open: false })}
         />
       )}

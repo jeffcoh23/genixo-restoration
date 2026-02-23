@@ -2,7 +2,11 @@ class SessionsController < ApplicationController
   allow_unauthenticated_access only: %i[new create]
 
   def new
-    redirect_to incidents_path if authenticated?
+    resume_session
+    if authenticated?
+      redirect_to incidents_path
+      return
+    end
     render inertia: "Login", props: {
       forgot_password_path: forgot_password_path
     }

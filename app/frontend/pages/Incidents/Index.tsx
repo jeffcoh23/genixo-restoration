@@ -408,6 +408,7 @@ export default function IncidentsIndex() {
               variant="outline"
               size="sm"
               className="h-10 sm:h-8"
+              data-testid="incidents-pagination-prev"
               disabled={pagination.page <= 1}
               onClick={() => navigate({ page: pagination.page - 1 })}
             >
@@ -417,6 +418,7 @@ export default function IncidentsIndex() {
               variant="outline"
               size="sm"
               className="h-10 sm:h-8"
+              data-testid="incidents-pagination-next"
               disabled={pagination.page >= pagination.total_pages}
               onClick={() => navigate({ page: pagination.page + 1 })}
             >

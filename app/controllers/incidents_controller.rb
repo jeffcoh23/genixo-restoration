@@ -301,7 +301,8 @@ class IncidentsController < ApplicationController
   end
 
   def incident_params
-    permitted = params.require(:incident).permit(
+    incident_input = params.require(:incident)
+    permitted = incident_input.permit(
       :project_type, :damage_type, :description, :cause,
       :requested_next_steps, :units_affected, :affected_room_numbers, :job_id,
       :do_not_exceed_limit, :location_of_damage,
@@ -309,12 +310,49 @@ class IncidentsController < ApplicationController
       contacts: [ :name, :title, :email, :phone, :onsite ]
     ).to_h.symbolize_keys
 
-    # Ensure contacts is an array of hashes with symbol keys
-    if permitted[:contacts].is_a?(Hash)
+    # Ensure contacts is an array of hashes with symbol keys. Inertia can send
+    # nested arrays as indexed hashes, so normalize from the raw param shape.
+    raw_contacts = incident_input[:contacts] || params[:contacts]
+    normalized_contacts = case raw_contacts
+    when ActionController::Parameters
+      raw_contacts.values
+    when Array
+      raw_contacts
+    when nil
+      nil
+    else
+      [ raw_contacts ]
+    end
+
+    if normalized_contacts
+      permitted[:contacts] = normalized_contacts.map do |contact|
+        if contact.respond_to?(:to_unsafe_h)
+          contact.to_unsafe_h.symbolize_keys
+        elsif contact.is_a?(Hash)
+          contact.symbolize_keys
+        else
+          contact
+        end
+      end
+    elsif permitted[:contacts].is_a?(Hash)
       permitted[:contacts] = permitted[:contacts].values.map { |c| c.symbolize_keys }
     elsif permitted[:contacts].is_a?(Array)
       permitted[:contacts] = permitted[:contacts].map { |c| c.is_a?(Hash) ? c.symbolize_keys : c }
     end
+
+    # Inertia form serialization can send arrays as indexed hashes ("0" => "1", "1" => "2").
+    raw_additional_user_ids = incident_input[:additional_user_ids] || params[:additional_user_ids]
+    normalized_additional_user_ids = case raw_additional_user_ids
+    when ActionController::Parameters
+      raw_additional_user_ids.values
+    when Array
+      raw_additional_user_ids
+    when nil
+      nil
+    else
+      [ raw_additional_user_ids ]
+    end
+    permitted[:additional_user_ids] = normalized_additional_user_ids if normalized_additional_user_ids
 
     permitted
   end
@@ -931,8 +969,7 @@ class IncidentsController < ApplicationController
         created_at: attachment.created_at.iso8601,
         created_at_label: format_datetime(attachment.created_at),
         uploaded_by_name: attachment.uploaded_by_user&.full_name || user.full_name,
-        thumbnail_url: (attachment.file.content_type&.start_with?("image/") && attachment.file.variable?) ?
-          rails_representation_path(attachment.file.variant(:thumbnail), disposition: "inline") : nil
+        thumbnail_url: thumbnail_url_for(attachment.file)
       }
     end
 
@@ -1011,8 +1048,7 @@ class IncidentsController < ApplicationController
         content_type: att.file.content_type,
         byte_size: att.file.byte_size,
         url: rails_blob_path(att.file, disposition: "inline"),
-        thumbnail_url: (att.file.content_type&.start_with?("image/") && att.file.variable?) ?
-          rails_representation_path(att.file.variant(:thumbnail), disposition: "inline") : nil
+        thumbnail_url: thumbnail_url_for(att.file)
       }
     end
   end
@@ -1030,6 +1066,23 @@ class IncidentsController < ApplicationController
         created_at_label: format_time(note.created_at),
         created_by_name: note.created_by_user.full_name
       }
+    end
+  end
+
+  def thumbnail_url_for(file)
+    return nil unless file.content_type&.start_with?("image/")
+    return nil unless image_variants_available?
+    return nil unless file.variable?
+
+    rails_representation_path(file.variant(:thumbnail), disposition: "inline")
+  end
+
+  def image_variants_available?
+    @image_variants_available ||= begin
+      require "image_processing"
+      true
+    rescue LoadError
+      false
     end
   end
 

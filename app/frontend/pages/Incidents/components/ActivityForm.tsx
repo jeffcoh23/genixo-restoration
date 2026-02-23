@@ -5,12 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SharedProps } from "@/types";
-import type { AttachableEquipmentEntry, DailyActivity, EquipmentType } from "../types";
+import type { DailyActivity } from "../types";
 
 interface ActivityFormProps {
   path: string;
-  equipment_types: EquipmentType[];
-  attachable_equipment_entries: AttachableEquipmentEntry[];
   onClose: () => void;
   entry?: DailyActivity;
 }
@@ -105,6 +103,7 @@ export default function ActivityForm({
               </label>
               <Input
                 type="date"
+                data-testid="activity-form-occurred-at"
                 value={occurredAt}
                 onChange={(e) => setOccurredAt(e.target.value)}
                 className="mt-1"
@@ -181,6 +180,7 @@ export default function ActivityForm({
               </label>
               <Input
                 type="date"
+                data-testid="activity-form-estimated-return"
                 value={estimatedDateOfReturn}
                 onChange={(e) => setEstimatedDateOfReturn(e.target.value)}
                 className="mt-1"

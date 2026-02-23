@@ -119,7 +119,16 @@ class ActivityEntriesController < ApplicationController
     actions = activity_entry_params[:equipment_actions]
     return [] unless actions.present?
 
-    Array(actions)
+    case actions
+    when ActionController::Parameters
+      actions.values
+    when Hash
+      actions.values
+    when Array
+      actions
+    else
+      [ actions ]
+    end
   end
 
   def normalize_equipment_action(raw_action, index)

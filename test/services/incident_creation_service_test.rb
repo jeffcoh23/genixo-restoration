@@ -160,6 +160,18 @@ class IncidentCreationServiceTest < ActiveSupport::TestCase
     assert_not_includes assigned_ids, @tech.id
   end
 
+  test "treats additional_user_ids as selected assignment set when provided" do
+    incident = create_incident(additional_user_ids: [ @manager.id, @tech.id ])
+    assigned_ids = incident.incident_assignments.order(:user_id).pluck(:user_id)
+
+    assert_includes assigned_ids, @manager.id
+    assert_includes assigned_ids, @tech.id
+    assert_not_includes assigned_ids, @office.id
+    assert_not_includes assigned_ids, @pm_user.id
+    assert_not_includes assigned_ids, @area_mgr.id
+    assert_not_includes assigned_ids, @pm_manager.id
+  end
+
   # --- Contacts ---
 
   test "creates contacts from params" do

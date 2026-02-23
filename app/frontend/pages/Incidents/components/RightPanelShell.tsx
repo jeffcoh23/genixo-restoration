@@ -33,6 +33,7 @@ export default function RightPanelShell({ activeTab, onTabChange, unreadMessages
               key={tab.key}
               variant="ghost"
               onClick={() => onTabChange(tab.key)}
+              data-testid={`incident-tab-${tab.key}`}
               className={`px-3 sm:px-4 py-3 sm:py-2 h-auto rounded-none text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === tab.key
                   ? "border-primary text-foreground"

@@ -239,6 +239,63 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to incident_path(incident)
   end
 
+  test "create accepts nested indexed additional_user_ids and contacts from Inertia-style payload" do
+    login_as @manager
+
+    assert_difference [ "Incident.count", "IncidentContact.count" ], 1 do
+      post incidents_path, params: {
+        incident: {
+          property_id: @property.id,
+          project_type: "emergency_response",
+          damage_type: "flood",
+          description: "Inertia nested arrays test",
+          additional_user_ids: {
+            "0" => @manager.id.to_s,
+            "1" => @tech.id.to_s
+          },
+          contacts: {
+            "0" => {
+              name: "Jane Contact",
+              title: "Property Manager",
+              email: "jane@example.com",
+              phone: "713-555-0101",
+              onsite: "true"
+            }
+          }
+        }
+      }
+    end
+
+    incident = Incident.last
+    assert_includes incident.assigned_user_ids, @manager.id
+    assert_includes incident.assigned_user_ids, @tech.id
+    assert_not_includes incident.assigned_user_ids, @office.id
+    assert_equal "Jane Contact", incident.incident_contacts.last.name
+  end
+
+  test "create supports legacy top-level additional_user_ids and contacts fallback" do
+    login_as @manager
+
+    assert_difference [ "Incident.count", "IncidentContact.count" ], 1 do
+      post incidents_path, params: {
+        incident: {
+          property_id: @property.id,
+          project_type: "emergency_response",
+          damage_type: "flood",
+          description: "Legacy fallback payload test"
+        },
+        additional_user_ids: [ @manager.id, @tech.id ],
+        contacts: [
+          { name: "Top Level Contact", title: "Resident", email: "", phone: "", onsite: true }
+        ]
+      }
+    end
+
+    incident = Incident.last
+    assert_includes incident.assigned_user_ids, @tech.id
+    assert_equal "Top Level Contact", incident.incident_contacts.last.name
+  end
+
   # --- Create with invalid params ---
 
   test "fails with missing required fields" do

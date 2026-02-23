@@ -40,7 +40,6 @@ export default function IncidentShow() {
     assignable_labor_users = [],
     equipment_types = [],
     equipment_items_by_type = {},
-    attachable_equipment_entries = [],
     project_types = [],
     damage_types = [],
     back_path,
@@ -110,6 +109,7 @@ export default function IncidentShow() {
                   variant="ghost"
                   size="sm"
                   onClick={() => setStatusOpen(!statusOpen)}
+                  data-testid="incident-status-trigger"
                   disabled={transitioning}
                   className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium ${statusColor(incident.status)} hover:opacity-90 transition-opacity`}
                 >
@@ -130,6 +130,7 @@ export default function IncidentShow() {
                       <Button
                         key={t.value}
                         variant="ghost"
+                        data-testid={`incident-status-option-${t.value}`}
                         onClick={() => handleTransition(t.value)}
                         className="w-full justify-start px-3 py-2 text-sm hover:bg-muted rounded-none h-auto"
                       >
@@ -236,8 +237,6 @@ export default function IncidentShow() {
               labor_entries={labor_entries}
               can_manage_activities={can_manage_activities}
               activity_entries_path={incident.activity_entries_path}
-              equipment_types={equipment_types}
-              attachable_equipment_entries={attachable_equipment_entries}
               dfr_path={incident.dfr_path}
             />
           )}

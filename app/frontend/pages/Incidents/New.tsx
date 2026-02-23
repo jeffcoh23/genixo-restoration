@@ -92,24 +92,28 @@ export default function NewIncident() {
   };
 
   const addContactRow = () => {
-    setContacts([...contacts, { name: "", title: "", email: "", phone: "", onsite: false }]);
+    setContacts((prev) => [...prev, { name: "", title: "", email: "", phone: "", onsite: false }]);
   };
 
   const updateContact = (index: number, field: keyof ContactRow, value: string) => {
-    const updated = [...contacts];
-    updated[index] = { ...updated[index], [field]: value };
-    setContacts(updated);
+    setContacts((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
   };
 
   const removeContact = (index: number) => {
-    setContacts(contacts.filter((_, i) => i !== index));
+    setContacts((prev) => prev.filter((_, i) => i !== index));
   };
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     transform((formData) => ({
-      ...formData,
-      contacts: contacts.filter((c) => c.name.trim() !== ""),
+      incident: {
+        ...formData,
+        contacts: contacts.filter((c) => c.name.trim() !== ""),
+      },
     }));
     post(routes.incidents);
   }
@@ -355,7 +359,7 @@ export default function NewIncident() {
               />
             )}
 
-            <p className="text-sm text-muted-foreground">{data.additional_user_ids.length} member{data.additional_user_ids.length !== 1 ? "s" : ""} selected</p>
+            <p data-testid="new-incident-selected-count" className="text-sm text-muted-foreground">{data.additional_user_ids.length} member{data.additional_user_ids.length !== 1 ? "s" : ""} selected</p>
           </section>
         )}
 
@@ -365,7 +369,7 @@ export default function NewIncident() {
             <p className="text-sm text-muted-foreground">Add on-site or property contacts who should be visible to the response team.</p>
 
             {contacts.map((contact, index) => (
-              <div key={index} className="rounded-md border border-border bg-muted/20 p-3 space-y-3">
+              <div key={index} data-testid={`new-incident-contact-row-${index}`} className="rounded-md border border-border bg-muted/20 p-3 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-foreground">Contact {index + 1}</span>
                   <Button
@@ -413,9 +417,11 @@ export default function NewIncident() {
                   <Checkbox
                     checked={contact.onsite}
                     onCheckedChange={(checked) => {
-                      const updated = [...contacts];
-                      updated[index] = { ...updated[index], onsite: checked === true };
-                      setContacts(updated);
+                      setContacts((prev) => {
+                        const updated = [...prev];
+                        updated[index] = { ...updated[index], onsite: checked === true };
+                        return updated;
+                      });
                     }}
                   />
                   Onsite contact
@@ -469,12 +475,14 @@ function UserChecklistSection({
             <label
               key={u.id}
               htmlFor={fieldId}
+              data-testid={`new-incident-assign-row-${u.id}`}
               className={`flex items-center gap-3 px-3 py-3 text-sm cursor-pointer transition-colors border-b border-input last:border-b-0 hover:bg-muted/35 ${
                 selected ? "bg-accent/70" : ""
               }`}
             >
               <Checkbox
                 id={fieldId}
+                data-testid={`new-incident-assign-checkbox-${u.id}`}
                 checked={selected}
                 onCheckedChange={() => onToggle(u.id)}
                 aria-label={`Assign ${u.full_name}`}

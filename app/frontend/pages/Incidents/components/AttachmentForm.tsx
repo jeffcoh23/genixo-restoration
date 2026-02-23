@@ -28,7 +28,7 @@ interface AttachmentFormProps {
 
 export default function AttachmentForm({ path, onClose }: AttachmentFormProps) {
   const { today } = usePage<SharedProps>().props;
-  const { data, setData, post, processing, errors } = useForm({
+  const { data, setData, post, processing, errors, transform } = useForm({
     file: null as File | null,
     category: "general",
     description: "",
@@ -37,6 +37,7 @@ export default function AttachmentForm({ path, onClose }: AttachmentFormProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    transform((formData) => ({ attachment: formData }));
     post(path, {
       forceFormData: true,
       onSuccess: () => onClose(),

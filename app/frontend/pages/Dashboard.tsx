@@ -100,6 +100,7 @@ function IncidentGroup({
         variant="ghost"
         size="sm"
         onClick={() => setOpen(!open)}
+        data-testid={`dashboard-group-toggle-${label.toLowerCase().replace(/\s+/g, "-")}`}
         className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2 hover:text-foreground h-auto p-0"
       >
         {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
@@ -112,6 +113,7 @@ function IncidentGroup({
             <Link
               key={incident.id}
               href={incident.path}
+              data-testid={`dashboard-incident-card-${incident.id}`}
               className="block px-4 py-3 hover:bg-muted transition-colors bg-card"
             >
               <div className="flex items-start justify-between gap-3">

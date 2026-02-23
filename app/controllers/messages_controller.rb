@@ -7,8 +7,9 @@ class MessagesController < ApplicationController
       body: params.require(:message).fetch(:body, "").to_s.strip
     )
 
-    if params[:message][:files].present?
-      Array(params[:message][:files]).each do |file|
+    message_files = normalized_files(params[:message][:files])
+    if message_files.present?
+      message_files.each do |file|
         attachment = message.attachments.build(
           uploaded_by_user: current_user,
           category: "general"
@@ -35,5 +36,18 @@ class MessagesController < ApplicationController
 
   def set_incident
     @incident = find_visible_incident!(params[:incident_id])
+  end
+
+  def normalized_files(raw_files)
+    case raw_files
+    when nil
+      []
+    when ActionController::Parameters
+      raw_files.values
+    when Array
+      raw_files
+    else
+      [ raw_files ]
+    end
   end
 end
