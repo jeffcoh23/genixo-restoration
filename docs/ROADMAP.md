@@ -354,7 +354,7 @@ Component-level work. Only start after 6A is deployed and validated.
 - [ ] Loading states + user-friendly errors (see DESIGN.md §Tone & Voice)
 - [ ] 404 page
 - [ ] Responsive QA — mobile, tablet, desktop
-- [ ] E2E system tests — critical happy paths (see list below)
+- [x] E2E system tests — critical happy paths (see list below)
 - [ ] Cross-browser check
 - [ ] Performance testing — production-scale data (300+ properties per PM org, 1000+ incidents, 50+ users). Profile N+1 queries, pagination efficiency, index page load times, incident show with 100+ attachments
 
@@ -364,33 +364,33 @@ Full test plan with 100 test cases across 8 files: see [TESTING.md §E2E Test Pl
 
 #### P1 — Critical (gates production, ~20 tests)
 
-- [ ] **Authentication basics** (A1–A4, A12–A13) — login all roles, logout, deactivated mid-session, return-to redirect
-- [ ] **Data isolation** (H1–H4) — PM cross-org incidents, PM cross-org properties, cross-org equipment, technician unassigned
-- [ ] **Incident creation** (C1, C3) — emergency incident (manager), standard incident (PM user)
-- [ ] **Status transitions** (C15–C16) — standard path, quote/proposal path
-- [ ] **Messages** (E1) — send message on incident
-- [ ] **Labor** (E4) — technician logs labor entry
-- [ ] **Equipment** (E9) — place equipment on incident
-- [ ] **Team assignment** (D1–D2) — assign mitigation user, assign PM user (own org)
+- [x] **Authentication basics** (A1–A4, A12–A13) — login all roles, logout, deactivated mid-session, return-to redirect
+- [x] **Data isolation** (H1–H4) — PM cross-org incidents, PM cross-org properties, cross-org equipment, technician unassigned
+- [x] **Incident creation** (C1, C3) — emergency incident (manager), standard incident (PM user)
+- [x] **Status transitions** (C15–C16) — standard path, quote/proposal path
+- [x] **Messages** (E1) — send message on incident
+- [x] **Labor** (E4) — technician logs labor entry
+- [x] **Equipment** (E9) — place equipment on incident
+- [x] **Team assignment** (D1–D2) — assign mitigation user, assign PM user (own org)
 
 #### P2 — Core Workflows (~40 tests)
 
-- [ ] **Auth extended** (A5–A11) — forgot password, reset, invitation accept/expired
-- [ ] **Dashboard** (B1–B3) — manager, technician, PM views
-- [ ] **Incident list** (C7–C13) — filters, search, sort, pagination, detail view, edit
-- [ ] **Daily ops** (E2, E5–E7, E12, E15–E17) — attachments, manager labor, delete, equipment removal, activity entries, notes, documents
-- [ ] **Team extended** (D3–D7) — PM restrictions, remove user, property assignments
-- [ ] **Admin CRUD** (F1, F3, F6, F9) — create org, create property, invite user, deactivate user
-- [ ] **Settings** (G1–G2) — update profile, change password
-- [ ] **Role blocking** (H5–H10) — technician/PM blocked from admin pages
+- [x] **Auth extended** (A5–A11) — forgot password, reset, invitation accept/expired
+- [x] **Dashboard** (B1–B3) — manager, technician, PM views
+- [x] **Incident list** (C7–C13) — filters, search, sort, pagination, detail view, edit
+- [x] **Daily ops** (E2, E5–E7, E12, E15–E17) — attachments, manager labor, delete, equipment removal, activity entries, notes, documents
+- [x] **Team extended** (D3–D7) — PM restrictions, remove user, property assignments
+- [x] **Admin CRUD** (F1, F3, F6, F9) — create org, create property, invite user, deactivate user
+- [x] **Settings** (G1–G2) — update profile, change password
+- [x] **Role blocking** (H5–H10) — technician/PM blocked from admin pages
 
 #### P3 — Edge Cases (~40 tests)
 
-- [ ] **Incident edge cases** (C2, C4–C6, C14, C17–C19, C22–C23) — quote type, validation, team assignment form, technician restrictions, escalation resolution, DFR download, emergency indicators
-- [ ] **Daily ops edge cases** (E3, E8, E10–E11, E13–E14, E18–E20) — empty message, ownership restrictions, inventory picker, "Other" type, contacts CRUD
-- [ ] **Admin edge cases** (F2, F4–F5, F7–F8, F10–F22) — edit restrictions, PM org limits, resend invitation, self-deactivation blocked, equipment inventory management, on-call config
-- [ ] **Settings edge cases** (G3–G6) — wrong password, mismatch, preferences, read-only display
-- [ ] **Cross-cutting** (H11–H15, B4–B6, C20–C21) — login redirect, emergency visuals, pagination+filters, unread badge lifecycle
+- [x] **Incident edge cases** (C2, C4–C6, C14, C17–C19, C22–C23) — quote type, validation, team assignment form, technician restrictions, escalation resolution, DFR download, emergency indicators
+- [x] **Daily ops edge cases** (E3, E8, E10–E11, E13–E14, E18–E20) — empty message, ownership restrictions, inventory picker, "Other" type, contacts CRUD
+- [x] **Admin edge cases** (F2, F4–F5, F7–F8, F10–F22) — edit restrictions, PM org limits, resend invitation, self-deactivation blocked, equipment inventory management, on-call config
+- [x] **Settings edge cases** (G3–G6) — wrong password, mismatch, preferences, read-only display
+- [x] **Cross-cutting** (H11–H15, B4–B6, C20–C21) — login redirect, emergency visuals, pagination+filters, unread badge lifecycle
 
 **Done when:** Fully usable by all six roles. No dead ends, no missing states. Ready for production.
 
