@@ -134,11 +134,6 @@ class IncidentsController < ApplicationController
       .joins(:user).where(users: { active: true })
       .order("users.last_name, users.first_name")
 
-    messages = @incident.messages.includes(
-      { user: :organization },
-      { attachments: [ :uploaded_by_user, { file_attachment: :blob } ] }
-    ).order(created_at: :asc)
-
     render inertia: "Incidents/Show", props: {
       incident: {
         id: @incident.id,
@@ -214,16 +209,10 @@ class IncidentsController < ApplicationController
           { value: s, label: Incident::STATUS_LABELS[s] }
         } : []
       },
-      activity_entries: serialize_activity_entries(@incident),
       daily_activities: daily_activities,
       daily_log_dates: daily_log_dates,
       daily_log_table_groups: daily_log_table_groups,
-      messages: serialize_messages(messages),
       labor_entries: labor_entries,
-      operational_notes: operational_notes,
-      attachments: attachments,
-      equipment_log: serialize_equipment_log(@incident),
-      labor_log: serialize_labor_log(@incident),
       can_transition: can_transition_status?,
       can_assign: can_assign_to_incident?,
       can_manage_contacts: can_manage_contacts?,
@@ -232,15 +221,22 @@ class IncidentsController < ApplicationController
       can_manage_labor: can_manage_labor?,
       can_manage_equipment: can_manage_equipment?,
       can_create_notes: can_create_operational_note?,
-      assignable_mitigation_users: can_assign_to_incident? ? assignable_incident_users(@incident, :mitigation) : [],
-      assignable_pm_users: can_assign_to_incident? ? assignable_incident_users(@incident, :pm) : [],
-      assignable_labor_users: can_manage_labor? ? assignable_labor_users(@incident) : [],
-      equipment_types: can_manage_equipment? ? equipment_types_for_incident(@incident) : [],
-      equipment_items_by_type: can_manage_equipment? ? equipment_items_by_type(@incident) : {},
-      attachable_equipment_entries: can_manage_activities? ? attachable_equipment_entries(@incident) : [],
       project_types: Incident::PROJECT_TYPES.map { |t| { value: t, label: Incident::PROJECT_TYPE_LABELS[t] } },
       damage_types: Incident::DAMAGE_TYPES.map { |t| { value: t, label: Incident::DAMAGE_LABELS[t] } },
-      back_path: incidents_path
+      back_path: incidents_path,
+      # Deferred — fetched on first tab click, then cached by Inertia
+      labor_log: InertiaRails.defer(group: "labor") { serialize_labor_log(@incident) },
+      assignable_labor_users: InertiaRails.defer(group: "labor") { can_manage_labor? ? assignable_labor_users(@incident) : [] },
+      equipment_log: InertiaRails.defer(group: "equipment") { serialize_equipment_log(@incident) },
+      equipment_types: InertiaRails.defer(group: "equipment") { can_manage_equipment? ? equipment_types_for_incident(@incident) : [] },
+      equipment_items_by_type: InertiaRails.defer(group: "equipment") { can_manage_equipment? ? equipment_items_by_type(@incident) : {} },
+      attachable_equipment_entries: InertiaRails.defer(group: "equipment") { can_manage_activities? ? attachable_equipment_entries(@incident) : [] },
+      messages: InertiaRails.defer(group: "messages") { serialize_messages(@incident.messages.includes({ user: :organization }, { attachments: [ :uploaded_by_user, { file_attachment: :blob } ] }).order(created_at: :asc)) },
+      attachments: InertiaRails.defer(group: "documents") { serialize_attachments(@incident) },
+      operational_notes: InertiaRails.defer(group: "documents") { serialize_operational_notes(@incident) },
+      activity_entries: InertiaRails.defer(group: "activity") { serialize_activity_entries(@incident) },
+      assignable_mitigation_users: InertiaRails.defer(group: "team") { can_assign_to_incident? ? assignable_incident_users(@incident, :mitigation) : [] },
+      assignable_pm_users: InertiaRails.defer(group: "team") { can_assign_to_incident? ? assignable_incident_users(@incident, :pm) : [] }
     }
   end
 

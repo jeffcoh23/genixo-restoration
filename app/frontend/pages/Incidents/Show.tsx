@@ -1,4 +1,4 @@
-import { Link, router, usePage } from "@inertiajs/react";
+import { Deferred, Link, router, usePage } from "@inertiajs/react";
 import { useState, useCallback } from "react";
 import { ChevronDown, ChevronRight, Mail, Pencil, Phone } from "lucide-react";
 import AppLayout from "@/layout/AppLayout";
@@ -16,6 +16,7 @@ import PhotosPanel from "./components/PhotosPanel";
 import DocumentPanel from "./components/DocumentPanel";
 import OverviewPanel from "./components/OverviewPanel";
 import IncidentEditForm from "./components/IncidentEditForm";
+import PanelSkeleton from "@/components/PanelSkeleton";
 import type { ShowProps } from "./types";
 import { statusColor } from "@/lib/statusColor";
 
@@ -248,34 +249,42 @@ export default function IncidentShow() {
             />
           )}
           {activeTab === "equipment" && (
-            <EquipmentPanel
-              equipment_log={equipment_log}
-              can_manage_equipment={can_manage_equipment}
-              equipment_entries_path={incident.equipment_entries_path}
-              equipment_types={equipment_types}
-              equipment_items_by_type={equipment_items_by_type}
-            />
+            <Deferred data={["equipment_log", "equipment_types", "equipment_items_by_type", "attachable_equipment_entries"]} fallback={<PanelSkeleton />}>
+              <EquipmentPanel
+                equipment_log={equipment_log}
+                can_manage_equipment={can_manage_equipment}
+                equipment_entries_path={incident.equipment_entries_path}
+                equipment_types={equipment_types}
+                equipment_items_by_type={equipment_items_by_type}
+              />
+            </Deferred>
           )}
           {activeTab === "labor" && (
-            <LaborPanel
-              labor_log={labor_log}
-              labor_entries={labor_entries}
-              can_manage_labor={can_manage_labor}
-              labor_entries_path={incident.labor_entries_path}
-              assignable_labor_users={assignable_labor_users}
-            />
+            <Deferred data={["labor_log", "assignable_labor_users"]} fallback={<PanelSkeleton />}>
+              <LaborPanel
+                labor_log={labor_log}
+                labor_entries={labor_entries}
+                can_manage_labor={can_manage_labor}
+                labor_entries_path={incident.labor_entries_path}
+                assignable_labor_users={assignable_labor_users}
+              />
+            </Deferred>
           )}
           {activeTab === "messages" && (
-            <MessagePanel
-              messages={messages}
-              messages_path={incident.messages_path}
-            />
+            <Deferred data={["messages"]} fallback={<PanelSkeleton />}>
+              <MessagePanel
+                messages={messages}
+                messages_path={incident.messages_path}
+              />
+            </Deferred>
           )}
           {activeTab === "documents" && (
-            <DocumentPanel
-              attachments={attachments}
-              attachments_path={incident.attachments_path}
-            />
+            <Deferred data={["attachments"]} fallback={<PanelSkeleton />}>
+              <DocumentPanel
+                attachments={attachments}
+                attachments_path={incident.attachments_path}
+              />
+            </Deferred>
           )}
           {activeTab === "photos" && (
             <PhotosPanel
@@ -285,13 +294,15 @@ export default function IncidentShow() {
             />
           )}
           {activeTab === "manage" && (
-            <OverviewPanel
-              incident={incident}
-              can_assign={can_assign}
-              can_manage_contacts={can_manage_contacts}
-              assignable_mitigation_users={assignable_mitigation_users}
-              assignable_pm_users={assignable_pm_users}
-            />
+            <Deferred data={["assignable_mitigation_users", "assignable_pm_users"]} fallback={<PanelSkeleton />}>
+              <OverviewPanel
+                incident={incident}
+                can_assign={can_assign}
+                can_manage_contacts={can_manage_contacts}
+                assignable_mitigation_users={assignable_mitigation_users}
+                assignable_pm_users={assignable_pm_users}
+              />
+            </Deferred>
           )}
         </RightPanelShell>
       </div>

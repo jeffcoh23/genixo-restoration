@@ -479,7 +479,8 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     get incident_path(incident)
     assert_response :success
 
-    attachment_ids = inertia_props.fetch("attachments").map { |att| att.fetch("id") }
+    deferred = inertia_deferred_props(incident_path(incident), "attachments")
+    attachment_ids = deferred.fetch("attachments").map { |att| att.fetch("id") }
     assert_equal [ newer.id, older.id ], attachment_ids.first(2)
   end
 
@@ -498,7 +499,8 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     get incident_path(incident)
     assert_response :success
 
-    serialized = inertia_props.fetch("messages").find { |msg| msg.fetch("id") == message.id }
+    deferred = inertia_deferred_props(incident_path(incident), "messages")
+    serialized = deferred.fetch("messages").find { |msg| msg.fetch("id") == message.id }
     assert_equal "See attached image", serialized.fetch("body")
     assert_equal 1, serialized.fetch("attachments").length
     assert_equal "image/jpeg", serialized.dig("attachments", 0, "content_type")
@@ -523,7 +525,8 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     get incident_path(incident)
     assert_response :success
 
-    ids = inertia_props.fetch("equipment_log").map { |e| e.fetch("id") }
+    deferred = inertia_deferred_props(incident_path(incident), "equipment_log")
+    ids = deferred.fetch("equipment_log").map { |e| e.fetch("id") }
     assert_equal [ newer.id, older.id ], ids
   end
 
@@ -549,7 +552,8 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     get incident_path(incident)
     assert_response :success
 
-    dates = inertia_props.dig("labor_log", "dates")
+    deferred = inertia_deferred_props(incident_path(incident), "labor_log")
+    dates = deferred.dig("labor_log", "dates")
     assert_equal dates.sort.reverse, dates, "Labor log dates should be newest first"
   end
 
@@ -611,6 +615,17 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     raise "Missing Inertia data-page payload" unless encoded
 
     JSON.parse(CGI.unescapeHTML(encoded)).fetch("props")
+  end
+
+  # Fetch deferred props by making a partial Inertia reload request.
+  # Call this after the initial GET when the props you need are deferred.
+  def inertia_deferred_props(path, *prop_keys)
+    get path, headers: {
+      "X-Inertia" => "true",
+      "X-Inertia-Partial-Component" => "Incidents/Show",
+      "X-Inertia-Partial-Data" => prop_keys.join(",")
+    }
+    JSON.parse(response.body).fetch("props")
   end
 
   def login_as(user)
