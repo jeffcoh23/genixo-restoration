@@ -60,7 +60,7 @@ export default function EquipmentPanel({ equipment_log = [], can_manage_equipmen
         )}
         <div className="flex items-center gap-2 ml-auto">
           <Select value={filterType} onValueChange={setFilterType}>
-            <SelectTrigger className="h-7 text-xs w-[140px]">
+            <SelectTrigger data-testid="equipment-type-filter" className="h-7 text-xs w-[140px]">
               <SelectValue placeholder="All types" />
             </SelectTrigger>
             <SelectContent>
@@ -71,7 +71,7 @@ export default function EquipmentPanel({ equipment_log = [], can_manage_equipmen
             </SelectContent>
           </Select>
           <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="h-7 text-xs w-[120px]">
+            <SelectTrigger data-testid="equipment-status-filter" className="h-7 text-xs w-[120px]">
               <SelectValue placeholder="All" />
             </SelectTrigger>
             <SelectContent>

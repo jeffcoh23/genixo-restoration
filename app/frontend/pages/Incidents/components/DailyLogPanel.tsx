@@ -206,6 +206,7 @@ export default function DailyLogPanel({
                       return (
                         <div
                           key={row.id}
+                          data-testid="daily-log-timeline-row"
                           role={isExpandable ? "button" : undefined}
                           tabIndex={isExpandable ? 0 : undefined}
                           onKeyDown={isExpandable ? (e) => {
@@ -244,6 +245,7 @@ export default function DailyLogPanel({
                             <div className="shrink-0 flex items-center gap-2">
                               {row.row_type === "activity" && row.edit_path && (
                                 <Button
+                                  data-testid="edit-activity-btn"
                                   variant="ghost"
                                   size="sm"
                                   className="h-9 sm:h-7 px-2 text-sm sm:text-xs gap-1"
