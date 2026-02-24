@@ -563,7 +563,7 @@ class IncidentsController < ApplicationController
 
     buckets.values
       .select { |bucket| bucket[:quantity].positive? }
-      .sort_by { |bucket| [ -bucket[:quantity], bucket[:type_name] ] }
+      .sort_by { |bucket| [ -(bucket[:last_event_at]&.to_f || 0), bucket[:type_name] ] }
       .map do |bucket|
       {
         id: bucket[:id],
@@ -679,24 +679,6 @@ class IncidentsController < ApplicationController
         detail_label: note[:note_text],
         actor_name: note[:created_by_name],
         edit_path: nil
-      }
-    end
-
-    attachments.each do |attachment|
-      date_key = attachment[:log_date].presence || Time.zone.parse(attachment[:created_at]).to_date.iso8601
-      groups[date_key] << {
-        id: "attachment-#{attachment[:id]}",
-        occurred_at: attachment[:created_at],
-        time_label: attachment[:time_label] || "—",
-        row_type: "document",
-        row_type_label: "Document",
-        primary_label: attachment[:filename],
-        status_label: attachment[:category_label],
-        units_label: "—",
-        detail_label: attachment[:description].presence || "Uploaded document",
-        actor_name: attachment[:uploaded_by_name],
-        edit_path: nil,
-        url: attachment[:url]
       }
     end
 
