@@ -49,6 +49,20 @@ npm run ios:open
 - choose a simulator or connected iPhone
 - run the `App` target
 
+## Branded native assets
+
+Launcher and splash assets are generated from source brand files in `mobile/assets/source/`.
+
+Regenerate them after updating source assets:
+
+```bash
+npm run assets:brand
+```
+
+This updates:
+- iOS app icon + splash images
+- Android launcher icons + splash images
+
 ## Android (optional next step)
 
 The package already includes `@capacitor/android`, so you can also generate Android later:

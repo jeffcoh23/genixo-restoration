@@ -5,6 +5,7 @@
   "type": "module",
   "description": "Capacitor wrapper for the Genixo Restoration Rails/Inertia app",
   "scripts": {
+    "assets:brand": "bash ./scripts/generate_brand_assets.sh",
     "cap:doctor": "npx cap doctor",
     "cap:sync": "npx cap sync",
     "cap:add:ios": "npx cap add ios",
