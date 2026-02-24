@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { router, usePage } from "@inertiajs/react";
+import { usePage } from "@inertiajs/react";
+import InlineActionFeedback from "@/components/InlineActionFeedback";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import useInertiaAction from "@/hooks/useInertiaAction";
 import { SharedProps } from "@/types";
 import type { DailyActivity } from "../types";
 
@@ -29,7 +31,7 @@ export default function ActivityForm({
   const [visitors, setVisitors] = useState(entry?.visitors ?? "");
   const [usableRoomsReturned, setUsableRoomsReturned] = useState(entry?.usable_rooms_returned ?? "");
   const [estimatedDateOfReturn, setEstimatedDateOfReturn] = useState(entry?.estimated_date_of_return ?? "");
-  const [submitting, setSubmitting] = useState(false);
+  const saveAction = useInertiaAction();
 
   const payload = {
     activity_entry: {
@@ -47,20 +49,19 @@ export default function ActivityForm({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !occurredAt || submitting) return;
+    if (!title.trim() || !occurredAt || saveAction.processing) return;
 
-    setSubmitting(true);
     const destination = editing ? entry!.edit_path! : path;
     const options = {
       preserveScroll: true,
+      errorMessage: editing ? "Could not update activity." : "Could not add activity.",
       onSuccess: () => onClose(),
-      onFinish: () => setSubmitting(false),
     };
 
     if (editing) {
-      router.patch(destination, payload, options);
+      saveAction.runPatch(destination, payload, options);
     } else {
-      router.post(destination, payload, options);
+      saveAction.runPost(destination, payload, options);
     }
   };
 
@@ -72,6 +73,7 @@ export default function ActivityForm({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          <InlineActionFeedback error={saveAction.error} onDismiss={saveAction.clearFeedback} />
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="sm:col-span-2">
               <label className="text-xs font-medium text-muted-foreground">
@@ -79,7 +81,7 @@ export default function ActivityForm({
               </label>
               <Input
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                onChange={(e) => { if (saveAction.error) saveAction.clearFeedback(); setTitle(e.target.value); }}
                 className="mt-1"
                 placeholder="e.g. Extract water"
                 required
@@ -89,7 +91,7 @@ export default function ActivityForm({
               <label className="text-xs font-medium text-muted-foreground">Workflow Status</label>
               <Input
                 value={status}
-                onChange={(e) => setStatus(e.target.value)}
+                onChange={(e) => { if (saveAction.error) saveAction.clearFeedback(); setStatus(e.target.value); }}
                 className="mt-1"
                 placeholder="e.g. Active, On Hold - Waiting for reports"
               />
@@ -105,7 +107,7 @@ export default function ActivityForm({
                 type="date"
                 data-testid="activity-form-occurred-at"
                 value={occurredAt}
-                onChange={(e) => setOccurredAt(e.target.value)}
+                onChange={(e) => { if (saveAction.error) saveAction.clearFeedback(); setOccurredAt(e.target.value); }}
                 className="mt-1"
                 required
               />
@@ -118,7 +120,7 @@ export default function ActivityForm({
                 type="number"
                 min="1"
                 value={unitsAffected}
-                onChange={(e) => setUnitsAffected(e.target.value)}
+                onChange={(e) => { if (saveAction.error) saveAction.clearFeedback(); setUnitsAffected(e.target.value); }}
                 className="mt-1"
                 placeholder="e.g. 2"
               />
@@ -131,7 +133,7 @@ export default function ActivityForm({
             </label>
             <Input
               value={unitsAffectedDescription}
-              onChange={(e) => setUnitsAffectedDescription(e.target.value)}
+              onChange={(e) => { if (saveAction.error) saveAction.clearFeedback(); setUnitsAffectedDescription(e.target.value); }}
               className="mt-1"
               placeholder="e.g. Units 237 and 239"
             />
@@ -143,7 +145,7 @@ export default function ActivityForm({
             </label>
             <Textarea
               value={details}
-              onChange={(e) => setDetails(e.target.value)}
+              onChange={(e) => { if (saveAction.error) saveAction.clearFeedback(); setDetails(e.target.value); }}
               rows={8}
               className="mt-1 resize-y"
               placeholder="Detailed work performed — per-unit narratives, measurements, observations..."
@@ -156,7 +158,7 @@ export default function ActivityForm({
             </label>
             <Textarea
               value={visitors}
-              onChange={(e) => setVisitors(e.target.value)}
+              onChange={(e) => { if (saveAction.error) saveAction.clearFeedback(); setVisitors(e.target.value); }}
               rows={2}
               className="mt-1 resize-none"
               placeholder="People present on-site..."
@@ -170,7 +172,7 @@ export default function ActivityForm({
               </label>
               <Input
                 value={usableRoomsReturned}
-                onChange={(e) => setUsableRoomsReturned(e.target.value)}
+                onChange={(e) => { if (saveAction.error) saveAction.clearFeedback(); setUsableRoomsReturned(e.target.value); }}
                 className="mt-1"
               />
             </div>
@@ -182,18 +184,18 @@ export default function ActivityForm({
                 type="date"
                 data-testid="activity-form-estimated-return"
                 value={estimatedDateOfReturn}
-                onChange={(e) => setEstimatedDateOfReturn(e.target.value)}
+                onChange={(e) => { if (saveAction.error) saveAction.clearFeedback(); setEstimatedDateOfReturn(e.target.value); }}
                 className="mt-1"
               />
             </div>
           </div>
 
           <div className="flex justify-end gap-2 pt-1">
-            <Button type="button" variant="ghost" size="sm" onClick={onClose}>
+            <Button type="button" variant="ghost" size="sm" onClick={onClose} disabled={saveAction.processing}>
               Cancel
             </Button>
-            <Button type="submit" size="sm" disabled={submitting || !title.trim()}>
-              {submitting ? "Saving..." : editing ? "Update Activity" : "Add Activity"}
+            <Button type="submit" size="sm" disabled={saveAction.processing || !title.trim()}>
+              {saveAction.processing ? "Saving..." : editing ? "Update Activity" : "Add Activity"}
             </Button>
           </div>
         </form>
