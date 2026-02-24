@@ -1103,7 +1103,7 @@ class IncidentsController < ApplicationController
 
   def serialize_equipment_log(incident)
     incident.equipment_entries.includes(:equipment_type, :logged_by_user)
-      .order(placed_at: :asc, created_at: :asc)
+      .order(placed_at: :desc, created_at: :desc)
       .map do |entry|
       editable = can_edit_equipment_entry?(entry)
       hours = (((entry.removed_at || Time.current) - entry.placed_at) / 1.hour).round(1)

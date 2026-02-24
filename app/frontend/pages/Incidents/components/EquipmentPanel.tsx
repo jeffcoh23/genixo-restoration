@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { usePage } from "@inertiajs/react";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import InlineActionFeedback from "@/components/InlineActionFeedback";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import useInertiaAction from "@/hooks/useInertiaAction";
 import { SharedProps } from "@/types";
 import type { EquipmentLogItem, EquipmentType } from "../types";
@@ -20,6 +21,8 @@ export default function EquipmentPanel({ equipment_log = [], can_manage_equipmen
   const { today } = usePage<SharedProps>().props;
   const [showForm, setShowForm] = useState(false);
   const [editingEntry, setEditingEntry] = useState<EquipmentLogItem | null>(null);
+  const [filterType, setFilterType] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
   const removeAction = useInertiaAction();
 
   const handleRemove = (item: EquipmentLogItem) => {
@@ -29,16 +32,56 @@ export default function EquipmentPanel({ equipment_log = [], can_manage_equipmen
     });
   };
 
+  const typeOptions = useMemo(() => {
+    const seen = new Set<string>();
+    return equipment_log
+      .map((item) => item.type_name)
+      .filter((name) => { if (seen.has(name)) return false; seen.add(name); return true; })
+      .sort();
+  }, [equipment_log]);
+
+  const filtered = useMemo(() => {
+    return equipment_log.filter((item) => {
+      if (filterType !== "all" && item.type_name !== filterType) return false;
+      if (filterStatus === "active" && item.removed_at_label) return false;
+      if (filterStatus === "removed" && !item.removed_at_label) return false;
+      return true;
+    });
+  }, [equipment_log, filterType, filterStatus]);
+
   return (
     <div className="flex flex-col h-full">
-      {can_manage_equipment && (
-        <div className="flex items-center gap-1 border-b border-border px-4 py-3 shrink-0">
+      <div className="flex items-center gap-2 border-b border-border px-4 py-3 shrink-0 flex-wrap">
+        {can_manage_equipment && (
           <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => setShowForm(true)}>
             <Plus className="h-3 w-3" />
             Add Equipment
           </Button>
+        )}
+        <div className="flex items-center gap-2 ml-auto">
+          <Select value={filterType} onValueChange={setFilterType}>
+            <SelectTrigger className="h-7 text-xs w-[140px]">
+              <SelectValue placeholder="All types" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All types</SelectItem>
+              {typeOptions.map((t) => (
+                <SelectItem key={t} value={t}>{t}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="h-7 text-xs w-[120px]">
+              <SelectValue placeholder="All" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="removed">Removed</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-      )}
+      </div>
 
       {removeAction.error && (
         <div className="px-4 pt-3">
@@ -50,6 +93,10 @@ export default function EquipmentPanel({ equipment_log = [], can_manage_equipmen
         <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm py-12">
           No equipment recorded yet.
         </div>
+      ) : filtered.length === 0 ? (
+        <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm py-12">
+          No equipment matches the current filters.
+        </div>
       ) : (
         <div className="flex-1 overflow-y-auto">
           <div className="overflow-x-auto">
@@ -58,7 +105,7 @@ export default function EquipmentPanel({ equipment_log = [], can_manage_equipmen
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Type</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Model</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground w-[100px]">ID #</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground whitespace-nowrap">ID #</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Location</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Placed</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Removed</th>
@@ -69,11 +116,11 @@ export default function EquipmentPanel({ equipment_log = [], can_manage_equipmen
                 </tr>
               </thead>
               <tbody>
-                {equipment_log.map((item) => (
+                {filtered.map((item) => (
                   <tr key={item.id} className="border-b border-border last:border-b-0 group hover:bg-muted/30 transition-colors">
-                    <td className="px-4 py-3 text-sm font-medium text-foreground">{item.type_name}</td>
+                    <td className="px-4 py-3 text-sm font-medium text-foreground whitespace-nowrap">{item.type_name}</td>
                     <td className="px-4 py-3 text-sm text-muted-foreground">{item.equipment_model || "—"}</td>
-                    <td className="px-4 py-3 text-sm text-muted-foreground">{item.equipment_identifier || "—"}</td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">{item.equipment_identifier || "—"}</td>
                     <td className="px-4 py-3 text-sm text-muted-foreground">{item.location_notes || "—"}</td>
                     <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">{item.placed_at_label}</td>
                     <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">{item.removed_at_label || "—"}</td>
