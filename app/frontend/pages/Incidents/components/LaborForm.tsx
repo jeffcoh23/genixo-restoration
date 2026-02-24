@@ -2,7 +2,6 @@ import { useForm, usePage } from "@inertiajs/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SharedProps } from "@/types";
 import type { AssignableUser, LaborEntry } from "../types";
@@ -26,7 +25,6 @@ export default function LaborForm({ path, users, onClose, entry }: LaborFormProp
     started_at: entry?.started_at ?? "",
     ended_at: entry?.ended_at ?? "",
     log_date: entry?.log_date ?? today,
-    notes: entry?.notes ?? "",
   });
 
   const handleUserChange = (userId: string) => {
@@ -122,19 +120,6 @@ export default function LaborForm({ path, users, onClose, entry }: LaborFormProp
                 required
               />
             </div>
-          </div>
-
-          <div>
-            <label className="text-xs font-medium text-muted-foreground">
-              Notes <span className="text-muted-foreground font-normal">(optional)</span>
-            </label>
-            <Textarea
-              value={data.notes}
-              onChange={(e) => setData("notes", e.target.value)}
-              rows={2}
-              className="mt-1 resize-none"
-              placeholder="What was done?"
-            />
           </div>
 
           <div className="flex justify-end gap-2 pt-2">

@@ -666,22 +666,6 @@ class IncidentsController < ApplicationController
       }
     end
 
-    labor_entries.each do |entry|
-      groups[entry[:log_date]] << {
-        id: "labor-#{entry[:id]}",
-        occurred_at: entry[:occurred_at] || entry[:created_at],
-        time_label: entry[:time_label] || "—",
-        row_type: "labor",
-        row_type_label: "Labor",
-        primary_label: [ entry[:role_label], entry[:user_name] ].compact.join(" · "),
-        status_label: "#{entry[:hours]}h",
-        units_label: "—",
-        detail_label: entry[:notes].presence || labor_time_window_label(entry),
-        actor_name: entry[:created_by_name],
-        edit_path: entry[:edit_path]
-      }
-    end
-
     operational_notes.each do |note|
       groups[note[:log_date]] << {
         id: "note-#{note[:id]}",
