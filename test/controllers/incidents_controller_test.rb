@@ -504,6 +504,93 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "image/jpeg", serialized.dig("attachments", 0, "content_type")
   end
 
+  # --- Equipment log ---
+
+  test "equipment log is sorted newest placed first" do
+    incident = create_test_incident(status: "active")
+    eq_type = EquipmentType.create!(name: "Dehumidifier", organization: @genixo)
+
+    older = incident.equipment_entries.create!(
+      equipment_type: eq_type, placed_at: 3.days.ago,
+      logged_by_user: @manager
+    )
+    newer = incident.equipment_entries.create!(
+      equipment_type: eq_type, placed_at: 1.day.ago,
+      logged_by_user: @manager
+    )
+
+    login_as @manager
+    get incident_path(incident)
+    assert_response :success
+
+    ids = inertia_props.fetch("equipment_log").map { |e| e.fetch("id") }
+    assert_equal [ newer.id, older.id ], ids
+  end
+
+  # --- Labor log column order ---
+
+  test "labor log dates are sorted newest first" do
+    incident = create_test_incident(status: "active")
+
+    incident.labor_entries.create!(
+      role_label: "Technician", log_date: 3.days.ago.to_date, hours: 8,
+      started_at: 3.days.ago.beginning_of_day + 8.hours,
+      ended_at: 3.days.ago.beginning_of_day + 16.hours,
+      created_by_user: @manager
+    )
+    incident.labor_entries.create!(
+      role_label: "Technician", log_date: 1.day.ago.to_date, hours: 8,
+      started_at: 1.day.ago.beginning_of_day + 8.hours,
+      ended_at: 1.day.ago.beginning_of_day + 16.hours,
+      created_by_user: @manager
+    )
+
+    login_as @manager
+    get incident_path(incident)
+    assert_response :success
+
+    dates = inertia_props.dig("labor_log", "dates")
+    assert_equal dates.sort.reverse, dates, "Labor log dates should be newest first"
+  end
+
+  # --- Daily log timeline ---
+
+  test "daily log table groups exclude labor entries" do
+    incident = create_test_incident(status: "active")
+
+    incident.labor_entries.create!(
+      role_label: "Technician", log_date: Date.today, hours: 8,
+      started_at: Time.current.beginning_of_day + 8.hours,
+      ended_at: Time.current.beginning_of_day + 16.hours,
+      created_by_user: @manager
+    )
+
+    login_as @manager
+    get incident_path(incident)
+    assert_response :success
+
+    groups = inertia_props.fetch("daily_log_table_groups")
+    row_types = groups.flat_map { |g| g.fetch("rows").map { |r| r.fetch("row_type") } }
+    assert_not_includes row_types, "labor", "Labor rows should not appear in daily log timeline"
+  end
+
+  test "daily log table groups exclude attachments" do
+    incident = create_test_incident(status: "active")
+
+    attachment = incident.attachments.create!(uploaded_by_user: @manager, category: "general")
+    File.open(Rails.root.join("test/fixtures/files/test_photo.jpg"), "rb") do |io|
+      attachment.file.attach(io: io, filename: "photo.jpg", content_type: "image/jpeg")
+    end
+
+    login_as @manager
+    get incident_path(incident)
+    assert_response :success
+
+    groups = inertia_props.fetch("daily_log_table_groups")
+    row_types = groups.flat_map { |g| g.fetch("rows").map { |r| r.fetch("row_type") } }
+    assert_not_includes row_types, "document", "Attachment rows should not appear in daily log timeline"
+  end
+
   test "mark_read with unknown tab leaves read timestamps nil" do
     incident = create_test_incident(status: "active")
     login_as @manager
