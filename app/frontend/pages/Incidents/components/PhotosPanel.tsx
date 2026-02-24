@@ -253,9 +253,9 @@ export default function PhotosPanel({ attachments, messages, upload_photo_path }
                   className="rounded-lg border border-border bg-card overflow-hidden hover:border-primary transition-colors"
                 >
                   <div className="relative aspect-square bg-muted">
-                    {photo.thumbnail_url ? (
+                    {(photo.thumbnail_url || photo.url) ? (
                       <img
-                        src={photo.thumbnail_url}
+                        src={photo.thumbnail_url || photo.url}
                         alt={photo.description || photo.filename}
                         className="w-full h-full object-cover"
                         loading="lazy"
