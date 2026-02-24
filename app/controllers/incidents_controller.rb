@@ -1131,7 +1131,7 @@ class IncidentsController < ApplicationController
 
   def serialize_labor_log(incident)
     entries = incident.labor_entries.includes(:user, :created_by_user).order(:log_date, :created_at)
-    dates = entries.map(&:log_date).uniq.sort
+    dates = entries.map(&:log_date).uniq.sort.reverse
     date_labels = dates.map { |d| format_date(d) }
 
     # Group by employee identity: use user if present, fall back to role_label
