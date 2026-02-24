@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { router, usePage } from "@inertiajs/react";
+import { usePage } from "@inertiajs/react";
 import { Pencil, Plus, Trash2 } from "lucide-react";
+import InlineActionFeedback from "@/components/InlineActionFeedback";
 import { Button } from "@/components/ui/button";
+import useInertiaAction from "@/hooks/useInertiaAction";
 import { SharedProps } from "@/types";
 import type { EquipmentLogItem, EquipmentType } from "../types";
 import EquipmentForm from "./EquipmentForm";
@@ -18,10 +20,13 @@ export default function EquipmentPanel({ equipment_log = [], can_manage_equipmen
   const { today } = usePage<SharedProps>().props;
   const [showForm, setShowForm] = useState(false);
   const [editingEntry, setEditingEntry] = useState<EquipmentLogItem | null>(null);
+  const removeAction = useInertiaAction();
 
   const handleRemove = (item: EquipmentLogItem) => {
-    if (!item.remove_path) return;
-    router.patch(item.remove_path, { removed_at: today }, { preserveScroll: true });
+    if (!item.remove_path || removeAction.processing) return;
+    removeAction.runPatch(item.remove_path, { removed_at: today }, {
+      errorMessage: "Could not mark equipment as removed.",
+    });
   };
 
   return (
@@ -32,6 +37,12 @@ export default function EquipmentPanel({ equipment_log = [], can_manage_equipmen
             <Plus className="h-3 w-3" />
             Add Equipment
           </Button>
+        </div>
+      )}
+
+      {removeAction.error && (
+        <div className="px-4 pt-3">
+          <InlineActionFeedback error={removeAction.error} onDismiss={removeAction.clearFeedback} />
         </div>
       )}
 
@@ -87,6 +98,7 @@ export default function EquipmentPanel({ equipment_log = [], can_manage_equipmen
                               size="sm"
                               className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
                               onClick={() => handleRemove(item)}
+                              disabled={removeAction.processing}
                               title="Mark as removed"
                             >
                               <Trash2 className="h-3 w-3" />

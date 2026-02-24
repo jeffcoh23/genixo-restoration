@@ -1,6 +1,7 @@
-import { useForm, usePage, router } from "@inertiajs/react";
+import { useForm, usePage } from "@inertiajs/react";
 import { useMemo, useState } from "react";
 import AppLayout from "@/layout/AppLayout";
+import InlineActionFeedback from "@/components/InlineActionFeedback";
 import PageHeader from "@/components/PageHeader";
 import DataTable, { Column, LinkCell, MutedCell } from "@/components/DataTable";
 import FormField from "@/components/FormField";
@@ -8,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SharedProps } from "@/types";
+import useInertiaAction from "@/hooks/useInertiaAction";
 
 interface UserRow {
   id: number;
@@ -50,6 +52,7 @@ export default function UsersIndex() {
 
   const [showDeactivated, setShowDeactivated] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const resendInviteAction = useInertiaAction();
 
   const form = useForm({
     email: "",
@@ -181,6 +184,7 @@ export default function UsersIndex() {
           <h2 className="text-sm font-medium text-muted-foreground mb-2">
             Pending Invitations ({pending_invitations.length})
           </h2>
+          <InlineActionFeedback error={resendInviteAction.error} onDismiss={resendInviteAction.clearFeedback} className="mb-3" />
           <DataTable
             columns={[
               { header: "Name", render: (inv) => inv.display_name },
@@ -193,8 +197,14 @@ export default function UsersIndex() {
                     ? <span className="text-sm text-destructive">Expired</span>
                     : <span className="text-sm text-muted-foreground">Pending</span>
                   }
-                  <Button variant="outline" size="sm" onClick={() => router.patch(inv.resend_path)} className="h-9 sm:h-8 text-sm sm:text-xs">
-                    Resend
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => resendInviteAction.runPatch(inv.resend_path, {}, { errorMessage: "Could not resend invitation." })}
+                    disabled={resendInviteAction.processing}
+                    className="h-9 sm:h-8 text-sm sm:text-xs"
+                  >
+                    {resendInviteAction.processing ? "Resending..." : "Resend"}
                   </Button>
                 </div>
               )},

@@ -1,6 +1,7 @@
-import { Link, usePage, router, useForm } from "@inertiajs/react";
+import { Link, usePage, useForm } from "@inertiajs/react";
 import { useState } from "react";
 import AppLayout from "@/layout/AppLayout";
+import InlineActionFeedback from "@/components/InlineActionFeedback";
 import PageHeader from "@/components/PageHeader";
 import DetailList, { DetailRow } from "@/components/DetailList";
 import StatusBadge from "@/components/StatusBadge";
@@ -10,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SharedProps } from "@/types";
+import useInertiaAction from "@/hooks/useInertiaAction";
 
 interface AssignedProperty {
   id: number;
@@ -57,6 +59,7 @@ export default function UserShow() {
   }>().props;
   const [editing, setEditing] = useState(false);
   const [confirmDeactivate, setConfirmDeactivate] = useState(false);
+  const statusAction = useInertiaAction();
   const editForm = useForm({
     first_name: user.first_name,
     last_name: user.last_name,
@@ -83,11 +86,14 @@ export default function UserShow() {
   }
 
   function handleReactivate() {
-    router.patch(user.reactivate_path);
+    statusAction.runPatch(user.reactivate_path, {}, { errorMessage: "Could not reactivate user." });
   }
 
   function confirmAndDeactivate() {
-    router.patch(user.deactivate_path, {}, { onSuccess: () => setConfirmDeactivate(false) });
+    statusAction.runPatch(user.deactivate_path, {}, {
+      errorMessage: "Could not deactivate user.",
+      onSuccess: () => setConfirmDeactivate(false),
+    });
   }
 
   function handleSaveEdit(e: React.FormEvent) {
@@ -118,13 +124,19 @@ export default function UserShow() {
         <div className="flex gap-2">
           {can_edit && <Button variant="outline" onClick={startEdit}>Edit</Button>}
           {can_deactivate && user.active && (
-            <Button variant="outline" onClick={handleDeactivate}>Deactivate</Button>
+            <Button variant="outline" onClick={handleDeactivate} disabled={statusAction.processing}>
+              {statusAction.processing ? "Working..." : "Deactivate"}
+            </Button>
           )}
           {!user.active && (
-            <Button variant="outline" onClick={handleReactivate}>Reactivate</Button>
+            <Button variant="outline" onClick={handleReactivate} disabled={statusAction.processing}>
+              {statusAction.processing ? "Working..." : "Reactivate"}
+            </Button>
           )}
         </div>
       </div>
+
+      <InlineActionFeedback error={statusAction.error} onDismiss={statusAction.clearFeedback} className="mb-4" />
 
       <Dialog open={editing} onOpenChange={setEditing}>
         <DialogContent className="sm:max-w-xl">
@@ -264,7 +276,9 @@ export default function UserShow() {
           </p>
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="ghost" onClick={() => setConfirmDeactivate(false)}>Cancel</Button>
-            <Button type="button" variant="destructive" onClick={confirmAndDeactivate}>Deactivate</Button>
+            <Button type="button" variant="destructive" onClick={confirmAndDeactivate} disabled={statusAction.processing}>
+              {statusAction.processing ? "Deactivating..." : "Deactivate"}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

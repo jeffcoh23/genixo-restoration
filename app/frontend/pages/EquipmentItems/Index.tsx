@@ -1,7 +1,8 @@
 import { useState, useMemo } from "react";
-import { router, usePage } from "@inertiajs/react";
+import { usePage } from "@inertiajs/react";
 import { Package, Plus, Pencil, MapPin, CircleCheck, Search, X, Settings2 } from "lucide-react";
 import AppLayout from "@/layout/AppLayout";
+import InlineActionFeedback from "@/components/InlineActionFeedback";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +22,7 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import { SharedProps } from "@/types";
+import useInertiaAction from "@/hooks/useInertiaAction";
 
 interface Placement {
   incident_id: number;
@@ -77,7 +79,7 @@ export default function EquipmentIndex() {
   // Add item dialog
   const [addOpen, setAddOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
-  const [submitting, setSubmitting] = useState(false);
+  const itemAction = useInertiaAction();
 
   // Inline edit
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -95,7 +97,7 @@ export default function EquipmentIndex() {
   const [typesOpen, setTypesOpen] = useState(false);
   const [addTypeOpen, setAddTypeOpen] = useState(false);
   const [typeName, setTypeName] = useState("");
-  const [typeSubmitting, setTypeSubmitting] = useState(false);
+  const typeAction = useInertiaAction();
 
   // Filtered items
   const filteredItems = useMemo(() => {
@@ -118,11 +120,10 @@ export default function EquipmentIndex() {
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.identifier.trim() || !form.equipment_type_id || submitting) return;
-    setSubmitting(true);
-    router.post(create_item_path, { equipment_item: form }, {
+    if (!form.identifier.trim() || !form.equipment_type_id || itemAction.processing) return;
+    itemAction.runPost(create_item_path, { equipment_item: form }, {
+      errorMessage: "Could not add equipment item.",
       onSuccess: () => { setForm(EMPTY_FORM); setAddOpen(false); },
-      onFinish: () => setSubmitting(false),
     });
   };
 
@@ -136,25 +137,26 @@ export default function EquipmentIndex() {
   };
 
   const handleUpdate = (item: EquipmentItemRow) => {
-    if (!editForm.identifier.trim() || submitting) return;
-    setSubmitting(true);
-    router.patch(item.edit_path, { equipment_item: editForm }, {
+    if (!editForm.identifier.trim() || itemAction.processing) return;
+    itemAction.runPatch(item.edit_path, { equipment_item: editForm }, {
+      errorMessage: "Could not update equipment item.",
       onSuccess: () => setEditingId(null),
-      onFinish: () => setSubmitting(false),
     });
   };
 
   const handleDeactivate = (item: EquipmentItemRow) => {
-    router.patch(item.edit_path, { equipment_item: { active: false } });
+    if (itemAction.processing) return;
+    itemAction.runPatch(item.edit_path, { equipment_item: { active: false } }, {
+      errorMessage: "Could not remove equipment item.",
+    });
   };
 
   const handleAddType = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!typeName.trim() || typeSubmitting) return;
-    setTypeSubmitting(true);
-    router.post(create_type_path, { name: typeName.trim() }, {
+    if (!typeName.trim() || typeAction.processing) return;
+    typeAction.runPost(create_type_path, { name: typeName.trim() }, {
+      errorMessage: "Could not add equipment type.",
       onSuccess: () => { setTypeName(""); setAddTypeOpen(false); },
-      onFinish: () => setTypeSubmitting(false),
     });
   };
 
@@ -170,6 +172,7 @@ export default function EquipmentIndex() {
         title="Equipment"
         action={{ label: "Add Item", onClick: () => setAddOpen(true) }}
       />
+      <InlineActionFeedback error={itemAction.error} onDismiss={itemAction.clearFeedback} className="mb-4" />
 
       {/* Filter bar */}
       <div className="flex flex-wrap items-center gap-2 mb-4">
@@ -260,7 +263,7 @@ export default function EquipmentIndex() {
           editForm={editForm}
           setEditForm={setEditForm}
           equipment_types={equipment_types}
-          submitting={submitting}
+          submitting={itemAction.processing}
           onStartEdit={startEdit}
           onCancelEdit={() => setEditingId(null)}
           onSaveEdit={handleUpdate}
@@ -276,7 +279,7 @@ export default function EquipmentIndex() {
         form={form}
         setForm={setForm}
         equipment_types={equipment_types}
-        submitting={submitting}
+        submitting={itemAction.processing}
         onSubmit={handleAdd}
       />
 
@@ -289,9 +292,13 @@ export default function EquipmentIndex() {
         onOpenAddType={() => setAddTypeOpen(true)}
         onCloseAddType={() => { setAddTypeOpen(false); setTypeName(""); }}
         typeName={typeName}
-        setTypeName={setTypeName}
-        typeSubmitting={typeSubmitting}
+        setTypeName={(value) => { typeAction.clearFeedback(); setTypeName(value); }}
+        typeSubmitting={typeAction.processing}
         onAddType={handleAddType}
+        actionError={typeAction.error}
+        onDismissActionError={typeAction.clearFeedback}
+        onDeactivateType={(path) => typeAction.runPatch(path, {}, { errorMessage: "Could not deactivate equipment type." })}
+        onReactivateType={(path) => typeAction.runPatch(path, {}, { errorMessage: "Could not reactivate equipment type." })}
       />
 
       {/* Placement History Sheet */}
@@ -359,9 +366,9 @@ function AddItemDialog({
             />
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+            <Button type="button" variant="ghost" onClick={onClose} disabled={submitting}>Cancel</Button>
             <Button type="submit" disabled={!form.identifier.trim() || !form.equipment_type_id || submitting}>
-              Add Item
+              {submitting ? "Adding..." : "Add Item"}
             </Button>
           </div>
         </form>
@@ -381,6 +388,10 @@ function TypesSheet({
   setTypeName,
   typeSubmitting,
   onAddType,
+  actionError,
+  onDismissActionError,
+  onDeactivateType,
+  onReactivateType,
 }: {
   open: boolean;
   onClose: () => void;
@@ -392,6 +403,10 @@ function TypesSheet({
   setTypeName: (s: string) => void;
   typeSubmitting: boolean;
   onAddType: (e: React.FormEvent) => void;
+  actionError: string | null;
+  onDismissActionError: () => void;
+  onDeactivateType: (path: string) => void;
+  onReactivateType: (path: string) => void;
 }) {
   return (
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
@@ -403,10 +418,12 @@ function TypesSheet({
           </SheetDescription>
         </SheetHeader>
 
-        <Button size="sm" className="mb-4 gap-1" onClick={onOpenAddType}>
+        <Button size="sm" className="mb-4 gap-1" onClick={onOpenAddType} disabled={typeSubmitting}>
           <Plus className="h-3.5 w-3.5" />
           Add Type
         </Button>
+
+        <InlineActionFeedback error={actionError} onDismiss={onDismissActionError} className="mb-4" />
 
         {all_types.length === 0 ? (
           <p className="text-sm text-muted-foreground py-4">No types defined yet. Add one to get started.</p>
@@ -437,7 +454,8 @@ function TypesSheet({
                           variant="ghost"
                           size="sm"
                           className="h-7 text-xs text-muted-foreground hover:text-destructive"
-                          onClick={() => router.patch(et.deactivate_path!)}
+                          onClick={() => onDeactivateType(et.deactivate_path!)}
+                          disabled={typeSubmitting}
                           data-testid={`equipment-type-deactivate-${et.id}`}
                         >
                           Deactivate
@@ -448,7 +466,8 @@ function TypesSheet({
                           variant="ghost"
                           size="sm"
                           className="h-7 text-xs"
-                          onClick={() => router.patch(et.reactivate_path!)}
+                          onClick={() => onReactivateType(et.reactivate_path!)}
+                          disabled={typeSubmitting}
                           data-testid={`equipment-type-reactivate-${et.id}`}
                         >
                           Reactivate
@@ -482,7 +501,7 @@ function TypesSheet({
               <div className="flex justify-end gap-2 pt-2">
                 <Button type="button" variant="ghost" onClick={onCloseAddType}>Cancel</Button>
                 <Button type="submit" disabled={!typeName.trim() || typeSubmitting}>
-                  Add Type
+                  {typeSubmitting ? "Adding..." : "Add Type"}
                 </Button>
               </div>
             </form>
@@ -567,9 +586,9 @@ function InventoryTable({
                     <td className="px-4 py-2 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <Button size="sm" className="h-7 text-xs" disabled={submitting} onClick={() => onSaveEdit(item)}>
-                          Save
+                          {submitting ? "Saving..." : "Save"}
                         </Button>
-                        <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={onCancelEdit}>
+                        <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={onCancelEdit} disabled={submitting}>
                           Cancel
                         </Button>
                       </div>
@@ -599,6 +618,7 @@ function InventoryTable({
                           size="sm"
                           className="h-7 w-7 p-0 text-muted-foreground"
                           onClick={() => onStartEdit(item)}
+                          disabled={submitting}
                           data-testid={`equipment-item-edit-${item.id}`}
                         >
                           <Pencil className="h-3.5 w-3.5" />
@@ -608,6 +628,7 @@ function InventoryTable({
                           size="sm"
                           className="h-7 text-xs text-muted-foreground"
                           onClick={() => onDeactivate(item)}
+                          disabled={submitting}
                           data-testid={`equipment-item-deactivate-${item.id}`}
                         >
                           Remove

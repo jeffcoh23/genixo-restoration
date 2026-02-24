@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { router, usePage } from "@inertiajs/react";
+import { usePage } from "@inertiajs/react";
 import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
 import AppLayout from "@/layout/AppLayout";
+import InlineActionFeedback from "@/components/InlineActionFeedback";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import useInertiaAction from "@/hooks/useInertiaAction";
 import type { SharedProps } from "@/types";
 
 interface Manager {
@@ -43,39 +45,35 @@ export default function OnCallSettings() {
 
   const [primaryUserId, setPrimaryUserId] = useState(config?.primary_user_id ?? "");
   const [timeoutMinutes, setTimeoutMinutes] = useState(config?.escalation_timeout_minutes ?? 10);
-  const [saving, setSaving] = useState(false);
-  const [addingContact, setAddingContact] = useState(false);
   const [newContactUserId, setNewContactUserId] = useState("");
+  const configAction = useInertiaAction();
+  const chainAction = useInertiaAction();
 
   const handleSaveConfig = (e: React.FormEvent) => {
     e.preventDefault();
-    setSaving(true);
-    router.patch(update_path, {
+    configAction.runPatch(update_path, {
       primary_user_id: primaryUserId,
       escalation_timeout_minutes: timeoutMinutes,
     }, {
-      preserveScroll: true,
-      onFinish: () => setSaving(false),
+      errorMessage: "Could not save on-call configuration.",
     });
   };
 
   const handleAddContact = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newContactUserId) return;
-    setAddingContact(true);
-    router.post(contacts_path, {
+    chainAction.runPost(contacts_path, {
       user_id: newContactUserId,
     }, {
-      preserveScroll: true,
-      onFinish: () => {
-        setAddingContact(false);
+      errorMessage: "Could not add escalation contact.",
+      onSuccess: () => {
         setNewContactUserId("");
       },
     });
   };
 
   const handleRemoveContact = (removePath: string) => {
-    router.delete(removePath, { preserveScroll: true });
+    chainAction.runDelete(removePath, undefined, { errorMessage: "Could not remove escalation contact." });
   };
 
   const handleMoveContact = (index: number, direction: "up" | "down") => {
@@ -87,7 +85,7 @@ export default function OnCallSettings() {
     [contacts[index], contacts[swapIdx]] = [contacts[swapIdx], contacts[index]];
     const contactIds = contacts.map((c) => c.id);
 
-    router.patch(reorder_path, { contact_ids: contactIds }, { preserveScroll: true });
+    chainAction.runPatch(reorder_path, { contact_ids: contactIds }, { errorMessage: "Could not reorder escalation contacts." });
   };
 
   // Server pre-filters managers not already in escalation contacts; only exclude current primary selection
@@ -104,12 +102,13 @@ export default function OnCallSettings() {
         {/* Primary on-call + timeout */}
         <div className="bg-card rounded-lg border border-border shadow-sm p-5">
           <h2 className="text-sm font-semibold text-foreground mb-4">Primary Contact</h2>
+          <InlineActionFeedback error={configAction.error} onDismiss={configAction.clearFeedback} className="mb-4" />
           <form onSubmit={handleSaveConfig} className="space-y-4 max-w-md">
             <div>
               <label className="text-sm font-medium text-foreground">
                 Primary On-Call <span className="text-destructive">*</span>
               </label>
-              <Select value={String(primaryUserId)} onValueChange={(v) => setPrimaryUserId(v)}>
+              <Select value={String(primaryUserId)} onValueChange={(v) => { configAction.clearFeedback(); setPrimaryUserId(v); }} disabled={configAction.processing}>
                 <SelectTrigger className="mt-1 h-11 sm:h-10" data-testid="oncall-primary-select">
                   <SelectValue placeholder="Select a manager..." />
                 </SelectTrigger>
@@ -132,7 +131,7 @@ export default function OnCallSettings() {
                 min={1}
                 max={60}
                 value={timeoutMinutes}
-                onChange={(e) => setTimeoutMinutes(Number(e.target.value))}
+                onChange={(e) => { configAction.clearFeedback(); setTimeoutMinutes(Number(e.target.value)); }}
                 className="mt-1 max-w-[140px] h-11 sm:h-10"
                 data-testid="oncall-timeout"
               />
@@ -141,8 +140,8 @@ export default function OnCallSettings() {
               </p>
             </div>
 
-            <Button type="submit" size="sm" className="h-11 sm:h-10" disabled={saving} data-testid="oncall-save-config">
-              {saving ? "Saving..." : "Save Configuration"}
+            <Button type="submit" size="sm" className="h-11 sm:h-10" disabled={configAction.processing} data-testid="oncall-save-config">
+              {configAction.processing ? "Saving..." : "Save Configuration"}
             </Button>
           </form>
         </div>
@@ -154,6 +153,7 @@ export default function OnCallSettings() {
             <p className="mt-1 text-xs text-muted-foreground">
               If the primary on-call doesn't respond within the timeout, these contacts are tried in order.
             </p>
+            <InlineActionFeedback error={chainAction.error} onDismiss={chainAction.clearFeedback} className="mt-3" />
 
             {config.contacts.length === 0 ? (
               <p className="mt-4 text-sm text-muted-foreground">No escalation contacts configured.</p>
@@ -170,7 +170,7 @@ export default function OnCallSettings() {
                         size="sm"
                         className="h-10 sm:h-8 gap-1 text-sm sm:text-xs"
                         onClick={() => handleMoveContact(idx, "up")}
-                        disabled={idx === 0}
+                        disabled={idx === 0 || chainAction.processing}
                         data-testid={`escalation-contact-up-${contact.id}`}
                       >
                         <ArrowUp className="h-3.5 w-3.5" />
@@ -181,7 +181,7 @@ export default function OnCallSettings() {
                         size="sm"
                         className="h-10 sm:h-8 gap-1 text-sm sm:text-xs"
                         onClick={() => handleMoveContact(idx, "down")}
-                        disabled={idx === config.contacts.length - 1}
+                        disabled={idx === config.contacts.length - 1 || chainAction.processing}
                         data-testid={`escalation-contact-down-${contact.id}`}
                       >
                         <ArrowDown className="h-3.5 w-3.5" />
@@ -192,6 +192,7 @@ export default function OnCallSettings() {
                         size="sm"
                         className="h-10 sm:h-8 gap-1 text-sm sm:text-xs"
                         onClick={() => handleRemoveContact(contact.remove_path)}
+                        disabled={chainAction.processing}
                         data-testid={`escalation-contact-remove-${contact.id}`}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -208,7 +209,7 @@ export default function OnCallSettings() {
               <form onSubmit={handleAddContact} className="mt-4 flex items-end gap-2 border-t border-border pt-4">
                 <div className="flex-1 max-w-[280px]">
                   <label className="text-sm font-medium text-foreground">Add Contact</label>
-                  <Select value={newContactUserId} onValueChange={setNewContactUserId}>
+                  <Select value={newContactUserId} onValueChange={(v) => { chainAction.clearFeedback(); setNewContactUserId(v); }} disabled={chainAction.processing}>
                     <SelectTrigger className="mt-1 h-11 sm:h-10" data-testid="escalation-add-select">
                       <SelectValue placeholder="Select..." />
                     </SelectTrigger>
@@ -221,9 +222,9 @@ export default function OnCallSettings() {
                     </SelectContent>
                   </Select>
                 </div>
-                <Button type="submit" size="sm" variant="outline" disabled={addingContact || !newContactUserId} className="gap-1 h-11 sm:h-10" data-testid="escalation-add-button">
+                <Button type="submit" size="sm" variant="outline" disabled={chainAction.processing || !newContactUserId} className="gap-1 h-11 sm:h-10" data-testid="escalation-add-button">
                   <Plus className="h-3.5 w-3.5" />
-                  Add
+                  {chainAction.processing ? "Adding..." : "Add"}
                 </Button>
               </form>
             )}

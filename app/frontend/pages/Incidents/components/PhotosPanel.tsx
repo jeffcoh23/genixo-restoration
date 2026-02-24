@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { router, usePage } from "@inertiajs/react";
 import { Camera, Upload } from "lucide-react";
+import InlineActionFeedback from "@/components/InlineActionFeedback";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SharedProps } from "@/types";
@@ -128,7 +129,11 @@ export default function PhotosPanel({ attachments, messages, upload_photo_path }
     const failedCount = results.filter((result) => result.status === "rejected").length;
 
     if (failedCount > 0) {
-      setUploadError(`Uploaded ${files.length - failedCount} of ${files.length} photos.`);
+      if (failedCount === files.length) {
+        setUploadError(`No photos were uploaded (${failedCount} failed). Please try again or upload fewer files at once.`);
+      } else {
+        setUploadError(`Uploaded ${files.length - failedCount} of ${files.length} photos. You can retry the failed photos with Upload Photos or Take Photos.`);
+      }
     } else {
       router.reload({ only: [ "attachments", "messages" ] });
     }
@@ -181,9 +186,7 @@ export default function PhotosPanel({ attachments, messages, upload_photo_path }
             </Button>
           </div>
         </div>
-        {uploadError && (
-          <p className="mt-2 text-xs text-destructive">{uploadError}</p>
-        )}
+        <InlineActionFeedback error={uploadError} onDismiss={() => setUploadError(null)} className="mt-2" />
       </div>
 
       <div className="border-b border-border bg-card/60 p-3 shrink-0">

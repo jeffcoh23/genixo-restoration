@@ -1,11 +1,14 @@
 import { useState } from "react";
-import { router } from "@inertiajs/react";
+import { useForm } from "@inertiajs/react";
 import { Mail, Pencil, Phone, Plus, UserPlus, X } from "lucide-react";
+import InlineActionFeedback from "@/components/InlineActionFeedback";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { extractInertiaErrorMessage } from "@/hooks/useInertiaAction";
+import useInertiaAction from "@/hooks/useInertiaAction";
 import type { Contact, IncidentDetail, AssignableUser, TeamUser } from "../types";
 
 interface OverviewPanelProps {
@@ -21,19 +24,29 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [confirmRemoveUser, setConfirmRemoveUser] = useState<{ name: string; path: string } | null>(null);
   const [expandedUserId, setExpandedUserId] = useState<number | null>(null);
+  const teamAction = useInertiaAction();
+  const contactAction = useInertiaAction();
 
   const handleAssign = (userId: number) => {
-    router.post(incident.assignments_path, { user_id: userId }, { preserveScroll: true });
+    if (teamAction.processing) return;
+    teamAction.runPost(incident.assignments_path, { user_id: userId }, {
+      errorMessage: "Could not assign user to this incident.",
+    });
   };
 
   const handleRemove = () => {
     if (!confirmRemoveUser) return;
-    router.delete(confirmRemoveUser.path, { preserveScroll: true });
-    setConfirmRemoveUser(null);
+    teamAction.runDelete(confirmRemoveUser.path, undefined, {
+      errorMessage: "Could not remove user from this incident.",
+      onSuccess: () => setConfirmRemoveUser(null),
+    });
   };
 
   const handleRemoveContact = (removePath: string) => {
-    router.delete(removePath, { preserveScroll: true });
+    if (contactAction.processing) return;
+    contactAction.runDelete(removePath, undefined, {
+      errorMessage: "Could not remove contact.",
+    });
   };
 
   return (
@@ -46,20 +59,22 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
               Mitigation Team <span className="text-muted-foreground tabular-nums">{incident.mitigation_team.length}</span>
             </h3>
             {can_assign && assignable_mitigation_users.length > 0 && (
-              <AssignSelect users={assignable_mitigation_users} onAssign={handleAssign} />
+              <AssignSelect users={assignable_mitigation_users} onAssign={handleAssign} disabled={teamAction.processing} />
             )}
           </div>
+          <InlineActionFeedback error={teamAction.error} onDismiss={teamAction.clearFeedback} />
 
           {incident.mitigation_team.length === 0 ? (
             <p className="text-muted-foreground text-sm">No team members assigned.</p>
           ) : (
-            <UserList
-              users={incident.mitigation_team}
-              expandedUserId={expandedUserId}
-              onToggleExpand={setExpandedUserId}
-              onRemove={(name, path) => setConfirmRemoveUser({ name, path })}
-            />
-          )}
+              <UserList
+                users={incident.mitigation_team}
+                expandedUserId={expandedUserId}
+                onToggleExpand={setExpandedUserId}
+                onRemove={(name, path) => setConfirmRemoveUser({ name, path })}
+                actionsDisabled={teamAction.processing}
+              />
+            )}
         </section>
 
         {/* Column 2: Property Management */}
@@ -69,22 +84,24 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
               Property Management <span className="text-muted-foreground tabular-nums">{incident.pm_team.length}</span>
             </h3>
             {can_assign && assignable_pm_users.length > 0 && (
-              <AssignSelect users={assignable_pm_users} onAssign={handleAssign} />
+              <AssignSelect users={assignable_pm_users} onAssign={handleAssign} disabled={teamAction.processing} />
             )}
           </div>
+          <InlineActionFeedback error={teamAction.error} onDismiss={teamAction.clearFeedback} />
 
           {incident.pm_team.length === 0 && incident.pm_contacts.length === 0 ? (
             <p className="text-muted-foreground text-sm">No PM team members.</p>
           ) : (
             <div className="space-y-3">
               {incident.pm_team.length > 0 && (
-                <UserList
-                  users={incident.pm_team}
-                  expandedUserId={expandedUserId}
-                  onToggleExpand={setExpandedUserId}
-                  onRemove={(name, path) => setConfirmRemoveUser({ name, path })}
-                />
-              )}
+                  <UserList
+                    users={incident.pm_team}
+                    expandedUserId={expandedUserId}
+                    onToggleExpand={setExpandedUserId}
+                    onRemove={(name, path) => setConfirmRemoveUser({ name, path })}
+                    actionsDisabled={teamAction.processing}
+                  />
+                )}
 
               {incident.pm_contacts.length > 0 && (
                 <div className="space-y-2">
@@ -134,6 +151,7 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
               </Button>
             )}
           </div>
+          <InlineActionFeedback error={contactAction.error} onDismiss={contactAction.clearFeedback} />
 
           {incident.contacts.length === 0 ? (
             <p className="text-muted-foreground text-sm">No contacts added.</p>
@@ -169,6 +187,7 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
                           variant="ghost"
                           size="sm"
                           onClick={() => setEditingContact(c)}
+                          disabled={contactAction.processing}
                           className="h-8 w-8 sm:h-6 sm:w-6 p-0 text-muted-foreground hover:text-foreground transition-colors"
                           title={`Edit ${c.name}`}
                         >
@@ -180,6 +199,7 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
                           variant="ghost"
                           size="sm"
                           onClick={() => handleRemoveContact(c.remove_path!)}
+                          disabled={contactAction.processing}
                           className="h-8 w-8 sm:h-6 sm:w-6 p-0 text-muted-foreground hover:text-destructive transition-colors"
                           title={`Remove ${c.name}`}
                         >
@@ -206,7 +226,9 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
           </p>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="ghost" size="sm" onClick={() => setConfirmRemoveUser(null)}>Cancel</Button>
-            <Button variant="destructive" size="sm" onClick={handleRemove}>Remove</Button>
+            <Button variant="destructive" size="sm" onClick={handleRemove} disabled={teamAction.processing}>
+              {teamAction.processing ? "Removing..." : "Remove"}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -231,21 +253,24 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
   );
 }
 
-function AssignSelect({ users, onAssign }: {
+function AssignSelect({ users, onAssign, disabled = false }: {
   users: AssignableUser[];
   onAssign: (userId: number) => void;
+  disabled?: boolean;
 }) {
   const [value, setValue] = useState("");
 
   return (
     <Select
       value={value}
+      disabled={disabled}
       onValueChange={(next) => {
+        if (disabled) return;
         setValue("");
         onAssign(Number(next));
       }}
     >
-      <SelectTrigger className="h-10 sm:h-8 w-[190px] text-sm sm:text-xs bg-background">
+      <SelectTrigger className="h-10 sm:h-8 w-[190px] text-sm sm:text-xs bg-background" disabled={disabled}>
         <div className="flex items-center gap-1">
           <UserPlus className="h-3 w-3" />
           <SelectValue placeholder="Assign User" />
@@ -262,11 +287,12 @@ function AssignSelect({ users, onAssign }: {
   );
 }
 
-function UserList({ users, expandedUserId, onToggleExpand, onRemove }: {
+function UserList({ users, expandedUserId, onToggleExpand, onRemove, actionsDisabled = false }: {
   users: TeamUser[];
   expandedUserId: number | null;
   onToggleExpand: (id: number | null) => void;
   onRemove: (name: string, path: string) => void;
+  actionsDisabled?: boolean;
 }) {
   // Group users by role, preserving backend sort order
   const groups: { role: string; users: TeamUser[] }[] = [];
@@ -310,6 +336,7 @@ function UserList({ users, expandedUserId, onToggleExpand, onRemove }: {
                         variant="ghost"
                         size="sm"
                         onClick={(e) => { e.stopPropagation(); onRemove(u.full_name, u.remove_path!); }}
+                        disabled={actionsDisabled}
                         className="h-8 w-8 sm:h-7 sm:w-7 p-0 ml-auto text-muted-foreground hover:text-destructive transition-colors"
                         title={`Remove ${u.full_name}`}
                       >
@@ -349,29 +376,33 @@ function ContactFormModal({ contact, contacts_path, onClose }: {
   onClose: () => void;
 }) {
   const editing = !!contact;
-  const [name, setName] = useState(contact?.name ?? "");
-  const [title, setTitle] = useState(contact?.title ?? "");
-  const [email, setEmail] = useState(contact?.email ?? "");
-  const [phone, setPhone] = useState(contact?.phone ?? "");
-  const [onsite, setOnsite] = useState(contact?.onsite ?? false);
-  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const form = useForm({
+    name: contact?.name ?? "",
+    title: contact?.title ?? "",
+    email: contact?.email ?? "",
+    phone: contact?.phone ?? "",
+    onsite: contact?.onsite ?? false,
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitting(true);
-    const payload = { contact: { name, title, email, phone, onsite } };
-
+    setSubmitError(null);
     if (editing && contact?.update_path) {
-      router.patch(contact.update_path, payload, {
+      form.clearErrors();
+      form.transform((data) => ({ contact: data }));
+      form.patch(contact.update_path, {
         preserveScroll: true,
         onSuccess: onClose,
-        onFinish: () => setSubmitting(false),
+        onError: (errors: Record<string, unknown>) => setSubmitError(extractInertiaErrorMessage(errors, "Could not save contact.")),
       });
     } else {
-      router.post(contacts_path, payload, {
+      form.clearErrors();
+      form.transform((data) => ({ contact: data }));
+      form.post(contacts_path, {
         preserveScroll: true,
         onSuccess: onClose,
-        onFinish: () => setSubmitting(false),
+        onError: (errors: Record<string, unknown>) => setSubmitError(extractInertiaErrorMessage(errors, "Could not add contact.")),
       });
     }
   };
@@ -384,17 +415,19 @@ function ContactFormModal({ contact, contacts_path, onClose }: {
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-3">
+          <InlineActionFeedback error={submitError} onDismiss={() => setSubmitError(null)} />
           <div>
             <label className="text-xs font-medium text-muted-foreground">
               Name <span className="text-destructive">*</span>
             </label>
             <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              value={form.data.name}
+              onChange={(e) => { if (submitError) setSubmitError(null); form.setData("name", e.target.value); }}
               placeholder="Contact name"
               className="mt-1"
               required
             />
+            {form.errors.name && <p className="text-xs text-destructive mt-1">{form.errors.name}</p>}
           </div>
 
           <div>
@@ -402,11 +435,12 @@ function ContactFormModal({ contact, contacts_path, onClose }: {
               Title <span className="text-muted-foreground font-normal">(optional)</span>
             </label>
             <Input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              value={form.data.title}
+              onChange={(e) => { if (submitError) setSubmitError(null); form.setData("title", e.target.value); }}
               placeholder="e.g. Property Manager"
               className="mt-1"
             />
+            {form.errors.title && <p className="text-xs text-destructive mt-1">{form.errors.title}</p>}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -416,10 +450,11 @@ function ContactFormModal({ contact, contacts_path, onClose }: {
               </label>
               <Input
                 type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={form.data.email}
+                onChange={(e) => { if (submitError) setSubmitError(null); form.setData("email", e.target.value); }}
                 className="mt-1"
               />
+              {form.errors.email && <p className="text-xs text-destructive mt-1">{form.errors.email}</p>}
             </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground">
@@ -427,25 +462,30 @@ function ContactFormModal({ contact, contacts_path, onClose }: {
               </label>
               <Input
                 type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                value={form.data.phone}
+                onChange={(e) => { if (submitError) setSubmitError(null); form.setData("phone", e.target.value); }}
                 className="mt-1"
               />
+              {form.errors.phone && <p className="text-xs text-destructive mt-1">{form.errors.phone}</p>}
             </div>
           </div>
 
           <label className="flex items-center gap-2 text-xs cursor-pointer">
             <Checkbox
-              checked={onsite}
-              onCheckedChange={(checked) => setOnsite(checked === true)}
+              checked={form.data.onsite}
+              onCheckedChange={(checked) => {
+                if (submitError) setSubmitError(null);
+                form.setData("onsite", checked === true);
+              }}
             />
             Onsite contact
           </label>
+          {form.errors.onsite && <p className="text-xs text-destructive -mt-2">{form.errors.onsite}</p>}
 
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
-            <Button type="submit" size="sm" disabled={submitting}>
-              {submitting ? "Saving..." : editing ? "Save" : "Add Contact"}
+            <Button type="button" variant="ghost" size="sm" onClick={onClose} disabled={form.processing}>Cancel</Button>
+            <Button type="submit" size="sm" disabled={form.processing}>
+              {form.processing ? "Saving..." : editing ? "Save" : "Add Contact"}
             </Button>
           </div>
         </form>

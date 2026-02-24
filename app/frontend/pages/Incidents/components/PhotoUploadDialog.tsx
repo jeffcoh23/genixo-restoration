@@ -258,7 +258,7 @@ export default function PhotoUploadDialog({
               data-testid="photo-dialog-gallery-button"
             >
               <ImagePlus className="h-3.5 w-3.5" />
-              Gallery
+              {errorCount > 0 ? "Gallery (Retry)" : "Gallery"}
             </Button>
             <Input
               ref={galleryInputRef}
@@ -274,10 +274,12 @@ export default function PhotoUploadDialog({
           {/* Photo counter */}
           <div className="flex flex-col items-center text-xs text-muted-foreground">
             {closeBlocked && (
-              <span className="mb-1 text-destructive font-medium">Uploads still running. Please wait before closing.</span>
+              <span className="mb-1 text-destructive font-medium">Uploads are still running. Wait for completion before closing.</span>
             )}
             {errorCount > 0 && (
-              <span className="mb-1 text-destructive font-medium">{errorCount} photo upload{errorCount !== 1 ? "s" : ""} failed.</span>
+              <span className="mb-1 text-destructive font-medium">
+                {errorCount} photo upload{errorCount !== 1 ? "s" : ""} failed. Successful uploads were kept. Use Gallery to retry.
+              </span>
             )}
             <div className="flex items-center gap-1.5">
             {photos.map((p) => (

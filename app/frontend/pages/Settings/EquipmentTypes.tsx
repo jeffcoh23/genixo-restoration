@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { router, usePage } from "@inertiajs/react";
+import { usePage } from "@inertiajs/react";
 import { Plus, Wrench } from "lucide-react";
 import AppLayout from "@/layout/AppLayout";
+import InlineActionFeedback from "@/components/InlineActionFeedback";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import useInertiaAction from "@/hooks/useInertiaAction";
 import { SharedProps } from "@/types";
 
 interface EquipmentTypeItem {
@@ -25,15 +27,14 @@ interface Props {
 export default function EquipmentTypesSettings() {
   const { active_types, inactive_types, create_path } = usePage<SharedProps & Props>().props;
   const [name, setName] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const typeAction = useInertiaAction();
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || submitting) return;
-    setSubmitting(true);
-    router.post(create_path, { name: name.trim() }, {
+    if (!name.trim() || typeAction.processing) return;
+    typeAction.runPost(create_path, { name: name.trim() }, {
+      errorMessage: "Could not add equipment type.",
       onSuccess: () => setName(""),
-      onFinish: () => setSubmitting(false),
     });
   };
 
@@ -41,16 +42,18 @@ export default function EquipmentTypesSettings() {
     <AppLayout>
       <PageHeader title="Equipment Types" />
 
+      <InlineActionFeedback error={typeAction.error} onDismiss={typeAction.clearFeedback} className="mb-4" />
+
       <form onSubmit={handleAdd} className="flex items-center gap-2 mb-6">
         <Input
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={(e) => { typeAction.clearFeedback(); setName(e.target.value); }}
           placeholder="New equipment type name..."
           className="max-w-xs"
         />
-        <Button type="submit" size="sm" disabled={!name.trim() || submitting} className="gap-1">
+        <Button type="submit" size="sm" disabled={!name.trim() || typeAction.processing} className="gap-1">
           <Plus className="h-3.5 w-3.5" />
-          Add
+          {typeAction.processing ? "Adding..." : "Add"}
         </Button>
       </form>
 
@@ -76,7 +79,8 @@ export default function EquipmentTypesSettings() {
                         variant="ghost"
                         size="sm"
                         className="h-7 text-xs text-muted-foreground hover:text-destructive"
-                        onClick={() => router.patch(et.deactivate_path!)}
+                        onClick={() => typeAction.runPatch(et.deactivate_path!, {}, { errorMessage: "Could not deactivate equipment type." })}
+                        disabled={typeAction.processing}
                       >
                         Deactivate
                       </Button>
@@ -99,7 +103,8 @@ export default function EquipmentTypesSettings() {
                         variant="ghost"
                         size="sm"
                         className="h-7 text-xs"
-                        onClick={() => router.patch(et.reactivate_path!)}
+                        onClick={() => typeAction.runPatch(et.reactivate_path!, {}, { errorMessage: "Could not reactivate equipment type." })}
+                        disabled={typeAction.processing}
                       >
                         Reactivate
                       </Button>

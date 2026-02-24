@@ -1,12 +1,14 @@
-import { Link, usePage, router } from "@inertiajs/react";
+import { Link, usePage } from "@inertiajs/react";
 import { useState } from "react";
 import AppLayout from "@/layout/AppLayout";
 import PageHeader from "@/components/PageHeader";
 import DetailList, { DetailRow } from "@/components/DetailList";
+import InlineActionFeedback from "@/components/InlineActionFeedback";
 import StatusBadge from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import useInertiaAction from "@/hooks/useInertiaAction";
 import { SharedProps } from "@/types";
 
 interface AssignedUser {
@@ -58,10 +60,11 @@ export default function PropertyShow() {
   const [showAssignForm, setShowAssignForm] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState("");
   const [confirmRemoveUser, setConfirmRemoveUser] = useState<AssignedUser | null>(null);
+  const assignmentAction = useInertiaAction();
 
   function handleAssign() {
-    if (!selectedUserId) return;
-    router.post(property.assignments_path, { user_id: selectedUserId }, {
+    if (!selectedUserId || assignmentAction.processing) return;
+    assignmentAction.runPost(property.assignments_path, { user_id: selectedUserId }, {
       onSuccess: () => { setSelectedUserId(""); setShowAssignForm(false); }
     });
   }
@@ -71,8 +74,8 @@ export default function PropertyShow() {
   }
 
   function confirmRemove() {
-    if (!confirmRemoveUser) return;
-    router.delete(confirmRemoveUser.remove_path, {
+    if (!confirmRemoveUser || assignmentAction.processing) return;
+    assignmentAction.runDelete(confirmRemoveUser.remove_path, undefined, {
       onSuccess: () => setConfirmRemoveUser(null),
     });
   }
@@ -109,10 +112,12 @@ export default function PropertyShow() {
           )}
         </div>
 
+        <InlineActionFeedback error={assignmentAction.error} onDismiss={assignmentAction.clearFeedback} className="mb-3" />
+
         {showAssignForm && (
           <div className="flex gap-2 mb-4">
-            <Select value={selectedUserId} onValueChange={setSelectedUserId}>
-              <SelectTrigger className="max-w-xs">
+            <Select value={selectedUserId} onValueChange={(value) => { assignmentAction.clearFeedback(); setSelectedUserId(value); }} disabled={assignmentAction.processing}>
+              <SelectTrigger className="max-w-xs" disabled={assignmentAction.processing}>
                 <SelectValue placeholder="Select a user..." />
               </SelectTrigger>
               <SelectContent>
@@ -121,7 +126,9 @@ export default function PropertyShow() {
                 ))}
               </SelectContent>
             </Select>
-            <Button size="sm" onClick={handleAssign} disabled={!selectedUserId}>Assign</Button>
+            <Button size="sm" onClick={handleAssign} disabled={!selectedUserId || assignmentAction.processing}>
+              {assignmentAction.processing ? "Assigning..." : "Assign"}
+            </Button>
           </div>
         )}
 
@@ -140,6 +147,7 @@ export default function PropertyShow() {
                     size="sm"
                     className="h-9 sm:h-7 px-2 text-sm sm:text-xs text-muted-foreground hover:text-destructive"
                     onClick={() => handleRemove(user)}
+                    disabled={assignmentAction.processing}
                   >
                     Remove
                   </Button>
@@ -173,7 +181,9 @@ export default function PropertyShow() {
           </p>
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="ghost" onClick={() => setConfirmRemoveUser(null)}>Cancel</Button>
-            <Button type="button" variant="destructive" onClick={confirmRemove}>Remove</Button>
+            <Button type="button" variant="destructive" onClick={confirmRemove} disabled={assignmentAction.processing}>
+              {assignmentAction.processing ? "Removing..." : "Remove"}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

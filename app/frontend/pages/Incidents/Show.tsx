@@ -4,6 +4,8 @@ import { ChevronDown, ChevronRight, Mail, Pencil, Phone } from "lucide-react";
 import AppLayout from "@/layout/AppLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import InlineActionFeedback from "@/components/InlineActionFeedback";
+import useInertiaAction from "@/hooks/useInertiaAction";
 import { SharedProps } from "@/types";
 import RightPanelShell from "./components/RightPanelShell";
 import MessagePanel from "./components/MessagePanel";
@@ -46,10 +48,10 @@ export default function IncidentShow() {
   } = usePage<SharedProps & ShowProps>().props;
 
   const [statusOpen, setStatusOpen] = useState(false);
-  const [transitioning, setTransitioning] = useState(false);
   const [activeTab, setActiveTab] = useState("daily_log");
   const [editFormOpen, setEditFormOpen] = useState(false);
   const [markedTabs, setMarkedTabs] = useState<Set<string>>(new Set());
+  const statusAction = useInertiaAction();
 
   const displayUnreadMessages = markedTabs.has("messages") ? 0 : incident.unread_messages;
   const displayUnreadActivity = markedTabs.has("activity") ? 0 : incident.unread_activity;
@@ -74,10 +76,9 @@ export default function IncidentShow() {
   }, [incident.mark_read_path, incident.unread_messages, incident.unread_activity, markedTabs]);
 
   const handleTransition = (newStatus: string) => {
-    setTransitioning(true);
     setStatusOpen(false);
-    router.patch(incident.transition_path, { status: newStatus }, {
-      onFinish: () => setTransitioning(false),
+    statusAction.runPatch(incident.transition_path, { status: newStatus }, {
+      errorMessage: "Could not update incident status. Please try again.",
     });
   };
 
@@ -110,7 +111,7 @@ export default function IncidentShow() {
                   size="sm"
                   onClick={() => setStatusOpen(!statusOpen)}
                   data-testid="incident-status-trigger"
-                  disabled={transitioning}
+                  disabled={statusAction.processing}
                   className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium ${statusColor(incident.status)} hover:opacity-90 transition-opacity`}
                 >
                   {incident.status_label}
@@ -155,6 +156,12 @@ export default function IncidentShow() {
             )}
           </div>
         </div>
+
+        <InlineActionFeedback
+          error={statusAction.error}
+          onDismiss={statusAction.clearFeedback}
+          className="mx-5 mb-1"
+        />
 
         {/* Row 2: Metadata strip */}
         <div className="flex flex-wrap items-start gap-x-6 gap-y-2 px-5 pb-4">

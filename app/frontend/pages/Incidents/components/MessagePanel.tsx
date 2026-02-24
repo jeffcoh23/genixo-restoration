@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { router } from "@inertiajs/react";
 import { Camera, ExternalLink, FileText, MessageCircle, Paperclip, Send, X } from "lucide-react";
+import InlineActionFeedback from "@/components/InlineActionFeedback";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import useInertiaAction from "@/hooks/useInertiaAction";
 import type { Message, MessageAttachment } from "../types";
 
 interface MessagePanelProps {
@@ -14,7 +15,7 @@ interface MessagePanelProps {
 export default function MessagePanel({ messages, messages_path }: MessagePanelProps) {
   const [body, setBody] = useState("");
   const [files, setFiles] = useState<File[]>([]);
-  const [sending, setSending] = useState(false);
+  const sendAction = useInertiaAction();
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -28,10 +29,9 @@ export default function MessagePanel({ messages, messages_path }: MessagePanelPr
 
   const handleSend = () => {
     const trimmed = body.trim();
-    if ((!trimmed && files.length === 0) || sending) return;
-    setSending(true);
+    if ((!trimmed && files.length === 0) || sendAction.processing) return;
 
-    router.post(messages_path, { message: { body: trimmed, files } }, {
+    sendAction.runPost(messages_path, { message: { body: trimmed, files } }, {
       forceFormData: files.length > 0,
       preserveScroll: true,
       onSuccess: () => {
@@ -39,7 +39,6 @@ export default function MessagePanel({ messages, messages_path }: MessagePanelPr
         setFiles([]);
         if (textareaRef.current) textareaRef.current.style.height = "auto";
       },
-      onFinish: () => setSending(false),
     });
   };
 
@@ -51,6 +50,7 @@ export default function MessagePanel({ messages, messages_path }: MessagePanelPr
   };
 
   const handleBodyChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    if (sendAction.error) sendAction.clearFeedback();
     setBody(e.target.value);
     const ta = e.target;
     ta.style.height = "auto";
@@ -58,6 +58,7 @@ export default function MessagePanel({ messages, messages_path }: MessagePanelPr
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (sendAction.error) sendAction.clearFeedback();
     if (e.target.files) {
       setFiles((prev) => [ ...prev, ...Array.from(e.target.files!) ]);
     }
@@ -79,6 +80,7 @@ export default function MessagePanel({ messages, messages_path }: MessagePanelPr
       </div>
 
       <div className="border-t border-border bg-card px-3 py-2.5">
+        <InlineActionFeedback error={sendAction.error} onDismiss={sendAction.clearFeedback} className="mb-2" />
         {files.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mb-2">
             {files.map((file, i) => (
@@ -123,6 +125,7 @@ export default function MessagePanel({ messages, messages_path }: MessagePanelPr
             onClick={() => fileInputRef.current?.click()}
             aria-label="Attach files"
             data-testid="message-attach-files"
+            disabled={sendAction.processing}
           >
             <Paperclip className="h-4 w-4" />
           </Button>
@@ -134,6 +137,7 @@ export default function MessagePanel({ messages, messages_path }: MessagePanelPr
             onClick={() => cameraInputRef.current?.click()}
             aria-label="Take photo"
             data-testid="message-take-photo"
+            disabled={sendAction.processing}
           >
             <Camera className="h-4 w-4" />
           </Button>
@@ -149,7 +153,7 @@ export default function MessagePanel({ messages, messages_path }: MessagePanelPr
           <Button
             size="icon"
             onClick={handleSend}
-            disabled={(!body.trim() && files.length === 0) || sending}
+            disabled={(!body.trim() && files.length === 0) || sendAction.processing}
             className="shrink-0 h-9 w-9"
             data-testid="message-send"
           >
