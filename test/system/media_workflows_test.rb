@@ -250,7 +250,7 @@ class MediaWorkflowsTest < ApplicationSystemTestCase
   end
 
   def with_temp_text_attachment(prefix)
-    file = Tempfile.new([prefix, ".txt"])
+    file = Tempfile.new([ prefix, ".txt" ])
     file.write("hello from ui e2e")
     file.flush
     yield file.path, File.basename(file.path)
