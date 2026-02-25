@@ -1,7 +1,8 @@
 import { Link, usePage } from "@inertiajs/react";
-import { ChevronDown, ChevronRight, MessageSquare, Activity } from "lucide-react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import AppLayout from "@/layout/AppLayout";
+import IncidentNotificationBadge from "@/components/IncidentNotificationBadge";
 import PageHeader from "@/components/PageHeader";
 import StatusBadge from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
@@ -136,18 +137,8 @@ function IncidentGroup({
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  {incident.unread_messages > 0 && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-foreground">
-                      <MessageSquare className="h-3 w-3" />
-                      Msgs {incident.unread_messages}
-                    </span>
-                  )}
-                  {incident.unread_activity > 0 && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-status-warning/20 px-2 py-0.5 text-xs font-medium text-foreground">
-                      <Activity className="h-3 w-3" />
-                      Activity {incident.unread_activity}
-                    </span>
-                  )}
+                  <IncidentNotificationBadge kind="messages" count={incident.unread_messages} />
+                  <IncidentNotificationBadge kind="activity" count={incident.unread_activity} />
                   <StatusBadge status={incident.status} label={incident.status_label} />
                 </div>
               </div>

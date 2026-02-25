@@ -2,7 +2,7 @@ const statusColors = {
   emergency: "hsl(0 72% 51%)",
   warning: "hsl(38 92% 50%)",
   success: "hsl(152 60% 30%)",
-  info: "hsl(199 89% 48%)",
+  info: "hsl(199 89% 36%)",
   quote: "hsl(262 52% 57%)",
   completed: "hsl(152 46% 30%)",
   neutral: "hsl(220 6% 55%)",
@@ -14,8 +14,8 @@ const textColors = {
 };
 
 const mapping = {
-  new: { bg: "info", text: "black" },
-  acknowledged: { bg: "info", text: "black" },
+  new: { bg: "info", text: "white" },
+  acknowledged: { bg: "info", text: "white" },
   proposal_requested: { bg: "quote", text: "white" },
   proposal_submitted: { bg: "quote", text: "white" },
   proposal_signed: { bg: "quote", text: "white" },

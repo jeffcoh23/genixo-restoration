@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ChevronDown, Download, Pencil, Plus } from "lucide-react";
+import { ChevronDown, Download, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type {
   DailyActivity,
@@ -9,6 +9,7 @@ import type {
   LaborEntry,
 } from "../types";
 import ActivityForm from "./ActivityForm";
+import IncidentPanelAddButton from "./IncidentPanelAddButton";
 
 interface DailyLogPanelProps {
   daily_activities: DailyActivity[];
@@ -150,11 +151,8 @@ export default function DailyLogPanel({
       )}
 
       {can_manage_activities && (
-        <div className="flex items-center gap-1 border-b border-border px-4 py-3 shrink-0 bg-background/70">
-          <Button variant="outline" size="sm" className="h-10 sm:h-8 text-sm sm:text-xs gap-1.5" onClick={() => setActivityForm({ open: true })}>
-            <Plus className="h-3 w-3" />
-            Add Activity
-          </Button>
+        <div className="flex items-center justify-center sm:justify-start gap-1 border-b border-border px-4 py-3 shrink-0 bg-background/70">
+          <IncidentPanelAddButton label="Add Activity" onClick={() => setActivityForm({ open: true })} />
         </div>
       )}
 

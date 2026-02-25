@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { usePage } from "@inertiajs/react";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import InlineActionFeedback from "@/components/InlineActionFeedback";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -8,6 +8,7 @@ import useInertiaAction from "@/hooks/useInertiaAction";
 import { SharedProps } from "@/types";
 import type { EquipmentLogItem, EquipmentType } from "../types";
 import EquipmentForm from "./EquipmentForm";
+import IncidentPanelAddButton from "./IncidentPanelAddButton";
 
 interface EquipmentPanelProps {
   equipment_log: EquipmentLogItem[];
@@ -53,14 +54,15 @@ export default function EquipmentPanel({ equipment_log = [], can_manage_equipmen
     <div className="flex flex-col h-full">
       <div className="flex items-center gap-2 border-b border-border px-4 py-3 shrink-0 flex-wrap">
         {can_manage_equipment && (
-          <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => setShowForm(true)}>
-            <Plus className="h-3 w-3" />
-            Add Equipment
-          </Button>
+          <IncidentPanelAddButton
+            label="Add Equipment"
+            onClick={() => setShowForm(true)}
+            className="w-full sm:w-auto"
+          />
         )}
-        <div className="flex items-center gap-2 ml-auto">
+        <div className="flex w-full sm:w-auto items-center justify-center sm:justify-end gap-2 sm:ml-auto">
           <Select value={filterType} onValueChange={setFilterType}>
-            <SelectTrigger data-testid="equipment-type-filter" className="h-7 text-xs w-[140px]">
+            <SelectTrigger data-testid="equipment-type-filter" className="h-10 sm:h-7 text-sm sm:text-xs w-[140px]">
               <SelectValue placeholder="All types" />
             </SelectTrigger>
             <SelectContent>
@@ -71,7 +73,7 @@ export default function EquipmentPanel({ equipment_log = [], can_manage_equipmen
             </SelectContent>
           </Select>
           <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger data-testid="equipment-status-filter" className="h-7 text-xs w-[120px]">
+            <SelectTrigger data-testid="equipment-status-filter" className="h-10 sm:h-7 text-sm sm:text-xs w-[120px]">
               <SelectValue placeholder="All" />
             </SelectTrigger>
             <SelectContent>
