@@ -1,6 +1,6 @@
 class InvitationsController < ApplicationController
   allow_unauthenticated_access only: %i[show accept]
-  before_action :require_mitigation_admin, only: %i[create resend]
+  before_action :require_mitigation_admin, only: %i[create resend destroy]
 
   # POST /invitations — create and send invitation
   def create
@@ -22,6 +22,13 @@ class InvitationsController < ApplicationController
       redirect_to users_path, inertia: { errors: invitation.errors.to_hash },
         alert: "Could not send invitation."
     end
+  end
+
+  # DELETE /invitations/:id — cancel a pending invitation
+  def destroy
+    invitation = Invitation.where(accepted_at: nil).find(params[:id])
+    invitation.destroy!
+    redirect_to users_path, notice: "Invitation for #{invitation.email} has been cancelled."
   end
 
   # PATCH /invitations/:id/resend

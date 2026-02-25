@@ -117,6 +117,48 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
     assert inv.expires_at > Time.current
   end
 
+  # --- Cancel (destroy) ---
+
+  test "manager can cancel pending invitation" do
+    login_as @manager
+    inv = @genixo.invitations.create!(
+      invited_by_user: @manager, email: "cancel@genixo.com",
+      user_type: "technician", expires_at: 7.days.from_now
+    )
+
+    assert_difference "Invitation.count", -1 do
+      delete cancel_invitation_path(inv)
+    end
+    assert_redirected_to users_path
+  end
+
+  test "technician cannot cancel invitation" do
+    login_as @tech
+    inv = @genixo.invitations.create!(
+      invited_by_user: @manager, email: "nope@genixo.com",
+      user_type: "technician", expires_at: 7.days.from_now
+    )
+
+    assert_no_difference "Invitation.count" do
+      delete cancel_invitation_path(inv)
+    end
+    assert_response :not_found
+  end
+
+  test "cannot cancel already-accepted invitation" do
+    login_as @manager
+    inv = @genixo.invitations.create!(
+      invited_by_user: @manager, email: "accepted@genixo.com",
+      user_type: "technician", expires_at: 7.days.from_now,
+      accepted_at: 1.day.ago
+    )
+
+    assert_no_difference "Invitation.count" do
+      delete cancel_invitation_path(inv)
+    end
+    assert_response :not_found
+  end
+
   # --- Show (unauthenticated) ---
 
   test "show renders acceptance form for valid token" do

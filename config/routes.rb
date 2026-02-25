@@ -62,6 +62,7 @@ Rails.application.routes.draw do
   resources :invitations, only: %i[create] do
     member do
       patch :resend
+      delete :cancel, action: :destroy
     end
   end
   get "invitations/:token", to: "invitations#show", as: :invitation

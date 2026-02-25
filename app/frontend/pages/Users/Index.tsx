@@ -29,6 +29,7 @@ interface PendingInvitation {
   organization_name: string;
   expired: boolean;
   resend_path: string;
+  cancel_path: string;
 }
 
 interface RoleOption {
@@ -53,6 +54,7 @@ export default function UsersIndex() {
   const [showDeactivated, setShowDeactivated] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const resendInviteAction = useInertiaAction();
+  const cancelInviteAction = useInertiaAction();
 
   const form = useForm({
     email: "",
@@ -184,7 +186,7 @@ export default function UsersIndex() {
           <h2 className="text-sm font-medium text-muted-foreground mb-2">
             Pending Invitations ({pending_invitations.length})
           </h2>
-          <InlineActionFeedback error={resendInviteAction.error} onDismiss={resendInviteAction.clearFeedback} className="mb-3" />
+          <InlineActionFeedback error={resendInviteAction.error || cancelInviteAction.error} onDismiss={() => { resendInviteAction.clearFeedback(); cancelInviteAction.clearFeedback(); }} className="mb-3" />
           <DataTable
             columns={[
               { header: "Name", render: (inv) => inv.display_name },
@@ -201,10 +203,19 @@ export default function UsersIndex() {
                     variant="outline"
                     size="sm"
                     onClick={() => resendInviteAction.runPatch(inv.resend_path, {}, { errorMessage: "Could not resend invitation." })}
-                    disabled={resendInviteAction.processing}
+                    disabled={resendInviteAction.processing || cancelInviteAction.processing}
                     className="h-9 sm:h-8 text-sm sm:text-xs"
                   >
                     {resendInviteAction.processing ? "Resending..." : "Resend"}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => { if (confirm("Cancel this invitation?")) cancelInviteAction.runDelete(inv.cancel_path, undefined, { errorMessage: "Could not cancel invitation." }); }}
+                    disabled={cancelInviteAction.processing || resendInviteAction.processing}
+                    className="h-9 sm:h-8 text-sm sm:text-xs text-destructive hover:text-destructive"
+                  >
+                    {cancelInviteAction.processing ? "Cancelling..." : "Cancel"}
                   </Button>
                 </div>
               )},

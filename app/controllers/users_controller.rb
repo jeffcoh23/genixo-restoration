@@ -97,7 +97,8 @@ class UsersController < ApplicationController
       role_label: User::ROLE_LABELS[inv.user_type],
       organization_name: inv.organization.name,
       expired: inv.expired?,
-      resend_path: resend_invitation_path(inv)
+      resend_path: resend_invitation_path(inv),
+      cancel_path: cancel_invitation_path(inv)
     }
   end
 
