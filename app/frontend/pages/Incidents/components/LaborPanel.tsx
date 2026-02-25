@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import type { AssignableUser, LaborEntry, LaborLog } from "../types";
+import IncidentPanelAddButton from "./IncidentPanelAddButton";
 import LaborForm from "./LaborForm";
 
 interface LaborPanelProps {
@@ -20,11 +19,8 @@ export default function LaborPanel({ labor_log, labor_entries: _labor_entries, c
   return (
     <div className="flex flex-col h-full">
       {can_manage_labor && (
-        <div className="flex items-center gap-1 border-b border-border px-4 py-3 shrink-0">
-          <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => setShowForm(true)}>
-            <Plus className="h-3 w-3" />
-            Add Labor
-          </Button>
+        <div className="flex items-center justify-center sm:justify-start gap-1 border-b border-border px-4 py-3 shrink-0">
+          <IncidentPanelAddButton label="Add Labor" onClick={() => setShowForm(true)} />
         </div>
       )}
 

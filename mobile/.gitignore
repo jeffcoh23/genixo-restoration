@@ -1,0 +1,9 @@
+node_modules/
+ios/App/Pods/
+ios/App/App.xcworkspace/xcuserdata/
+ios/App/App.xcworkspace/xcshareddata/swiftpm/
+ios/App/build/
+android/.gradle/
+android/build/
+android/app/build/
+.DS_Store

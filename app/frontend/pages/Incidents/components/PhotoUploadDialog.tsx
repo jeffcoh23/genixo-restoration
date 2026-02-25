@@ -90,11 +90,15 @@ export default function PhotoUploadDialog({
     if (open) {
       startCamera();
       setCloseBlocked(false);
+      setCameraError(null);
+      setPhotos([]);
+      setDescription("");
+      setLogDate(today);
     }
     return () => {
       stopCamera();
     };
-  }, [open, startCamera, stopCamera]);
+  }, [open, startCamera, stopCamera, today]);
 
   const uploadFile = useCallback(
     async (file: File) => {
@@ -179,12 +183,35 @@ export default function PhotoUploadDialog({
     }
     stopCamera();
     router.reload({ only: [ "attachments", "messages" ] });
+    setPhotos([]);
+    setCloseBlocked(false);
+    setCameraError(null);
     onClose();
   }, [activeCount, stopCamera, onClose]);
 
+  const latestPhoto = photos[photos.length - 1];
+  const statusSummary = (() => {
+    if (activeCount > 0) {
+      return `${doneCount} uploaded, ${activeCount} in progress`;
+    }
+    if (errorCount > 0 && doneCount > 0) {
+      return `${doneCount} uploaded, ${errorCount} failed`;
+    }
+    if (errorCount > 0) {
+      return `${errorCount} failed`;
+    }
+    if (doneCount > 0) {
+      return `${doneCount} uploaded`;
+    }
+    return null;
+  })();
+
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleDone()}>
-      <DialogContent className="max-w-2xl h-[90vh] flex flex-col p-0 gap-0">
+      <DialogContent
+        onOpenAutoFocus={(e) => e.preventDefault()}
+        className="max-w-2xl h-[90vh] flex flex-col p-0 gap-0"
+      >
         <DialogHeader className="px-4 pt-4 pb-3 border-b border-border shrink-0">
           <DialogTitle className="text-base">Take Photos</DialogTitle>
           <DialogDescription className="sr-only">
@@ -248,90 +275,91 @@ export default function PhotoUploadDialog({
         </div>
 
         {/* Bottom bar */}
-        <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-background shrink-0">
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 text-xs gap-1.5"
-              onClick={() => galleryInputRef.current?.click()}
-              data-testid="photo-dialog-gallery-button"
-            >
-              <ImagePlus className="h-3.5 w-3.5" />
-              {errorCount > 0 ? "Gallery (Retry)" : "Gallery"}
-            </Button>
-            <Input
-              ref={galleryInputRef}
-              type="file"
-              accept="image/*"
-              multiple
-              className="hidden"
-              onChange={handleGallerySelect}
-              data-testid="photo-dialog-gallery-input"
-            />
-          </div>
-
-          {/* Photo counter */}
-          <div className="flex flex-col items-center text-xs text-muted-foreground">
-            {closeBlocked && (
-              <span className="mb-1 text-destructive font-medium">Uploads are still running. Wait for completion before closing.</span>
-            )}
-            {errorCount > 0 && (
-              <span className="mb-1 text-destructive font-medium">
-                {errorCount} photo upload{errorCount !== 1 ? "s" : ""} failed. Successful uploads were kept. Use Gallery to retry.
-              </span>
-            )}
-            <div className="flex items-center gap-1.5">
-            {photos.map((p) => (
-              <span key={p.id}>
-                {p.state === "done" && (
-                  <Check className="h-3.5 w-3.5 text-green-600 inline" />
-                )}
-                {(p.state === "compressing" || p.state === "uploading") && (
-                  <Loader2 className="h-3.5 w-3.5 text-muted-foreground animate-spin inline" />
-                )}
-                {p.state === "error" && (
-                  <span className="text-destructive font-bold">!</span>
-                )}
-              </span>
-            ))}
-            {photos.length > 0 && (
-              <span className="ml-1">
-                {photos.length} photo{photos.length !== 1 ? "s" : ""}
-                {activeCount > 0 && ` (${doneCount} uploaded, ${activeCount} in progress)`}
-              </span>
-            )}
+        <div className="border-t border-border bg-background shrink-0 px-4 py-3">
+          <div className="flex flex-col gap-2 sm:gap-2.5">
+            <div className="min-h-0 text-xs text-muted-foreground">
+              {closeBlocked && (
+                <div className="text-destructive font-medium mb-1">
+                  Uploads are still running. Wait for completion before closing.
+                </div>
+              )}
+              {errorCount > 0 && (
+                <div className="text-destructive font-medium mb-1">
+                  {errorCount} photo upload{errorCount !== 1 ? "s" : ""} failed. Successful uploads were kept. Use Gallery to retry.
+                </div>
+              )}
+              {photos.length > 0 && (
+                <div className="flex min-w-0 flex-col gap-0.5">
+                  <div className="flex items-center gap-1.5">
+                    {activeCount > 0 ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
+                    ) : errorCount > 0 ? (
+                      <span className="text-destructive font-bold leading-none">!</span>
+                    ) : (
+                      <Check className="h-3.5 w-3.5 text-green-600 shrink-0" />
+                    )}
+                    <span>
+                      {photos.length} photo{photos.length !== 1 ? "s" : ""}
+                      {statusSummary ? ` · ${statusSummary}` : ""}
+                    </span>
+                  </div>
+                  {latestPhoto && (
+                    <div className="truncate">
+                      Latest: {latestPhoto.name}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-            {photos.length > 0 && (
-              <div className="mt-1 max-w-[280px] truncate text-center">
-                Latest: {photos[photos.length - 1].name}
-              </div>
-            )}
-          </div>
 
-          <div className="flex items-center gap-2">
-            {cameraActive && (
-              <Button
-                size="sm"
-                onClick={handleSnap}
-                className="gap-1.5 h-10 sm:h-9"
-                disabled={activeCount > 0}
-                data-testid="photo-dialog-snap"
-              >
-                <Camera className="h-4 w-4" />
-                Snap
-              </Button>
-            )}
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-10 sm:h-9"
-              onClick={handleDone}
-              disabled={activeCount > 0}
-              data-testid="photo-dialog-done"
-            >
-              {activeCount > 0 ? "Uploading..." : "Done"}
-            </Button>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 text-xs gap-1.5"
+                  onClick={() => galleryInputRef.current?.click()}
+                  data-testid="photo-dialog-gallery-button"
+                >
+                  <ImagePlus className="h-3.5 w-3.5" />
+                  {errorCount > 0 ? "Gallery (Retry)" : "Gallery"}
+                </Button>
+                <Input
+                  ref={galleryInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={handleGallerySelect}
+                  data-testid="photo-dialog-gallery-input"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                {cameraActive && (
+                  <Button
+                    size="sm"
+                    onClick={handleSnap}
+                    className="gap-1.5 h-10 sm:h-9"
+                    disabled={activeCount > 0}
+                    data-testid="photo-dialog-snap"
+                  >
+                    <Camera className="h-4 w-4" />
+                    Snap
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-10 sm:h-9"
+                  onClick={handleDone}
+                  disabled={activeCount > 0}
+                  data-testid="photo-dialog-done"
+                >
+                  {activeCount > 0 ? "Uploading..." : "Done"}
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </DialogContent>

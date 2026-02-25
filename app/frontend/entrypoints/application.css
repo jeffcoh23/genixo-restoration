@@ -41,7 +41,7 @@
   --color-status-emergency: hsl(0 72% 51%);
   --color-status-warning: hsl(38 92% 50%);
   --color-status-success: hsl(152 60% 30%);
-  --color-status-info: hsl(199 89% 48%);
+  --color-status-info: hsl(199 89% 36%);
   --color-status-quote: hsl(262 52% 57%);
   --color-status-completed: hsl(152 46% 30%);
   --color-status-neutral: hsl(220 6% 55%);
@@ -77,5 +77,44 @@
     background-image:
       radial-gradient(1200px 600px at 15% -10%, hsl(188 45% 90% / 0.55), transparent 65%),
       radial-gradient(900px 520px at 88% 0%, hsl(202 34% 90% / 0.45), transparent 62%);
+  }
+}
+
+@layer base {
+  html.capacitor-shell {
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-right: env(safe-area-inset-right, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-left: env(safe-area-inset-left, 0px);
+  }
+
+  html.capacitor-shell body {
+    overscroll-behavior-y: contain;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html.capacitor-shell [data-app-shell-frame] {
+    height: 100dvh;
+  }
+
+  html.capacitor-shell [data-app-shell-main] {
+    padding-bottom: var(--safe-bottom);
+  }
+
+  html.capacitor-shell [data-app-shell-sidebar] {
+    padding-top: var(--safe-top);
+    padding-bottom: var(--safe-bottom);
+  }
+
+  html.capacitor-shell [data-app-shell-mobile-header] {
+    top: 0;
+    padding-top: calc(0.75rem + var(--safe-top));
+    padding-left: calc(1rem + var(--safe-left));
+    padding-right: calc(1rem + var(--safe-right));
+  }
+
+  html.capacitor-shell [data-app-shell-overlay] {
+    top: var(--safe-top);
+    bottom: var(--safe-bottom);
   }
 }

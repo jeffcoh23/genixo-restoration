@@ -115,6 +115,33 @@ class MediaWorkflowsTest < ApplicationSystemTestCase
     assert_equal "image/jpeg", uploaded_photo.file.blob.content_type
   end
 
+  test "take photos dialog clears transient upload status when reopened" do
+    login_as @manager
+    visit incident_path(@incident)
+    click_button "Photos"
+    click_button "Take Photos"
+
+    within("[role='dialog']") do
+      gallery_input = find("[data-testid='photo-dialog-gallery-input']", visible: :all)
+
+      gallery_input.set(fixture_photo_path)
+      assert_text "1 photo"
+      assert_text "Latest: test_photo.jpg"
+      assert_text "1 uploaded"
+
+      click_button "Done"
+    end
+
+    assert_no_selector "[role='dialog']"
+
+    click_button "Take Photos"
+    within("[role='dialog']") do
+      assert_no_text "Latest:"
+      assert_no_text "1 photo"
+      assert_button "Done"
+    end
+  end
+
   test "take photos dialog snap uploads using mocked camera and persists" do
     login_as @manager
     visit incident_path(@incident)
@@ -170,6 +197,22 @@ class MediaWorkflowsTest < ApplicationSystemTestCase
 
     click_button "Load more"
     assert_text "Showing 32 of 32"
+  end
+
+  test "photos panel uses original image url when thumbnail is unavailable" do
+    create_incident_photo(@incident, @manager, "no-thumb-photo.jpg")
+
+    login_as @manager
+    visit incident_path(@incident)
+    click_button "Photos"
+
+    assert_text "no-thumb-photo.jpg"
+    assert_no_text "No preview"
+
+    card = find("a", text: "no-thumb-photo.jpg")
+    within(card) do
+      assert_selector "img"
+    end
   end
 
   test "messages composer sends attachment only via file picker UI" do

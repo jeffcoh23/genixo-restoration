@@ -71,6 +71,17 @@ class IncidentsAdditionalTest < ApplicationSystemTestCase
     assert_no_text "Kitchen flood in unit 101"
   end
 
+  test "mobile incidents index card opens incident detail" do
+    login_as @manager
+    page.current_window.resize_to(390, 844)
+    visit incidents_path
+
+    find("[data-testid='incident-mobile-card-#{@active_incident.id}']").click
+
+    assert_current_path incident_path(@active_incident)
+    assert_text "Kitchen flood in unit 101"
+  end
+
   test "incidents index sort toggles column direction" do
     login_as @manager
     visit incidents_path(sort: "property", direction: "asc")

@@ -2,7 +2,7 @@ export function statusColor(status: string): string {
   switch (status) {
     case "new":
     case "acknowledged":
-      return "bg-status-info text-black";
+      return "bg-status-info text-white";
     case "proposal_requested":
     case "proposal_submitted":
     case "proposal_signed":

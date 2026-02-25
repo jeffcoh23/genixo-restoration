@@ -1,7 +1,8 @@
 import { Link, router, usePage } from "@inertiajs/react";
-import { AlertTriangle, Search, X, ChevronLeft, ChevronRight, ArrowUpDown, MessageSquare, Activity } from "lucide-react";
+import { AlertTriangle, Search, X, ChevronLeft, ChevronRight, ArrowUpDown } from "lucide-react";
 import { useState, useCallback, useMemo } from "react";
 import AppLayout from "@/layout/AppLayout";
+import IncidentNotificationBadge from "@/components/IncidentNotificationBadge";
 import PageHeader from "@/components/PageHeader";
 import MultiFilterSelect from "@/components/MultiFilterSelect";
 import StatusBadge from "@/components/StatusBadge";
@@ -295,11 +296,24 @@ export default function IncidentsIndex() {
             {incidents.map((incident) => {
               const showEmergency = incident.emergency && (incident.status === "new" || incident.status === "acknowledged");
               return (
-                <div key={incident.id} className={`rounded-lg border border-border bg-card p-4 shadow-sm ${showEmergency ? "ring-1 ring-status-emergency/40" : ""}`}>
+                <Link
+                  key={incident.id}
+                  href={incident.path}
+                  data-testid={`incident-mobile-card-${incident.id}`}
+                  className={`group block rounded-lg border border-border bg-card p-4 shadow-sm transition-colors active:bg-muted/45 hover:bg-muted/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
+                    showEmergency ? "ring-1 ring-status-emergency/40" : ""
+                  }`}
+                >
                   <div className="flex items-start justify-between gap-2">
-                    <Link href={incident.path} className="font-semibold text-foreground hover:text-primary transition-colors">
-                      {incident.property_name}
-                    </Link>
+                    <div className="min-w-0 flex items-center gap-1 text-primary">
+                      {showEmergency && (
+                        <AlertTriangle className="h-3.5 w-3.5 text-destructive flex-shrink-0" />
+                      )}
+                      <span className="font-semibold truncate">
+                        {incident.property_name}
+                      </span>
+                      <ChevronRight className="h-3.5 w-3.5 opacity-60 transition-transform group-active:translate-x-0.5" />
+                    </div>
                     <StatusBadge status={incident.status} label={incident.status_label} />
                   </div>
                   <p className="mt-2 text-sm text-muted-foreground line-clamp-2">{incident.description}</p>
@@ -310,24 +324,14 @@ export default function IncidentsIndex() {
                         Emergency
                       </span>
                     )}
-                    {incident.unread_messages > 0 && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 font-medium text-foreground">
-                        <MessageSquare className="h-3 w-3" />
-                        Msgs {incident.unread_messages}
-                      </span>
-                    )}
-                    {incident.unread_activity > 0 && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-status-warning/20 px-2 py-0.5 font-medium text-foreground">
-                        <Activity className="h-3 w-3" />
-                        Activity {incident.unread_activity}
-                      </span>
-                    )}
+                    <IncidentNotificationBadge kind="messages" count={incident.unread_messages} />
+                    <IncidentNotificationBadge kind="activity" count={incident.unread_activity} />
                   </div>
                   <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
                     <span>{incident.project_type_label}</span>
                     <span>{incident.last_activity_label || "No activity yet"}</span>
                   </div>
-                </div>
+                </Link>
               );
             })}
           </div>
@@ -373,18 +377,8 @@ export default function IncidentsIndex() {
                         </td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end gap-2">
-                            {incident.unread_messages > 0 && (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-foreground">
-                                <MessageSquare className="h-3 w-3" />
-                                Msgs {incident.unread_messages}
-                              </span>
-                            )}
-                            {incident.unread_activity > 0 && (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-status-warning/20 px-2 py-0.5 text-xs font-medium text-foreground">
-                                <Activity className="h-3 w-3" />
-                                Activity {incident.unread_activity}
-                              </span>
-                            )}
+                            <IncidentNotificationBadge kind="messages" count={incident.unread_messages} />
+                            <IncidentNotificationBadge kind="activity" count={incident.unread_activity} />
                             <span className="text-muted-foreground">{incident.last_activity_label}</span>
                           </div>
                         </td>

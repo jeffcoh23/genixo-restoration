@@ -11,10 +11,11 @@ export default function AppLayout({ children, wide }: { children: React.ReactNod
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen bg-background" data-app-shell-frame>
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
+          data-app-shell-overlay
           className="fixed inset-0 z-40 bg-black opacity-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
@@ -22,6 +23,7 @@ export default function AppLayout({ children, wide }: { children: React.ReactNod
 
       {/* Sidebar */}
       <aside
+        data-app-shell-sidebar
         className={`
           fixed inset-y-0 left-0 z-50 w-60 bg-sidebar border-r border-sidebar-border
           transform transition-transform duration-200 ease-in-out
@@ -52,9 +54,12 @@ export default function AppLayout({ children, wide }: { children: React.ReactNod
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-auto" data-app-shell-main>
         {/* Mobile header */}
-        <div className="sticky top-0 z-30 flex items-center gap-3 border-b bg-background px-4 py-3 lg:hidden">
+        <div
+          data-app-shell-mobile-header
+          className="sticky top-0 z-30 flex items-center gap-3 border-b bg-background px-4 py-3 lg:hidden"
+        >
           <Button variant="ghost" size="sm" className="h-auto p-0" onClick={() => setSidebarOpen(true)}>
             <Menu className="h-5 w-5 text-foreground" />
           </Button>
