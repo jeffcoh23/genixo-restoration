@@ -180,16 +180,17 @@ export default function DailyLogPanel({
                   <span className="text-sm font-semibold uppercase tracking-wide text-foreground/85">
                     {group.date_label}
                   </span>
-                  <button
-                    type="button"
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => router.post(dfr_path, { date: group.date_key })}
                     data-testid={`dfr-link-${group.date_key}`}
-                    className="flex items-center gap-1 text-sm text-foreground/75 hover:text-foreground transition-colors cursor-pointer"
+                    className="h-auto py-0.5 px-1.5 text-sm text-foreground/75 hover:text-foreground"
                     title="Generate Daily Field Report"
                   >
                     <FileText className="h-3 w-3" />
                     DFR
-                  </button>
+                  </Button>
                 </div>
 
                 {/* Timeline rows (activities, notes, documents, etc.) */}
