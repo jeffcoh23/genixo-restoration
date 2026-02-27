@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import useInertiaAction from "@/hooks/useInertiaAction";
@@ -28,12 +28,25 @@ function readingColor(value: number | null, goal: string): string {
   return "bg-red-100 text-red-800";
 }
 
+function formatGoal(goal: string, unit: string): string {
+  if (goal.toLowerCase() === "dry") return "Dry";
+  return unit === "%" ? `${goal}%` : `${goal} ${unit}`;
+}
+
+function formatReading(value: number, unit: string): string {
+  return unit === "%" ? `${value}%` : String(value);
+}
+
 export default function MoisturePanel({ moisture_data, can_manage_moisture }: MoisturePanelProps) {
   const [showPointForm, setShowPointForm] = useState(false);
   const [showBatchForm, setShowBatchForm] = useState(false);
+  const [batchDate, setBatchDate] = useState<string | null>(null);
+  const [batchPointId, setBatchPointId] = useState<number | null>(null);
   const { runPatch, runDelete } = useInertiaAction();
   const [editingSupervisor, setEditingSupervisor] = useState(false);
   const [supervisorValue, setSupervisorValue] = useState(moisture_data.supervisor_pm || "");
+  const [editingCell, setEditingCell] = useState<{ pointId: number; date: string } | null>(null);
+  const [editValue, setEditValue] = useState("");
 
   const hasData = moisture_data.points.length > 0;
   const reversedDates = [...moisture_data.dates].reverse();
@@ -52,13 +65,35 @@ export default function MoisturePanel({ moisture_data, can_manage_moisture }: Mo
     runDelete(destroyPath);
   };
 
+  const handleEditReading = (pointId: number, date: string, readingId: number, currentValue: number | null) => {
+    setEditingCell({ pointId, date });
+    setEditValue(currentValue !== null ? String(currentValue) : "");
+  };
+
+  const handleSaveReading = (readingId: number) => {
+    const path = moisture_data.moisture_reading_path_template.replace("READING_ID", String(readingId));
+    runPatch(path, { value: editValue === "" ? null : parseFloat(editValue) }, {
+      onSuccess: () => setEditingCell(null),
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingCell(null);
+  };
+
+  const openBatchForRow = (pointId: number) => {
+    setBatchPointId(pointId);
+    setShowBatchForm(true);
+  };
+
+
   return (
     <div className="flex flex-col h-full">
       {/* Action bar */}
       {can_manage_moisture && (
         <div className="flex items-center justify-center sm:justify-start gap-1 border-b border-border px-4 py-3 shrink-0">
           {hasData && (
-            <IncidentPanelAddButton label="Record Readings" onClick={() => setShowBatchForm(true)} />
+            <IncidentPanelAddButton label="Record Readings" onClick={() => { setBatchDate(null); setBatchPointId(null); setShowBatchForm(true); }} />
           )}
           <IncidentPanelAddButton label="Add Point" onClick={() => setShowPointForm(true)} />
         </div>
@@ -114,7 +149,7 @@ export default function MoisturePanel({ moisture_data, can_manage_moisture }: Mo
                     </th>
                   ))}
                   {can_manage_moisture && (
-                    <th className="px-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-[40px]" />
+                    <th className="px-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-[60px]" />
                   )}
                 </tr>
               </thead>
@@ -126,17 +161,48 @@ export default function MoisturePanel({ moisture_data, can_manage_moisture }: Mo
                     <td className="px-3 py-2.5 text-sm text-muted-foreground">{point.item}</td>
                     <td className="px-3 py-2.5 text-sm text-muted-foreground">{point.material}</td>
                     <td className="px-3 py-2.5 text-sm text-center text-muted-foreground">
-                      {point.goal}{point.goal.toLowerCase() !== "dry" ? (point.measurement_unit === "%" ? "%" : ` ${point.measurement_unit}`) : ""}
+                      {formatGoal(point.goal, point.measurement_unit)}
                     </td>
                     {reversedDates.map((date) => {
                       const reading = point.readings[date];
                       const value = reading?.value ?? null;
                       const colorClass = readingColor(value, point.goal);
+                      const isEditing = editingCell?.pointId === point.id && editingCell?.date === date;
+
+                      if (isEditing && reading) {
+                        return (
+                          <td key={date} className="px-1 py-1.5 text-sm text-center">
+                            <Input
+                              type="number"
+                              step="0.1"
+                              min="0"
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") handleSaveReading(reading.id);
+                                if (e.key === "Escape") handleCancelEdit();
+                              }}
+                              onBlur={() => handleSaveReading(reading.id)}
+                              className="h-7 w-16 text-center text-xs mx-auto"
+                              autoFocus
+                            />
+                          </td>
+                        );
+                      }
+
                       return (
-                        <td key={date} className="px-3 py-2.5 text-sm text-center">
+                        <td
+                          key={date}
+                          className={`px-3 py-2.5 text-sm text-center ${can_manage_moisture && reading ? "cursor-pointer" : ""}`}
+                          onClick={() => {
+                            if (can_manage_moisture && reading) {
+                              handleEditReading(point.id, date, reading.id, value);
+                            }
+                          }}
+                        >
                           {value !== null ? (
                             <span className={`inline-block rounded px-1.5 py-0.5 text-xs font-medium ${colorClass}`}>
-                              {value}{point.measurement_unit === "%" ? "%" : ""}
+                              {formatReading(value, point.measurement_unit)}
                             </span>
                           ) : (
                             <span className="text-muted-foreground/40">&mdash;</span>
@@ -146,15 +212,26 @@ export default function MoisturePanel({ moisture_data, can_manage_moisture }: Mo
                     })}
                     {can_manage_moisture && (
                       <td className="px-3 py-2.5 text-center">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
-                          onClick={() => handleDeletePoint(point.destroy_path)}
-                          title="Remove point"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
+                        <div className="flex items-center justify-center gap-0.5">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                            onClick={() => openBatchForRow(point.id)}
+                            title="Edit readings"
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                            onClick={() => handleDeletePoint(point.destroy_path)}
+                            title="Remove point"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
                       </td>
                     )}
                   </tr>
@@ -173,10 +250,11 @@ export default function MoisturePanel({ moisture_data, can_manage_moisture }: Mo
       )}
       {showBatchForm && (
         <MoistureBatchForm
-          points={moisture_data.points}
+          points={batchPointId ? moisture_data.points.filter(p => p.id === batchPointId) : moisture_data.points}
           dates={moisture_data.dates}
           batchSavePath={moisture_data.batch_save_path}
-          onClose={() => setShowBatchForm(false)}
+          initialDate={batchDate}
+          onClose={() => { setShowBatchForm(false); setBatchDate(null); setBatchPointId(null); }}
         />
       )}
     </div>

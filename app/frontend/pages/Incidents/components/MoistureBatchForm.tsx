@@ -11,12 +11,13 @@ interface MoistureBatchFormProps {
   points: MoisturePoint[];
   dates: string[];
   batchSavePath: string;
+  initialDate?: string | null;
   onClose: () => void;
 }
 
-export default function MoistureBatchForm({ points, dates, batchSavePath, onClose }: MoistureBatchFormProps) {
+export default function MoistureBatchForm({ points, dates, batchSavePath, initialDate, onClose }: MoistureBatchFormProps) {
   const { today } = usePage<SharedProps>().props;
-  const [logDate, setLogDate] = useState(today);
+  const [logDate, setLogDate] = useState(initialDate || today);
 
   const lastDate = dates.length > 0 ? dates[dates.length - 1] : null;
 

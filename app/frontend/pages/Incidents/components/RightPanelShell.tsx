@@ -12,10 +12,10 @@ const tabs = [
   { key: "daily_log", label: "Daily Log" },
   { key: "labor", label: "Labor" },
   { key: "equipment", label: "Equipment" },
-  { key: "moisture", label: "Moisture" },
   { key: "photos", label: "Photos" },
   { key: "documents", label: "Documents" },
   { key: "messages", label: "Messages" },
+  { key: "moisture", label: "Moisture" },
   { key: "manage", label: "Manage" },
 ];
 
