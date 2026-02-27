@@ -83,6 +83,10 @@ module Authorization
     current_user.can?(Permissions::MANAGE_EQUIPMENT_TYPES)
   end
 
+  def can_manage_moisture_readings?
+    current_user.can?(Permissions::MANAGE_MOISTURE_READINGS)
+  end
+
   # --- Resource-scoped checks (need a specific record) ---
 
   def mitigation_admin?

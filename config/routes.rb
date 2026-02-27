@@ -35,6 +35,18 @@ Rails.application.routes.draw do
         patch :remove
       end
     end
+    resources :moisture_readings, only: [] do
+      collection do
+        post :create_point
+        post :batch_save
+        patch :update_supervisor
+      end
+      member do
+        patch :update
+        delete :destroy
+      end
+    end
+    delete "moisture_points/:id", to: "moisture_readings#destroy_point", as: :moisture_point
     resources :operational_notes, only: %i[create]
     resources :attachments, only: %i[create] do
       collection do

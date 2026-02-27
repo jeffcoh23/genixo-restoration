@@ -39,6 +39,8 @@ Incident
 ├── has_many :labor_entries
 ├── has_many :equipment_entries
 ├── has_many :operational_notes
+├── has_many :moisture_measurement_points
+│   └── has_many :moisture_readings
 └── has_many :attachments (polymorphic, via Active Storage)
 ```
 
@@ -546,6 +548,50 @@ Technician work notes. Distinct from messages and labor entries. Things like "Ex
 **Indexes:**
 - `index_operational_notes_on_incident_id_and_log_date`
 - `index_operational_notes_on_incident_id_and_created_at`
+
+---
+
+### moisture_measurement_points
+
+Defines a location/material being tracked for moisture readings on an incident. Persists across the incident lifecycle.
+
+| Column | Type | Constraints | Notes |
+|--------|------|-------------|-------|
+| id | bigint | PK | |
+| incident_id | bigint | NOT NULL, FK | |
+| unit | string | NOT NULL | e.g. "1107" |
+| room | string | NOT NULL | e.g. "Bathroom" |
+| item | string | NOT NULL | e.g. "Wall", "Ceiling", "Floor" |
+| material | string | NOT NULL | e.g. "Drywall", "Wood", "Carpet" |
+| goal | string | NOT NULL | Target value — e.g. "7.5", "10", "Dry" (string because "Dry" is valid) |
+| measurement_unit | string | NOT NULL | "%" or "Pts" |
+| position | integer | | Row ordering in the grid |
+| created_at | datetime | NOT NULL | |
+| updated_at | datetime | NOT NULL | |
+
+**Indexes:**
+- `index_moisture_measurement_points_on_incident_id`
+- `index_moisture_measurement_points_on_incident_id_and_position`
+
+---
+
+### moisture_readings
+
+One reading per measurement point per date. Value is nullable (point exists but not yet measured).
+
+| Column | Type | Constraints | Notes |
+|--------|------|-------------|-------|
+| id | bigint | PK | |
+| moisture_measurement_point_id | bigint | NOT NULL, FK | |
+| log_date | date | NOT NULL | Date the reading was taken |
+| value | decimal(6,1) | | Nullable — measured value |
+| recorded_by_user_id | bigint | NOT NULL, FK → users | |
+| created_at | datetime | NOT NULL | |
+| updated_at | datetime | NOT NULL | |
+
+**Indexes:**
+- `idx_moisture_readings_point_date` (unique: moisture_measurement_point_id, log_date)
+- `index_moisture_readings_on_log_date`
 
 ---
 

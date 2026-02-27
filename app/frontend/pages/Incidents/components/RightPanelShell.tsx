@@ -15,6 +15,7 @@ const tabs = [
   { key: "photos", label: "Photos" },
   { key: "documents", label: "Documents" },
   { key: "messages", label: "Messages" },
+  { key: "moisture", label: "Moisture" },
   { key: "manage", label: "Manage" },
 ];
 
