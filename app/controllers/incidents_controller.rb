@@ -228,20 +228,20 @@ class IncidentsController < ApplicationController
       project_types: Incident::PROJECT_TYPES.map { |t| { value: t, label: Incident::PROJECT_TYPE_LABELS[t] } },
       damage_types: Incident::DAMAGE_TYPES.map { |t| { value: t, label: Incident::DAMAGE_LABELS[t] } },
       back_path: incidents_path,
-      # Deferred — single group so all tab data loads in one request instead of 7
-      labor_log: InertiaRails.defer(group: "panels") { serialize_labor_log(@incident) },
-      assignable_labor_users: InertiaRails.defer(group: "panels") { can_manage_labor? ? assignable_labor_users(@incident) : [] },
-      equipment_log: InertiaRails.defer(group: "panels") { serialize_equipment_log(@incident) },
-      equipment_types: InertiaRails.defer(group: "panels") { can_manage_equipment? ? equipment_types_for_incident(@incident) : [] },
-      equipment_items_by_type: InertiaRails.defer(group: "panels") { can_manage_equipment? ? equipment_items_by_type(@incident) : {} },
-      attachable_equipment_entries: InertiaRails.defer(group: "panels") { can_manage_activities? ? attachable_equipment_entries(@incident) : [] },
-      messages: InertiaRails.defer(group: "panels") { serialize_messages(@incident.messages.includes({ user: :organization }, { attachments: [ :uploaded_by_user, { file_attachment: :blob } ] }).order(created_at: :asc)) },
-      attachments: InertiaRails.defer(group: "panels") { serialize_attachments(@incident) },
-      operational_notes: InertiaRails.defer(group: "panels") { serialize_operational_notes(@incident) },
-      activity_entries: InertiaRails.defer(group: "panels") { serialize_activity_entries(@incident) },
-      moisture_data: InertiaRails.defer(group: "panels") { serialize_moisture_data(@incident) },
-      assignable_mitigation_users: InertiaRails.defer(group: "panels") { can_assign_to_incident? ? assignable_incident_users(@incident, :mitigation) : [] },
-      assignable_pm_users: InertiaRails.defer(group: "panels") { can_assign_to_incident? ? assignable_incident_users(@incident, :pm) : [] }
+      # Deferred — fetched on first tab click, then cached by Inertia
+      labor_log: InertiaRails.defer(group: "labor") { serialize_labor_log(@incident) },
+      assignable_labor_users: InertiaRails.defer(group: "labor") { can_manage_labor? ? assignable_labor_users(@incident) : [] },
+      equipment_log: InertiaRails.defer(group: "equipment") { serialize_equipment_log(@incident) },
+      equipment_types: InertiaRails.defer(group: "equipment") { can_manage_equipment? ? equipment_types_for_incident(@incident) : [] },
+      equipment_items_by_type: InertiaRails.defer(group: "equipment") { can_manage_equipment? ? equipment_items_by_type(@incident) : {} },
+      attachable_equipment_entries: InertiaRails.defer(group: "equipment") { can_manage_activities? ? attachable_equipment_entries(@incident) : [] },
+      messages: InertiaRails.defer(group: "messages") { serialize_messages(@incident.messages.includes({ user: :organization }, { attachments: [ :uploaded_by_user, { file_attachment: :blob } ] }).order(created_at: :asc)) },
+      attachments: InertiaRails.defer(group: "documents") { serialize_attachments(@incident) },
+      operational_notes: InertiaRails.defer(group: "documents") { serialize_operational_notes(@incident) },
+      activity_entries: InertiaRails.defer(group: "activity") { serialize_activity_entries(@incident) },
+      moisture_data: InertiaRails.defer(group: "moisture") { serialize_moisture_data(@incident) },
+      assignable_mitigation_users: InertiaRails.defer(group: "team") { can_assign_to_incident? ? assignable_incident_users(@incident, :mitigation) : [] },
+      assignable_pm_users: InertiaRails.defer(group: "team") { can_assign_to_incident? ? assignable_incident_users(@incident, :pm) : [] }
     }
   end
 
