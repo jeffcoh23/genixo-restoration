@@ -19,11 +19,6 @@ export default function MoistureBatchForm({ points, dates, batchSavePath, onClos
 
   const lastDate = dates.length > 0 ? dates[dates.length - 1] : null;
 
-  const initialValues: Record<string, string> = {};
-  points.forEach((p) => {
-    initialValues[String(p.id)] = "";
-  });
-
   const [submitting, setSubmitting] = useState(false);
 
   const { data, setData } = useForm({
@@ -44,7 +39,6 @@ export default function MoistureBatchForm({ points, dates, batchSavePath, onClos
     setLogDate(newDate);
     setData("log_date", newDate);
 
-    // Auto-fill from existing readings for this date
     const updated = data.readings.map((r, i) => {
       const existingReading = points[i].readings[newDate];
       return {
@@ -109,7 +103,8 @@ export default function MoistureBatchForm({ points, dates, batchSavePath, onClos
             )}
           </div>
 
-          <div className="border rounded-lg overflow-hidden">
+          {/* Desktop: table layout */}
+          <div className="hidden sm:block border rounded-lg overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-muted">
                 <tr>
@@ -118,7 +113,7 @@ export default function MoistureBatchForm({ points, dates, batchSavePath, onClos
                   <th className="px-3 py-2 text-left text-xs font-semibold uppercase text-muted-foreground">Item</th>
                   <th className="px-3 py-2 text-left text-xs font-semibold uppercase text-muted-foreground">Material</th>
                   <th className="px-3 py-2 text-center text-xs font-semibold uppercase text-muted-foreground">Goal</th>
-                  <th className="px-3 py-2 text-center text-xs font-semibold uppercase text-muted-foreground">Previous</th>
+                  <th className="px-3 py-2 text-center text-xs font-semibold uppercase text-muted-foreground">Prev</th>
                   <th className="px-3 py-2 text-center text-xs font-semibold uppercase text-muted-foreground">Value</th>
                 </tr>
               </thead>
@@ -134,7 +129,7 @@ export default function MoistureBatchForm({ points, dates, batchSavePath, onClos
                       <td className="px-3 py-2 text-sm text-muted-foreground">{point.material}</td>
                       <td className="px-3 py-2 text-sm text-center text-muted-foreground">{point.goal}</td>
                       <td className="px-3 py-2 text-sm text-center text-muted-foreground">
-                        {prevValue !== null && prevValue !== undefined ? prevValue : "\u2014"}
+                        {prevValue !== null && prevValue !== undefined ? prevValue : "—"}
                       </td>
                       <td className="px-3 py-2">
                         <Input
@@ -144,7 +139,6 @@ export default function MoistureBatchForm({ points, dates, batchSavePath, onClos
                           value={data.readings[i].value}
                           onChange={(e) => setReadingValue(i, e.target.value)}
                           className="h-8 w-20 text-center mx-auto"
-                          placeholder="\u2014"
                         />
                       </td>
                     </tr>
@@ -152,6 +146,40 @@ export default function MoistureBatchForm({ points, dates, batchSavePath, onClos
                 })}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile: card layout */}
+          <div className="sm:hidden space-y-2">
+            {points.map((point, i) => {
+              const prevReading = lastDate ? point.readings[lastDate] : null;
+              const prevValue = prevReading?.value;
+              return (
+                <div key={point.id} className="border rounded-lg p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm font-medium">
+                      {point.unit} &middot; {point.room} &middot; {point.item}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Goal: {point.goal} {point.measurement_unit}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value={data.readings[i].value}
+                      onChange={(e) => setReadingValue(i, e.target.value)}
+                      className="h-9 flex-1"
+                      placeholder={prevValue !== null && prevValue !== undefined ? `Prev: ${prevValue}` : ""}
+                    />
+                    <div className="text-xs text-muted-foreground whitespace-nowrap">
+                      {point.material}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
           <div className="flex justify-end gap-2">

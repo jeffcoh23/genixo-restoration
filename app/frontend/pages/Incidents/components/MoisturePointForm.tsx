@@ -37,7 +37,7 @@ export default function MoisturePointForm({ createPath, onClose }: MoisturePoint
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add Measurement Point</DialogTitle>
         </DialogHeader>
@@ -79,7 +79,7 @@ export default function MoisturePointForm({ createPath, onClose }: MoisturePoint
               <Input
                 value={data.point.item}
                 onChange={(e) => setPointField("item", e.target.value)}
-                placeholder="e.g. Wall, Ceiling, Floor"
+                placeholder="e.g. Wall, Ceiling"
                 className="mt-1"
                 required
               />
@@ -98,7 +98,7 @@ export default function MoisturePointForm({ createPath, onClose }: MoisturePoint
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-medium text-muted-foreground">
                 Goal <span className="text-destructive">*</span>
@@ -113,7 +113,7 @@ export default function MoisturePointForm({ createPath, onClose }: MoisturePoint
             </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground">
-                Measurement Unit <span className="text-destructive">*</span>
+                Unit <span className="text-destructive">*</span>
               </label>
               <Select value={data.point.measurement_unit} onValueChange={(v) => setPointField("measurement_unit", v)}>
                 <SelectTrigger className="mt-1">

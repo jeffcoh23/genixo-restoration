@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { router } from "@inertiajs/react";
-import { Trash2, Pencil } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import IncidentPanelAddButton from "./IncidentPanelAddButton";
@@ -33,70 +33,62 @@ export default function MoisturePanel({ moisture_data, can_manage_moisture }: Mo
   const [showBatchForm, setShowBatchForm] = useState(false);
   const [editingSupervisor, setEditingSupervisor] = useState(false);
   const [supervisorValue, setSupervisorValue] = useState(moisture_data.supervisor_pm || "");
-  const [deletingPointId, setDeletingPointId] = useState<number | null>(null);
 
   const hasData = moisture_data.points.length > 0;
+  const reversedDates = [...moisture_data.dates].reverse();
+  const reversedDateLabels = [...moisture_data.date_labels].reverse();
 
   const handleSaveSupervisor = () => {
     router.patch(moisture_data.update_supervisor_path, {
-      moisture_supervisor_pm: supervisorValue,
+      moisture_supervisor_pm: supervisorValue.trim(),
     }, {
       preserveScroll: true,
+      preserveState: true,
       onSuccess: () => setEditingSupervisor(false),
     });
   };
 
-  const handleDeletePoint = (pointId: number, destroyPath: string) => {
-    if (deletingPointId === pointId) {
-      router.delete(destroyPath, { preserveScroll: true });
-      setDeletingPointId(null);
-    } else {
-      setDeletingPointId(pointId);
-    }
+  const handleDeletePoint = (destroyPath: string) => {
+    router.delete(destroyPath, { preserveScroll: true });
   };
 
   return (
     <div className="flex flex-col h-full">
-      {/* Toolbar */}
-      <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3 shrink-0">
-        <div className="flex items-center gap-3 text-sm min-w-0">
-          {editingSupervisor ? (
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Supervisor/PM:</span>
-              <Input
-                value={supervisorValue}
-                onChange={(e) => setSupervisorValue(e.target.value)}
-                className="h-8 w-48"
-                placeholder="Name"
-                autoFocus
-              />
-              <Button variant="outline" size="sm" className="h-8 text-xs" onClick={handleSaveSupervisor}>Save</Button>
-              <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setEditingSupervisor(false)}>Cancel</Button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-1.5">
-              {moisture_data.supervisor_pm && (
-                <>
-                  <span className="text-xs font-medium text-muted-foreground">Supervisor/PM:</span>
-                  <span className="text-sm text-foreground">{moisture_data.supervisor_pm}</span>
-                </>
-              )}
-              {can_manage_moisture && (
-                <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => { setSupervisorValue(moisture_data.supervisor_pm || ""); setEditingSupervisor(true); }}>
-                  <Pencil className="h-3 w-3" />
-                </Button>
-              )}
-            </div>
+      {/* Action bar */}
+      {can_manage_moisture && (
+        <div className="flex items-center justify-center sm:justify-start gap-1 border-b border-border px-4 py-3 shrink-0">
+          {hasData && (
+            <IncidentPanelAddButton label="Record Readings" onClick={() => setShowBatchForm(true)} />
           )}
+          <IncidentPanelAddButton label="Add Point" onClick={() => setShowPointForm(true)} />
         </div>
+      )}
 
-        {can_manage_moisture && (
-          <div className="flex items-center gap-1 shrink-0">
-            {hasData && (
-              <IncidentPanelAddButton label="Record Readings" onClick={() => setShowBatchForm(true)} />
+      {/* Supervisor/PM bar */}
+      <div className="flex items-center gap-2 border-b border-border px-4 py-2.5 shrink-0 bg-muted/30">
+        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground whitespace-nowrap">Supervisor/PM:</span>
+        {editingSupervisor ? (
+          <>
+            <Input
+              value={supervisorValue}
+              onChange={(e) => setSupervisorValue(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") handleSaveSupervisor(); }}
+              className="h-8 w-36 sm:w-48 text-sm"
+              placeholder="Enter name"
+              autoFocus
+            />
+            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={handleSaveSupervisor}>Save</Button>
+            <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => { setEditingSupervisor(false); setSupervisorValue(moisture_data.supervisor_pm || ""); }}>Cancel</Button>
+          </>
+        ) : (
+          <>
+            <span className="text-sm text-foreground">{moisture_data.supervisor_pm || "Not set"}</span>
+            {can_manage_moisture && (
+              <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => { setSupervisorValue(moisture_data.supervisor_pm || ""); setEditingSupervisor(true); }}>
+                Edit
+              </Button>
             )}
-            <IncidentPanelAddButton label="Add Point" onClick={() => setShowPointForm(true)} />
-          </div>
+          </>
         )}
       </div>
 
@@ -115,10 +107,9 @@ export default function MoisturePanel({ moisture_data, can_manage_moisture }: Mo
                   <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-[90px]">Room</th>
                   <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-[80px]">Item</th>
                   <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-[80px]">Material</th>
-                  <th className="px-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-[60px]">Goal</th>
-                  <th className="px-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-[45px]">Unit</th>
-                  {moisture_data.date_labels.map((label, i) => (
-                    <th key={moisture_data.dates[i]} className="px-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-[65px]">
+                  <th className="px-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-[70px]">Goal</th>
+                  {reversedDateLabels.map((label, i) => (
+                    <th key={reversedDates[i]} className="px-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-[65px]">
                       {label}
                     </th>
                   ))}
@@ -134,9 +125,10 @@ export default function MoisturePanel({ moisture_data, can_manage_moisture }: Mo
                     <td className="px-3 py-2.5 text-sm text-muted-foreground">{point.room}</td>
                     <td className="px-3 py-2.5 text-sm text-muted-foreground">{point.item}</td>
                     <td className="px-3 py-2.5 text-sm text-muted-foreground">{point.material}</td>
-                    <td className="px-3 py-2.5 text-sm text-center text-muted-foreground">{point.goal}</td>
-                    <td className="px-3 py-2.5 text-sm text-center text-muted-foreground">{point.measurement_unit}</td>
-                    {moisture_data.dates.map((date) => {
+                    <td className="px-3 py-2.5 text-sm text-center text-muted-foreground">
+                      {point.goal}{point.goal.toLowerCase() !== "dry" ? (point.measurement_unit === "%" ? "%" : ` ${point.measurement_unit}`) : ""}
+                    </td>
+                    {reversedDates.map((date) => {
                       const reading = point.readings[date];
                       const value = reading?.value ?? null;
                       const colorClass = readingColor(value, point.goal);
@@ -144,7 +136,7 @@ export default function MoisturePanel({ moisture_data, can_manage_moisture }: Mo
                         <td key={date} className="px-3 py-2.5 text-sm text-center">
                           {value !== null ? (
                             <span className={`inline-block rounded px-1.5 py-0.5 text-xs font-medium ${colorClass}`}>
-                              {value}
+                              {value}{point.measurement_unit === "%" ? "%" : ""}
                             </span>
                           ) : (
                             <span className="text-muted-foreground/40">&mdash;</span>
@@ -157,9 +149,9 @@ export default function MoisturePanel({ moisture_data, can_manage_moisture }: Mo
                         <Button
                           variant="ghost"
                           size="sm"
-                          className={`h-6 w-6 p-0 ${deletingPointId === point.id ? "text-destructive" : "text-muted-foreground hover:text-destructive"}`}
-                          onClick={() => handleDeletePoint(point.id, point.destroy_path)}
-                          title={deletingPointId === point.id ? "Click again to confirm" : "Delete point"}
+                          className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                          onClick={() => handleDeletePoint(point.destroy_path)}
+                          title="Remove point"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>

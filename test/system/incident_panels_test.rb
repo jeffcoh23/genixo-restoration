@@ -91,7 +91,7 @@ class IncidentPanelsTest < ApplicationSystemTestCase
     within("[role='dialog']") do
       fill_in placeholder: "e.g. 1107", with: "1107"
       fill_in placeholder: "e.g. Bathroom", with: "Bathroom"
-      fill_in placeholder: "e.g. Wall, Ceiling, Floor", with: "Wall"
+      fill_in placeholder: "e.g. Wall, Ceiling", with: "Wall"
       fill_in placeholder: "e.g. Drywall, Wood", with: "Drywall"
       fill_in placeholder: "e.g. 7.5, Dry", with: "7.5"
       fill_in placeholder: "e.g. 18.2", with: "18.2"
@@ -110,7 +110,7 @@ class IncidentPanelsTest < ApplicationSystemTestCase
     within("[role='dialog']") do
       fill_in placeholder: "e.g. 1107", with: "1107"
       fill_in placeholder: "e.g. Bathroom", with: "Bedroom"
-      fill_in placeholder: "e.g. Wall, Ceiling, Floor", with: "Floor"
+      fill_in placeholder: "e.g. Wall, Ceiling", with: "Floor"
       fill_in placeholder: "e.g. Drywall, Wood", with: "Carpet"
       fill_in placeholder: "e.g. 7.5, Dry", with: "Dry"
       click_button "Add Point"
