@@ -1,10 +1,11 @@
 class DfrPdfService
   include ActionView::Helpers::NumberHelper
 
-  def initialize(incident:, date:, timezone: "America/Chicago")
+  def initialize(incident:, date:, timezone: "America/Chicago", include_photos: true)
     @incident = incident
     @date = date.is_a?(String) ? Date.parse(date) : date
     @timezone = timezone
+    @include_photos = include_photos
   end
 
   def generate
@@ -28,7 +29,7 @@ class DfrPdfService
     render_notes(pdf)
     render_summary_fields(pdf)
     render_labor_section(pdf)
-    render_photos(pdf)
+    render_photos(pdf) if @include_photos
 
     pdf.render
   end

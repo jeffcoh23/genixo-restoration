@@ -2,7 +2,7 @@ class DashboardController < ApplicationController
   def show
     service = DashboardService.new(user: current_user)
     groups = service.grouped_incidents
-    unread = service.unread_counts
+    unread = UnreadCacheService.unread_counts(current_user)
 
     serialized = serialize_groups(groups, unread)
     total_count = serialized.values.sum(&:length)

@@ -8,6 +8,13 @@ class PropertiesController < ApplicationController
     @properties = visible_properties.includes(:property_management_org).order(:name)
     @properties = @properties.where(property_management_org_id: params[:pm_org_id].split(",")) if params[:pm_org_id].present?
 
+    property_ids = @properties.map(&:id)
+    active_counts = Incident.where(property_id: property_ids)
+      .where.not(status: %w[completed completed_billed paid closed])
+      .group(:property_id).count
+    total_counts = Incident.where(property_id: property_ids)
+      .group(:property_id).count
+
     render inertia: "Properties/Index", props: {
       properties: @properties.map { |p|
         {
@@ -16,8 +23,8 @@ class PropertiesController < ApplicationController
           path: property_path(p),
           address: p.short_address,
           pm_org_name: p.property_management_org.name,
-          active_incident_count: p.incidents.where.not(status: %w[completed completed_billed paid closed]).count,
-          total_incident_count: p.incidents.count
+          active_incident_count: active_counts[p.id] || 0,
+          total_incident_count: total_counts[p.id] || 0
         }
       },
       can_create: can_create_property?,

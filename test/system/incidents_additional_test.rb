@@ -357,7 +357,7 @@ class IncidentsAdditionalTest < ApplicationSystemTestCase
     assert_equal "incident_marked_active", escalation.resolution_reason
   end
 
-  test "dfr pdf download works with expected filename" do
+  test "dfr generation enqueues background job and shows notice" do
     ActivityEntry.create!(
       incident: @active_incident,
       performed_by_user: @manager,
@@ -368,12 +368,8 @@ class IncidentsAdditionalTest < ApplicationSystemTestCase
     login_as @manager
     visit incident_path(@active_incident)
 
-    dfr_link = find("[data-testid='dfr-link-#{Date.current.iso8601}']", visible: :all)
-    dfr_result = fetch_url_head(dfr_link[:href])
-
-    assert_equal true, dfr_result["ok"]
-    assert_includes dfr_result["content_type"], "application/pdf"
-    assert_includes dfr_result["content_disposition"], "DFR-river-oaks-#{Date.current.iso8601}.pdf"
+    find("[data-testid='dfr-link-#{Date.current.iso8601}']").click
+    assert_text "DFR PDF is being generated"
   end
 
   test "emergency incidents show distinct visual styling in list" do

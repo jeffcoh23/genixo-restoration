@@ -4,6 +4,8 @@ class Message < ApplicationRecord
 
   has_many :attachments, as: :attachable, dependent: :destroy
 
+  after_create_commit :expire_unread_cache
+
   validate :body_or_attachment_present
 
   private
@@ -12,5 +14,9 @@ class Message < ApplicationRecord
     return if body.present? || attachments.any?
 
     errors.add(:body, "can't be blank")
+  end
+
+  def expire_unread_cache
+    UnreadCacheService.expire_for_incident(incident, exclude_user: user)
   end
 end
