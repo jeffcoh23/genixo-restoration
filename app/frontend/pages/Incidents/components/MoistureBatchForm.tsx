@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { router, useForm, usePage } from "@inertiajs/react";
+import { useForm, usePage } from "@inertiajs/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SharedProps } from "@/types";
+import useInertiaAction from "@/hooks/useInertiaAction";
 import type { MoisturePoint } from "../types";
 
 interface MoistureBatchFormProps {
@@ -19,7 +20,7 @@ export default function MoistureBatchForm({ points, dates, batchSavePath, onClos
 
   const lastDate = dates.length > 0 ? dates[dates.length - 1] : null;
 
-  const [submitting, setSubmitting] = useState(false);
+  const { processing, runPost } = useInertiaAction();
 
   const { data, setData } = useForm({
     log_date: logDate,
@@ -67,13 +68,11 @@ export default function MoistureBatchForm({ points, dates, batchSavePath, onClos
     e.preventDefault();
     const filtered = data.readings.filter((r) => r.value !== "");
     if (filtered.length === 0) return;
-    setSubmitting(true);
-    router.post(batchSavePath, {
+    runPost(batchSavePath, {
       log_date: data.log_date,
       readings: filtered,
     }, {
       onSuccess: () => onClose(),
-      onFinish: () => setSubmitting(false),
     });
   };
 
@@ -184,8 +183,8 @@ export default function MoistureBatchForm({ points, dates, batchSavePath, onClos
 
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={submitting}>
-              {submitting ? "Saving..." : "Save Readings"}
+            <Button type="submit" disabled={processing}>
+              {processing ? "Saving..." : "Save Readings"}
             </Button>
           </div>
         </form>

@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { router } from "@inertiajs/react";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import useInertiaAction from "@/hooks/useInertiaAction";
 import IncidentPanelAddButton from "./IncidentPanelAddButton";
 import MoisturePointForm from "./MoisturePointForm";
 import MoistureBatchForm from "./MoistureBatchForm";
@@ -31,6 +31,7 @@ function readingColor(value: number | null, goal: string): string {
 export default function MoisturePanel({ moisture_data, can_manage_moisture }: MoisturePanelProps) {
   const [showPointForm, setShowPointForm] = useState(false);
   const [showBatchForm, setShowBatchForm] = useState(false);
+  const { runPatch, runDelete } = useInertiaAction();
   const [editingSupervisor, setEditingSupervisor] = useState(false);
   const [supervisorValue, setSupervisorValue] = useState(moisture_data.supervisor_pm || "");
 
@@ -39,17 +40,16 @@ export default function MoisturePanel({ moisture_data, can_manage_moisture }: Mo
   const reversedDateLabels = [...moisture_data.date_labels].reverse();
 
   const handleSaveSupervisor = () => {
-    router.patch(moisture_data.update_supervisor_path, {
+    runPatch(moisture_data.update_supervisor_path, {
       moisture_supervisor_pm: supervisorValue.trim(),
     }, {
-      preserveScroll: true,
       preserveState: true,
       onSuccess: () => setEditingSupervisor(false),
     });
   };
 
   const handleDeletePoint = (destroyPath: string) => {
-    router.delete(destroyPath, { preserveScroll: true });
+    runDelete(destroyPath);
   };
 
   return (
