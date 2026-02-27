@@ -22,7 +22,8 @@ Rails.application.routes.draw do
     member do
       patch :transition
       patch :mark_read
-      get :dfr, defaults: { format: :pdf }
+      post :dfr
+      get :attachments_page
     end
     resources :assignments, controller: "incident_assignments", only: %i[create destroy]
     resources :contacts, controller: "incident_contacts", only: %i[create update destroy]

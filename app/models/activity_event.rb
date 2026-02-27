@@ -21,4 +21,16 @@ class ActivityEvent < ApplicationRecord
   validates :event_type, presence: true, inclusion: { in: EVENT_TYPES }
 
   scope :for_daily_log_notifications, -> { where(event_type: DAILY_LOG_NOTIFICATION_EVENT_TYPES) }
+
+  after_create_commit :expire_unread_cache, if: :for_daily_log_notifications?
+
+  private
+
+  def for_daily_log_notifications?
+    DAILY_LOG_NOTIFICATION_EVENT_TYPES.include?(event_type)
+  end
+
+  def expire_unread_cache
+    UnreadCacheService.expire_for_incident(incident, exclude_user: performed_by_user)
+  end
 end

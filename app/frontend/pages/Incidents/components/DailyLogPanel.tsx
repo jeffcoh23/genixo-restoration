@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { ChevronDown, Download, Pencil } from "lucide-react";
+import { router } from "@inertiajs/react";
+import { ChevronDown, FileText, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type {
   DailyActivity,
@@ -179,17 +180,17 @@ export default function DailyLogPanel({
                   <span className="text-sm font-semibold uppercase tracking-wide text-foreground/85">
                     {group.date_label}
                   </span>
-                  <a
-                    href={`${dfr_path}?date=${group.date_key}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => router.post(dfr_path, { date: group.date_key })}
                     data-testid={`dfr-link-${group.date_key}`}
-                    className="flex items-center gap-1 text-sm text-foreground/75 hover:text-foreground transition-colors"
-                    title="Download Daily Field Report"
+                    className="h-auto py-0.5 px-1.5 text-sm text-foreground/75 hover:text-foreground"
+                    title="Generate Daily Field Report"
                   >
-                    <Download className="h-3 w-3" />
+                    <FileText className="h-3 w-3" />
                     DFR
-                  </a>
+                  </Button>
                 </div>
 
                 {/* Timeline rows (activities, notes, documents, etc.) */}

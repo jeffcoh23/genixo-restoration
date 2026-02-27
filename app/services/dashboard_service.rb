@@ -4,73 +4,78 @@ class DashboardService
   end
 
   def grouped_incidents
-    scope = base_scope
+    all = base_scope.to_a
 
     {
-      emergency: scope.where(emergency: true, status: %w[new acknowledged]),
-      active: scope.where(status: "active"),
-      needs_attention: scope.where(status: %w[new acknowledged proposal_requested proposal_submitted proposal_signed], emergency: false),
-      on_hold: scope.where(status: "on_hold"),
-      recent_completed: scope.where(status: %w[completed completed_billed paid closed proposal_completed]).limit(20)
+      emergency: all.select { |i| i.emergency && %w[new acknowledged].include?(i.status) },
+      active: all.select { |i| i.status == "active" },
+      needs_attention: all.select { |i| %w[new acknowledged proposal_requested proposal_submitted proposal_signed].include?(i.status) && !i.emergency },
+      on_hold: all.select { |i| i.status == "on_hold" },
+      recent_completed: all.select { |i| %w[completed completed_billed paid closed proposal_completed].include?(i.status) }
+        .first(20)
     }
   end
 
   # Returns { incident_id => { messages: N, activity: N } } for incidents with unread content
   def unread_counts
     visible_ids = Incident.visible_to(@user).select(:id)
+    unread_counts_for(visible_ids)
+  end
 
-    read_states = IncidentReadState.where(user: @user, incident_id: visible_ids)
+  # Scoped version: only compute for specific incident IDs (used for paginated lists)
+  def unread_counts_for(incident_ids)
+    read_states = IncidentReadState.where(user: @user, incident_id: incident_ids)
       .index_by(&:incident_id)
 
     counts = {}
 
-    # Unread messages: messages created after user's last_message_read_at
-    Message.where(incident_id: visible_ids)
+    # Single grouped query for messages — no per-incident COUNTs
+    Message.where(incident_id: incident_ids)
       .where.not(user_id: @user.id)
       .group(:incident_id)
-      .select("incident_id, MAX(created_at) AS latest, COUNT(*) AS total")
+      .select("incident_id, COUNT(*) AS total, MAX(created_at) AS latest")
       .each do |row|
       rs = read_states[row.incident_id]
       threshold = rs&.last_message_read_at
-      counts[row.incident_id] ||= { messages: 0, activity: 0 }
-      if threshold.nil? || row.latest > threshold
-        # Need exact count after threshold
-        unread = if threshold
-          Message.where(incident_id: row.incident_id)
-            .where.not(user_id: @user.id)
-            .where("created_at > ?", threshold).count
-        else
-          row.total
-        end
-        counts[row.incident_id][:messages] = unread if unread > 0
+      next unless threshold.nil? || row.latest > threshold
+
+      unread = if threshold
+        Message.where(incident_id: row.incident_id)
+          .where.not(user_id: @user.id)
+          .where("created_at > ?", threshold).count
+      else
+        row.total
       end
+      next unless unread > 0
+      counts[row.incident_id] ||= { messages: 0, activity: 0 }
+      counts[row.incident_id][:messages] = unread
     end
 
-    # Unread activity: activity_events created after user's last_activity_read_at
-    ActivityEvent.where(incident_id: visible_ids)
+    # Single grouped query for activity events
+    ActivityEvent.where(incident_id: incident_ids)
       .for_daily_log_notifications
       .where.not(performed_by_user_id: @user.id)
       .group(:incident_id)
-      .select("incident_id, MAX(created_at) AS latest, COUNT(*) AS total")
+      .select("incident_id, COUNT(*) AS total, MAX(created_at) AS latest")
       .each do |row|
       rs = read_states[row.incident_id]
       threshold = rs&.last_activity_read_at
-      counts[row.incident_id] ||= { messages: 0, activity: 0 }
-      if threshold.nil? || row.latest > threshold
-        unread = if threshold
-          ActivityEvent.where(incident_id: row.incident_id)
-            .for_daily_log_notifications
-            .where.not(performed_by_user_id: @user.id)
-            .where("created_at > ?", threshold).count
-        else
-          row.total
-        end
-        counts[row.incident_id][:activity] = unread if unread > 0
+      next unless threshold.nil? || row.latest > threshold
+
+      unread = if threshold
+        ActivityEvent.where(incident_id: row.incident_id)
+          .for_daily_log_notifications
+          .where.not(performed_by_user_id: @user.id)
+          .where("created_at > ?", threshold).count
+      else
+        row.total
       end
+      next unless unread > 0
+      counts[row.incident_id] ||= { messages: 0, activity: 0 }
+      counts[row.incident_id][:activity] = unread
     end
 
-    # Only return incidents that actually have unread content
-    counts.select { |_, v| v[:messages] > 0 || v[:activity] > 0 }
+    counts
   end
 
   private

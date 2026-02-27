@@ -75,7 +75,7 @@ class ApplicationController < ActionController::Base
   inertia_share has_unread_incidents: -> {
     next false unless current_user
 
-    has_any_unread_incidents?
+    UnreadCacheService.has_unread?(current_user)
   }
 
   inertia_share today: -> {
@@ -88,30 +88,6 @@ class ApplicationController < ActionController::Base
 
 
   private
-
-  # Lightweight check: any visible incident with messages/activity newer than the user's read state?
-  def has_any_unread_incidents?
-    visible_ids = Incident.visible_to(current_user).select(:id)
-
-    # Check for any unread messages
-    has_unread_messages = Message.where(incident_id: visible_ids)
-      .where.not(user_id: current_user.id)
-      .where(
-        "NOT EXISTS (SELECT 1 FROM incident_read_states WHERE incident_read_states.incident_id = messages.incident_id AND incident_read_states.user_id = ? AND incident_read_states.last_message_read_at >= messages.created_at)",
-        current_user.id
-      ).exists?
-
-    return true if has_unread_messages
-
-    # Check for any unread activity
-    ActivityEvent.where(incident_id: visible_ids)
-      .for_daily_log_notifications
-      .where.not(performed_by_user_id: current_user.id)
-      .where(
-        "NOT EXISTS (SELECT 1 FROM incident_read_states WHERE incident_read_states.incident_id = activity_events.incident_id AND incident_read_states.user_id = ? AND incident_read_states.last_activity_read_at >= activity_events.created_at)",
-        current_user.id
-      ).exists?
-  end
 
   def set_user_timezone(&block)
     zone = current_user&.timezone || "UTC"

@@ -1,6 +1,6 @@
 class IncidentsController < ApplicationController
   before_action :authorize_creation!, only: %i[new create]
-  before_action :set_incident, only: %i[show update transition mark_read dfr]
+  before_action :set_incident, only: %i[show update transition mark_read dfr attachments_page]
   before_action :authorize_edit!, only: %i[update]
   before_action :authorize_transition!, only: %i[transition]
 
@@ -46,9 +46,11 @@ class IncidentsController < ApplicationController
     page = [ params.fetch(:page, 1).to_i, 1 ].max
     per_page = 25
     total = scope.count
-    incidents = scope.offset((page - 1) * per_page).limit(per_page)
+    incidents = scope.offset((page - 1) * per_page).limit(per_page).to_a
 
-    unread = DashboardService.new(user: current_user).unread_counts
+    # Only compute unread for the current page, not all incidents
+    page_ids = incidents.map(&:id)
+    unread = DashboardService.new(user: current_user).unread_counts_for(page_ids)
 
     render inertia: "Incidents/Index", props: {
       incidents: incidents.map { |i| serialize_incident(i, unread) },
@@ -116,18 +118,18 @@ class IncidentsController < ApplicationController
     daily_activities = serialize_daily_activities(@incident)
     labor_entries = serialize_labor_entries(@incident)
     operational_notes = serialize_operational_notes(@incident)
-    attachments = serialize_attachments(@incident)
+    # Lightweight query for attachment dates (used by daily log) — no full records loaded
+    attachment_dates = attachment_date_labels(@incident)
     daily_log_dates = serialize_daily_log_dates(
       daily_activities: daily_activities,
       labor_entries: labor_entries,
       operational_notes: operational_notes,
-      attachments: attachments
+      attachment_dates: attachment_dates
     )
     daily_log_table_groups = serialize_daily_log_table_groups(
       daily_activities: daily_activities,
       labor_entries: labor_entries,
-      operational_notes: operational_notes,
-      attachments: attachments
+      operational_notes: operational_notes
     )
 
     assigned = @incident.incident_assignments.includes(user: :organization)
@@ -202,6 +204,7 @@ class IncidentsController < ApplicationController
         attachments_path: incident_attachments_path(@incident),
         upload_photo_path: upload_photo_incident_attachments_path(@incident),
         dfr_path: dfr_incident_path(@incident),
+        attachments_page_path: attachments_page_incident_path(@incident),
         mark_read_path: mark_read_incident_path(@incident),
         unread_messages: unread[:messages],
         unread_activity: unread[:activity],
@@ -270,10 +273,13 @@ class IncidentsController < ApplicationController
 
   def dfr
     date = params[:date].presence || Date.current.to_s
-    pdf_data = DfrPdfService.new(incident: @incident, date: date, timezone: current_user.timezone).generate
-    filename = "DFR-#{@incident.property.name.parameterize}-#{date}.pdf"
+    DfrPdfJob.perform_later(@incident.id, date, current_user.timezone, current_user.id)
+    redirect_to incident_path(@incident), notice: "DFR PDF is being generated. It will appear in documents shortly."
+  end
 
-    send_data pdf_data, filename: filename, type: "application/pdf", disposition: "inline"
+  def attachments_page
+    page = [ params.fetch(:page, 1).to_i, 1 ].max
+    render json: serialize_attachments_page(@incident, page: page)
   end
 
   private
@@ -283,7 +289,16 @@ class IncidentsController < ApplicationController
   end
 
   def set_incident
-    @incident = find_visible_incident!(params[:id])
+    @incident = visible_incidents
+      .includes(
+        :created_by_user, :operational_notes, :incident_contacts,
+        property: [ :property_management_org, :mitigation_org ],
+        incident_assignments: { user: :organization },
+        activity_entries: [ :performed_by_user, { equipment_actions: [ :equipment_type, :equipment_entry ] } ],
+        labor_entries: [ :user, :created_by_user ],
+        equipment_entries: :equipment_type
+      )
+      .find(params[:id])
   end
 
   def authorize_edit!
@@ -480,7 +495,7 @@ class IncidentsController < ApplicationController
   def incident_stats(incident, deployed_equipment)
     active = deployed_equipment.sum { |item| item[:quantity].to_i }
     {
-      total_labor_hours: incident.labor_entries.sum(:hours).to_f,
+      total_labor_hours: incident.labor_entries.sum { |e| e.hours.to_f },
       active_equipment: active,
       total_equipment_placed: active,
       show_removed_equipment: false
@@ -615,7 +630,7 @@ class IncidentsController < ApplicationController
     end
   end
 
-  def serialize_daily_log_dates(daily_activities:, labor_entries:, operational_notes:, attachments:)
+  def serialize_daily_log_dates(daily_activities:, labor_entries:, operational_notes:, attachment_dates: {})
     labels = {}
 
     daily_activities.each do |entry|
@@ -627,10 +642,8 @@ class IncidentsController < ApplicationController
     operational_notes.each do |entry|
       labels[entry[:log_date]] ||= entry[:log_date_label]
     end
-    attachments.each do |entry|
-      next if entry[:log_date].blank?
-
-      labels[entry[:log_date]] ||= entry[:log_date_label]
+    attachment_dates.each do |date_key, date_label|
+      labels[date_key] ||= date_label
     end
 
     labels.keys.sort.reverse.map do |date_key|
@@ -638,7 +651,14 @@ class IncidentsController < ApplicationController
     end
   end
 
-  def serialize_daily_log_table_groups(daily_activities:, labor_entries:, operational_notes:, attachments:)
+  def attachment_date_labels(incident)
+    incident.attachments
+      .where.not(log_date: nil)
+      .distinct.pluck(:log_date)
+      .each_with_object({}) { |d, h| h[d.iso8601] = format_date(d) }
+  end
+
+  def serialize_daily_log_table_groups(daily_activities:, labor_entries:, operational_notes:)
     groups = Hash.new { |hash, key| hash[key] = [] }
 
     daily_activities.each do |activity|
@@ -707,41 +727,32 @@ class IncidentsController < ApplicationController
   end
 
   def equipment_summary_by_date(incident)
-    entries = incident.equipment_entries.includes(:equipment_type)
+    entries = incident.equipment_entries
     return {} if entries.empty?
 
-    # Collect all dates that have activity in the daily log
-    all_dates = entries.flat_map { |e|
-      dates = [ e.placed_at.to_date ]
-      dates << e.removed_at.to_date if e.removed_at
-      dates
-    }.uniq.sort
+    # Build per-entry date ranges once, then group — O(entries * days_active) instead of O(dates * entries)
+    result = {}
+    entries.each do |entry|
+      placed = entry.placed_at.to_date
+      removed = entry.removed_at&.to_date || Date.current
+      type_name = entry.type_name.to_s.strip
+      next if type_name.blank?
 
-    all_dates.each_with_object({}) do |date, result|
-      date_key = date.iso8601
-      buckets = {}
-
-      entries.each do |entry|
-        # Equipment is active on this date if placed on or before this date and not yet removed (or removed on/after this date)
-        next if entry.placed_at.to_date > date
-        next if entry.removed_at && entry.removed_at.to_date < date
-
-        type_name = entry.type_name.to_s.strip
-        next if type_name.blank?
-
-        key = type_name.downcase
-        bucket = buckets[key] ||= { type_name: type_name, count: 0, hours: 0.0 }
+      key = type_name.downcase
+      (placed..removed).each do |date|
+        date_key = date.iso8601
+        result[date_key] ||= {}
+        bucket = result[date_key][key] ||= { type_name: type_name, count: 0, hours: 0.0 }
         bucket[:count] += 1
 
-        # Hours for this date: from start of day (or placed_at) to end of day (or removed_at)
         day_start = [ entry.placed_at, date.beginning_of_day ].max
         day_end = [ entry.removed_at || Time.current, date.end_of_day ].min
         bucket[:hours] += ((day_end - day_start) / 1.hour).round(1)
       end
+    end
 
-      next if buckets.empty?
-
-      result[date_key] = buckets.values
+    result.transform_values do |buckets|
+      buckets.values
         .sort_by { |b| [ -b[:count], b[:type_name] ] }
         .map { |b| { type_name: b[:type_name], count: b[:count], hours: b[:hours].round(1) } }
     end
@@ -996,25 +1007,41 @@ class IncidentsController < ApplicationController
 
   def serialize_attachments(incident)
     incident.attachments.includes(:uploaded_by_user, file_attachment: :blob)
-      .order(created_at: :desc).map do |att|
-      {
-        id: att.id,
-        filename: att.file.filename.to_s,
-        category: att.category,
-        category_label: att.category.titleize,
-        description: att.description,
-        log_date: att.log_date&.iso8601,
-        log_date_label: format_date(att.log_date),
-        created_at: att.created_at.iso8601,
-        time_label: format_time(att.created_at),
-        created_at_label: format_datetime(att.created_at),
-        uploaded_by_name: att.uploaded_by_user.full_name,
-        content_type: att.file.content_type,
-        byte_size: att.file.byte_size,
-        url: rails_blob_path(att.file, disposition: "inline"),
-        thumbnail_url: thumbnail_url_for(att.file)
-      }
-    end
+      .order(created_at: :desc)
+      .limit(200)
+      .map { |att| serialize_single_attachment(att) }
+  end
+
+  def serialize_attachments_page(incident, page: 1, per_page: 20)
+    scope = incident.attachments.includes(:uploaded_by_user, file_attachment: :blob)
+      .order(created_at: :desc)
+    total = scope.count
+    attachments = scope.offset((page - 1) * per_page).limit(per_page)
+
+    {
+      items: attachments.map { |att| serialize_single_attachment(att) },
+      pagination: { page: page, per_page: per_page, total: total, total_pages: (total.to_f / per_page).ceil }
+    }
+  end
+
+  def serialize_single_attachment(att)
+    {
+      id: att.id,
+      filename: att.file.filename.to_s,
+      category: att.category,
+      category_label: att.category.titleize,
+      description: att.description,
+      log_date: att.log_date&.iso8601,
+      log_date_label: format_date(att.log_date),
+      created_at: att.created_at.iso8601,
+      time_label: format_time(att.created_at),
+      created_at_label: format_datetime(att.created_at),
+      uploaded_by_name: att.uploaded_by_user.full_name,
+      content_type: att.file.content_type,
+      byte_size: att.file.byte_size,
+      url: rails_blob_path(att.file, disposition: "inline"),
+      thumbnail_url: thumbnail_url_for(att.file)
+    }
   end
 
   def serialize_operational_notes(incident)
