@@ -291,7 +291,7 @@ class IncidentsController < ApplicationController
   def set_incident
     @incident = visible_incidents
       .includes(
-        :created_by_user, :operational_notes, :incident_contacts,
+        :created_by_user, :operational_notes, :incident_contacts, :incident_read_states,
         property: [ :property_management_org, :mitigation_org ],
         incident_assignments: { user: :organization },
         activity_entries: [ :performed_by_user, { equipment_actions: [ :equipment_type, :equipment_entry ] } ],
@@ -506,9 +506,7 @@ class IncidentsController < ApplicationController
     buckets = {}
     activity_actions_seen = false
 
-    incident.activity_entries
-      .includes(:performed_by_user, equipment_actions: %i[equipment_type equipment_entry])
-      .each do |activity|
+    incident.activity_entries.each do |activity|
       activity.equipment_actions.each do |action|
         activity_actions_seen = true
         type_name = action.type_name.to_s.strip
@@ -592,8 +590,7 @@ class IncidentsController < ApplicationController
 
   def serialize_daily_activities(incident)
     incident.activity_entries
-      .includes(:performed_by_user, equipment_actions: %i[equipment_type equipment_entry])
-      .order(occurred_at: :desc, created_at: :desc)
+      .sort_by { |e| [ -e.occurred_at.to_f, -e.created_at.to_f ] }
       .map do |entry|
       editable = can_edit_activity_entry?(entry)
       {
@@ -1214,7 +1211,7 @@ class IncidentsController < ApplicationController
   end
 
   def compute_show_unread_counts(incident)
-    read_state = incident.incident_read_states.find_by(user: current_user)
+    read_state = incident.incident_read_states.detect { |rs| rs.user_id == current_user.id }
 
     msg_threshold = read_state&.last_message_read_at
     unread_messages = incident.messages.where.not(user_id: current_user.id)
