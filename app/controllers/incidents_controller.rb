@@ -289,8 +289,13 @@ class IncidentsController < ApplicationController
   end
 
   def set_incident
-    @incident = visible_incidents
-      .includes(
+    scope = visible_incidents
+
+    # Full page renders need eager loading for the base page (daily log, stats,
+    # deployed equipment, etc.). Partial/deferred requests skip it — each deferred
+    # block loads its own associations.
+    unless request.headers["X-Inertia-Partial-Data"].present?
+      scope = scope.includes(
         :created_by_user, :operational_notes, :incident_contacts, :incident_read_states,
         property: [ :property_management_org, :mitigation_org ],
         incident_assignments: { user: :organization },
@@ -298,7 +303,9 @@ class IncidentsController < ApplicationController
         labor_entries: [ :user, :created_by_user ],
         equipment_entries: :equipment_type
       )
-      .find(params[:id])
+    end
+
+    @incident = scope.find(params[:id])
   end
 
   def authorize_edit!
