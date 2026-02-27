@@ -380,6 +380,30 @@ export interface LaborLog {
   employees: LaborLogEmployee[];
 }
 
+export interface MoisturePoint {
+  id: number;
+  unit: string;
+  room: string;
+  item: string;
+  material: string;
+  goal: string;
+  measurement_unit: string;
+  position: number;
+  readings: Record<string, { id: number; value: number | null } | null>;
+  destroy_path: string;
+}
+
+export interface MoistureData {
+  supervisor_pm: string | null;
+  dates: string[];
+  date_labels: string[];
+  points: MoisturePoint[];
+  create_point_path: string;
+  batch_save_path: string;
+  update_supervisor_path: string;
+  moisture_reading_path_template: string;
+}
+
 export interface ShowProps {
   incident: IncidentDetail;
   activity_entries: ActivityEntry[];
@@ -399,7 +423,9 @@ export interface ShowProps {
   can_manage_activities: boolean;
   can_manage_labor: boolean;
   can_manage_equipment: boolean;
+  can_manage_moisture: boolean;
   can_create_notes: boolean;
+  moisture_data: MoistureData;
   project_types: { value: string; label: string }[];
   damage_types: { value: string; label: string }[];
   assignable_mitigation_users: AssignableUser[];

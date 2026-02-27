@@ -42,6 +42,7 @@ class Incident < ApplicationRecord
   has_many :equipment_entries, dependent: :destroy
   has_many :operational_notes, dependent: :destroy
   has_many :attachments, as: :attachable, dependent: :destroy
+  has_many :moisture_measurement_points, dependent: :destroy
   has_many :escalation_events, dependent: :destroy
   has_many :incident_read_states, dependent: :destroy
 

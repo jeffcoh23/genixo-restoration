@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_02_20_233132) do
+ActiveRecord::Schema[8.0].define(version: 2026_02_27_010953) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -238,6 +238,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_20_233132) do
     t.date "estimated_date_of_return"
     t.decimal "do_not_exceed_limit"
     t.text "location_of_damage"
+    t.string "moisture_supervisor_pm"
     t.index ["created_by_user_id"], name: "index_incidents_on_created_by_user_id"
     t.index ["emergency"], name: "index_incidents_on_emergency", where: "(emergency = true)"
     t.index ["last_activity_at"], name: "index_incidents_on_last_activity_at"
@@ -294,6 +295,34 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_20_233132) do
     t.index ["incident_id", "created_at"], name: "index_messages_on_incident_id_and_created_at"
     t.index ["incident_id"], name: "index_messages_on_incident_id"
     t.index ["user_id"], name: "index_messages_on_user_id"
+  end
+
+  create_table "moisture_measurement_points", force: :cascade do |t|
+    t.bigint "incident_id", null: false
+    t.string "unit", null: false
+    t.string "room", null: false
+    t.string "item", null: false
+    t.string "material", null: false
+    t.string "goal", null: false
+    t.string "measurement_unit", null: false
+    t.integer "position"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["incident_id", "position"], name: "index_moisture_measurement_points_on_incident_id_and_position"
+    t.index ["incident_id"], name: "index_moisture_measurement_points_on_incident_id"
+  end
+
+  create_table "moisture_readings", force: :cascade do |t|
+    t.bigint "moisture_measurement_point_id", null: false
+    t.date "log_date", null: false
+    t.decimal "value", precision: 6, scale: 1
+    t.bigint "recorded_by_user_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["log_date"], name: "index_moisture_readings_on_log_date"
+    t.index ["moisture_measurement_point_id", "log_date"], name: "idx_moisture_readings_point_date", unique: true
+    t.index ["moisture_measurement_point_id"], name: "index_moisture_readings_on_moisture_measurement_point_id"
+    t.index ["recorded_by_user_id"], name: "index_moisture_readings_on_recorded_by_user_id"
   end
 
   create_table "on_call_configurations", force: :cascade do |t|
@@ -565,6 +594,9 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_20_233132) do
   add_foreign_key "labor_entries", "users", column: "created_by_user_id"
   add_foreign_key "messages", "incidents"
   add_foreign_key "messages", "users"
+  add_foreign_key "moisture_measurement_points", "incidents"
+  add_foreign_key "moisture_readings", "moisture_measurement_points"
+  add_foreign_key "moisture_readings", "users", column: "recorded_by_user_id"
   add_foreign_key "on_call_configurations", "organizations"
   add_foreign_key "on_call_configurations", "users", column: "primary_user_id"
   add_foreign_key "operational_notes", "incidents"

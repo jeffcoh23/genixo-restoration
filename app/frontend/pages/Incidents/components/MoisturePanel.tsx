@@ -1,0 +1,192 @@
+import { useState } from "react";
+import { router } from "@inertiajs/react";
+import { Trash2, Pencil } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import IncidentPanelAddButton from "./IncidentPanelAddButton";
+import MoisturePointForm from "./MoisturePointForm";
+import MoistureBatchForm from "./MoistureBatchForm";
+import type { MoistureData } from "../types";
+
+interface MoisturePanelProps {
+  moisture_data: MoistureData;
+  can_manage_moisture: boolean;
+}
+
+function readingColor(value: number | null, goal: string): string {
+  if (value === null) return "";
+  const goalLower = goal.toLowerCase().trim();
+  if (goalLower === "dry") {
+    if (value <= 15) return "bg-green-100 text-green-800";
+    if (value <= 20) return "bg-amber-100 text-amber-800";
+    return "bg-red-100 text-red-800";
+  }
+  const goalNum = parseFloat(goal);
+  if (isNaN(goalNum)) return "";
+  if (value <= goalNum) return "bg-green-100 text-green-800";
+  if (value <= goalNum * 1.25) return "bg-amber-100 text-amber-800";
+  return "bg-red-100 text-red-800";
+}
+
+export default function MoisturePanel({ moisture_data, can_manage_moisture }: MoisturePanelProps) {
+  const [showPointForm, setShowPointForm] = useState(false);
+  const [showBatchForm, setShowBatchForm] = useState(false);
+  const [editingSupervisor, setEditingSupervisor] = useState(false);
+  const [supervisorValue, setSupervisorValue] = useState(moisture_data.supervisor_pm || "");
+  const [deletingPointId, setDeletingPointId] = useState<number | null>(null);
+
+  const hasData = moisture_data.points.length > 0;
+
+  const handleSaveSupervisor = () => {
+    router.patch(moisture_data.update_supervisor_path, {
+      moisture_supervisor_pm: supervisorValue,
+    }, {
+      preserveScroll: true,
+      onSuccess: () => setEditingSupervisor(false),
+    });
+  };
+
+  const handleDeletePoint = (pointId: number, destroyPath: string) => {
+    if (deletingPointId === pointId) {
+      router.delete(destroyPath, { preserveScroll: true });
+      setDeletingPointId(null);
+    } else {
+      setDeletingPointId(pointId);
+    }
+  };
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Toolbar */}
+      <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3 shrink-0">
+        <div className="flex items-center gap-3 text-sm min-w-0">
+          {editingSupervisor ? (
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Supervisor/PM:</span>
+              <Input
+                value={supervisorValue}
+                onChange={(e) => setSupervisorValue(e.target.value)}
+                className="h-8 w-48"
+                placeholder="Name"
+                autoFocus
+              />
+              <Button variant="outline" size="sm" className="h-8 text-xs" onClick={handleSaveSupervisor}>Save</Button>
+              <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setEditingSupervisor(false)}>Cancel</Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5">
+              {moisture_data.supervisor_pm && (
+                <>
+                  <span className="text-xs font-medium text-muted-foreground">Supervisor/PM:</span>
+                  <span className="text-sm text-foreground">{moisture_data.supervisor_pm}</span>
+                </>
+              )}
+              {can_manage_moisture && (
+                <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => { setSupervisorValue(moisture_data.supervisor_pm || ""); setEditingSupervisor(true); }}>
+                  <Pencil className="h-3 w-3" />
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {can_manage_moisture && (
+          <div className="flex items-center gap-1 shrink-0">
+            {hasData && (
+              <IncidentPanelAddButton label="Record Readings" onClick={() => setShowBatchForm(true)} />
+            )}
+            <IncidentPanelAddButton label="Add Point" onClick={() => setShowPointForm(true)} />
+          </div>
+        )}
+      </div>
+
+      {/* Content */}
+      {!hasData ? (
+        <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm py-12">
+          No moisture readings recorded yet.
+        </div>
+      ) : (
+        <div className="flex-1 overflow-y-auto">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-muted border-b border-border sticky top-0">
+                <tr>
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground sticky left-0 bg-muted z-10 min-w-[80px]">Unit</th>
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-[90px]">Room</th>
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-[80px]">Item</th>
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-[80px]">Material</th>
+                  <th className="px-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-[60px]">Goal</th>
+                  <th className="px-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-[45px]">Unit</th>
+                  {moisture_data.date_labels.map((label, i) => (
+                    <th key={moisture_data.dates[i]} className="px-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-[65px]">
+                      {label}
+                    </th>
+                  ))}
+                  {can_manage_moisture && (
+                    <th className="px-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-[40px]" />
+                  )}
+                </tr>
+              </thead>
+              <tbody>
+                {moisture_data.points.map((point) => (
+                  <tr key={point.id} className="border-b border-border last:border-b-0 hover:bg-muted/30 transition-colors">
+                    <td className="px-3 py-2.5 text-sm font-medium text-foreground sticky left-0 bg-background z-10">{point.unit}</td>
+                    <td className="px-3 py-2.5 text-sm text-muted-foreground">{point.room}</td>
+                    <td className="px-3 py-2.5 text-sm text-muted-foreground">{point.item}</td>
+                    <td className="px-3 py-2.5 text-sm text-muted-foreground">{point.material}</td>
+                    <td className="px-3 py-2.5 text-sm text-center text-muted-foreground">{point.goal}</td>
+                    <td className="px-3 py-2.5 text-sm text-center text-muted-foreground">{point.measurement_unit}</td>
+                    {moisture_data.dates.map((date) => {
+                      const reading = point.readings[date];
+                      const value = reading?.value ?? null;
+                      const colorClass = readingColor(value, point.goal);
+                      return (
+                        <td key={date} className="px-3 py-2.5 text-sm text-center">
+                          {value !== null ? (
+                            <span className={`inline-block rounded px-1.5 py-0.5 text-xs font-medium ${colorClass}`}>
+                              {value}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground/40">&mdash;</span>
+                          )}
+                        </td>
+                      );
+                    })}
+                    {can_manage_moisture && (
+                      <td className="px-3 py-2.5 text-center">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className={`h-6 w-6 p-0 ${deletingPointId === point.id ? "text-destructive" : "text-muted-foreground hover:text-destructive"}`}
+                          onClick={() => handleDeletePoint(point.id, point.destroy_path)}
+                          title={deletingPointId === point.id ? "Click again to confirm" : "Delete point"}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {showPointForm && (
+        <MoisturePointForm
+          createPath={moisture_data.create_point_path}
+          onClose={() => setShowPointForm(false)}
+        />
+      )}
+      {showBatchForm && (
+        <MoistureBatchForm
+          points={moisture_data.points}
+          dates={moisture_data.dates}
+          batchSavePath={moisture_data.batch_save_path}
+          onClose={() => setShowBatchForm(false)}
+        />
+      )}
+    </div>
+  );
+}

@@ -14,6 +14,7 @@ import EquipmentPanel from "./components/EquipmentPanel";
 import LaborPanel from "./components/LaborPanel";
 import PhotosPanel from "./components/PhotosPanel";
 import DocumentPanel from "./components/DocumentPanel";
+import MoisturePanel from "./components/MoisturePanel";
 import OverviewPanel from "./components/OverviewPanel";
 import IncidentEditForm from "./components/IncidentEditForm";
 import PanelSkeleton from "@/components/PanelSkeleton";
@@ -38,6 +39,8 @@ export default function IncidentShow() {
     can_manage_activities = false,
     can_manage_labor = false,
     can_manage_equipment = false,
+    can_manage_moisture = false,
+    moisture_data,
     assignable_mitigation_users = [],
     assignable_pm_users = [],
     assignable_labor_users = [],
@@ -256,6 +259,14 @@ export default function IncidentShow() {
                 equipment_entries_path={incident.equipment_entries_path}
                 equipment_types={equipment_types}
                 equipment_items_by_type={equipment_items_by_type}
+              />
+            </Deferred>
+          )}
+          {activeTab === "moisture" && (
+            <Deferred data={["moisture_data"]} fallback={<PanelSkeleton />}>
+              <MoisturePanel
+                moisture_data={moisture_data}
+                can_manage_moisture={can_manage_moisture}
               />
             </Deferred>
           )}
