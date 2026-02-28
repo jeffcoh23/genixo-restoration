@@ -150,7 +150,6 @@ class TeamManagementAdditionalTest < ApplicationSystemTestCase
 
   def open_manage_tab
     click_button "Manage"
-    assert_text "Mitigation Team"
     assert_text "Property Management"
   end
 

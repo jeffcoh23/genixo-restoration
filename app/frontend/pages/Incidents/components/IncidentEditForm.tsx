@@ -35,68 +35,69 @@ export default function IncidentEditForm({ incident, project_types, damage_types
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-lg lg:max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Incident</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Project Type */}
-          <div className="space-y-1.5">
-            <Label className="text-xs">Project Type</Label>
-            <Select value={data.project_type} onValueChange={(v) => setData("project_type", v)}>
-              <SelectTrigger className="h-9">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {project_types.map((pt) => (
-                  <SelectItem key={pt.value} value={pt.value}>{pt.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.project_type && <p className="text-xs text-destructive">{errors.project_type}</p>}
+          {/* Project Type + Damage Type side by side */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Project Type</Label>
+              <Select value={data.project_type} onValueChange={(v) => setData("project_type", v)}>
+                <SelectTrigger className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {project_types.map((pt) => (
+                    <SelectItem key={pt.value} value={pt.value}>{pt.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.project_type && <p className="text-xs text-destructive">{errors.project_type}</p>}
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Damage Type</Label>
+              <Select value={data.damage_type} onValueChange={(v) => setData("damage_type", v)}>
+                <SelectTrigger className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {damage_types.map((dt) => (
+                    <SelectItem key={dt.value} value={dt.value}>{dt.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.damage_type && <p className="text-xs text-destructive">{errors.damage_type}</p>}
+            </div>
           </div>
 
-          {/* Damage Type */}
-          <div className="space-y-1.5">
-            <Label className="text-xs">Damage Type</Label>
-            <Select value={data.damage_type} onValueChange={(v) => setData("damage_type", v)}>
-              <SelectTrigger className="h-9">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {damage_types.map((dt) => (
-                  <SelectItem key={dt.value} value={dt.value}>{dt.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.damage_type && <p className="text-xs text-destructive">{errors.damage_type}</p>}
-          </div>
-
-          {/* Job ID */}
-          <div className="space-y-1.5">
-            <Label htmlFor="edit_job_id" className="text-xs">Job ID</Label>
-            <Input
-              id="edit_job_id"
-              value={data.job_id}
-              onChange={(e) => setData("job_id", e.target.value)}
-              placeholder="Optional reference number"
-              className="h-9"
-            />
-            {errors.job_id && <p className="text-xs text-destructive">{errors.job_id}</p>}
-          </div>
-
-          {/* Emergency limit */}
-          <div className="space-y-1.5">
-            <Label htmlFor="edit_do_not_exceed" className="text-xs">Emergency Do Not Exceed Limit</Label>
-            <Input
-              id="edit_do_not_exceed"
-              value={data.do_not_exceed_limit}
-              onChange={(e) => setData("do_not_exceed_limit", e.target.value)}
-              placeholder="Optional dollar amount"
-              className="h-9"
-            />
-            {errors.do_not_exceed_limit && <p className="text-xs text-destructive">{errors.do_not_exceed_limit}</p>}
+          {/* Job ID + DNE side by side */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="edit_job_id" className="text-xs">Job ID</Label>
+              <Input
+                id="edit_job_id"
+                value={data.job_id}
+                onChange={(e) => setData("job_id", e.target.value)}
+                placeholder="Optional"
+                className="h-9"
+              />
+              {errors.job_id && <p className="text-xs text-destructive">{errors.job_id}</p>}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="edit_do_not_exceed" className="text-xs">Do Not Exceed</Label>
+              <Input
+                id="edit_do_not_exceed"
+                inputMode="numeric"
+                value={data.do_not_exceed_limit}
+                onChange={(e) => setData("do_not_exceed_limit", e.target.value.replace(/[^0-9]/g, ""))}
+                placeholder="Dollar amount"
+                className="h-9"
+              />
+              {errors.do_not_exceed_limit && <p className="text-xs text-destructive">{errors.do_not_exceed_limit}</p>}
+            </div>
           </div>
 
           {/* Location */}
@@ -157,9 +158,9 @@ export default function IncidentEditForm({ incident, project_types, damage_types
               <Label htmlFor="edit_units" className="text-xs">Units Affected</Label>
               <Input
                 id="edit_units"
-                type="number"
+                inputMode="numeric"
                 value={data.units_affected}
-                onChange={(e) => setData("units_affected", e.target.value)}
+                onChange={(e) => setData("units_affected", e.target.value.replace(/[^0-9]/g, ""))}
                 className="h-9"
               />
               {errors.units_affected && <p className="text-xs text-destructive">{errors.units_affected}</p>}

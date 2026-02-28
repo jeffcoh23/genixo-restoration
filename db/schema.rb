@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_02_27_010953) do
+ActiveRecord::Schema[8.0].define(version: 2026_02_27_230640) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -544,7 +544,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_27_010953) do
     t.string "first_name", null: false
     t.string "last_name", null: false
     t.string "phone"
-    t.string "timezone", default: "America/Chicago", null: false
+    t.string "timezone", default: "Central Time (US & Canada)", null: false
     t.string "user_type", null: false
     t.jsonb "notification_preferences", default: {}, null: false
     t.boolean "active", default: true, null: false

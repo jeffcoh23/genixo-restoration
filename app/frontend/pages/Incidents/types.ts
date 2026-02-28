@@ -6,6 +6,7 @@ export interface TeamUser {
   role_label: string;
   email: string;
   phone: string | null;
+  phone_raw: string | null;
   remove_path: string | null;
 }
 
@@ -150,6 +151,8 @@ export interface IncidentAttachment {
   byte_size: number;
   url: string;
   thumbnail_url: string | null;
+  update_path?: string | null;
+  destroy_path?: string | null;
 }
 
 export interface EquipmentType {
@@ -199,6 +202,7 @@ export interface DailyLogTableGroup {
   equipment_summary: DailyLogEquipmentSummary[];
   total_labor_hours: number;
   total_equip_count: number;
+  dfr?: { url: string; filename: string } | null;
 }
 
 export interface IncidentDetail {
@@ -247,7 +251,7 @@ export interface IncidentDetail {
   location_of_damage: string | null;
   created_at: string;
   created_at_label: string;
-  created_by: { name: string; email: string; phone: string | null } | null;
+  created_by: { name: string; email: string; phone: string | null; phone_raw: string | null } | null;
   property: {
     id: number;
     name: string;
@@ -424,6 +428,8 @@ export interface ShowProps {
   can_manage_labor: boolean;
   can_manage_equipment: boolean;
   can_manage_moisture: boolean;
+  can_manage_attachments: boolean;
+  show_mitigation_team: boolean;
   can_create_notes: boolean;
   moisture_data: MoistureData;
   project_types: { value: string; label: string }[];

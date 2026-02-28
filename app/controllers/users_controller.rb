@@ -82,7 +82,8 @@ class UsersController < ApplicationController
       full_name: user.full_name,
       user_type: user.user_type,
       email: user.email_address,
-      phone: user.phone,
+      phone: format_phone(user.phone),
+      phone_raw: user.phone,
       role_label: User::ROLE_LABELS[user.user_type],
       organization_name: user.organization.name,
       active: user.active

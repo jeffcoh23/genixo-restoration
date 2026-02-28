@@ -421,6 +421,104 @@ Full test plan with 100 test cases across 8 files: see [TESTING.md §E2E Test Pl
 
 - [x] Equipment inventory: new `equipment_items` table (belongs to equipment_type, has model name + identifier). Cascading dropdown on placement form: pick type → shows available items of that type. `equipment_entries` references specific item instead of free-text model/identifier
 - [x] Camera capture + bulk photo upload — HTML5 `capture="environment"` for rear camera on mobile. Multi-file input, shared category/date, upload progress. Optimized for techs snapping 10+ photos per visit
+- [ ] Labor edit/delete — individual entry list below summary grid with pencil/trash icons. Pencil opens LaborForm pre-filled, trash confirms then deletes. Backend: add update/destroy to labor_entries controller with permission checks + activity logging
+
+### Moisture Readings
+
+In-app structured moisture tracking. Replaces spreadsheet-based workflow with per-incident moisture logs.
+
+**Data model:**
+- `moisture_reading_sets` — one per incident per date (belongs_to incident, has date, created_by_user)
+- `moisture_readings` — individual readings (belongs_to moisture_reading_set, fields: unit, room, item, material, goal, measurement_unit [%/Pts], value)
+
+**Spreadsheet structure (reference: Moisture Readings.xlsx):**
+- Header: Job Number, Supervisor/PM
+- Columns: Unit | Room | Item | Material | Goal | %/Pts | Date1 | Date2 | ...
+- Each row tracks one measurement point (e.g. Unit 1107, Bathroom, Wall, Drywall, Goal 7.5, Pts)
+- Readings recorded per date — values trend toward goal over time
+- Materials: Drywall, Wood, Carpet — each has different goal thresholds
+- Multiple units per incident, multiple rooms per unit, multiple items per room
+
+**UI:**
+- New tab or section on incident detail — "Moisture"
+- Date selector to view/add readings for a specific date
+- Table view matching spreadsheet layout: rows = measurement points, columns = dates
+- Color coding: red when above goal, green when at/below goal
+- Add reading form: select unit/room/item/material (or add new), enter value
+- "Copy from previous" — pre-fill measurement points from last reading date so tech just enters new values
+- Export to spreadsheet for PM reporting
+
+**Build steps:**
+- [ ] Migration: `moisture_reading_sets` + `moisture_readings` tables
+- [ ] Models + validations
+- [ ] Controller endpoints (CRUD for reading sets + individual readings)
+- [ ] Frontend: moisture tab UI with date selector + reading table
+- [ ] "Copy from previous" feature
+- [ ] Export to CSV/Excel
+- [ ] Tests
+
+### Psychometric Readings
+
+In-app psychometric (psychrometric) tracking. Measures environmental conditions per room/zone per dehumidifier to verify drying progress.
+
+**Data model:**
+- `psychometric_reading_sets` — one per incident per date (belongs_to incident, has date, created_by_user)
+- `psychometric_readings` — individual readings (belongs_to psychometric_reading_set, fields: room_zone, rh [relative humidity %], temperature_f, gpp [grains per pound], g_dep [grain depression])
+
+**Spreadsheet structure (reference: Psychometric Readings.xlsx):**
+- Header: Job Number, Supervisor/PM, Page
+- Columns per date: Rh | F° | GPP | G-Dep (4 measurements repeated for each date)
+- Rows: Room/Zone labels (unit numbers like 1107, 1207, 1208) with associated dehumidifier labels (Dehu 1, Dehu 2, Dehu 3)
+- Multiple dates tracked across columns (e.g. 5/27, 5/28, 5/29, ...)
+
+**Key metrics:**
+- **Rh** — Relative Humidity (%)
+- **F°** — Temperature (Fahrenheit)
+- **GPP** — Grains Per Pound (absolute moisture in air)
+- **G-Dep** — Grain Depression (difference between ambient GPP and dew point GPP — higher = more drying capacity)
+
+**UI:**
+- Section on incident detail alongside moisture readings — "Psychometric" tab or combined "Readings" tab
+- Date selector to view/add readings for a specific date
+- Table: rows = rooms/zones + dehu labels, columns = Rh / F° / GPP / G-Dep per date
+- Trend indicators: show improvement/regression between dates
+- Add reading form: select room/zone (or add new), enter Rh, F°, GPP, G-Dep
+- "Copy zones from previous" — pre-fill room/zone list so tech just enters new values
+- Export to spreadsheet
+
+**Build steps:**
+- [ ] Migration: `psychometric_reading_sets` + `psychometric_readings` tables
+- [ ] Models + validations (GPP/G-Dep can be auto-calculated from Rh + F° if desired)
+- [ ] Controller endpoints
+- [ ] Frontend: psychometric tab UI
+- [ ] "Copy zones from previous" feature
+- [ ] Export to CSV/Excel
+- [ ] Tests
+
+### Gantt Chart
+
+Interactive timeline view for incident project management. Bird's-eye view of all work across an incident or across multiple active incidents.
+
+**Library:** [SVAR React Gantt](https://svar.dev/react/gantt/) (MIT license)
+
+**Per-incident Gantt (incident detail view):**
+- Timeline bars for: incident phases (status transitions with timestamps), equipment deployments (placed_at → removed_at), labor blocks, activity entries
+- Data already exists — pull from `activity_events`, `equipment_entries`, `labor_entries`, status transition timestamps
+- Read-only for MVP, drag-to-reschedule later
+- Date range auto-fits to incident duration
+
+**Cross-incident Gantt (manager dashboard or separate page):**
+- All active incidents as rows, timeline showing duration + current phase
+- Filter by property, status, team member
+- Click incident bar → navigate to incident detail
+
+**Build steps:**
+- [ ] Install SVAR React Gantt package
+- [ ] Per-incident Gantt: controller endpoint to serialize timeline data from existing models
+- [ ] Per-incident Gantt: React component with Gantt chart on incident detail
+- [ ] Cross-incident Gantt: controller endpoint for multi-incident timeline data
+- [ ] Cross-incident Gantt: dedicated page or dashboard section
+- [ ] Tests
 
 ---
 

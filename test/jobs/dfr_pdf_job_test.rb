@@ -23,7 +23,7 @@ class DfrPdfJobTest < ActiveSupport::TestCase
     end
 
     attachment = @incident.attachments.last
-    assert_equal "general", attachment.category
+    assert_equal "dfr", attachment.category
     assert attachment.file.attached?
     assert_includes attachment.file.filename.to_s, "DFR-"
     assert_equal "application/pdf", attachment.file.content_type
@@ -46,5 +46,18 @@ class DfrPdfJobTest < ActiveSupport::TestCase
 
     attachment = @incident.attachments.last
     assert_includes attachment.description, date
+  end
+
+  test "skips if DFR already exists for that date" do
+    date = Date.current.to_s
+
+    # Create first DFR
+    DfrPdfJob.perform_now(@incident.id, date, "America/Chicago", @manager.id)
+    assert_equal 1, @incident.attachments.where(category: "dfr", log_date: date).count
+
+    # Second call should be a no-op
+    assert_no_difference -> { @incident.attachments.count } do
+      DfrPdfJob.perform_now(@incident.id, date, "America/Chicago", @manager.id)
+    end
   end
 end

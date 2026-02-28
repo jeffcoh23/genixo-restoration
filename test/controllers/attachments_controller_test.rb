@@ -67,9 +67,9 @@ class AttachmentsControllerTest < ActionDispatch::IntegrationTest
     assert_equal @tech.id, Attachment.last.uploaded_by_user_id
   end
 
-  test "PM user can upload attachment on visible incident" do
+  test "PM user cannot upload attachment" do
     login_as @pm_user
-    assert_difference "Attachment.count", 1 do
+    assert_no_difference "Attachment.count" do
       post incident_attachments_path(@incident), params: {
         attachment: {
           file: fixture_file_upload("test_photo.jpg", "image/jpeg"),
@@ -77,7 +77,7 @@ class AttachmentsControllerTest < ActionDispatch::IntegrationTest
         }
       }
     end
-    assert_redirected_to incident_path(@incident)
+    assert_response :not_found
   end
 
   test "cross-org PM user cannot upload attachment" do

@@ -40,6 +40,7 @@ interface Filters {
   property_id: string | null;
   project_type: string | null;
   emergency: string | null;
+  hide_closed: boolean;
 }
 
 interface Sort {
@@ -283,6 +284,18 @@ export default function IncidentsIndex() {
               </Button>
             ))}
           </div>
+        )}
+        {filters.hide_closed && (
+          <p className="text-xs text-muted-foreground mt-2">
+            Closed incidents hidden.{" "}
+            <Button
+              variant="link"
+              className="h-auto p-0 text-xs text-muted-foreground underline hover:text-foreground"
+              onClick={() => navigate({ status: "closed" })}
+            >
+              Show closed
+            </Button>
+          </p>
         )}
       </div>
 

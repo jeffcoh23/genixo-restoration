@@ -48,7 +48,7 @@ Rails.application.routes.draw do
     end
     delete "moisture_points/:id", to: "moisture_readings#destroy_point", as: :moisture_point
     resources :operational_notes, only: %i[create]
-    resources :attachments, only: %i[create] do
+    resources :attachments, only: %i[create update destroy] do
       collection do
         post :upload_photo
       end

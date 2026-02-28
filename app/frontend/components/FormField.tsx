@@ -8,11 +8,12 @@ interface FormFieldProps {
   onChange: (value: string) => void;
   error?: string;
   type?: string;
+  inputMode?: "text" | "numeric" | "decimal" | "tel" | "email" | "url" | "search";
   required?: boolean;
   hint?: string;
 }
 
-export default function FormField({ id, label, value, onChange, error, type = "text", required, hint }: FormFieldProps) {
+export default function FormField({ id, label, value, onChange, error, type = "text", inputMode, required, hint }: FormFieldProps) {
   return (
     <div className="space-y-2">
       <Label htmlFor={id}>
@@ -22,6 +23,7 @@ export default function FormField({ id, label, value, onChange, error, type = "t
       <Input
         id={id}
         type={type}
+        inputMode={inputMode}
         value={value}
         onChange={(e) => onChange(e.target.value)}
       />

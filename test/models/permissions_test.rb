@@ -78,7 +78,7 @@ class PermissionsTest < ActiveSupport::TestCase
     perms = Permissions.for_role("manager")
     assert_includes perms, Permissions::CREATE_INCIDENT
     assert_includes perms, Permissions::MANAGE_ON_CALL
-    assert_equal 13, perms.length
+    assert_equal 14, perms.length
   end
 
   # --- User#can? integration ---

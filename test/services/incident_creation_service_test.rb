@@ -184,7 +184,7 @@ class IncidentCreationServiceTest < ActiveSupport::TestCase
     assert_equal "John Doe", contact.name
     assert_equal "Building Super", contact.title
     assert_equal "john@example.com", contact.email
-    assert_equal "555-0100", contact.phone
+    assert_equal "5550100", contact.phone
   end
 
   test "skips contacts with blank name" do

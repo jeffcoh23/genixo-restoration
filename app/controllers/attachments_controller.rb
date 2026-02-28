@@ -1,5 +1,7 @@
 class AttachmentsController < ApplicationController
   before_action :set_incident
+  before_action :authorize_attachment_upload!, only: %i[create upload_photo]
+  before_action :authorize_attachment_management!, only: %i[update destroy]
 
   def upload_photo
     unless params[:file].present?
@@ -52,10 +54,37 @@ class AttachmentsController < ApplicationController
       alert: "Could not upload file."
   end
 
+  def update
+    attachment = @incident.attachments.find(params[:id])
+    attachment.update!(params.require(:attachment).permit(:log_date, :description))
+    redirect_to incident_path(@incident), notice: "Attachment updated."
+  end
+
+  def destroy
+    attachment = @incident.attachments.find(params[:id])
+    ActivityLogger.log(
+      incident: @incident,
+      event_type: "attachment_deleted",
+      user: current_user,
+      metadata: { filename: attachment.file.filename.to_s }
+    )
+    attachment.file.purge
+    attachment.destroy!
+    redirect_to incident_path(@incident), notice: "Attachment deleted."
+  end
+
   private
 
   def set_incident
     @incident = find_visible_incident!(params[:incident_id])
+  end
+
+  def authorize_attachment_upload!
+    raise ActiveRecord::RecordNotFound unless can_manage_attachments?
+  end
+
+  def authorize_attachment_management!
+    raise ActiveRecord::RecordNotFound unless can_manage_attachments?
   end
 
   def attachment_params

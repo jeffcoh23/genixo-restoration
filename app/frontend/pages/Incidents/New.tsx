@@ -78,12 +78,11 @@ export default function NewIncident() {
   const handlePropertyChange = (propertyId: string) => {
     const users = propertyId ? (property_users[propertyId] || []) : [];
     const autoIds = users.filter((u) => u.auto_assign).map((u) => u.id);
-    const property = properties.find((p) => String(p.id) === propertyId);
     setData((prev) => ({
       ...prev,
       property_id: propertyId,
       additional_user_ids: autoIds,
-      location_of_damage: property?.address || "",
+      location_of_damage: "",
     }));
   };
 
@@ -287,8 +286,9 @@ export default function NewIncident() {
               <FormField
                 id="do_not_exceed_limit"
                 label="Emergency Do Not Exceed Limit"
+                inputMode="numeric"
                 value={data.do_not_exceed_limit}
-                onChange={(v) => setData("do_not_exceed_limit", v)}
+                onChange={(v) => setData("do_not_exceed_limit", v.replace(/[^0-9]/g, ""))}
                 error={errors.do_not_exceed_limit}
                 hint="Dollar amount, if applicable"
               />
@@ -321,9 +321,9 @@ export default function NewIncident() {
                 <FormField
                   id="units_affected"
                   label="Units Affected"
-                  type="number"
+                  inputMode="numeric"
                   value={data.units_affected}
-                  onChange={(v) => setData("units_affected", v)}
+                  onChange={(v) => setData("units_affected", v.replace(/[^0-9]/g, ""))}
                   error={errors.units_affected}
                 />
                 <FormField

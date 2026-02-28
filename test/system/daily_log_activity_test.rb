@@ -151,7 +151,7 @@ class DailyLogActivityTest < ApplicationSystemTestCase
     login_as @manager
     visit incident_path(@incident)
 
-    assert_selector "[data-testid='dfr-link-2026-01-15']"
+    assert_selector "[data-testid='dfr-generate-2026-01-15']"
   end
 
   # L1: Labor form does NOT have a Notes field

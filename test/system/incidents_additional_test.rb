@@ -368,8 +368,8 @@ class IncidentsAdditionalTest < ApplicationSystemTestCase
     login_as @manager
     visit incident_path(@active_incident)
 
-    find("[data-testid='dfr-link-#{Date.current.iso8601}']").click
-    assert_text "DFR PDF is being generated"
+    find("[data-testid='dfr-generate-#{Date.current.iso8601}']").click
+    assert_selector "[data-testid='dfr-processing-#{Date.current.iso8601}']"
   end
 
   test "emergency incidents show distinct visual styling in list" do

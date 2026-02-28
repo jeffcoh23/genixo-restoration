@@ -87,6 +87,10 @@ module Authorization
     current_user.can?(Permissions::MANAGE_MOISTURE_READINGS)
   end
 
+  def can_manage_attachments?
+    current_user.can?(Permissions::MANAGE_ATTACHMENTS)
+  end
+
   # --- Resource-scoped checks (need a specific record) ---
 
   def mitigation_admin?

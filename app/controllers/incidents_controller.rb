@@ -23,6 +23,9 @@ class IncidentsController < ApplicationController
     scope = scope.where(emergency: true) if params[:emergency] == "1"
     scope = scope.where(emergency: false) if params[:emergency] == "0"
 
+    # Hide closed incidents unless a status filter is explicitly applied
+    scope = scope.where.not(status: "closed") if params[:status].blank?
+
     if params[:search].present?
       term = "%#{params[:search]}%"
       scope = scope.left_joins(:property).where(
@@ -60,7 +63,8 @@ class IncidentsController < ApplicationController
         status: params[:status],
         property_id: params[:property_id],
         project_type: params[:project_type],
-        emergency: params[:emergency]
+        emergency: params[:emergency],
+        hide_closed: params[:status].blank?
       },
       sort: { column: sort_col, direction: sort_dir.to_s },
       filter_options: {
@@ -166,7 +170,8 @@ class IncidentsController < ApplicationController
         created_by: @incident.created_by_user ? {
           name: @incident.created_by_user.full_name,
           email: @incident.created_by_user.email_address,
-          phone: @incident.created_by_user.phone
+          phone: format_phone(@incident.created_by_user.phone),
+          phone_raw: @incident.created_by_user.phone
         } : nil,
         property: {
           id: property.id,
@@ -189,7 +194,8 @@ class IncidentsController < ApplicationController
             name: c.name,
             title: c.title,
             email: c.email,
-            phone: c.phone,
+            phone: format_phone(c.phone),
+            phone_raw: c.phone,
             onsite: c.onsite,
             update_path: can_manage_contacts? ? incident_contact_path(@incident, c) : nil,
             remove_path: can_manage_contacts? ? incident_contact_path(@incident, c) : nil
@@ -224,6 +230,8 @@ class IncidentsController < ApplicationController
       can_manage_labor: can_manage_labor?,
       can_manage_equipment: can_manage_equipment?,
       can_manage_moisture: can_manage_moisture_readings?,
+      can_manage_attachments: can_manage_attachments?,
+      show_mitigation_team: current_user.mitigation_user?,
       can_create_notes: can_create_operational_note?,
       project_types: Incident::PROJECT_TYPES.map { |t| { value: t, label: Incident::PROJECT_TYPE_LABELS[t] } },
       damage_types: Incident::DAMAGE_TYPES.map { |t| { value: t, label: Incident::DAMAGE_LABELS[t] } },
@@ -493,7 +501,8 @@ class IncidentsController < ApplicationController
         initials: a.user.initials,
         role_label: User::ROLE_LABELS[a.user.user_type],
         email: a.user.email_address,
-        phone: a.user.phone,
+        phone: format_phone(a.user.phone),
+        phone_raw: a.user.phone,
         remove_path: can_remove_assignment?(a.user) ? incident_assignment_path(@incident, a) : nil
       }
     end
@@ -711,6 +720,10 @@ class IncidentsController < ApplicationController
       map[entry[:log_date]] += entry[:hours].to_f
     end
 
+    # Index existing DFR attachments by date
+    dfr_by_date = @incident ? @incident.attachments.where(category: "dfr")
+      .index_by { |a| a.log_date&.iso8601 } : {}
+
     groups.keys.sort.reverse.map do |date_key|
       rows = groups[date_key].sort_by do |row|
         parsed = parse_metadata_time(row[:occurred_at]) || Time.zone.parse("#{date_key}T00:00:00")
@@ -718,6 +731,7 @@ class IncidentsController < ApplicationController
       end
 
       date_equip = equip_by_date[date_key] || []
+      dfr_att = dfr_by_date[date_key]
 
       {
         date_key: date_key,
@@ -725,7 +739,11 @@ class IncidentsController < ApplicationController
         rows: rows,
         equipment_summary: date_equip,
         total_labor_hours: labor_hours_by_date[date_key].round(1),
-        total_equip_count: date_equip.sum { |e| e[:count] }
+        total_equip_count: date_equip.sum { |e| e[:count] },
+        dfr: dfr_att ? {
+          url: rails_blob_path(dfr_att.file, disposition: "inline"),
+          filename: dfr_att.file.filename.to_s
+        } : nil
       }
     end
   end
@@ -1029,7 +1047,7 @@ class IncidentsController < ApplicationController
   end
 
   def serialize_single_attachment(att)
-    {
+    data = {
       id: att.id,
       filename: att.file.filename.to_s,
       category: att.category,
@@ -1046,6 +1064,11 @@ class IncidentsController < ApplicationController
       url: rails_blob_path(att.file, disposition: "inline"),
       thumbnail_url: thumbnail_url_for(att.file)
     }
+    if can_manage_attachments?
+      data[:update_path] = incident_attachment_path(@incident, att)
+      data[:destroy_path] = incident_attachment_path(@incident, att)
+    end
+    data
   end
 
   def serialize_operational_notes(incident)
@@ -1094,7 +1117,8 @@ class IncidentsController < ApplicationController
         name: u.full_name,
         title: User::ROLE_LABELS[u.user_type],
         email: u.email_address,
-        phone: u.phone
+        phone: format_phone(u.phone),
+        phone_raw: u.phone
       }
     end
   end

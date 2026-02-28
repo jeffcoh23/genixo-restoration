@@ -40,6 +40,8 @@ export default function IncidentShow() {
     can_manage_labor = false,
     can_manage_equipment = false,
     can_manage_moisture = false,
+    can_manage_attachments = false,
+    show_mitigation_team = true,
     moisture_data,
     assignable_mitigation_users = [],
     assignable_pm_users = [],
@@ -203,7 +205,7 @@ export default function IncidentShow() {
                   <Mail className="h-3 w-3" />
                 </a>
                 {incident.created_by.phone && (
-                  <a href={`tel:${incident.created_by.phone}`} className="text-muted-foreground hover:text-foreground transition-colors" title={incident.created_by.phone}>
+                  <a href={`tel:${incident.created_by.phone_raw}`} className="text-muted-foreground hover:text-foreground transition-colors" title={incident.created_by.phone}>
                     <Phone className="h-3 w-3" />
                   </a>
                 )}
@@ -294,6 +296,7 @@ export default function IncidentShow() {
               <DocumentPanel
                 attachments={attachments}
                 attachments_path={incident.attachments_path}
+                can_manage_attachments={can_manage_attachments}
               />
             </Deferred>
           )}
@@ -302,6 +305,7 @@ export default function IncidentShow() {
               attachments={attachments}
               messages={messages}
               upload_photo_path={incident.upload_photo_path}
+              can_manage_attachments={can_manage_attachments}
             />
           )}
           {activeTab === "manage" && (
@@ -312,6 +316,7 @@ export default function IncidentShow() {
                 can_manage_contacts={can_manage_contacts}
                 assignable_mitigation_users={assignable_mitigation_users}
                 assignable_pm_users={assignable_pm_users}
+                show_mitigation_team={show_mitigation_team}
               />
             </Deferred>
           )}

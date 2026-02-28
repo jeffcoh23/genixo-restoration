@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
-import { router } from "@inertiajs/react";
-import { ChevronDown, FileText, Pencil } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { router, usePoll } from "@inertiajs/react";
+import { ChevronDown, FileText, Loader2, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type {
   DailyActivity,
@@ -34,6 +34,33 @@ export default function DailyLogPanel({
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [activityForm, setActivityForm] = useState<{ open: boolean; entry?: DailyActivity }>({ open: false });
   const [collapsedRows, setCollapsedRows] = useState<Set<string>>(new Set());
+  const [requestedDfrs, setRequestedDfrs] = useState<Set<string>>(new Set());
+  const { start: startPolling, stop: stopPolling } = usePoll(5000, {
+    only: ["daily_log_table_groups"],
+  }, { autoStart: false });
+
+  // Derive which requested DFRs are still pending (not yet generated)
+  const pendingDfr = useMemo(() => {
+    const pending = new Set<string>();
+    for (const dateKey of requestedDfrs) {
+      const group = daily_log_table_groups.find((g) => g.date_key === dateKey);
+      if (!group?.dfr) pending.add(dateKey);
+    }
+    return pending;
+  }, [requestedDfrs, daily_log_table_groups]);
+
+  // Stop polling once all requested DFRs have been generated
+  useEffect(() => {
+    if (requestedDfrs.size > 0 && pendingDfr.size === 0) {
+      stopPolling();
+    }
+  }, [pendingDfr.size, requestedDfrs.size, stopPolling]);
+
+  const handleGenerateDfr = useCallback((dateKey: string) => {
+    router.post(dfr_path, { date: dateKey }, { preserveScroll: true });
+    setRequestedDfrs((prev) => new Set(prev).add(dateKey));
+    startPolling();
+  }, [dfr_path, startPolling]);
 
   // When a specific date is selected, all rows are expanded by default (user collapses them).
   // When "All Dates" is selected, all rows are collapsed by default (user expands them).
@@ -180,17 +207,39 @@ export default function DailyLogPanel({
                   <span className="text-sm font-semibold uppercase tracking-wide text-foreground/85">
                     {group.date_label}
                   </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => router.post(dfr_path, { date: group.date_key })}
-                    data-testid={`dfr-link-${group.date_key}`}
-                    className="h-auto py-0.5 px-1.5 text-sm text-foreground/75 hover:text-foreground"
-                    title="Generate Daily Field Report"
-                  >
-                    <FileText className="h-3 w-3" />
-                    DFR
-                  </Button>
+                  {group.dfr ? (
+                    <a
+                      href={group.dfr.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      data-testid={`dfr-link-${group.date_key}`}
+                      className="inline-flex items-center gap-1 h-auto py-0.5 px-1.5 text-sm text-primary hover:text-primary/80 font-medium"
+                      title={`Download ${group.dfr.filename}`}
+                    >
+                      <FileText className="h-3 w-3" />
+                      DFR
+                    </a>
+                  ) : pendingDfr.has(group.date_key) ? (
+                    <span
+                      data-testid={`dfr-processing-${group.date_key}`}
+                      className="inline-flex items-center gap-1 h-auto py-0.5 px-1.5 text-sm text-muted-foreground"
+                    >
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Processing...
+                    </span>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleGenerateDfr(group.date_key)}
+                      data-testid={`dfr-generate-${group.date_key}`}
+                      className="h-auto py-0.5 px-1.5 text-sm text-foreground/75 hover:text-foreground"
+                      title="Generate Daily Field Report"
+                    >
+                      <FileText className="h-3 w-3" />
+                      DFR
+                    </Button>
+                  )}
                 </div>
 
                 {/* Timeline rows (activities, notes, documents, etc.) */}
