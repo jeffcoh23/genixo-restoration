@@ -34,28 +34,29 @@ export default function DailyLogPanel({
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [activityForm, setActivityForm] = useState<{ open: boolean; entry?: DailyActivity }>({ open: false });
   const [collapsedRows, setCollapsedRows] = useState<Set<string>>(new Set());
-  const [processingDates, setProcessingDates] = useState<Set<string>>(new Set());
+  const [requestedDates, setRequestedDates] = useState<Set<string>>(new Set());
   const pollTimers = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map());
 
-  // Clear poll when DFR appears for a date
+  // Derive active processing dates: requested minus those that now have a DFR
+  const processingDates = useMemo(() => {
+    const active = new Set<string>();
+    for (const dateKey of requestedDates) {
+      const group = daily_log_table_groups.find((g) => g.date_key === dateKey);
+      if (!group?.dfr) active.add(dateKey);
+    }
+    return active;
+  }, [requestedDates, daily_log_table_groups]);
+
+  // Clean up poll timers for resolved dates (side effect on external ref, no setState)
   useEffect(() => {
-    const resolved: string[] = [];
-    for (const dateKey of processingDates) {
+    for (const [dateKey, timer] of pollTimers.current) {
       const group = daily_log_table_groups.find((g) => g.date_key === dateKey);
       if (group?.dfr) {
-        resolved.push(dateKey);
-        const timer = pollTimers.current.get(dateKey);
-        if (timer) { clearInterval(timer); pollTimers.current.delete(dateKey); }
+        clearInterval(timer);
+        pollTimers.current.delete(dateKey);
       }
     }
-    if (resolved.length > 0) {
-      setProcessingDates((prev) => {
-        const next = new Set(prev);
-        resolved.forEach((k) => next.delete(k));
-        return next;
-      });
-    }
-  }, [daily_log_table_groups]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [daily_log_table_groups]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -66,7 +67,7 @@ export default function DailyLogPanel({
 
   const handleGenerateDfr = useCallback((dateKey: string) => {
     router.post(dfr_path, { date: dateKey }, { preserveScroll: true });
-    setProcessingDates((prev) => new Set(prev).add(dateKey));
+    setRequestedDates((prev) => new Set(prev).add(dateKey));
 
     // Poll every 5s, stop after 60s
     let elapsed = 0;
@@ -75,7 +76,7 @@ export default function DailyLogPanel({
       if (elapsed >= 60000) {
         clearInterval(timer);
         pollTimers.current.delete(dateKey);
-        setProcessingDates((prev) => {
+        setRequestedDates((prev) => {
           const next = new Set(prev);
           next.delete(dateKey);
           return next;
