@@ -39,19 +39,23 @@ export default function DailyLogPanel({
 
   // Clear poll when DFR appears for a date
   useEffect(() => {
+    const resolved: string[] = [];
     for (const dateKey of processingDates) {
       const group = daily_log_table_groups.find((g) => g.date_key === dateKey);
       if (group?.dfr) {
-        setProcessingDates((prev) => {
-          const next = new Set(prev);
-          next.delete(dateKey);
-          return next;
-        });
+        resolved.push(dateKey);
         const timer = pollTimers.current.get(dateKey);
         if (timer) { clearInterval(timer); pollTimers.current.delete(dateKey); }
       }
     }
-  }, [daily_log_table_groups, processingDates]);
+    if (resolved.length > 0) {
+      setProcessingDates((prev) => {
+        const next = new Set(prev);
+        resolved.forEach((k) => next.delete(k));
+        return next;
+      });
+    }
+  }, [daily_log_table_groups]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Cleanup on unmount
   useEffect(() => {

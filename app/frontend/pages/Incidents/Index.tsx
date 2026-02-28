@@ -288,12 +288,13 @@ export default function IncidentsIndex() {
         {filters.hide_closed && (
           <p className="text-xs text-muted-foreground mt-2">
             Closed incidents hidden.{" "}
-            <button
-              className="underline hover:text-foreground"
+            <Button
+              variant="link"
+              className="h-auto p-0 text-xs text-muted-foreground underline hover:text-foreground"
               onClick={() => navigate({ status: "closed" })}
             >
               Show closed
-            </button>
+            </Button>
           </p>
         )}
       </div>

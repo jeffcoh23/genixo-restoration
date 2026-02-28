@@ -262,13 +262,13 @@ export default function PhotosPanel({ attachments, messages, upload_photo_path, 
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="text-xs text-muted-foreground">End date</label>
-              <button
-                type="button"
-                className="text-xs text-primary hover:underline"
+              <Button
+                variant="link"
+                className="h-auto p-0 text-xs"
                 onClick={() => { setToDate(today); setVisibleCount(PAGE_SIZE); }}
               >
                 Today
-              </button>
+              </Button>
             </div>
             <Input
               type="date"

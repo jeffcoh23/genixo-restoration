@@ -78,7 +78,6 @@ export default function NewIncident() {
   const handlePropertyChange = (propertyId: string) => {
     const users = propertyId ? (property_users[propertyId] || []) : [];
     const autoIds = users.filter((u) => u.auto_assign).map((u) => u.id);
-    const property = properties.find((p) => String(p.id) === propertyId);
     setData((prev) => ({
       ...prev,
       property_id: propertyId,

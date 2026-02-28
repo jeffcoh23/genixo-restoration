@@ -6,6 +6,7 @@ export interface TeamUser {
   role_label: string;
   email: string;
   phone: string | null;
+  phone_raw: string | null;
   remove_path: string | null;
 }
 
@@ -250,7 +251,7 @@ export interface IncidentDetail {
   location_of_damage: string | null;
   created_at: string;
   created_at_label: string;
-  created_by: { name: string; email: string; phone: string | null } | null;
+  created_by: { name: string; email: string; phone: string | null; phone_raw: string | null } | null;
   property: {
     id: number;
     name: string;
