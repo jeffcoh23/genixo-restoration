@@ -60,8 +60,9 @@ export default function DailyLogPanel({
 
   // Cleanup on unmount
   useEffect(() => {
+    const timers = pollTimers.current;
     return () => {
-      for (const timer of pollTimers.current.values()) clearInterval(timer);
+      for (const timer of timers.values()) clearInterval(timer);
     };
   }, []);
 
