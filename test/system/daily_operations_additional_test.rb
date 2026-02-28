@@ -409,7 +409,7 @@ class DailyOperationsAdditionalTest < ApplicationSystemTestCase
 
     assert_text "Contact updated."
     assert_text "Property Liaison"
-    assert_equal "713-555-0199", contact.reload.phone
+    assert_equal "7135550199", contact.reload.phone
     assert_equal "Property Liaison", contact.title
   end
 

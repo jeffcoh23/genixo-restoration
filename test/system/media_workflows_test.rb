@@ -51,11 +51,11 @@ class MediaWorkflowsTest < ApplicationSystemTestCase
     click_button "Load more"
     assert_text "Showing 45 of 45"
 
-    fill_in "Search filename or note...", with: "bulk-photo-44"
+    fill_in "Filename or note...", with: "bulk-photo-44"
     assert_text "1 of 45 photos"
     assert_text "Showing 1 of 1"
 
-    fill_in "Search filename or note...", with: ""
+    fill_in "Filename or note...", with: ""
     all("select").first.select("Tina Tech")
     assert_text "of 45 photos"
   end
@@ -67,9 +67,9 @@ class MediaWorkflowsTest < ApplicationSystemTestCase
     visit incident_path(@incident)
     click_button "Photos"
 
-    fill_in "Search filename or note...", with: "seed"
+    fill_in "Filename or note...", with: "seed"
     assert_text "1 of 1 photos"
-    assert_field "Search filename or note...", with: "seed"
+    assert_field "Filename or note...", with: "seed"
 
     photo_upload_input = find("input[type='file'][accept='image/*'][multiple]", visible: false)
     assert_difference -> { @incident.attachments.where(category: "photo").count }, +1 do
@@ -78,11 +78,11 @@ class MediaWorkflowsTest < ApplicationSystemTestCase
     end
 
     assert_text "Showing 1 of 1"
-    assert_field "Search filename or note...", with: "seed"
+    assert_field "Filename or note...", with: "seed"
     assert_button "Upload Photos"
     assert_button "Take Photos"
 
-    fill_in "Search filename or note...", with: ""
+    fill_in "Filename or note...", with: ""
     assert_text "test_photo.jpg"
   end
 
@@ -209,7 +209,7 @@ class MediaWorkflowsTest < ApplicationSystemTestCase
     assert_text "no-thumb-photo.jpg"
     assert_no_text "No preview"
 
-    card = find("a", text: "no-thumb-photo.jpg")
+    card = find("p", text: "no-thumb-photo.jpg").ancestor(".rounded-lg", match: :first)
     within(card) do
       assert_selector "img"
     end
