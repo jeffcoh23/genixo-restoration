@@ -53,7 +53,6 @@ export default function DailyLogPanel({
   useEffect(() => {
     if (requestedDfrs.size > 0 && pendingDfr.size === 0) {
       stopPolling();
-      setRequestedDfrs(new Set());
     }
   }, [pendingDfr.size, requestedDfrs.size, stopPolling]);
 
