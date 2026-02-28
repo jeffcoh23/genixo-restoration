@@ -1,2 +1,4 @@
-#!/usr/bin/env ruby
-exec "foreman", "start", "-f", "Procfile.dev", *ARGV
+#!/usr/bin/env bash
+trap 'kill $(jobs -p) 2>/dev/null' EXIT
+bin/rails solid_queue:start &
+exec bin/rails s
