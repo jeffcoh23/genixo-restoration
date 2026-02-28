@@ -47,4 +47,17 @@ class DfrPdfJobTest < ActiveSupport::TestCase
     attachment = @incident.attachments.last
     assert_includes attachment.description, date
   end
+
+  test "skips if DFR already exists for that date" do
+    date = Date.current.to_s
+
+    # Create first DFR
+    DfrPdfJob.perform_now(@incident.id, date, "America/Chicago", @manager.id)
+    assert_equal 1, @incident.attachments.where(category: "dfr", log_date: date).count
+
+    # Second call should be a no-op
+    assert_no_difference -> { @incident.attachments.count } do
+      DfrPdfJob.perform_now(@incident.id, date, "America/Chicago", @manager.id)
+    end
+  end
 end
