@@ -23,7 +23,7 @@ class DfrPdfJobTest < ActiveSupport::TestCase
     end
 
     attachment = @incident.attachments.last
-    assert_equal "general", attachment.category
+    assert_equal "dfr", attachment.category
     assert attachment.file.attached?
     assert_includes attachment.file.filename.to_s, "DFR-"
     assert_equal "application/pdf", attachment.file.content_type

@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { router } from "@inertiajs/react";
-import { ChevronDown, FileText, Pencil } from "lucide-react";
+import { ChevronDown, FileText, Loader2, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type {
   DailyActivity,
@@ -34,6 +34,54 @@ export default function DailyLogPanel({
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [activityForm, setActivityForm] = useState<{ open: boolean; entry?: DailyActivity }>({ open: false });
   const [collapsedRows, setCollapsedRows] = useState<Set<string>>(new Set());
+  const [processingDates, setProcessingDates] = useState<Set<string>>(new Set());
+  const pollTimers = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map());
+
+  // Clear poll when DFR appears for a date
+  useEffect(() => {
+    for (const dateKey of processingDates) {
+      const group = daily_log_table_groups.find((g) => g.date_key === dateKey);
+      if (group?.dfr) {
+        setProcessingDates((prev) => {
+          const next = new Set(prev);
+          next.delete(dateKey);
+          return next;
+        });
+        const timer = pollTimers.current.get(dateKey);
+        if (timer) { clearInterval(timer); pollTimers.current.delete(dateKey); }
+      }
+    }
+  }, [daily_log_table_groups, processingDates]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      for (const timer of pollTimers.current.values()) clearInterval(timer);
+    };
+  }, []);
+
+  const handleGenerateDfr = useCallback((dateKey: string) => {
+    router.post(dfr_path, { date: dateKey }, { preserveScroll: true });
+    setProcessingDates((prev) => new Set(prev).add(dateKey));
+
+    // Poll every 5s, stop after 60s
+    let elapsed = 0;
+    const timer = setInterval(() => {
+      elapsed += 5000;
+      if (elapsed >= 60000) {
+        clearInterval(timer);
+        pollTimers.current.delete(dateKey);
+        setProcessingDates((prev) => {
+          const next = new Set(prev);
+          next.delete(dateKey);
+          return next;
+        });
+        return;
+      }
+      router.reload({ only: ["daily_log_table_groups"] });
+    }, 5000);
+    pollTimers.current.set(dateKey, timer);
+  }, [dfr_path]);
 
   // When a specific date is selected, all rows are expanded by default (user collapses them).
   // When "All Dates" is selected, all rows are collapsed by default (user expands them).
@@ -180,17 +228,42 @@ export default function DailyLogPanel({
                   <span className="text-sm font-semibold uppercase tracking-wide text-foreground/85">
                     {group.date_label}
                   </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => router.post(dfr_path, { date: group.date_key })}
-                    data-testid={`dfr-link-${group.date_key}`}
-                    className="h-auto py-0.5 px-1.5 text-sm text-foreground/75 hover:text-foreground"
-                    title="Generate Daily Field Report"
-                  >
-                    <FileText className="h-3 w-3" />
-                    DFR
-                  </Button>
+                  {group.dfr ? (
+                    <a
+                      href={group.dfr.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      data-testid={`dfr-link-${group.date_key}`}
+                      className="inline-flex items-center gap-1 h-auto py-0.5 px-1.5 text-sm text-primary hover:text-primary/80 font-medium"
+                      title={`Download ${group.dfr.filename}`}
+                    >
+                      <FileText className="h-3 w-3" />
+                      DFR
+                    </a>
+                  ) : processingDates.has(group.date_key) ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled
+                      data-testid={`dfr-processing-${group.date_key}`}
+                      className="h-auto py-0.5 px-1.5 text-sm text-muted-foreground"
+                    >
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Processing...
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleGenerateDfr(group.date_key)}
+                      data-testid={`dfr-generate-${group.date_key}`}
+                      className="h-auto py-0.5 px-1.5 text-sm text-foreground/75 hover:text-foreground"
+                      title="Generate Daily Field Report"
+                    >
+                      <FileText className="h-3 w-3" />
+                      DFR
+                    </Button>
+                  )}
                 </div>
 
                 {/* Timeline rows (activities, notes, documents, etc.) */}

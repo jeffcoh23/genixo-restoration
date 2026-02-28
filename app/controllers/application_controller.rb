@@ -2,6 +2,7 @@ class ApplicationController < ActionController::Base
   include Authentication
   include Authorization
   include TimeFormatting
+  include PhoneFormatting
 
   allow_browser versions: :modern
 

@@ -80,9 +80,33 @@ class UserTest < ActiveSupport::TestCase
     assert user.active
   end
 
-  test "defaults timezone to America/Chicago" do
+  test "defaults timezone to Central Time" do
     user = User.new
-    assert_equal "America/Chicago", user.timezone
+    assert_equal "Central Time (US & Canada)", user.timezone
+  end
+
+  test "normalizes phone to digits only" do
+    user = build_user(phone: "(203) 218-0897")
+    user.save!
+    assert_equal "2032180897", user.phone
+  end
+
+  test "normalizes phone strips leading 1" do
+    user = build_user(phone: "1-203-218-0897")
+    user.save!
+    assert_equal "2032180897", user.phone
+  end
+
+  test "normalizes phone preserves nil" do
+    user = build_user(phone: nil)
+    user.save!
+    assert_nil user.phone
+  end
+
+  test "normalizes phone preserves blank as nil" do
+    user = build_user(phone: "")
+    user.save!
+    assert_nil user.phone
   end
 
   test "active scope excludes deactivated users" do

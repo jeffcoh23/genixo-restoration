@@ -17,9 +17,10 @@ interface OverviewPanelProps {
   can_manage_contacts: boolean;
   assignable_mitigation_users: AssignableUser[];
   assignable_pm_users: AssignableUser[];
+  show_mitigation_team: boolean;
 }
 
-export default function OverviewPanel({ incident, can_assign, can_manage_contacts, assignable_mitigation_users, assignable_pm_users }: OverviewPanelProps) {
+export default function OverviewPanel({ incident, can_assign, can_manage_contacts, assignable_mitigation_users, assignable_pm_users, show_mitigation_team }: OverviewPanelProps) {
   const [contactFormOpen, setContactFormOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [confirmRemoveUser, setConfirmRemoveUser] = useState<{ name: string; path: string } | null>(null);
@@ -51,31 +52,33 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
 
   return (
     <div className="overflow-y-auto h-full p-4 bg-background">
-      <div className="mx-auto grid max-w-[1500px] grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 items-start">
-        {/* Column 1: Mitigation Team */}
-        <section className="rounded-xl border border-border bg-card shadow-sm p-4 space-y-3">
-          <div className="flex items-center gap-2">
-            <h3 className="text-sm font-semibold text-foreground flex-1">
-              Mitigation Team <span className="text-muted-foreground tabular-nums">{incident.mitigation_team.length}</span>
-            </h3>
-            {can_assign && assignable_mitigation_users.length > 0 && (
-              <AssignSelect users={assignable_mitigation_users} onAssign={handleAssign} disabled={teamAction.processing} />
-            )}
-          </div>
-          <InlineActionFeedback error={teamAction.error} onDismiss={teamAction.clearFeedback} />
+      <div className={`mx-auto grid max-w-[1500px] grid-cols-1 md:grid-cols-2 ${show_mitigation_team ? "xl:grid-cols-3" : ""} gap-4 items-start`}>
+        {/* Column 1: Mitigation Team (hidden for PM users) */}
+        {show_mitigation_team && (
+          <section className="rounded-xl border border-border bg-card shadow-sm p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-foreground flex-1">
+                Mitigation Team <span className="text-muted-foreground tabular-nums">{incident.mitigation_team.length}</span>
+              </h3>
+              {can_assign && assignable_mitigation_users.length > 0 && (
+                <AssignSelect users={assignable_mitigation_users} onAssign={handleAssign} disabled={teamAction.processing} />
+              )}
+            </div>
+            <InlineActionFeedback error={teamAction.error} onDismiss={teamAction.clearFeedback} />
 
-          {incident.mitigation_team.length === 0 ? (
-            <p className="text-muted-foreground text-sm">No team members assigned.</p>
-          ) : (
-              <UserList
-                users={incident.mitigation_team}
-                expandedUserId={expandedUserId}
-                onToggleExpand={setExpandedUserId}
-                onRemove={(name, path) => setConfirmRemoveUser({ name, path })}
-                actionsDisabled={teamAction.processing}
-              />
-            )}
-        </section>
+            {incident.mitigation_team.length === 0 ? (
+              <p className="text-muted-foreground text-sm">No team members assigned.</p>
+            ) : (
+                <UserList
+                  users={incident.mitigation_team}
+                  expandedUserId={expandedUserId}
+                  onToggleExpand={setExpandedUserId}
+                  onRemove={(name, path) => setConfirmRemoveUser({ name, path })}
+                  actionsDisabled={teamAction.processing}
+                />
+              )}
+          </section>
+        )}
 
         {/* Column 2: Property Management */}
         <section className="rounded-xl border border-border bg-card shadow-sm p-4 space-y-3">
@@ -353,7 +356,7 @@ function UserList({ users, expandedUserId, onToggleExpand, onRemove, actionsDisa
                         </a>
                       )}
                       {u.phone && (
-                        <a href={`tel:${u.phone}`} className="flex items-center gap-1 hover:text-foreground transition-colors" onClick={(e) => e.stopPropagation()}>
+                        <a href={`tel:${u.phone_raw}`} className="flex items-center gap-1 hover:text-foreground transition-colors" onClick={(e) => e.stopPropagation()}>
                           <Phone className="h-2.5 w-2.5" />
                           {u.phone}
                         </a>

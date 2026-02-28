@@ -617,6 +617,105 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     JSON.parse(CGI.unescapeHTML(encoded)).fetch("props")
   end
 
+  # --- Hide closed incidents by default ---
+
+  # --- Manage tab visibility ---
+
+  test "mitigation user sees show_mitigation_team true" do
+    incident = create_test_incident(status: "active", property: @property)
+    login_as @manager
+    get incident_path(incident)
+    assert_response :success
+    assert_includes response.body, "show_mitigation_team"
+    # HTML-encoded JSON: &quot; surrounds keys
+    assert_includes response.body, "show_mitigation_team&quot;:true"
+  end
+
+  test "PM user sees show_mitigation_team false" do
+    incident = create_test_incident(status: "active", property: @property)
+    IncidentAssignment.create!(incident: incident, user: @pm_user, assigned_by_user: @manager)
+    login_as @pm_user
+    get incident_path(incident)
+    assert_response :success
+    assert_includes response.body, "show_mitigation_team&quot;:false"
+  end
+
+  # --- Hide closed incidents by default ---
+
+  test "index hides closed incidents by default" do
+    active = create_test_incident(status: "active", property: @property)
+    closed = create_test_incident(status: "closed", property: @other_property, description: "Closed job")
+    login_as @manager
+    get incidents_path
+    assert_response :success
+    assert_not_includes response.body, "Closed job"
+  end
+
+  # --- Attachment permissions ---
+
+  test "PM user cannot upload photo" do
+    incident = create_test_incident(status: "active", property: @property)
+    IncidentAssignment.create!(incident: incident, user: @pm_user, assigned_by_user: @manager)
+    login_as @pm_user
+    post upload_photo_incident_attachments_path(incident), params: { file: nil }
+    assert_response :not_found
+  end
+
+  test "manager can upload photo" do
+    incident = create_test_incident(status: "active", property: @property)
+    login_as @manager
+    post upload_photo_incident_attachments_path(incident), params: { file: nil }
+    # 422 because no file, but not 404 — proves authorization passed
+    assert_response :unprocessable_entity
+  end
+
+  test "PM user cannot delete attachment" do
+    incident = create_test_incident(status: "active", property: @property)
+    IncidentAssignment.create!(incident: incident, user: @pm_user, assigned_by_user: @manager)
+    att = incident.attachments.create!(
+      category: "photo", uploaded_by_user: @manager,
+      file: fixture_file_upload("test/fixtures/files/test_photo.jpg", "image/jpeg")
+    )
+    login_as @pm_user
+    delete incident_attachment_path(incident, att)
+    assert_response :not_found
+  end
+
+  test "technician can delete attachment" do
+    incident = create_test_incident(status: "active", property: @property)
+    IncidentAssignment.create!(incident: incident, user: @tech, assigned_by_user: @manager)
+    att = incident.attachments.create!(
+      category: "photo", uploaded_by_user: @manager,
+      file: fixture_file_upload("test/fixtures/files/test_photo.jpg", "image/jpeg")
+    )
+    login_as @tech
+    delete incident_attachment_path(incident, att)
+    # Not 404 = authorization passed (technicians have MANAGE_ATTACHMENTS)
+    assert_not_equal 404, response.status
+  end
+
+  test "manager can update attachment" do
+    incident = create_test_incident(status: "active", property: @property)
+    att = incident.attachments.create!(
+      category: "photo", uploaded_by_user: @manager,
+      file: fixture_file_upload("test/fixtures/files/test_photo.jpg", "image/jpeg"),
+      description: "Old desc"
+    )
+    login_as @manager
+    patch incident_attachment_path(incident, att), params: { attachment: { description: "New desc", log_date: "2026-02-20" } }
+    att.reload
+    assert_equal "New desc", att.description
+    assert_equal Date.parse("2026-02-20"), att.log_date
+  end
+
+  test "index shows closed incidents when status filter includes closed" do
+    closed = create_test_incident(status: "closed", property: @property, description: "Closed job")
+    login_as @manager
+    get incidents_path, params: { status: "closed" }
+    assert_response :success
+    assert_includes response.body, "Closed job"
+  end
+
   # Fetch deferred props by making a partial Inertia reload request.
   # Call this after the initial GET when the props you need are deferred.
   def inertia_deferred_props(path, *prop_keys)

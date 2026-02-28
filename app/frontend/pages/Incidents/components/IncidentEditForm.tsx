@@ -35,7 +35,7 @@ export default function IncidentEditForm({ incident, project_types, damage_types
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-lg lg:max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Incident</DialogTitle>
         </DialogHeader>
@@ -91,8 +91,9 @@ export default function IncidentEditForm({ incident, project_types, damage_types
             <Label htmlFor="edit_do_not_exceed" className="text-xs">Emergency Do Not Exceed Limit</Label>
             <Input
               id="edit_do_not_exceed"
+              inputMode="numeric"
               value={data.do_not_exceed_limit}
-              onChange={(e) => setData("do_not_exceed_limit", e.target.value)}
+              onChange={(e) => setData("do_not_exceed_limit", e.target.value.replace(/[^0-9]/g, ""))}
               placeholder="Optional dollar amount"
               className="h-9"
             />
@@ -157,9 +158,9 @@ export default function IncidentEditForm({ incident, project_types, damage_types
               <Label htmlFor="edit_units" className="text-xs">Units Affected</Label>
               <Input
                 id="edit_units"
-                type="number"
+                inputMode="numeric"
                 value={data.units_affected}
-                onChange={(e) => setData("units_affected", e.target.value)}
+                onChange={(e) => setData("units_affected", e.target.value.replace(/[^0-9]/g, ""))}
                 className="h-9"
               />
               {errors.units_affected && <p className="text-xs text-destructive">{errors.units_affected}</p>}

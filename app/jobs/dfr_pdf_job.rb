@@ -5,13 +5,13 @@ class DfrPdfJob < ApplicationJob
     incident = Incident.find(incident_id)
     user = User.find(user_id)
     pdf_data = DfrPdfService.new(
-      incident: incident, date: date, timezone: user_timezone, include_photos: false
+      incident: incident, date: date, timezone: user_timezone, include_photos: true
     ).generate
 
     filename = "DFR-#{incident.job_id || incident.id}-#{date}.pdf"
 
     attachment = incident.attachments.build(
-      category: "general",
+      category: "dfr",
       description: "Daily Field Report — #{date}",
       log_date: Date.parse(date),
       uploaded_by_user: user

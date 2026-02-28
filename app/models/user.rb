@@ -46,6 +46,14 @@ class User < ApplicationRecord
   validate :user_type_matches_org_type
 
   normalizes :email_address, with: ->(e) { e.strip.downcase }
+  normalizes :phone, with: ->(p) {
+    next nil if p.blank?
+    digits = p.gsub(/\D/, "")
+    digits = digits[1..] if digits.length == 11 && digits[0] == "1"
+    digits.presence
+  }
+
+  attribute :timezone, default: "Central Time (US & Canada)"
 
   scope :active, -> { where(active: true) }
 

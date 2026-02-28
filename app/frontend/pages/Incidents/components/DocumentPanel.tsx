@@ -11,6 +11,7 @@ const CATEGORY_ORDER = [ "moisture_mapping", "moisture_readings", "psychrometric
 interface DocumentPanelProps {
   attachments: IncidentAttachment[];
   attachments_path: string;
+  can_manage_attachments: boolean;
 }
 
 function formatBytes(bytes: number): string {
@@ -20,7 +21,7 @@ function formatBytes(bytes: number): string {
   return `${(kb / 1024).toFixed(1)} MB`;
 }
 
-export default function DocumentPanel({ attachments, attachments_path }: DocumentPanelProps) {
+export default function DocumentPanel({ attachments, attachments_path, can_manage_attachments }: DocumentPanelProps) {
   const [showUploadForm, setShowUploadForm] = useState(false);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
@@ -35,7 +36,7 @@ export default function DocumentPanel({ attachments, attachments_path }: Documen
 
   const documents = useMemo(
     () => attachments
-      .filter((attachment) => attachment.category !== "photo")
+      .filter((attachment) => attachment.category !== "photo" && attachment.category !== "dfr")
       .sort((a, b) => {
         const rankA = categoryRank[a.category] ?? 999;
         const rankB = categoryRank[b.category] ?? 999;
@@ -95,15 +96,17 @@ export default function DocumentPanel({ attachments, attachments_path }: Documen
         <p className="text-xs text-muted-foreground">
           {filteredDocuments.length} of {documents.length} documents · grouped by type · batch size {PAGE_SIZE}
         </p>
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-10 sm:h-8 text-sm sm:text-xs gap-1"
-          onClick={() => setShowUploadForm(true)}
-        >
-          <Upload className="h-3 w-3" />
-          Upload Document
-        </Button>
+        {can_manage_attachments && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-10 sm:h-8 text-sm sm:text-xs gap-1"
+            onClick={() => setShowUploadForm(true)}
+          >
+            <Upload className="h-3 w-3" />
+            Upload Document
+          </Button>
+        )}
       </div>
 
       <div className="border-b border-border bg-card/60 p-3 shrink-0">
