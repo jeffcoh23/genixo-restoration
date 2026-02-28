@@ -1,6 +1,6 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { router, usePoll } from "@inertiajs/react";
-import { ChevronDown, FileText, Pencil } from "lucide-react";
+import { ChevronDown, FileText, Loader2, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type {
   DailyActivity,
@@ -34,26 +34,32 @@ export default function DailyLogPanel({
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [activityForm, setActivityForm] = useState<{ open: boolean; entry?: DailyActivity }>({ open: false });
   const [collapsedRows, setCollapsedRows] = useState<Set<string>>(new Set());
-  const [pendingDfr, setPendingDfr] = useState<Set<string>>(new Set());
+  const [requestedDfrs, setRequestedDfrs] = useState<Set<string>>(new Set());
   const { start: startPolling, stop: stopPolling } = usePoll(5000, {
     only: ["daily_log_table_groups"],
-    onFinish() {
-      // After each poll, clear resolved dates and stop if nothing pending
-      setPendingDfr((prev) => {
-        const remaining = new Set<string>();
-        for (const dateKey of prev) {
-          const group = daily_log_table_groups.find((g) => g.date_key === dateKey);
-          if (!group?.dfr) remaining.add(dateKey);
-        }
-        if (remaining.size === 0) stopPolling();
-        return remaining;
-      });
-    },
   }, { autoStart: false });
+
+  // Derive which requested DFRs are still pending (not yet generated)
+  const pendingDfr = useMemo(() => {
+    const pending = new Set<string>();
+    for (const dateKey of requestedDfrs) {
+      const group = daily_log_table_groups.find((g) => g.date_key === dateKey);
+      if (!group?.dfr) pending.add(dateKey);
+    }
+    return pending;
+  }, [requestedDfrs, daily_log_table_groups]);
+
+  // Stop polling once all requested DFRs have been generated
+  useEffect(() => {
+    if (requestedDfrs.size > 0 && pendingDfr.size === 0) {
+      stopPolling();
+      setRequestedDfrs(new Set());
+    }
+  }, [pendingDfr.size, requestedDfrs.size, stopPolling]);
 
   const handleGenerateDfr = useCallback((dateKey: string) => {
     router.post(dfr_path, { date: dateKey }, { preserveScroll: true });
-    setPendingDfr((prev) => new Set(prev).add(dateKey));
+    setRequestedDfrs((prev) => new Set(prev).add(dateKey));
     startPolling();
   }, [dfr_path, startPolling]);
 
@@ -214,11 +220,18 @@ export default function DailyLogPanel({
                       <FileText className="h-3 w-3" />
                       DFR
                     </a>
+                  ) : pendingDfr.has(group.date_key) ? (
+                    <span
+                      data-testid={`dfr-processing-${group.date_key}`}
+                      className="inline-flex items-center gap-1 h-auto py-0.5 px-1.5 text-sm text-muted-foreground"
+                    >
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Processing...
+                    </span>
                   ) : (
                     <Button
                       variant="ghost"
                       size="sm"
-                      disabled={pendingDfr.has(group.date_key)}
                       onClick={() => handleGenerateDfr(group.date_key)}
                       data-testid={`dfr-generate-${group.date_key}`}
                       className="h-auto py-0.5 px-1.5 text-sm text-foreground/75 hover:text-foreground"

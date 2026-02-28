@@ -193,7 +193,7 @@ class BatchImprovementsTest < ApplicationSystemTestCase
 
   # --- Item 2: DFR in daily log ---
 
-  test "DFR button shows generate state when no DFR exists" do
+  test "DFR generate button shows Processing state after click" do
     create_activity_for_date(@incident, @manager, Date.current)
 
     login_as @manager
@@ -201,6 +201,11 @@ class BatchImprovementsTest < ApplicationSystemTestCase
     # Daily Log is the default tab
     assert_selector "[data-testid^='dfr-generate-']"
     assert_no_selector "[data-testid^='dfr-link-']"
+
+    # Click generate — should show Processing...
+    find("[data-testid^='dfr-generate-']").click
+    assert_selector "[data-testid^='dfr-processing-']"
+    assert_text "Processing..."
   end
 
   test "DFR shows as download link when DFR attachment exists" do
