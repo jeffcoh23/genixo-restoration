@@ -260,9 +260,9 @@ export default function PsychrometricPanel({ psychrometric_data, can_manage_psyc
                 <th />
                 {orderedDates.map((date) => (
                   <Fragment key={date}>
-                    <th className="px-1 py-1 text-center text-[10px] font-medium uppercase text-muted-foreground/70 border-l border-border min-w-[50px]">Rh%</th>
-                    <th className="px-1 py-1 text-center text-[10px] font-medium uppercase text-muted-foreground/70 min-w-[50px]">F&deg;</th>
-                    <th className="px-1 py-1 text-center text-[10px] font-medium uppercase text-muted-foreground/70 min-w-[50px]">GPP</th>
+                    <th className="px-1 py-1 text-center text-xs font-medium uppercase text-muted-foreground/70 border-l border-border min-w-[50px]">Rh%</th>
+                    <th className="px-1 py-1 text-center text-xs font-medium uppercase text-muted-foreground/70 min-w-[50px]">F&deg;</th>
+                    <th className="px-1 py-1 text-center text-xs font-medium uppercase text-muted-foreground/70 min-w-[50px]">GPP</th>
                   </Fragment>
                 ))}
                 {can_manage_psychrometric && <th />}
@@ -293,7 +293,7 @@ export default function PsychrometricPanel({ psychrometric_data, can_manage_psyc
                         {/* Rh% cell */}
                         <td className={`px-1 py-1 text-sm text-center border-l border-border ${can_manage_psychrometric ? "cursor-pointer hover:bg-muted/50" : ""}`}>
                           {isEditingRh ? (
-                            <input
+                            <Input
                               type="text"
                               inputMode="decimal"
                               value={editValue}
@@ -303,7 +303,7 @@ export default function PsychrometricPanel({ psychrometric_data, can_manage_psyc
                               }}
                               onKeyDown={handleCellKeyDown}
                               onBlur={handleCellBlur}
-                              className="h-6 w-12 text-center text-xs bg-transparent border-0 border-b-2 border-primary outline-none rounded-none mx-auto block font-medium text-foreground"
+                              className="h-6 w-12 text-center text-xs border-0 border-b-2 border-primary rounded-none shadow-none focus-visible:ring-0 mx-auto font-medium"
                               autoFocus
                             />
                           ) : (
@@ -320,7 +320,7 @@ export default function PsychrometricPanel({ psychrometric_data, can_manage_psyc
                         {/* F° cell */}
                         <td className={`px-1 py-1 text-sm text-center ${can_manage_psychrometric ? "cursor-pointer hover:bg-muted/50" : ""}`}>
                           {isEditingTemp ? (
-                            <input
+                            <Input
                               type="text"
                               inputMode="decimal"
                               value={editValue}
@@ -330,7 +330,7 @@ export default function PsychrometricPanel({ psychrometric_data, can_manage_psyc
                               }}
                               onKeyDown={handleCellKeyDown}
                               onBlur={handleCellBlur}
-                              className="h-6 w-12 text-center text-xs bg-transparent border-0 border-b-2 border-primary outline-none rounded-none mx-auto block font-medium text-foreground"
+                              className="h-6 w-12 text-center text-xs border-0 border-b-2 border-primary rounded-none shadow-none focus-visible:ring-0 mx-auto font-medium"
                               autoFocus
                             />
                           ) : (

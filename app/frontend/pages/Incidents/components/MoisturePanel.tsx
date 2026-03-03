@@ -339,7 +339,7 @@ export default function MoisturePanel({ moisture_data, can_manage_moisture }: Mo
                     if (isEditing) {
                       return (
                         <td key={date} className="px-1 py-1 text-sm text-center">
-                          <input
+                          <Input
                             type="text"
                             inputMode="decimal"
                             value={editValue}
@@ -349,7 +349,7 @@ export default function MoisturePanel({ moisture_data, can_manage_moisture }: Mo
                             }}
                             onKeyDown={handleCellKeyDown}
                             onBlur={handleCellBlur}
-                            className="h-6 w-14 text-center text-xs bg-transparent border-0 border-b-2 border-primary outline-none rounded-none mx-auto block font-medium text-foreground"
+                            className="h-6 w-14 text-center text-xs border-0 border-b-2 border-primary rounded-none shadow-none focus-visible:ring-0 mx-auto font-medium"
                             autoFocus
                           />
                         </td>

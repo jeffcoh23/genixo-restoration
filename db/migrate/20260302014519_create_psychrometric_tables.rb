@@ -9,7 +9,7 @@ class CreatePsychrometricTables < ActiveRecord::Migration[8.0]
       t.timestamps
     end
 
-    add_index :psychrometric_points, [:incident_id, :position]
+    add_index :psychrometric_points, [ :incident_id, :position ]
 
     create_table :psychrometric_readings do |t|
       t.references :psychrometric_point, null: false, foreign_key: true
@@ -21,7 +21,7 @@ class CreatePsychrometricTables < ActiveRecord::Migration[8.0]
       t.timestamps
     end
 
-    add_index :psychrometric_readings, [:psychrometric_point_id, :log_date], unique: true, name: "idx_psychrometric_readings_point_date"
+    add_index :psychrometric_readings, [ :psychrometric_point_id, :log_date ], unique: true, name: "idx_psychrometric_readings_point_date"
     add_index :psychrometric_readings, :log_date
   end
 end
