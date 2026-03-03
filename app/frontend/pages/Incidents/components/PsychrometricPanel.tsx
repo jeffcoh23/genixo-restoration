@@ -1,4 +1,4 @@
-import { Fragment, useState, useRef, useCallback } from "react";
+import { Fragment, useState, useRef, useCallback, useMemo } from "react";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,7 +46,7 @@ export default function PsychrometricPanel({ psychrometric_data, can_manage_psyc
 
   // Local points added via inline row (avoids Inertia reload)
   const [localPoints, setLocalPoints] = useState<PsychrometricPoint[]>([]);
-  const allPoints = [...psychrometric_data.points, ...localPoints.filter(lp => !psychrometric_data.points.some(sp => sp.id === lp.id))];
+  const allPoints = useMemo(() => [...psychrometric_data.points, ...localPoints.filter(lp => !psychrometric_data.points.some(sp => sp.id === lp.id))], [psychrometric_data.points, localPoints]);
 
   // G-Dep: for room points, GPP minus the dehumidifier GPP in the same unit
   const getDehuGpp = useCallback((unit: string, date: string): number | null => {
@@ -118,7 +118,7 @@ export default function PsychrometricPanel({ psychrometric_data, can_manage_psyc
         readings: [data],
       });
     }
-  }, [psychrometric_data, backgroundSave]);
+  }, [allPoints, psychrometric_data, backgroundSave]);
 
   // Build flat cell list for Tab navigation (rh, temp per date per point)
   const getNextEditableCell = (pointId: number, date: string, field: PsychField, direction: "next" | "prev") => {

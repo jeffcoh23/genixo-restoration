@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useMemo } from "react";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,7 +56,7 @@ export default function MoisturePanel({ moisture_data, can_manage_moisture }: Mo
 
   // Local points added via inline row (avoids Inertia reload)
   const [localPoints, setLocalPoints] = useState<MoisturePoint[]>([]);
-  const allPoints = [...moisture_data.points, ...localPoints.filter(lp => !moisture_data.points.some(sp => sp.id === lp.id))];
+  const allPoints = useMemo(() => [...moisture_data.points, ...localPoints.filter(lp => !moisture_data.points.some(sp => sp.id === lp.id))], [moisture_data.points, localPoints]);
 
   const orderedDates = moisture_data.dates;
   const orderedDateLabels = moisture_data.date_labels;
@@ -114,7 +114,7 @@ export default function MoisturePanel({ moisture_data, can_manage_moisture }: Mo
         readings: [{ point_id: pointId, value: numValue }],
       });
     }
-  }, [moisture_data, backgroundSave]);
+  }, [allPoints, moisture_data, backgroundSave]);
 
   // Tab: save current cell + start editing next date column
   const getNextReadingCell = (pointId: number, date: string, direction: "next" | "prev") => {
