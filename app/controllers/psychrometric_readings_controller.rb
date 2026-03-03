@@ -23,11 +23,26 @@ class PsychrometricReadingsController < ApplicationController
       metadata: { unit: point.unit, room: point.room }
     )
 
-    redirect_to incident_path(@incident), notice: "Psychrometric point added."
+    respond_to do |format|
+      format.json do
+        render json: {
+          id: point.id, unit: point.unit, room: point.room,
+          dehumidifier_label: point.dehumidifier_label, position: point.position,
+          readings: {},
+          destroy_path: incident_psychrometric_point_path(@incident, point)
+        }
+      end
+      format.any { redirect_to incident_path(@incident), notice: "Psychrometric point added." }
+    end
   rescue ActiveRecord::RecordInvalid => e
-    redirect_to incident_path(@incident),
-      inertia: { errors: e.record.errors.to_hash },
-      alert: "Could not create psychrometric point."
+    respond_to do |format|
+      format.json { render json: { errors: e.record.errors.to_hash }, status: :unprocessable_entity }
+      format.any do
+        redirect_to incident_path(@incident),
+          inertia: { errors: e.record.errors.to_hash },
+          alert: "Could not create psychrometric point."
+      end
+    end
   end
 
   def destroy_point

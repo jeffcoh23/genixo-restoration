@@ -1,12 +1,11 @@
 import { Fragment, useState, useRef, useCallback } from "react";
-import { router } from "@inertiajs/react";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import useInertiaAction from "@/hooks/useInertiaAction";
 import IncidentPanelAddButton from "./IncidentPanelAddButton";
 import PsychrometricBatchForm from "./PsychrometricBatchForm";
-import type { PsychrometricData } from "../types";
+import type { PsychrometricData, PsychrometricPoint } from "../types";
 
 interface PsychrometricPanelProps {
   psychrometric_data: PsychrometricData;
@@ -45,9 +44,25 @@ export default function PsychrometricPanel({ psychrometric_data, can_manage_psyc
   // Optimistic UI: locally edited values overlay server props until next full reload
   const [pendingSaves, setPendingSaves] = useState<Record<string, number | null>>({});
 
+  // Local points added via inline row (avoids Inertia reload)
+  const [localPoints, setLocalPoints] = useState<PsychrometricPoint[]>([]);
+  const allPoints = [...psychrometric_data.points, ...localPoints.filter(lp => !psychrometric_data.points.some(sp => sp.id === lp.id))];
+
+  // G-Dep: for room points, GPP minus the dehumidifier GPP in the same unit
+  const getDehuGpp = useCallback((unit: string, date: string): number | null => {
+    const dehuPoint = allPoints.find(p => p.unit === unit && p.dehumidifier_label);
+    if (!dehuPoint) return null;
+    const rhKey = `${dehuPoint.id}:${date}:relative_humidity`;
+    const tempKey = `${dehuPoint.id}:${date}:temperature`;
+    const dehuRh = rhKey in pendingSaves ? pendingSaves[rhKey] : (dehuPoint.readings[date]?.relative_humidity ?? null);
+    const dehuTemp = tempKey in pendingSaves ? pendingSaves[tempKey] : (dehuPoint.readings[date]?.temperature ?? null);
+    if (rhKey in pendingSaves || tempKey in pendingSaves) return calculateGpp(dehuRh, dehuTemp);
+    return dehuPoint.readings[date]?.gpp ?? null;
+  }, [allPoints, pendingSaves]);
+
   const orderedDates = psychrometric_data.dates;
   const orderedDateLabels = psychrometric_data.date_labels;
-  const hasPoints = psychrometric_data.points.length > 0;
+  const hasPoints = allPoints.length > 0;
 
   // Inline new row
   const [newRow, setNewRow] = useState({
@@ -89,7 +104,7 @@ export default function PsychrometricPanel({ psychrometric_data, can_manage_psyc
     // Optimistic: immediately show the new value in the UI
     setPendingSaves(prev => ({ ...prev, [`${pointId}:${date}:${field}`]: numValue }));
 
-    const point = psychrometric_data.points.find(p => p.id === pointId);
+    const point = allPoints.find(p => p.id === pointId);
     const reading = point?.readings[date];
 
     if (reading) {
@@ -109,7 +124,7 @@ export default function PsychrometricPanel({ psychrometric_data, can_manage_psyc
   const getNextEditableCell = (pointId: number, date: string, field: PsychField, direction: "next" | "prev") => {
     type Cell = { pointId: number; date: string; field: PsychField; value: number | null };
     const cells: Cell[] = [];
-    for (const point of psychrometric_data.points) {
+    for (const point of allPoints) {
       for (const d of orderedDates) {
         const reading = point.readings[d];
         const rhKey = `${point.id}:${d}:relative_humidity`;
@@ -187,9 +202,9 @@ export default function PsychrometricPanel({ psychrometric_data, can_manage_psyc
     newRowProcessingRef.current = true;
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") || "";
     try {
-      await fetch(psychrometric_data.create_point_path, {
+      const resp = await fetch(psychrometric_data.create_point_path, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken },
+        headers: { "Content-Type": "application/json", "Accept": "application/json", "X-CSRF-Token": csrfToken },
         body: JSON.stringify({
           point: {
             unit: newRow.unit.trim(),
@@ -200,11 +215,12 @@ export default function PsychrometricPanel({ psychrometric_data, can_manage_psyc
           reading_relative_humidity: "",
           reading_date: "",
         }),
-        redirect: "manual",
       });
+      if (resp.ok) {
+        const newPoint: PsychrometricPoint = await resp.json();
+        setLocalPoints(prev => [...prev, newPoint]);
+      }
       setNewRow({ unit: "", room: "", dehumidifier_label: "" });
-      // Silently refresh data to show the new row
-      router.reload();
     } catch { /* silent */ } finally {
       newRowProcessingRef.current = false;
     }
@@ -246,7 +262,7 @@ export default function PsychrometricPanel({ psychrometric_data, can_manage_psyc
                 <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-[90px]">Room</th>
                 <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-[80px]">Dehu</th>
                 {orderedDateLabels.map((label, i) => (
-                  <th key={orderedDates[i]} colSpan={3} className="px-1 py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground border-l border-border">
+                  <th key={orderedDates[i]} colSpan={4} className="px-1 py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground border-l border-border">
                     {label}
                   </th>
                 ))}
@@ -263,13 +279,14 @@ export default function PsychrometricPanel({ psychrometric_data, can_manage_psyc
                     <th className="px-1 py-1 text-center text-xs font-medium uppercase text-muted-foreground/70 border-l border-border min-w-[50px]">Rh%</th>
                     <th className="px-1 py-1 text-center text-xs font-medium uppercase text-muted-foreground/70 min-w-[50px]">F&deg;</th>
                     <th className="px-1 py-1 text-center text-xs font-medium uppercase text-muted-foreground/70 min-w-[50px]">GPP</th>
+                    <th className="px-1 py-1 text-center text-xs font-medium uppercase text-muted-foreground/70 min-w-[50px]">G-Dep</th>
                   </Fragment>
                 ))}
                 {can_manage_psychrometric && <th />}
               </tr>
             </thead>
             <tbody>
-              {psychrometric_data.points.map((point) => (
+              {allPoints.map((point) => (
                 <tr key={point.id} className="border-b border-border last:border-b-0 hover:bg-muted/30 transition-colors">
                   <td className="px-3 py-2.5 text-sm font-medium text-foreground sticky left-0 bg-background z-10">{point.unit}</td>
                   <td className="px-3 py-2.5 text-sm text-muted-foreground">{point.room}</td>
@@ -350,6 +367,19 @@ export default function PsychrometricPanel({ psychrometric_data, can_manage_psyc
                             {gpp !== null ? gpp : <span className="text-muted-foreground/40">&mdash;</span>}
                           </span>
                         </td>
+                        {/* G-Dep cell (read-only, calculated) */}
+                        <td className="px-1 py-1.5 text-sm text-center">
+                          <span className="text-xs text-muted-foreground">
+                            {point.dehumidifier_label ? (
+                              <span className="text-muted-foreground/40">&mdash;</span>
+                            ) : (() => {
+                              if (gpp === null) return <span className="text-muted-foreground/40">&mdash;</span>;
+                              const dehuGpp = getDehuGpp(point.unit, date);
+                              if (dehuGpp === null) return <span className="text-muted-foreground/40">&mdash;</span>;
+                              return Math.round((gpp - dehuGpp) * 10) / 10;
+                            })()}
+                          </span>
+                        </td>
                       </Fragment>
                     );
                   })}
@@ -407,6 +437,7 @@ export default function PsychrometricPanel({ psychrometric_data, can_manage_psyc
                       <td className="px-1 py-2.5 text-center border-l border-border"><span className="text-muted-foreground/30">&mdash;</span></td>
                       <td className="px-1 py-2.5 text-center"><span className="text-muted-foreground/30">&mdash;</span></td>
                       <td className="px-1 py-2.5 text-center"><span className="text-muted-foreground/30">&mdash;</span></td>
+                      <td className="px-1 py-2.5 text-center"><span className="text-muted-foreground/30">&mdash;</span></td>
                     </Fragment>
                   ))}
                   <td />
@@ -419,7 +450,7 @@ export default function PsychrometricPanel({ psychrometric_data, can_manage_psyc
 
       {showBatchForm && (
         <PsychrometricBatchForm
-          points={batchPointId ? psychrometric_data.points.filter(p => p.id === batchPointId) : psychrometric_data.points}
+          points={batchPointId ? allPoints.filter(p => p.id === batchPointId) : allPoints}
           dates={psychrometric_data.dates}
           batchSavePath={psychrometric_data.batch_save_path}
           onClose={() => { setShowBatchForm(false); setBatchPointId(null); }}

@@ -23,11 +23,27 @@ class MoistureReadingsController < ApplicationController
       metadata: { unit: point.unit, room: point.room, item: point.item }
     )
 
-    redirect_to incident_path(@incident), notice: "Measurement point added."
+    respond_to do |format|
+      format.json do
+        render json: {
+          id: point.id, unit: point.unit, room: point.room, item: point.item,
+          material: point.material, goal: point.goal,
+          measurement_unit: point.measurement_unit, position: point.position,
+          readings: {},
+          destroy_path: incident_moisture_point_path(@incident, point)
+        }
+      end
+      format.any { redirect_to incident_path(@incident), notice: "Measurement point added." }
+    end
   rescue ActiveRecord::RecordInvalid => e
-    redirect_to incident_path(@incident),
-      inertia: { errors: e.record.errors.to_hash },
-      alert: "Could not create measurement point."
+    respond_to do |format|
+      format.json { render json: { errors: e.record.errors.to_hash }, status: :unprocessable_entity }
+      format.any do
+        redirect_to incident_path(@incident),
+          inertia: { errors: e.record.errors.to_hash },
+          alert: "Could not create measurement point."
+      end
+    end
   end
 
   def destroy_point

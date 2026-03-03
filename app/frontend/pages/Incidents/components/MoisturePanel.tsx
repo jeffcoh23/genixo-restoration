@@ -1,12 +1,11 @@
 import { useState, useRef, useCallback } from "react";
-import { router } from "@inertiajs/react";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import useInertiaAction from "@/hooks/useInertiaAction";
 import IncidentPanelAddButton from "./IncidentPanelAddButton";
 import MoistureBatchForm from "./MoistureBatchForm";
-import type { MoistureData } from "../types";
+import type { MoistureData, MoisturePoint } from "../types";
 
 interface MoisturePanelProps {
   moisture_data: MoistureData;
@@ -55,9 +54,13 @@ export default function MoisturePanel({ moisture_data, can_manage_moisture }: Mo
   // Optimistic UI: locally edited values overlay server props until next full reload
   const [pendingSaves, setPendingSaves] = useState<Record<string, number | null>>({});
 
+  // Local points added via inline row (avoids Inertia reload)
+  const [localPoints, setLocalPoints] = useState<MoisturePoint[]>([]);
+  const allPoints = [...moisture_data.points, ...localPoints.filter(lp => !moisture_data.points.some(sp => sp.id === lp.id))];
+
   const orderedDates = moisture_data.dates;
   const orderedDateLabels = moisture_data.date_labels;
-  const hasPoints = moisture_data.points.length > 0;
+  const hasPoints = allPoints.length > 0;
 
   // Inline new row
   const [newRow, setNewRow] = useState({
@@ -99,7 +102,7 @@ export default function MoisturePanel({ moisture_data, can_manage_moisture }: Mo
     // Optimistic: immediately show the new value in the UI
     setPendingSaves(prev => ({ ...prev, [`${pointId}:${date}`]: numValue }));
 
-    const point = moisture_data.points.find(p => p.id === pointId);
+    const point = allPoints.find(p => p.id === pointId);
     const reading = point?.readings[date];
 
     if (reading) {
@@ -116,30 +119,30 @@ export default function MoisturePanel({ moisture_data, can_manage_moisture }: Mo
   // Tab: save current cell + start editing next date column
   const getNextReadingCell = (pointId: number, date: string, direction: "next" | "prev") => {
     const dateIdx = orderedDates.indexOf(date);
-    const pointIdx = moisture_data.points.findIndex(p => p.id === pointId);
+    const pointIdx = allPoints.findIndex(p => p.id === pointId);
     if (dateIdx === -1 || pointIdx === -1) return null;
 
-    const resolveValue = (p: typeof moisture_data.points[0], d: string) => {
+    const resolveValue = (p: typeof allPoints[0], d: string) => {
       const key = `${p.id}:${d}`;
       return key in pendingSaves ? pendingSaves[key] : (p.readings[d]?.value ?? null);
     };
 
     if (direction === "next") {
       if (dateIdx < orderedDates.length - 1) {
-        const p = moisture_data.points[pointIdx];
+        const p = allPoints[pointIdx];
         return { pointId: p.id, date: orderedDates[dateIdx + 1], value: resolveValue(p, orderedDates[dateIdx + 1]) };
       }
-      if (pointIdx < moisture_data.points.length - 1) {
-        const p = moisture_data.points[pointIdx + 1];
+      if (pointIdx < allPoints.length - 1) {
+        const p = allPoints[pointIdx + 1];
         return { pointId: p.id, date: orderedDates[0], value: resolveValue(p, orderedDates[0]) };
       }
     } else {
       if (dateIdx > 0) {
-        const p = moisture_data.points[pointIdx];
+        const p = allPoints[pointIdx];
         return { pointId: p.id, date: orderedDates[dateIdx - 1], value: resolveValue(p, orderedDates[dateIdx - 1]) };
       }
       if (pointIdx > 0) {
-        const p = moisture_data.points[pointIdx - 1];
+        const p = allPoints[pointIdx - 1];
         const lastDate = orderedDates[orderedDates.length - 1];
         return { pointId: p.id, date: lastDate, value: resolveValue(p, lastDate) };
       }
@@ -219,9 +222,9 @@ export default function MoisturePanel({ moisture_data, can_manage_moisture }: Mo
     newRowProcessingRef.current = true;
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") || "";
     try {
-      await fetch(moisture_data.create_point_path, {
+      const resp = await fetch(moisture_data.create_point_path, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken },
+        headers: { "Content-Type": "application/json", "Accept": "application/json", "X-CSRF-Token": csrfToken },
         body: JSON.stringify({
           point: {
             unit: newRow.unit.trim(),
@@ -234,11 +237,12 @@ export default function MoisturePanel({ moisture_data, can_manage_moisture }: Mo
           reading_value: "",
           reading_date: "",
         }),
-        redirect: "manual",
       });
+      if (resp.ok) {
+        const newPoint: MoisturePoint = await resp.json();
+        setLocalPoints(prev => [...prev, newPoint]);
+      }
       setNewRow({ unit: "", room: "", item: "", material: "", goal: "", measurement_unit: "Pts" });
-      // Silently refresh data to show the new row
-      router.reload();
     } catch { /* silent */ } finally {
       newRowProcessingRef.current = false;
     }
@@ -320,7 +324,7 @@ export default function MoisturePanel({ moisture_data, can_manage_moisture }: Mo
               </tr>
             </thead>
             <tbody>
-              {moisture_data.points.map((point) => (
+              {allPoints.map((point) => (
                 <tr key={point.id} className="border-b border-border last:border-b-0 hover:bg-muted/30 transition-colors">
                   <td className="px-3 py-2.5 text-sm font-medium text-foreground sticky left-0 bg-background z-10">{point.unit}</td>
                   <td className="px-3 py-2.5 text-sm text-muted-foreground">{point.room}</td>
@@ -470,7 +474,7 @@ export default function MoisturePanel({ moisture_data, can_manage_moisture }: Mo
 
       {showBatchForm && (
         <MoistureBatchForm
-          points={batchPointId ? moisture_data.points.filter(p => p.id === batchPointId) : moisture_data.points}
+          points={batchPointId ? allPoints.filter(p => p.id === batchPointId) : allPoints}
           dates={moisture_data.dates}
           batchSavePath={moisture_data.batch_save_path}
           initialDate={batchDate}
