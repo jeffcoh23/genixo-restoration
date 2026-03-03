@@ -84,8 +84,9 @@ class IncidentPanelsTest < ApplicationSystemTestCase
     visit incident_path(@incident)
 
     click_button "Readings"
-    # Moisture is the default sub-tab
-    assert_text "No moisture readings recorded yet."
+    # Moisture is the default sub-tab — grid headers visible even when empty
+    assert_text "UNIT"
+    assert_text "ROOM"
 
     # Add first measurement point with an initial reading
     click_button "Add Point"
@@ -100,7 +101,6 @@ class IncidentPanelsTest < ApplicationSystemTestCase
     end
 
     # Grid should now show the point row with reading
-    assert_no_text "No moisture readings recorded yet."
     assert_text "1107"
     assert_text "Bathroom"
     assert_text "Drywall"
