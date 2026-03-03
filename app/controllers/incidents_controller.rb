@@ -1203,15 +1203,14 @@ class IncidentsController < ApplicationController
           measurement_unit: p.measurement_unit, position: p.position,
           readings: dates.each_with_object({}) { |d, h|
             r = readings_by_point[p.id]&.[](d.iso8601)
-            h[d.iso8601] = r ? { id: r.id, value: r.value&.to_f } : nil
+            h[d.iso8601] = r ? { id: r.id, value: r.value&.to_f, update_path: incident_moisture_reading_path(incident, r) } : nil
           },
           destroy_path: incident_moisture_point_path(incident, p)
         }
       },
       create_point_path: create_point_incident_moisture_readings_path(incident),
       batch_save_path: batch_save_incident_moisture_readings_path(incident),
-      update_supervisor_path: update_supervisor_incident_moisture_readings_path(incident),
-      moisture_reading_path_template: incident_moisture_reading_path(incident, "READING_ID")
+      update_supervisor_path: update_supervisor_incident_moisture_readings_path(incident)
     }
   end
 
@@ -1232,14 +1231,13 @@ class IncidentsController < ApplicationController
           dehumidifier_label: p.dehumidifier_label, position: p.position,
           readings: dates.each_with_object({}) { |d, h|
             r = readings_by_point[p.id]&.[](d.iso8601)
-            h[d.iso8601] = r ? { id: r.id, temperature: r.temperature&.to_f, relative_humidity: r.relative_humidity&.to_f, gpp: r.gpp&.to_f } : nil
+            h[d.iso8601] = r ? { id: r.id, temperature: r.temperature&.to_f, relative_humidity: r.relative_humidity&.to_f, gpp: r.gpp&.to_f, update_path: incident_psychrometric_reading_path(incident, r) } : nil
           },
           destroy_path: incident_psychrometric_point_path(incident, p)
         }
       },
       create_point_path: create_point_incident_psychrometric_readings_path(incident),
-      batch_save_path: batch_save_incident_psychrometric_readings_path(incident),
-      psychrometric_reading_path_template: incident_psychrometric_reading_path(incident, "READING_ID")
+      batch_save_path: batch_save_incident_psychrometric_readings_path(incident)
     }
   end
 

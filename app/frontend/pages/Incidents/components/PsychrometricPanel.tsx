@@ -1,5 +1,5 @@
 import { Fragment, useState, useRef, useCallback, useMemo } from "react";
-import { Trash2 } from "lucide-react";
+import { Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import useInertiaAction from "@/hooks/useInertiaAction";
@@ -43,6 +43,7 @@ export default function PsychrometricPanel({ psychrometric_data, can_manage_psyc
 
   // Optimistic UI: locally edited values overlay server props until next full reload
   const [pendingSaves, setPendingSaves] = useState<Record<string, number | null>>({});
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Local points added via inline row (avoids Inertia reload)
   const [localPoints, setLocalPoints] = useState<PsychrometricPoint[]>([]);
@@ -86,13 +87,20 @@ export default function PsychrometricPanel({ psychrometric_data, can_manage_psyc
   const backgroundSave = useCallback(async (url: string, method: "PATCH" | "POST", body: Record<string, unknown>) => {
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") || "";
     try {
-      await fetch(url, {
+      const resp = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken },
         body: JSON.stringify(body),
         redirect: "manual",
       });
-    } catch { /* silent — will sync on next page load */ }
+      if (!resp.ok) {
+        throw new Error(`Save failed with status ${resp.status}`);
+      }
+      setSaveError(null);
+    } catch {
+      setSaveError("Failed to save. Changes may be lost.");
+      throw new Error("background save failed");
+    }
   }, []);
 
   const saveCell = useCallback((pointId: number, date: string, field: PsychField, value: string) => {
@@ -106,16 +114,25 @@ export default function PsychrometricPanel({ psychrometric_data, can_manage_psyc
 
     const point = allPoints.find(p => p.id === pointId);
     const reading = point?.readings[date];
+    const pendingKey = `${pointId}:${date}:${field}`;
+    const rollbackValue = point?.readings[date]?.[field] ?? null;
 
     if (reading) {
-      const path = psychrometric_data.psychrometric_reading_path_template.replace("READING_ID", String(reading.id));
-      backgroundSave(path, "PATCH", { [field]: numValue });
+      backgroundSave(reading.update_path, "PATCH", { [field]: numValue }).catch(() => {
+        setPendingSaves(prev => ({ ...prev, [pendingKey]: rollbackValue }));
+      });
     } else if (numValue !== null) {
       const data: Record<string, unknown> = { point_id: pointId, relative_humidity: null, temperature: null };
       data[field] = numValue;
       backgroundSave(psychrometric_data.batch_save_path, "POST", {
         log_date: date,
         readings: [data],
+      }).catch(() => {
+        setPendingSaves(prev => {
+          const next = { ...prev };
+          delete next[pendingKey];
+          return next;
+        });
       });
     }
   }, [allPoints, psychrometric_data, backgroundSave]);
@@ -185,8 +202,13 @@ export default function PsychrometricPanel({ psychrometric_data, can_manage_psyc
 
   // --- Delete ---
 
-  const handleDeletePoint = (destroyPath: string) => {
-    runDelete(destroyPath, undefined, { preserveState: true });
+  const handleDeletePoint = (pointId: number, destroyPath: string) => {
+    runDelete(destroyPath, undefined, {
+      preserveState: true,
+      onSuccess: () => {
+        setLocalPoints(prev => prev.filter((point) => point.id !== pointId));
+      },
+    });
   };
 
   // --- New row ---
@@ -221,7 +243,9 @@ export default function PsychrometricPanel({ psychrometric_data, can_manage_psyc
         setLocalPoints(prev => [...prev, newPoint]);
       }
       setNewRow({ unit: "", room: "", dehumidifier_label: "" });
-    } catch { /* silent */ } finally {
+    } catch {
+      setSaveError("Failed to save. Changes may be lost.");
+    } finally {
       newRowProcessingRef.current = false;
     }
   };
@@ -243,6 +267,14 @@ export default function PsychrometricPanel({ psychrometric_data, can_manage_psyc
 
   return (
     <div className="flex flex-col h-full">
+      {saveError && (
+        <div className="flex items-center justify-between gap-2 bg-destructive/10 text-destructive px-4 py-2 text-sm shrink-0">
+          <span>{saveError}</span>
+          <button onClick={() => setSaveError(null)} className="p-0.5 hover:bg-destructive/20 rounded">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
       {/* Action bar */}
       {can_manage_psychrometric && (
         <div className="flex items-center justify-center sm:justify-start gap-1 border-b border-border px-4 py-3 shrink-0">
@@ -389,7 +421,7 @@ export default function PsychrometricPanel({ psychrometric_data, can_manage_psyc
                         variant="ghost"
                         size="sm"
                         className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
-                        onClick={() => handleDeletePoint(point.destroy_path)}
+                        onClick={() => handleDeletePoint(point.id, point.destroy_path)}
                         title="Remove point"
                       >
                         <Trash2 className="h-3.5 w-3.5" />

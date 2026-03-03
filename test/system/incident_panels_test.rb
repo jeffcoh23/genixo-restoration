@@ -79,7 +79,7 @@ class IncidentPanelsTest < ApplicationSystemTestCase
     assert_selector "button[aria-label='Take photo']"
   end
 
-  test "moisture panel: add points, record readings, see grid" do
+  test "moisture panel: add points via inline row, record readings, see grid" do
     login_as @manager
     visit incident_path(@incident)
 
@@ -88,43 +88,33 @@ class IncidentPanelsTest < ApplicationSystemTestCase
     assert_text "UNIT"
     assert_text "ROOM"
 
-    # Add first measurement point with an initial reading
-    click_button "Add Point"
-    within("[role='dialog']") do
-      fill_in placeholder: "e.g. 1107", with: "1107"
-      fill_in placeholder: "e.g. Bathroom", with: "Bathroom"
-      fill_in placeholder: "e.g. Wall, Ceiling", with: "Wall"
-      fill_in placeholder: "e.g. Drywall, Wood", with: "Drywall"
-      fill_in placeholder: "e.g. 7.5, Dry", with: "7.5"
-      fill_in placeholder: "e.g. 18.2", with: "18.2"
-      click_button "Add Point"
-    end
+    # Add first measurement point via inline row at bottom of table
+    fill_in placeholder: "Unit", with: "1107"
+    fill_in placeholder: "Room", with: "Bathroom"
+    fill_in placeholder: "Item", with: "Wall"
+    fill_in placeholder: "Material", with: "Drywall"
+    fill_in placeholder: "Goal", with: "7.5"
+    find("input[placeholder='Goal']").send_keys(:return)
 
-    # Grid should now show the point row with reading
-    assert_text "1107"
-    assert_text "Bathroom"
-    assert_text "Drywall"
-    assert_text "18.2"
+    # Wait for the async save to complete — point appears as a table cell
+    assert_selector "td", text: "Bathroom"
+    assert_selector "td", text: "Drywall"
 
-    # Add a second point (no initial reading)
-    click_button "Add Point"
-    within("[role='dialog']") do
-      fill_in placeholder: "e.g. 1107", with: "1107"
-      fill_in placeholder: "e.g. Bathroom", with: "Bedroom"
-      fill_in placeholder: "e.g. Wall, Ceiling", with: "Floor"
-      fill_in placeholder: "e.g. Drywall, Wood", with: "Carpet"
-      fill_in placeholder: "e.g. 7.5, Dry", with: "Dry"
-      click_button "Add Point"
-    end
+    # Add a second point (inputs are now cleared after save)
+    fill_in placeholder: "Unit", with: "1107"
+    fill_in placeholder: "Room", with: "Bedroom"
+    fill_in placeholder: "Item", with: "Floor"
+    fill_in placeholder: "Material", with: "Carpet"
+    fill_in placeholder: "Goal", with: "Dry"
+    find("input[placeholder='Goal']").send_keys(:return)
 
-    # Both points visible in the grid
-    assert_text "Bedroom"
-    assert_text "Carpet"
+    # Wait for second point to render
+    assert_selector "td", text: "Bedroom"
+    assert_selector "td", text: "Carpet"
 
     # Record batch readings for both points
     click_button "Record Readings"
     within("[role='dialog']") do
-      # Fill in value inputs for each point row
       inputs = all("input[type='number']")
       inputs[0].fill_in with: "14.1"
       inputs[1].fill_in with: "85"

@@ -393,7 +393,7 @@ export interface MoisturePoint {
   goal: string;
   measurement_unit: string;
   position: number;
-  readings: Record<string, { id: number; value: number | null } | null>;
+  readings: Record<string, { id: number; value: number | null; update_path: string } | null>;
   destroy_path: string;
 }
 
@@ -405,7 +405,6 @@ export interface MoistureData {
   create_point_path: string;
   batch_save_path: string;
   update_supervisor_path: string;
-  moisture_reading_path_template: string;
 }
 
 export interface PsychrometricPoint {
@@ -414,7 +413,7 @@ export interface PsychrometricPoint {
   room: string;
   dehumidifier_label: string | null;
   position: number;
-  readings: Record<string, { id: number; temperature: number | null; relative_humidity: number | null; gpp: number | null } | null>;
+  readings: Record<string, { id: number; temperature: number | null; relative_humidity: number | null; gpp: number | null; update_path: string } | null>;
   destroy_path: string;
 }
 
@@ -424,7 +423,6 @@ export interface PsychrometricData {
   points: PsychrometricPoint[];
   create_point_path: string;
   batch_save_path: string;
-  psychrometric_reading_path_template: string;
 }
 
 export interface ShowProps {
