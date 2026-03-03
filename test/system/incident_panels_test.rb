@@ -46,7 +46,7 @@ class IncidentPanelsTest < ApplicationSystemTestCase
     daily_log = index_for_tab(labels, "Daily Log")
     labor = index_for_tab(labels, "Labor")
     equipment = index_for_tab(labels, "Equipment")
-    moisture = index_for_tab(labels, "Moisture")
+    readings = index_for_tab(labels, "Readings")
     documents = index_for_tab(labels, "Documents")
     messages = index_for_tab(labels, "Messages")
     manage = index_for_tab(labels, "Manage")
@@ -55,7 +55,7 @@ class IncidentPanelsTest < ApplicationSystemTestCase
     assert daily_log
     assert labor
     assert equipment
-    assert moisture
+    assert readings
     assert documents
     assert messages
     assert manage
@@ -65,8 +65,8 @@ class IncidentPanelsTest < ApplicationSystemTestCase
     assert_operator labor, :<, equipment
     assert_operator equipment, :<, documents
     assert_operator documents, :<, messages
-    assert_operator messages, :<, moisture
-    assert_operator moisture, :<, manage
+    assert_operator messages, :<, readings
+    assert_operator readings, :<, manage
   end
 
   test "messages panel has file and camera controls" do
@@ -83,7 +83,8 @@ class IncidentPanelsTest < ApplicationSystemTestCase
     login_as @manager
     visit incident_path(@incident)
 
-    click_button "Moisture"
+    click_button "Readings"
+    # Moisture is the default sub-tab
     assert_text "No moisture readings recorded yet."
 
     # Add first measurement point with an initial reading

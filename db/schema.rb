@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_02_27_230640) do
+ActiveRecord::Schema[8.0].define(version: 2026_03_02_014519) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -386,6 +386,33 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_27_230640) do
     t.index ["user_id"], name: "index_property_assignments_on_user_id"
   end
 
+  create_table "psychrometric_points", force: :cascade do |t|
+    t.bigint "incident_id", null: false
+    t.string "unit", null: false
+    t.string "room", null: false
+    t.string "dehumidifier_label"
+    t.integer "position"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["incident_id", "position"], name: "index_psychrometric_points_on_incident_id_and_position"
+    t.index ["incident_id"], name: "index_psychrometric_points_on_incident_id"
+  end
+
+  create_table "psychrometric_readings", force: :cascade do |t|
+    t.bigint "psychrometric_point_id", null: false
+    t.date "log_date", null: false
+    t.decimal "temperature", precision: 5, scale: 1
+    t.decimal "relative_humidity", precision: 5, scale: 1
+    t.decimal "gpp", precision: 7, scale: 1
+    t.bigint "recorded_by_user_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["log_date"], name: "index_psychrometric_readings_on_log_date"
+    t.index ["psychrometric_point_id", "log_date"], name: "idx_psychrometric_readings_point_date", unique: true
+    t.index ["psychrometric_point_id"], name: "index_psychrometric_readings_on_psychrometric_point_id"
+    t.index ["recorded_by_user_id"], name: "index_psychrometric_readings_on_recorded_by_user_id"
+  end
+
   create_table "sessions", force: :cascade do |t|
     t.bigint "user_id", null: false
     t.string "ip_address"
@@ -605,6 +632,9 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_27_230640) do
   add_foreign_key "properties", "organizations", column: "property_management_org_id"
   add_foreign_key "property_assignments", "properties"
   add_foreign_key "property_assignments", "users"
+  add_foreign_key "psychrometric_points", "incidents"
+  add_foreign_key "psychrometric_readings", "psychrometric_points"
+  add_foreign_key "psychrometric_readings", "users", column: "recorded_by_user_id"
   add_foreign_key "sessions", "users"
   add_foreign_key "solid_queue_blocked_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "solid_queue_claimed_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade

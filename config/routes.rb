@@ -47,6 +47,17 @@ Rails.application.routes.draw do
       end
     end
     delete "moisture_points/:id", to: "moisture_readings#destroy_point", as: :moisture_point
+    resources :psychrometric_readings, only: [] do
+      collection do
+        post :create_point
+        post :batch_save
+      end
+      member do
+        patch :update
+        delete :destroy
+      end
+    end
+    delete "psychrometric_points/:id", to: "psychrometric_readings#destroy_point", as: :psychrometric_point
     resources :operational_notes, only: %i[create]
     resources :attachments, only: %i[create update destroy] do
       collection do

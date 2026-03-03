@@ -230,6 +230,7 @@ class IncidentsController < ApplicationController
       can_manage_labor: can_manage_labor?,
       can_manage_equipment: can_manage_equipment?,
       can_manage_moisture: can_manage_moisture_readings?,
+      can_manage_psychrometric: can_manage_psychrometric_readings?,
       can_manage_attachments: can_manage_attachments?,
       show_mitigation_team: current_user.mitigation_user?,
       can_create_notes: can_create_operational_note?,
@@ -247,7 +248,8 @@ class IncidentsController < ApplicationController
       attachments: InertiaRails.defer(group: "documents") { serialize_attachments(@incident) },
       operational_notes: InertiaRails.defer(group: "documents") { serialize_operational_notes(@incident) },
       activity_entries: InertiaRails.defer(group: "activity") { serialize_activity_entries(@incident) },
-      moisture_data: InertiaRails.defer(group: "moisture") { serialize_moisture_data(@incident) },
+      moisture_data: InertiaRails.defer(group: "readings") { serialize_moisture_data(@incident) },
+      psychrometric_data: InertiaRails.defer(group: "readings") { serialize_psychrometric_data(@incident) },
       assignable_mitigation_users: InertiaRails.defer(group: "team") { can_assign_to_incident? ? assignable_incident_users(@incident, :mitigation) : [] },
       assignable_pm_users: InertiaRails.defer(group: "team") { can_assign_to_incident? ? assignable_incident_users(@incident, :pm) : [] }
     }
@@ -1210,6 +1212,34 @@ class IncidentsController < ApplicationController
       batch_save_path: batch_save_incident_moisture_readings_path(incident),
       update_supervisor_path: update_supervisor_incident_moisture_readings_path(incident),
       moisture_reading_path_template: incident_moisture_reading_path(incident, "READING_ID")
+    }
+  end
+
+  def serialize_psychrometric_data(incident)
+    points = incident.psychrometric_points.includes(:psychrometric_readings).to_a
+    readings_by_point = points.each_with_object({}) do |point, hash|
+      hash[point.id] = point.psychrometric_readings.index_by { |r| r.log_date.iso8601 }
+    end
+
+    dates = points.flat_map { |p| p.psychrometric_readings.map(&:log_date) }.uniq.sort
+
+    {
+      dates: dates.map(&:iso8601),
+      date_labels: dates.map { |d| d.strftime("%b %-d") },
+      points: points.map { |p|
+        {
+          id: p.id, unit: p.unit, room: p.room,
+          dehumidifier_label: p.dehumidifier_label, position: p.position,
+          readings: dates.each_with_object({}) { |d, h|
+            r = readings_by_point[p.id]&.[](d.iso8601)
+            h[d.iso8601] = r ? { id: r.id, temperature: r.temperature&.to_f, relative_humidity: r.relative_humidity&.to_f, gpp: r.gpp&.to_f } : nil
+          },
+          destroy_path: incident_psychrometric_point_path(incident, p)
+        }
+      },
+      create_point_path: create_point_incident_psychrometric_readings_path(incident),
+      batch_save_path: batch_save_incident_psychrometric_readings_path(incident),
+      psychrometric_reading_path_template: incident_psychrometric_reading_path(incident, "READING_ID")
     }
   end
 

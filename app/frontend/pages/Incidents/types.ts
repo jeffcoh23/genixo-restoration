@@ -408,6 +408,25 @@ export interface MoistureData {
   moisture_reading_path_template: string;
 }
 
+export interface PsychrometricPoint {
+  id: number;
+  unit: string;
+  room: string;
+  dehumidifier_label: string | null;
+  position: number;
+  readings: Record<string, { id: number; temperature: number | null; relative_humidity: number | null; gpp: number | null } | null>;
+  destroy_path: string;
+}
+
+export interface PsychrometricData {
+  dates: string[];
+  date_labels: string[];
+  points: PsychrometricPoint[];
+  create_point_path: string;
+  batch_save_path: string;
+  psychrometric_reading_path_template: string;
+}
+
 export interface ShowProps {
   incident: IncidentDetail;
   activity_entries: ActivityEntry[];
@@ -428,10 +447,12 @@ export interface ShowProps {
   can_manage_labor: boolean;
   can_manage_equipment: boolean;
   can_manage_moisture: boolean;
+  can_manage_psychrometric: boolean;
   can_manage_attachments: boolean;
   show_mitigation_team: boolean;
   can_create_notes: boolean;
   moisture_data: MoistureData;
+  psychrometric_data: PsychrometricData;
   project_types: { value: string; label: string }[];
   damage_types: { value: string; label: string }[];
   assignable_mitigation_users: AssignableUser[];

@@ -8,6 +8,7 @@ type ActionOptions = {
   preserveState?: boolean;
   forceFormData?: boolean;
   async?: boolean;
+  only?: string[];
   errorMessage?: string;
   successMessage?: string | null;
   onSuccess?: () => void;
@@ -59,6 +60,7 @@ export default function useInertiaAction() {
       preserveState,
       forceFormData,
       async,
+      only,
     } = options;
 
     return {
@@ -66,6 +68,7 @@ export default function useInertiaAction() {
       ...(preserveState === undefined ? {} : { preserveState }),
       ...(forceFormData === undefined ? {} : { forceFormData }),
       ...(async === undefined ? {} : { async }),
+      ...(only === undefined ? {} : { only }),
       onSuccess: () => {
         setError(null);
         setNotice(successMessage ?? null);

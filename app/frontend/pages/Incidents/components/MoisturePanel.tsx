@@ -1,10 +1,10 @@
-import { useState } from "react";
-import { Pencil, Trash2 } from "lucide-react";
+import { useState, useRef, useCallback } from "react";
+import { router } from "@inertiajs/react";
+import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import useInertiaAction from "@/hooks/useInertiaAction";
 import IncidentPanelAddButton from "./IncidentPanelAddButton";
-import MoisturePointForm from "./MoisturePointForm";
 import MoistureBatchForm from "./MoistureBatchForm";
 import type { MoistureData } from "../types";
 
@@ -38,19 +38,158 @@ function formatReading(value: number, unit: string): string {
 }
 
 export default function MoisturePanel({ moisture_data, can_manage_moisture }: MoisturePanelProps) {
-  const [showPointForm, setShowPointForm] = useState(false);
   const [showBatchForm, setShowBatchForm] = useState(false);
   const [batchDate, setBatchDate] = useState<string | null>(null);
   const [batchPointId, setBatchPointId] = useState<number | null>(null);
-  const { runPatch, runDelete } = useInertiaAction();
+  const { runPost, runPatch, runDelete } = useInertiaAction();
   const [editingSupervisor, setEditingSupervisor] = useState(false);
   const [supervisorValue, setSupervisorValue] = useState(moisture_data.supervisor_pm || "");
+
+  // Simple click-to-edit: one cell at a time
   const [editingCell, setEditingCell] = useState<{ pointId: number; date: string } | null>(null);
   const [editValue, setEditValue] = useState("");
+  const originalValue = useRef("");
+  const cancelledRef = useRef(false);
+  const savedRef = useRef(false);
 
-  const hasData = moisture_data.points.length > 0;
-  const reversedDates = [...moisture_data.dates].reverse();
-  const reversedDateLabels = [...moisture_data.date_labels].reverse();
+  // Optimistic UI: locally edited values overlay server props until next full reload
+  const [pendingSaves, setPendingSaves] = useState<Record<string, number | null>>({});
+
+  const orderedDates = moisture_data.dates;
+  const orderedDateLabels = moisture_data.date_labels;
+  const hasPoints = moisture_data.points.length > 0;
+
+  // Inline new row
+  const [newRow, setNewRow] = useState({
+    unit: "", room: "", item: "", material: "", goal: "", measurement_unit: "Pts",
+  });
+  const newRowRef = useRef<HTMLTableRowElement>(null);
+  const newRowProcessingRef = useRef(false);
+
+  // --- Reading cell editing ---
+
+  const startEdit = useCallback((pointId: number, date: string, currentValue: number | null) => {
+    const val = currentValue !== null ? String(currentValue) : "";
+    setEditingCell({ pointId, date });
+    setEditValue(val);
+    originalValue.current = val;
+    cancelledRef.current = false;
+    savedRef.current = false;
+  }, []);
+
+  // Fire-and-forget background save — no Inertia visit, no table reload
+  const backgroundSave = useCallback(async (url: string, method: "PATCH" | "POST", body: Record<string, unknown>) => {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") || "";
+    try {
+      await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken },
+        body: JSON.stringify(body),
+        redirect: "manual",
+      });
+    } catch { /* silent — will sync on next page load */ }
+  }, []);
+
+  const saveCell = useCallback((pointId: number, date: string, value: string) => {
+    if (savedRef.current) return;
+    if (value === originalValue.current) return;
+    savedRef.current = true;
+
+    const numValue = value === "" ? null : parseFloat(value);
+    // Optimistic: immediately show the new value in the UI
+    setPendingSaves(prev => ({ ...prev, [`${pointId}:${date}`]: numValue }));
+
+    const point = moisture_data.points.find(p => p.id === pointId);
+    const reading = point?.readings[date];
+
+    if (reading) {
+      const path = moisture_data.moisture_reading_path_template.replace("READING_ID", String(reading.id));
+      backgroundSave(path, "PATCH", { value: numValue });
+    } else if (numValue !== null) {
+      backgroundSave(moisture_data.batch_save_path, "POST", {
+        log_date: date,
+        readings: [{ point_id: pointId, value: numValue }],
+      });
+    }
+  }, [moisture_data, backgroundSave]);
+
+  // Tab: save current cell + start editing next date column
+  const getNextReadingCell = (pointId: number, date: string, direction: "next" | "prev") => {
+    const dateIdx = orderedDates.indexOf(date);
+    const pointIdx = moisture_data.points.findIndex(p => p.id === pointId);
+    if (dateIdx === -1 || pointIdx === -1) return null;
+
+    const resolveValue = (p: typeof moisture_data.points[0], d: string) => {
+      const key = `${p.id}:${d}`;
+      return key in pendingSaves ? pendingSaves[key] : (p.readings[d]?.value ?? null);
+    };
+
+    if (direction === "next") {
+      if (dateIdx < orderedDates.length - 1) {
+        const p = moisture_data.points[pointIdx];
+        return { pointId: p.id, date: orderedDates[dateIdx + 1], value: resolveValue(p, orderedDates[dateIdx + 1]) };
+      }
+      if (pointIdx < moisture_data.points.length - 1) {
+        const p = moisture_data.points[pointIdx + 1];
+        return { pointId: p.id, date: orderedDates[0], value: resolveValue(p, orderedDates[0]) };
+      }
+    } else {
+      if (dateIdx > 0) {
+        const p = moisture_data.points[pointIdx];
+        return { pointId: p.id, date: orderedDates[dateIdx - 1], value: resolveValue(p, orderedDates[dateIdx - 1]) };
+      }
+      if (pointIdx > 0) {
+        const p = moisture_data.points[pointIdx - 1];
+        const lastDate = orderedDates[orderedDates.length - 1];
+        return { pointId: p.id, date: lastDate, value: resolveValue(p, lastDate) };
+      }
+    }
+    return null;
+  };
+
+  const handleCellKeyDown = (e: React.KeyboardEvent) => {
+    if (!editingCell) return;
+
+    if (e.key === "Tab") {
+      e.preventDefault();
+      saveCell(editingCell.pointId, editingCell.date, editValue);
+      const next = getNextReadingCell(editingCell.pointId, editingCell.date, e.shiftKey ? "prev" : "next");
+      if (next) {
+        startEdit(next.pointId, next.date, next.value);
+      } else {
+        setEditingCell(null);
+      }
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      saveCell(editingCell.pointId, editingCell.date, editValue);
+      setEditingCell(null);
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      cancelledRef.current = true;
+      setEditingCell(null);
+    }
+  };
+
+  const handleCellBlur = () => {
+    if (cancelledRef.current) {
+      cancelledRef.current = false;
+      return;
+    }
+    const blurredCell = editingCell;
+    if (blurredCell) {
+      saveCell(blurredCell.pointId, blurredCell.date, editValue);
+    }
+    setTimeout(() => {
+      setEditingCell(prev => {
+        if (prev?.pointId === blurredCell?.pointId && prev?.date === blurredCell?.date) {
+          return null;
+        }
+        return prev;
+      });
+    }, 0);
+  };
+
+  // --- Supervisor ---
 
   const handleSaveSupervisor = () => {
     runPatch(moisture_data.update_supervisor_path, {
@@ -61,41 +200,73 @@ export default function MoisturePanel({ moisture_data, can_manage_moisture }: Mo
     });
   };
 
+  // --- Delete ---
+
   const handleDeletePoint = (destroyPath: string) => {
-    runDelete(destroyPath);
+    runDelete(destroyPath, undefined, { preserveState: true });
   };
 
-  const handleEditReading = (pointId: number, date: string, readingId: number, currentValue: number | null) => {
-    setEditingCell({ pointId, date });
-    setEditValue(currentValue !== null ? String(currentValue) : "");
+  // --- New row ---
+
+  const setNewRowField = (field: string, value: string) => {
+    setNewRow(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSaveReading = (readingId: number) => {
-    const path = moisture_data.moisture_reading_path_template.replace("READING_ID", String(readingId));
-    runPatch(path, { value: editValue === "" ? null : parseFloat(editValue) }, {
-      onSuccess: () => setEditingCell(null),
-    });
+  const canSaveNewRow = newRow.unit.trim() && newRow.room.trim();
+
+  const saveNewRow = async () => {
+    if (!canSaveNewRow || newRowProcessingRef.current) return;
+    newRowProcessingRef.current = true;
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") || "";
+    try {
+      await fetch(moisture_data.create_point_path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken },
+        body: JSON.stringify({
+          point: {
+            unit: newRow.unit.trim(),
+            room: newRow.room.trim(),
+            item: newRow.item.trim(),
+            material: newRow.material.trim(),
+            goal: newRow.goal.trim(),
+            measurement_unit: newRow.measurement_unit,
+          },
+          reading_value: "",
+          reading_date: "",
+        }),
+        redirect: "manual",
+      });
+      setNewRow({ unit: "", room: "", item: "", material: "", goal: "", measurement_unit: "Pts" });
+      // Silently refresh data to show the new row
+      router.reload();
+    } catch { /* silent */ } finally {
+      newRowProcessingRef.current = false;
+    }
   };
 
-  const handleCancelEdit = () => {
-    setEditingCell(null);
+  const handleNewRowKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && canSaveNewRow) {
+      e.preventDefault();
+      saveNewRow();
+    }
   };
 
-  const openBatchForRow = (pointId: number) => {
-    setBatchPointId(pointId);
-    setShowBatchForm(true);
+  const handleNewRowBlur = () => {
+    setTimeout(() => {
+      if (newRowRef.current && !newRowRef.current.contains(document.activeElement)) {
+        if (canSaveNewRow) saveNewRow();
+      }
+    }, 0);
   };
-
 
   return (
     <div className="flex flex-col h-full">
       {/* Action bar */}
       {can_manage_moisture && (
         <div className="flex items-center justify-center sm:justify-start gap-1 border-b border-border px-4 py-3 shrink-0">
-          {hasData && (
+          {hasPoints && (
             <IncidentPanelAddButton label="Record Readings" onClick={() => { setBatchDate(null); setBatchPointId(null); setShowBatchForm(true); }} />
           )}
-          <IncidentPanelAddButton label="Add Point" onClick={() => setShowPointForm(true)} />
         </div>
       )}
 
@@ -127,127 +298,176 @@ export default function MoisturePanel({ moisture_data, can_manage_moisture }: Mo
         )}
       </div>
 
-      {/* Content */}
-      {!hasData ? (
-        <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm py-12">
-          No moisture readings recorded yet.
-        </div>
-      ) : (
-        <div className="flex-1 overflow-y-auto">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-muted border-b border-border sticky top-0">
-                <tr>
-                  <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground sticky left-0 bg-muted z-10 min-w-[80px]">Unit</th>
-                  <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-[90px]">Room</th>
-                  <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-[80px]">Item</th>
-                  <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-[80px]">Material</th>
-                  <th className="px-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-[70px]">Goal</th>
-                  {reversedDateLabels.map((label, i) => (
-                    <th key={reversedDates[i]} className="px-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-[65px]">
-                      {label}
-                    </th>
-                  ))}
-                  {can_manage_moisture && (
-                    <th className="px-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-[60px]" />
-                  )}
-                </tr>
-              </thead>
-              <tbody>
-                {moisture_data.points.map((point) => (
-                  <tr key={point.id} className="border-b border-border last:border-b-0 hover:bg-muted/30 transition-colors">
-                    <td className="px-3 py-2.5 text-sm font-medium text-foreground sticky left-0 bg-background z-10">{point.unit}</td>
-                    <td className="px-3 py-2.5 text-sm text-muted-foreground">{point.room}</td>
-                    <td className="px-3 py-2.5 text-sm text-muted-foreground">{point.item}</td>
-                    <td className="px-3 py-2.5 text-sm text-muted-foreground">{point.material}</td>
-                    <td className="px-3 py-2.5 text-sm text-center text-muted-foreground">
-                      {formatGoal(point.goal, point.measurement_unit)}
-                    </td>
-                    {reversedDates.map((date) => {
-                      const reading = point.readings[date];
-                      const value = reading?.value ?? null;
-                      const colorClass = readingColor(value, point.goal);
-                      const isEditing = editingCell?.pointId === point.id && editingCell?.date === date;
+      {/* Table */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-muted border-b border-border sticky top-0">
+              <tr>
+                <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground sticky left-0 bg-muted z-10 min-w-[80px]">Unit</th>
+                <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-[90px]">Room</th>
+                <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-[80px]">Item</th>
+                <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-[80px]">Material</th>
+                <th className="px-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-[70px]">Goal</th>
+                {orderedDateLabels.map((label, i) => (
+                  <th key={orderedDates[i]} className="px-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-[65px]">
+                    {label}
+                  </th>
+                ))}
+                {can_manage_moisture && (
+                  <th className="px-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-[40px]" />
+                )}
+              </tr>
+            </thead>
+            <tbody>
+              {moisture_data.points.map((point) => (
+                <tr key={point.id} className="border-b border-border last:border-b-0 hover:bg-muted/30 transition-colors">
+                  <td className="px-3 py-2.5 text-sm font-medium text-foreground sticky left-0 bg-background z-10">{point.unit}</td>
+                  <td className="px-3 py-2.5 text-sm text-muted-foreground">{point.room}</td>
+                  <td className="px-3 py-2.5 text-sm text-muted-foreground">{point.item}</td>
+                  <td className="px-3 py-2.5 text-sm text-muted-foreground">{point.material}</td>
+                  <td className="px-3 py-2.5 text-sm text-center text-muted-foreground">
+                    {formatGoal(point.goal, point.measurement_unit)}
+                  </td>
+                  {orderedDates.map((date) => {
+                    const reading = point.readings[date];
+                    const pendingKey = `${point.id}:${date}`;
+                    const value = pendingKey in pendingSaves ? pendingSaves[pendingKey] : (reading?.value ?? null);
+                    const colorClass = readingColor(value, point.goal);
+                    const isEditing = editingCell?.pointId === point.id && editingCell?.date === date;
 
-                      if (isEditing && reading) {
-                        return (
-                          <td key={date} className="px-1 py-1.5 text-sm text-center">
-                            <Input
-                              type="number"
-                              step="0.1"
-                              min="0"
-                              value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") handleSaveReading(reading.id);
-                                if (e.key === "Escape") handleCancelEdit();
-                              }}
-                              onBlur={() => handleSaveReading(reading.id)}
-                              className="h-7 w-16 text-center text-xs mx-auto"
-                              autoFocus
-                            />
-                          </td>
-                        );
-                      }
-
+                    if (isEditing) {
                       return (
-                        <td
-                          key={date}
-                          className={`px-3 py-2.5 text-sm text-center ${can_manage_moisture && reading ? "cursor-pointer" : ""}`}
-                          onClick={() => {
-                            if (can_manage_moisture && reading) {
-                              handleEditReading(point.id, date, reading.id, value);
-                            }
-                          }}
-                        >
-                          {value !== null ? (
-                            <span className={`inline-block rounded px-1.5 py-0.5 text-xs font-medium ${colorClass}`}>
-                              {formatReading(value, point.measurement_unit)}
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground/40">&mdash;</span>
-                          )}
+                        <td key={date} className="px-1 py-1 text-sm text-center">
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            value={editValue}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              if (v === "" || v === "-" || /^-?\d*\.?\d*$/.test(v)) setEditValue(v);
+                            }}
+                            onKeyDown={handleCellKeyDown}
+                            onBlur={handleCellBlur}
+                            className="h-6 w-14 text-center text-xs bg-transparent border-0 border-b-2 border-primary outline-none rounded-none mx-auto block font-medium text-foreground"
+                            autoFocus
+                          />
                         </td>
                       );
-                    })}
-                    {can_manage_moisture && (
-                      <td className="px-3 py-2.5 text-center">
-                        <div className="flex items-center justify-center gap-0.5">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
-                            onClick={() => openBatchForRow(point.id)}
-                            title="Edit readings"
-                          >
-                            <Pencil className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
-                            onClick={() => handleDeletePoint(point.destroy_path)}
-                            title="Remove point"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+                    }
 
-      {showPointForm && (
-        <MoisturePointForm
-          createPath={moisture_data.create_point_path}
-          onClose={() => setShowPointForm(false)}
-        />
-      )}
+                    return (
+                      <td
+                        key={date}
+                        className={`px-1 py-1 text-sm text-center ${can_manage_moisture ? "cursor-pointer hover:bg-muted/50" : ""}`}
+                        onClick={() => {
+                          if (can_manage_moisture) {
+                            startEdit(point.id, date, value);
+                          }
+                        }}
+                      >
+                        {value !== null ? (
+                          <span className={`inline-block rounded px-1.5 py-0.5 text-xs font-medium ${colorClass}`}>
+                            {formatReading(value, point.measurement_unit)}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground/40">&mdash;</span>
+                        )}
+                      </td>
+                    );
+                  })}
+                  {can_manage_moisture && (
+                    <td className="px-3 py-2.5 text-center">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                        onClick={() => handleDeletePoint(point.destroy_path)}
+                        title="Remove point"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </td>
+                  )}
+                </tr>
+              ))}
+
+              {/* Inline new row */}
+              {can_manage_moisture && (
+                <tr ref={newRowRef} className="border-b border-border bg-muted/10">
+                  <td className="px-1.5 py-1.5 sticky left-0 bg-muted/10 z-10">
+                    <Input
+                      value={newRow.unit}
+                      onChange={(e) => setNewRowField("unit", e.target.value)}
+                      onKeyDown={handleNewRowKeyDown}
+                      onBlur={handleNewRowBlur}
+                      placeholder="Unit"
+                      className="h-7 w-full text-xs"
+                    />
+                  </td>
+                  <td className="px-1.5 py-1.5">
+                    <Input
+                      value={newRow.room}
+                      onChange={(e) => setNewRowField("room", e.target.value)}
+                      onKeyDown={handleNewRowKeyDown}
+                      onBlur={handleNewRowBlur}
+                      placeholder="Room"
+                      className="h-7 w-full text-xs"
+                    />
+                  </td>
+                  <td className="px-1.5 py-1.5">
+                    <Input
+                      value={newRow.item}
+                      onChange={(e) => setNewRowField("item", e.target.value)}
+                      onKeyDown={handleNewRowKeyDown}
+                      onBlur={handleNewRowBlur}
+                      placeholder="Item"
+                      className="h-7 w-full text-xs"
+                    />
+                  </td>
+                  <td className="px-1.5 py-1.5">
+                    <Input
+                      value={newRow.material}
+                      onChange={(e) => setNewRowField("material", e.target.value)}
+                      onKeyDown={handleNewRowKeyDown}
+                      onBlur={handleNewRowBlur}
+                      placeholder="Material"
+                      className="h-7 w-full text-xs"
+                    />
+                  </td>
+                  <td className="px-1.5 py-1.5">
+                    <div className="flex items-center gap-1">
+                      <Input
+                        value={newRow.goal}
+                        onChange={(e) => setNewRowField("goal", e.target.value)}
+                        onKeyDown={handleNewRowKeyDown}
+                        onBlur={handleNewRowBlur}
+                        placeholder="Goal"
+                        className="h-7 w-16 text-xs"
+                      />
+                      <select
+                        value={newRow.measurement_unit}
+                        onChange={(e) => setNewRowField("measurement_unit", e.target.value)}
+                        className="h-7 text-xs border border-border rounded px-1 bg-background text-foreground"
+                      >
+                        <option value="Pts">Pts</option>
+                        <option value="%">%</option>
+                      </select>
+                    </div>
+                  </td>
+                  {orderedDates.map((date) => (
+                    <td key={date} className="px-3 py-2.5 text-center">
+                      <span className="text-muted-foreground/30">&mdash;</span>
+                    </td>
+                  ))}
+                  <td />
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       {showBatchForm && (
         <MoistureBatchForm
           points={batchPointId ? moisture_data.points.filter(p => p.id === batchPointId) : moisture_data.points}

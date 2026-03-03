@@ -14,7 +14,8 @@ import EquipmentPanel from "./components/EquipmentPanel";
 import LaborPanel from "./components/LaborPanel";
 import PhotosPanel from "./components/PhotosPanel";
 import DocumentPanel from "./components/DocumentPanel";
-import MoisturePanel from "./components/MoisturePanel";
+import ReadingsPanel from "./components/ReadingsPanel";
+import type { ReadingsView } from "./components/ReadingsPanel";
 import OverviewPanel from "./components/OverviewPanel";
 import IncidentEditForm from "./components/IncidentEditForm";
 import PanelSkeleton from "@/components/PanelSkeleton";
@@ -40,9 +41,11 @@ export default function IncidentShow() {
     can_manage_labor = false,
     can_manage_equipment = false,
     can_manage_moisture = false,
+    can_manage_psychrometric = false,
     can_manage_attachments = false,
     show_mitigation_team = true,
     moisture_data,
+    psychrometric_data,
     assignable_mitigation_users = [],
     assignable_pm_users = [],
     assignable_labor_users = [],
@@ -55,6 +58,7 @@ export default function IncidentShow() {
 
   const [statusOpen, setStatusOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("daily_log");
+  const [readingsView, setReadingsView] = useState<ReadingsView>("moisture");
   const [editFormOpen, setEditFormOpen] = useState(false);
   const [markedTabs, setMarkedTabs] = useState<Set<string>>(new Set());
   const statusAction = useInertiaAction();
@@ -264,11 +268,15 @@ export default function IncidentShow() {
               />
             </Deferred>
           )}
-          {activeTab === "moisture" && (
-            <Deferred data={["moisture_data"]} fallback={<PanelSkeleton />}>
-              <MoisturePanel
+          {activeTab === "readings" && (
+            <Deferred data={["moisture_data", "psychrometric_data"]} fallback={<PanelSkeleton />}>
+              <ReadingsPanel
                 moisture_data={moisture_data}
+                psychrometric_data={psychrometric_data}
                 can_manage_moisture={can_manage_moisture}
+                can_manage_psychrometric={can_manage_psychrometric}
+                view={readingsView}
+                onViewChange={setReadingsView}
               />
             </Deferred>
           )}

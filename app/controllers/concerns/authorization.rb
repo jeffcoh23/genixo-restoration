@@ -91,6 +91,10 @@ module Authorization
     current_user.can?(Permissions::MANAGE_ATTACHMENTS)
   end
 
+  def can_manage_psychrometric_readings?
+    current_user.can?(Permissions::MANAGE_PSYCHROMETRIC_READINGS)
+  end
+
   # --- Resource-scoped checks (need a specific record) ---
 
   def mitigation_admin?

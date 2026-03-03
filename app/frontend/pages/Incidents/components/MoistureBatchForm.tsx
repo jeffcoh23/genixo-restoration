@@ -73,6 +73,7 @@ export default function MoistureBatchForm({ points, dates, batchSavePath, initia
       log_date: data.log_date,
       readings: filtered,
     }, {
+      preserveState: true,
       onSuccess: () => onClose(),
     });
   };
