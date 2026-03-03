@@ -33,7 +33,7 @@ function calculateGpp(rh: number | null, temp: number | null): number | null {
 export default function PsychrometricPanel({ psychrometric_data, can_manage_psychrometric }: PsychrometricPanelProps) {
   const [showBatchForm, setShowBatchForm] = useState(false);
   const [batchPointId, setBatchPointId] = useState<number | null>(null);
-  const { runPost, runPatch, runDelete } = useInertiaAction();
+  const { runDelete } = useInertiaAction();
 
   // Simple click-to-edit
   const [editingCell, setEditingCell] = useState<{ pointId: number; date: string; field: PsychField } | null>(null);

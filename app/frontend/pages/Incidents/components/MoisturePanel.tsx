@@ -41,7 +41,7 @@ export default function MoisturePanel({ moisture_data, can_manage_moisture }: Mo
   const [showBatchForm, setShowBatchForm] = useState(false);
   const [batchDate, setBatchDate] = useState<string | null>(null);
   const [batchPointId, setBatchPointId] = useState<number | null>(null);
-  const { runPost, runPatch, runDelete } = useInertiaAction();
+  const { runPatch, runDelete } = useInertiaAction();
   const [editingSupervisor, setEditingSupervisor] = useState(false);
   const [supervisorValue, setSupervisorValue] = useState(moisture_data.supervisor_pm || "");
 
