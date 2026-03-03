@@ -292,9 +292,9 @@ export default function MoisturePanel({ moisture_data, can_manage_moisture }: Mo
       {saveError && (
         <div className="flex items-center justify-between gap-2 bg-destructive/10 text-destructive px-4 py-2 text-sm shrink-0">
           <span>{saveError}</span>
-          <button onClick={() => setSaveError(null)} className="p-0.5 hover:bg-destructive/20 rounded">
+          <Button variant="ghost" size="sm" onClick={() => setSaveError(null)} className="h-5 w-5 p-0 hover:bg-destructive/20">
             <X className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
       )}
       {/* Action bar */}
