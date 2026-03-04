@@ -91,7 +91,7 @@ export default function MoisturePanel({ moisture_data, can_manage_moisture }: Mo
         body: JSON.stringify(body),
         redirect: "manual",
       });
-      if (!resp.ok) {
+      if (!resp.ok && resp.type !== "opaqueredirect") {
         throw new Error(`Save failed with status ${resp.status}`);
       }
       setSaveError(null);
@@ -301,7 +301,7 @@ export default function MoisturePanel({ moisture_data, can_manage_moisture }: Mo
       {can_manage_moisture && (
         <div className="flex items-center justify-center sm:justify-start gap-1 border-b border-border px-4 py-3 shrink-0">
           {hasPoints && (
-            <IncidentPanelAddButton label="Record Readings" onClick={() => { setBatchDate(null); setBatchPointId(null); setShowBatchForm(true); }} />
+            <IncidentPanelAddButton label="Bulk Record" onClick={() => { setBatchDate(null); setBatchPointId(null); setShowBatchForm(true); }} />
           )}
         </div>
       )}

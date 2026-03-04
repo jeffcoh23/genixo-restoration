@@ -113,7 +113,7 @@ class IncidentPanelsTest < ApplicationSystemTestCase
     assert_selector "td", text: "Carpet"
 
     # Record batch readings for both points
-    click_button "Record Readings"
+    click_button "Bulk Record"
     within("[role='dialog']") do
       inputs = all("input[type='number']")
       inputs[0].fill_in with: "14.1"

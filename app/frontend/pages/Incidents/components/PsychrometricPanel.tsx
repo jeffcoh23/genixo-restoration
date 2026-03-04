@@ -93,7 +93,7 @@ export default function PsychrometricPanel({ psychrometric_data, can_manage_psyc
         body: JSON.stringify(body),
         redirect: "manual",
       });
-      if (!resp.ok) {
+      if (!resp.ok && resp.type !== "opaqueredirect") {
         throw new Error(`Save failed with status ${resp.status}`);
       }
       setSaveError(null);
@@ -279,7 +279,7 @@ export default function PsychrometricPanel({ psychrometric_data, can_manage_psyc
       {can_manage_psychrometric && (
         <div className="flex items-center justify-center sm:justify-start gap-1 border-b border-border px-4 py-3 shrink-0">
           {hasPoints && (
-            <IncidentPanelAddButton label="Record Readings" onClick={() => { setBatchPointId(null); setShowBatchForm(true); }} />
+            <IncidentPanelAddButton label="Bulk Record" onClick={() => { setBatchPointId(null); setShowBatchForm(true); }} />
           )}
         </div>
       )}
