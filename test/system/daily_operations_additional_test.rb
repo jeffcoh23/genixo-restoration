@@ -57,7 +57,10 @@ class DailyOperationsAdditionalTest < ApplicationSystemTestCase
       all("input[type='time']")[1].fill_in with: "12:00"
     end
     find("[role='option']", text: "Tina Tech (Technician)").click
-    within("[role='dialog']") { click_button "Add Labor" }
+    assert_difference -> { @incident.labor_entries.count }, +1 do
+      within("[role='dialog']") { click_button "Add Labor" }
+      assert_no_selector "[role='dialog']"
+    end
 
     assert_text "Tina Tech"
     entry = @incident.labor_entries.order(:id).last

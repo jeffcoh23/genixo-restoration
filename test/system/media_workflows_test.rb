@@ -155,10 +155,11 @@ class MediaWorkflowsTest < ApplicationSystemTestCase
       find("[data-testid='photo-dialog-description']").fill_in with: "Snapped in dialog"
       assert_selector "[data-testid='photo-dialog-snap']"
 
-      find("[data-testid='photo-dialog-snap']").click
-
-      assert_text "Latest: photo-"
-      assert_no_text "in progress"
+      assert_difference -> { @incident.attachments.where(category: "photo").count }, +1 do
+        find("[data-testid='photo-dialog-snap']").click
+        assert_text "Latest: photo-"
+        assert_text "1 uploaded"
+      end
 
       find("[data-testid='photo-dialog-done']").click
     end
