@@ -12,6 +12,8 @@ class InvitationsController < ApplicationController
       first_name: params[:first_name].presence,
       last_name: params[:last_name].presence,
       phone: params[:phone].presence,
+      title: params[:title].presence,
+      permissions: Array(params[:permissions]).map(&:to_s).select(&:presence),
       expires_at: 7.days.from_now
     )
 
@@ -81,6 +83,8 @@ class InvitationsController < ApplicationController
       first_name: params[:first_name],
       last_name: params[:last_name],
       phone: params[:phone].presence,
+      title: @invitation.title,
+      permissions: @invitation.permissions,
       password: params[:password],
       password_confirmation: params[:password_confirmation]
     )

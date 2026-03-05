@@ -23,6 +23,7 @@ interface UserProfile {
   last_name: string;
   email_address: string;
   timezone: string;
+  title: string | null;
   role_label: string;
   organization_name: string;
   notification_preferences: NotificationPreferences;
@@ -209,7 +210,7 @@ export default function SettingsProfile() {
         {/* Read-only info */}
         <div className="rounded-lg border border-border bg-card shadow-sm px-5 py-3">
           <p className="text-sm text-muted-foreground">
-            {user.role_label} at {user.organization_name}
+            {user.title ? `${user.title} — ` : ""}{user.role_label} at {user.organization_name}
           </p>
         </div>
 

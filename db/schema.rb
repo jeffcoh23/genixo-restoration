@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_03_02_014519) do
+ActiveRecord::Schema[8.0].define(version: 2026_03_05_211750) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -217,6 +217,22 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_02_014519) do
     t.index ["user_id"], name: "index_incident_read_states_on_user_id"
   end
 
+  create_table "incident_tasks", force: :cascade do |t|
+    t.bigint "incident_id", null: false
+    t.string "name", null: false
+    t.string "unit"
+    t.string "assigned_to"
+    t.integer "progress", default: 0, null: false
+    t.date "start_date", null: false
+    t.date "end_date"
+    t.boolean "needs_vacant", default: false, null: false
+    t.integer "position"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["incident_id", "position"], name: "index_incident_tasks_on_incident_id_and_position"
+    t.index ["incident_id"], name: "index_incident_tasks_on_incident_id"
+  end
+
   create_table "incidents", force: :cascade do |t|
     t.bigint "property_id", null: false
     t.bigint "created_by_user_id", null: false
@@ -262,6 +278,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_02_014519) do
     t.datetime "expires_at", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "title"
+    t.jsonb "permissions", default: [], null: false
     t.index ["email"], name: "index_invitations_on_email"
     t.index ["invited_by_user_id"], name: "index_invitations_on_invited_by_user_id"
     t.index ["organization_id"], name: "index_invitations_on_organization_id"
@@ -577,6 +595,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_02_014519) do
     t.boolean "active", default: true, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "title"
+    t.jsonb "permissions", default: [], null: false
     t.index ["email_address"], name: "index_users_on_email_address"
     t.index ["organization_id", "email_address"], name: "index_users_on_organization_id_and_email_address", unique: true
     t.index ["organization_id", "user_type"], name: "index_users_on_organization_id_and_user_type"
@@ -612,6 +632,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_02_014519) do
   add_foreign_key "incident_contacts", "users", column: "created_by_user_id"
   add_foreign_key "incident_read_states", "incidents"
   add_foreign_key "incident_read_states", "users"
+  add_foreign_key "incident_tasks", "incidents"
   add_foreign_key "incidents", "properties"
   add_foreign_key "incidents", "users", column: "created_by_user_id"
   add_foreign_key "invitations", "organizations"

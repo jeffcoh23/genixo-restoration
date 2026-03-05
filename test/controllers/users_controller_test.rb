@@ -18,7 +18,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
       email_address: "tech@genixo.com", first_name: "Test", last_name: "Tech", password: "password123")
     @pm_user = User.create!(organization: @greystar, user_type: "property_manager",
       email_address: "pm@greystar.com", first_name: "Test", last_name: "PM", password: "password123")
-    @pm_manager = User.create!(organization: @greystar, user_type: "pm_manager",
+    @pm_manager = User.create!(organization: @greystar, user_type: "other",
       email_address: "pmmgr@greystar.com", first_name: "Test", last_name: "PMMgr", password: "password123")
     @unrelated_user = User.create!(organization: @unrelated_pm, user_type: "property_manager",
       email_address: "other@unrelated.com", first_name: "Other", last_name: "User", password: "password123")
@@ -170,7 +170,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     patch user_path(@pm_manager), params: { user: { first_name: "PMSelf", user_type: User::AREA_MANAGER } }
     assert_redirected_to user_path(@pm_manager)
     assert_equal "PMSelf", @pm_manager.reload.first_name
-    assert_equal User::PM_MANAGER, @pm_manager.reload.user_type
+    assert_equal User::OTHER, @pm_manager.reload.user_type
   end
 
   test "pm manager cannot update another user" do

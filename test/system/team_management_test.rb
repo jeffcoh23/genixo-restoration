@@ -18,7 +18,7 @@ class TeamManagementTest < ApplicationSystemTestCase
 
     @pm_user = User.create!(organization: @greystar, user_type: "property_manager",
       email_address: "pm@greystar.com", first_name: "Carol", last_name: "PM", password: "password123")
-    @pm_mgr = User.create!(organization: @greystar, user_type: "pm_manager",
+    @pm_mgr = User.create!(organization: @greystar, user_type: "other",
       email_address: "pmmgr@greystar.com", first_name: "Dan", last_name: "PMMgr", password: "password123")
 
     PropertyAssignment.create!(user: @pm_user, property: @property)

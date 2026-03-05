@@ -19,7 +19,7 @@ class SecurityAdditionalTest < ApplicationSystemTestCase
       email_address: "tech@example.com", first_name: "Tina", last_name: "Tech", password: "password123")
     @pm_user = User.create!(organization: @pm, user_type: User::PROPERTY_MANAGER,
       email_address: "pm@example.com", first_name: "Pam", last_name: "PM", password: "password123")
-    @pm_manager = User.create!(organization: @pm, user_type: User::PM_MANAGER,
+    @pm_manager = User.create!(organization: @pm, user_type: User::OTHER,
       email_address: "pmmgr@example.com", first_name: "Paul", last_name: "Manager", password: "password123")
   end
 

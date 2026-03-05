@@ -20,7 +20,7 @@ class IncidentCreationServiceTest < ActiveSupport::TestCase
       email_address: "pm@greystar.com", first_name: "Test", last_name: "PM", password: "password123")
     @area_mgr = User.create!(organization: @greystar, user_type: "area_manager",
       email_address: "am@greystar.com", first_name: "Test", last_name: "AreaMgr", password: "password123")
-    @pm_manager = User.create!(organization: @greystar, user_type: "pm_manager",
+    @pm_manager = User.create!(organization: @greystar, user_type: "other",
       email_address: "pmmgr@greystar.com", first_name: "Test", last_name: "PMMgr", password: "password123")
 
     # Assign PM users to property
@@ -68,7 +68,7 @@ class IncidentCreationServiceTest < ActiveSupport::TestCase
     assert_includes assigned_ids, @area_mgr.id
   end
 
-  test "auto-assigns pm_managers from the PM org" do
+  test "auto-assigns other users from the PM org" do
     incident = create_incident
     assigned_ids = incident.incident_assignments.pluck(:user_id)
 

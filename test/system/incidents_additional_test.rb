@@ -189,7 +189,7 @@ class IncidentsAdditionalTest < ApplicationSystemTestCase
       email_address: "office@example.com", first_name: "Olive", last_name: "Office", password: "password123")
     tech = User.create!(organization: @mitigation, user_type: User::TECHNICIAN,
       email_address: "tech2@example.com", first_name: "Toby", last_name: "Tech", password: "password123")
-    pm_mgr = User.create!(organization: @pm, user_type: User::PM_MANAGER,
+    pm_mgr = User.create!(organization: @pm, user_type: User::OTHER,
       email_address: "pmmgr@example.com", first_name: "Paula", last_name: "Manager", password: "password123")
     pm_prop = User.create!(organization: @pm, user_type: User::PROPERTY_MANAGER,
       email_address: "pmprop@example.com", first_name: "Piper", last_name: "Property", password: "password123")

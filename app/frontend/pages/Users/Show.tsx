@@ -10,8 +10,14 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { SharedProps } from "@/types";
 import useInertiaAction from "@/hooks/useInertiaAction";
+
+interface PermissionOption {
+  value: string;
+  label: string;
+}
 
 interface AssignedProperty {
   id: number;
@@ -37,9 +43,12 @@ interface UserDetail {
   last_name: string;
   email: string;
   phone: string | null;
+  title: string | null;
   role_label: string;
   organization_name: string;
   timezone: string;
+  permissions: string[];
+  notification_preferences: Record<string, boolean>;
   active: boolean;
   is_pm_user: boolean;
   update_path: string;
@@ -50,12 +59,14 @@ interface UserDetail {
 }
 
 export default function UserShow() {
-  const { user, can_edit, can_edit_role, can_deactivate, role_options, routes } = usePage<SharedProps & {
+  const { user, can_edit, can_edit_role, can_deactivate, role_options, permissions_options, role_defaults, routes } = usePage<SharedProps & {
     user: UserDetail;
     can_edit: boolean;
     can_edit_role: boolean;
     can_deactivate: boolean;
     role_options: { value: string; label: string }[];
+    permissions_options: PermissionOption[];
+    role_defaults: Record<string, string[]>;
   }>().props;
   const [editing, setEditing] = useState(false);
   const [confirmDeactivate, setConfirmDeactivate] = useState(false);
@@ -67,6 +78,8 @@ export default function UserShow() {
     phone: user.phone || "",
     timezone: user.timezone,
     user_type: user.user_type,
+    title: user.title || "",
+    permissions: user.permissions || [],
   });
 
   function startEdit() {
@@ -77,6 +90,8 @@ export default function UserShow() {
       phone: user.phone || "",
       timezone: user.timezone,
       user_type: user.user_type,
+      title: user.title || "",
+      permissions: user.permissions || [],
     });
     setEditing(true);
   }
@@ -114,7 +129,7 @@ export default function UserShow() {
               <Badge variant="destructive">Deactivated</Badge>
             )}
           </div>
-          <p className="text-muted-foreground mt-1">{user.role_label} at {user.organization_name}</p>
+          <p className="text-muted-foreground mt-1">{user.title ? `${user.title} — ` : ""}{user.role_label} at {user.organization_name}</p>
           <div className="flex gap-4 text-sm text-muted-foreground mt-1">
             <span>{user.email}</span>
             {user.phone && <span>{user.phone}</span>}
@@ -223,6 +238,42 @@ export default function UserShow() {
                 {editForm.errors.timezone && <p className="text-sm text-destructive">{editForm.errors.timezone}</p>}
               </div>
             </div>
+
+            {can_edit_role && (
+              <div className="space-y-2">
+                <label htmlFor="title" className="text-sm font-medium">Title</label>
+                <Input
+                  id="title"
+                  placeholder="e.g. Regional Director"
+                  value={editForm.data.title}
+                  onChange={(e) => editForm.setData("title", e.target.value)}
+                  className="h-10"
+                />
+              </div>
+            )}
+
+            {can_edit_role && (
+              <div className="space-y-3">
+                <label className="text-sm font-medium">Permissions</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {permissions_options.map((p) => (
+                    <div key={p.value} className="flex items-center gap-2">
+                      <Checkbox
+                        id={`edit_perm_${p.value}`}
+                        checked={editForm.data.permissions.includes(p.value)}
+                        onCheckedChange={(checked) => {
+                          const next = checked
+                            ? [...editForm.data.permissions, p.value]
+                            : editForm.data.permissions.filter((v) => v !== p.value);
+                          editForm.setData("permissions", next);
+                        }}
+                      />
+                      <label htmlFor={`edit_perm_${p.value}`} className="text-sm cursor-pointer">{p.label}</label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="flex justify-end gap-2 pt-1">
               <Button type="button" variant="ghost" onClick={() => setEditing(false)}>Cancel</Button>

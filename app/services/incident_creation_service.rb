@@ -76,8 +76,8 @@ class IncidentCreationService
       users_to_assign << u
     end
 
-    # PM-side: all pm_managers in the property's PM org
-    @property.property_management_org.users.active.where(user_type: User::PM_MANAGER).find_each do |u|
+    # PM-side: all "other" users in the property's PM org
+    @property.property_management_org.users.active.where(user_type: User::OTHER).find_each do |u|
       users_to_assign << u
     end
 

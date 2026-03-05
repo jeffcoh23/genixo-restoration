@@ -218,6 +218,7 @@ class SettingsController < ApplicationController
       last_name: current_user.last_name,
       email_address: current_user.email_address,
       timezone: current_user.timezone,
+      title: current_user.title,
       role_label: User::ROLE_LABELS[current_user.user_type],
       organization_name: current_user.organization.name,
       notification_preferences: {
