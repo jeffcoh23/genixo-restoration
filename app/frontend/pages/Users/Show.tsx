@@ -59,14 +59,13 @@ interface UserDetail {
 }
 
 export default function UserShow() {
-  const { user, can_edit, can_edit_role, can_deactivate, role_options, permissions_options, role_defaults, routes } = usePage<SharedProps & {
+  const { user, can_edit, can_edit_role, can_deactivate, role_options, permissions_options, routes } = usePage<SharedProps & {
     user: UserDetail;
     can_edit: boolean;
     can_edit_role: boolean;
     can_deactivate: boolean;
     role_options: { value: string; label: string }[];
     permissions_options: PermissionOption[];
-    role_defaults: Record<string, string[]>;
   }>().props;
   const [editing, setEditing] = useState(false);
   const [confirmDeactivate, setConfirmDeactivate] = useState(false);

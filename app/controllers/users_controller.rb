@@ -28,8 +28,7 @@ class UsersController < ApplicationController
       can_edit_role: can_edit_role_for_target?,
       can_deactivate: @user.id != current_user.id,
       role_options: can_edit_role_for_target? ? role_options_for(@user.organization) : [],
-      permissions_options: Permissions::ALL_PERMISSIONS.map { |p| { value: p.to_s, label: Permissions::PERMISSION_LABELS[p] } },
-      role_defaults: Permissions::ROLE_PERMISSIONS.transform_values { |perms| perms.map(&:to_s) }
+      permissions_options: Permissions::ALL_PERMISSIONS.map { |p| { value: p.to_s, label: Permissions::PERMISSION_LABELS[p] } }
     }
   end
 

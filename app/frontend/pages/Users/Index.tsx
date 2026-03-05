@@ -1,5 +1,5 @@
 import { useForm, usePage } from "@inertiajs/react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import AppLayout from "@/layout/AppLayout";
 import InlineActionFeedback from "@/components/InlineActionFeedback";
 import PageHeader from "@/components/PageHeader";
@@ -81,11 +81,15 @@ export default function UsersIndex() {
   const selectedOrg = org_options.find((o) => o.id.toString() === form.data.organization_id);
 
   // Auto-fill permissions when role changes
+  const prevUserType = useRef(form.data.user_type);
   useEffect(() => {
-    if (form.data.user_type && role_defaults[form.data.user_type]) {
-      form.setData("permissions", role_defaults[form.data.user_type]);
+    if (form.data.user_type !== prevUserType.current) {
+      prevUserType.current = form.data.user_type;
+      if (form.data.user_type && role_defaults[form.data.user_type]) {
+        form.setData("permissions", role_defaults[form.data.user_type]);
+      }
     }
-  }, [form.data.user_type]);
+  }, [form.data.user_type, form, role_defaults]);
 
   const groupedActiveUsers = useMemo(
     () => active_users.reduce<Record<string, UserRow[]>>((groups, user) => {
