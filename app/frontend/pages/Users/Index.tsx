@@ -230,9 +230,9 @@ export default function UsersIndex() {
             {form.data.user_type && (
               <div className="space-y-3">
                 <label className="text-sm font-medium">Notification Preferences</label>
-                <div className="space-y-3">
+                <div className="rounded-md border border-border divide-y divide-border">
                   {notification_options.map((n) => (
-                    <div key={n.key} className="flex items-start gap-3">
+                    <div key={n.key} className="flex items-start gap-3 px-3 py-2.5">
                       <Checkbox
                         id={`notif_${n.key}`}
                         checked={form.data.notification_preferences[n.key] || false}

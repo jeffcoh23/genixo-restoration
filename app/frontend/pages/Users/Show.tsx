@@ -255,19 +255,21 @@ export default function UserShow() {
               )}
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Timezone</label>
-              <Select value={editForm.data.timezone} onValueChange={(v) => editForm.setData("timezone", v)}>
-                <SelectTrigger className="h-10">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {timezone_options.map((tz) => (
-                    <SelectItem key={tz.value} value={tz.value}>{tz.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {editForm.errors.timezone && <p className="text-sm text-destructive">{editForm.errors.timezone}</p>}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Timezone</label>
+                <Select value={editForm.data.timezone} onValueChange={(v) => editForm.setData("timezone", v)}>
+                  <SelectTrigger className="h-10">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {timezone_options.map((tz) => (
+                      <SelectItem key={tz.value} value={tz.value}>{tz.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {editForm.errors.timezone && <p className="text-sm text-destructive">{editForm.errors.timezone}</p>}
+              </div>
             </div>
 
             {can_edit_role && !user.is_pm_user && (
@@ -296,9 +298,9 @@ export default function UserShow() {
             {can_edit_role && (
               <div className="space-y-3">
                 <label className="text-sm font-medium">Notification Preferences</label>
-                <div className="space-y-3">
+                <div className="rounded-md border border-border divide-y divide-border">
                   {notification_options.map((n) => (
-                    <div key={n.key} className="flex items-start gap-3">
+                    <div key={n.key} className="flex items-start gap-3 px-3 py-2.5">
                       <Checkbox
                         id={`edit_notif_${n.key}`}
                         checked={editForm.data.notification_preferences[n.key] || false}
