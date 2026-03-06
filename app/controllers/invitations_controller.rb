@@ -14,6 +14,7 @@ class InvitationsController < ApplicationController
       phone: params[:phone].presence,
       title: params[:title].presence,
       permissions: Array(params[:permissions]).map(&:to_s).select(&:presence),
+      notification_preferences: notification_prefs_from_params,
       expires_at: 7.days.from_now
     )
 
@@ -85,6 +86,7 @@ class InvitationsController < ApplicationController
       phone: params[:phone].presence,
       title: @invitation.title,
       permissions: @invitation.permissions,
+      notification_preferences: @invitation.notification_preferences,
       password: params[:password],
       password_confirmation: params[:password_confirmation]
     )
@@ -104,6 +106,13 @@ class InvitationsController < ApplicationController
 
   def require_mitigation_admin
     raise ActiveRecord::RecordNotFound unless can_manage_users?
+  end
+
+  def notification_prefs_from_params
+    raw = params[:notification_preferences]
+    return {} unless raw.is_a?(ActionController::Parameters) || raw.is_a?(Hash)
+
+    raw.to_unsafe_h.transform_values { |v| v == true || v == "true" }
   end
 
   def target_organization
