@@ -125,7 +125,7 @@ class IncidentCreationService
   end
 
   def send_notifications
-    if @user.notification_preference("incident_creation")
+    if @user.notification_preference("incident_user_assignment")
       IncidentMailer.creation_confirmation(@incident).deliver_later
     end
     EscalationJob.perform_later(@incident.id) if @incident.emergency?
