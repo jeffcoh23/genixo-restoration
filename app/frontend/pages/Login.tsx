@@ -32,8 +32,8 @@ export default function Login() {
     <div className="flex items-center justify-center min-h-screen bg-background px-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="pb-2">
-          <div className="mx-auto mb-2 rounded-lg bg-sidebar px-5 py-3">
-            <img src="/brand/genixio-horizontal-white-caps.png" alt="Genixo Restoration" className="h-8" />
+          <div className="mx-auto mb-2">
+            <img src="/brand/genixo-horizontal-dark.png" alt="Genixo Restoration" className="h-10" />
           </div>
         </CardHeader>
         <CardContent>

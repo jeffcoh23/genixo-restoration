@@ -332,6 +332,44 @@ export default function UserShow() {
         </DialogContent>
       </Dialog>
 
+      {/* Permissions (mitigation users only) */}
+      {!user.is_pm_user && permissions_options.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-lg font-semibold text-foreground mb-3">Permissions</h2>
+          <div className="flex flex-wrap gap-2">
+            {permissions_options.map((p) => (
+              <Badge
+                key={p.value}
+                variant={user.permissions.includes(p.value) ? "default" : "outline"}
+                className={user.permissions.includes(p.value) ? "" : "text-muted-foreground"}
+              >
+                {p.label}
+              </Badge>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Notification Preferences */}
+      {notification_options.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-lg font-semibold text-foreground mb-3">Notification Preferences</h2>
+          <div className="rounded-md border border-border divide-y divide-border">
+            {notification_options.map((n) => (
+              <div key={n.key} className="flex items-center justify-between px-3 py-2.5">
+                <div>
+                  <div className="text-sm font-medium text-foreground">{n.label}</div>
+                  <div className="text-xs text-muted-foreground">{n.description}</div>
+                </div>
+                <Badge variant={user.notification_preferences[n.key] ? "default" : "outline"} className={user.notification_preferences[n.key] ? "" : "text-muted-foreground"}>
+                  {user.notification_preferences[n.key] ? "On" : "Off"}
+                </Badge>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* Property Assignments (PM users only) */}
       <section className="mb-8">
         <h2 className="text-lg font-semibold text-foreground mb-3">Property Assignments</h2>
