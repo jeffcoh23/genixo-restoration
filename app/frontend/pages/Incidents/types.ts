@@ -47,6 +47,7 @@ export interface LaborEntry {
   user_name: string | null;
   created_by_name: string;
   edit_path: string | null;
+  delete_path: string | null;
   // Raw values for edit form (only present when editable)
   started_at?: string | null;
   ended_at?: string | null;

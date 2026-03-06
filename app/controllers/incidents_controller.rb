@@ -1007,7 +1007,8 @@ class IncidentsController < ApplicationController
         notes: entry.notes,
         user_name: entry.user&.full_name,
         created_by_name: entry.created_by_user.full_name,
-        edit_path: editable ? incident_labor_entry_path(incident, entry) : nil
+        edit_path: editable ? incident_labor_entry_path(incident, entry) : nil,
+        delete_path: editable ? incident_labor_entry_path(incident, entry) : nil
       }
       if editable
         data[:started_at] = format_time_value(entry.started_at)
