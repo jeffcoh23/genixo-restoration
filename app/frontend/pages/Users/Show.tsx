@@ -19,6 +19,17 @@ interface PermissionOption {
   label: string;
 }
 
+interface NotificationOption {
+  key: string;
+  label: string;
+  description: string;
+}
+
+interface TimezoneOption {
+  value: string;
+  label: string;
+}
+
 interface AssignedProperty {
   id: number;
   name: string;
@@ -59,13 +70,15 @@ interface UserDetail {
 }
 
 export default function UserShow() {
-  const { user, can_edit, can_edit_role, can_deactivate, role_options, permissions_options, routes } = usePage<SharedProps & {
+  const { user, can_edit, can_edit_role, can_deactivate, role_options, permissions_options, notification_options, timezone_options, routes } = usePage<SharedProps & {
     user: UserDetail;
     can_edit: boolean;
     can_edit_role: boolean;
     can_deactivate: boolean;
     role_options: { value: string; label: string }[];
     permissions_options: PermissionOption[];
+    notification_options: NotificationOption[];
+    timezone_options: TimezoneOption[];
   }>().props;
   const [editing, setEditing] = useState(false);
   const [confirmDeactivate, setConfirmDeactivate] = useState(false);
@@ -79,6 +92,7 @@ export default function UserShow() {
     user_type: user.user_type,
     title: user.title || "",
     permissions: user.permissions || [],
+    notification_preferences: user.notification_preferences || {},
   });
 
   function startEdit() {
@@ -91,6 +105,7 @@ export default function UserShow() {
       user_type: user.user_type,
       title: user.title || "",
       permissions: user.permissions || [],
+      notification_preferences: user.notification_preferences || {},
     });
     setEditing(true);
   }
@@ -153,7 +168,7 @@ export default function UserShow() {
       <InlineActionFeedback error={statusAction.error} onDismiss={statusAction.clearFeedback} className="mb-4" />
 
       <Dialog open={editing} onOpenChange={setEditing}>
-        <DialogContent className="sm:max-w-xl">
+        <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit User</DialogTitle>
           </DialogHeader>
@@ -226,32 +241,36 @@ export default function UserShow() {
                   <Input value={user.role_label} disabled className="h-10" />
                 )}
               </div>
-              <div className="space-y-2">
-                <label htmlFor="timezone" className="text-sm font-medium">Timezone</label>
-                <Input
-                  id="timezone"
-                  value={editForm.data.timezone}
-                  onChange={(e) => editForm.setData("timezone", e.target.value)}
-                  className="h-10"
-                />
-                {editForm.errors.timezone && <p className="text-sm text-destructive">{editForm.errors.timezone}</p>}
-              </div>
+              {can_edit_role && (
+                <div className="space-y-2">
+                  <label htmlFor="title" className="text-sm font-medium">Title</label>
+                  <Input
+                    id="title"
+                    placeholder="e.g. Regional Director"
+                    value={editForm.data.title}
+                    onChange={(e) => editForm.setData("title", e.target.value)}
+                    className="h-10"
+                  />
+                </div>
+              )}
             </div>
 
-            {can_edit_role && (
-              <div className="space-y-2">
-                <label htmlFor="title" className="text-sm font-medium">Title</label>
-                <Input
-                  id="title"
-                  placeholder="e.g. Regional Director"
-                  value={editForm.data.title}
-                  onChange={(e) => editForm.setData("title", e.target.value)}
-                  className="h-10"
-                />
-              </div>
-            )}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Timezone</label>
+              <Select value={editForm.data.timezone} onValueChange={(v) => editForm.setData("timezone", v)}>
+                <SelectTrigger className="h-10">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {timezone_options.map((tz) => (
+                    <SelectItem key={tz.value} value={tz.value}>{tz.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {editForm.errors.timezone && <p className="text-sm text-destructive">{editForm.errors.timezone}</p>}
+            </div>
 
-            {can_edit_role && (
+            {can_edit_role && !user.is_pm_user && (
               <div className="space-y-3">
                 <label className="text-sm font-medium">Permissions</label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -268,6 +287,33 @@ export default function UserShow() {
                         }}
                       />
                       <label htmlFor={`edit_perm_${p.value}`} className="text-sm cursor-pointer">{p.label}</label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {can_edit_role && (
+              <div className="space-y-3">
+                <label className="text-sm font-medium">Notification Preferences</label>
+                <div className="space-y-3">
+                  {notification_options.map((n) => (
+                    <div key={n.key} className="flex items-start gap-3">
+                      <Checkbox
+                        id={`edit_notif_${n.key}`}
+                        checked={editForm.data.notification_preferences[n.key] || false}
+                        onCheckedChange={(checked) => {
+                          editForm.setData("notification_preferences", {
+                            ...editForm.data.notification_preferences,
+                            [n.key]: checked === true,
+                          });
+                        }}
+                        className="mt-0.5"
+                      />
+                      <label htmlFor={`edit_notif_${n.key}`} className="cursor-pointer">
+                        <div className="text-sm font-medium text-foreground">{n.label}</div>
+                        <div className="text-xs text-muted-foreground">{n.description}</div>
+                      </label>
                     </div>
                   ))}
                 </div>

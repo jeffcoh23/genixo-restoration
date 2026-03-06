@@ -31,13 +31,10 @@ export default function Login() {
   return (
     <div className="flex items-center justify-center min-h-screen bg-background px-4">
       <Card className="w-full max-w-sm">
-        <CardHeader className="text-center pb-2">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground text-xl font-bold">
-            G
+        <CardHeader className="pb-2">
+          <div className="mx-auto mb-2 rounded-lg bg-sidebar px-5 py-3">
+            <img src="/brand/genixio-horizontal-white-caps.png" alt="Genixo Restoration" className="h-8" />
           </div>
-          <h1 className="text-xl font-semibold text-foreground">
-            Genixo Restoration
-          </h1>
         </CardHeader>
         <CardContent>
           {flash.alert && (

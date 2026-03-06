@@ -16,9 +16,9 @@ class AddPerUserPermissions < ActiveRecord::Migration[8.0]
 
     # Backfill existing users' permissions from role defaults
     role_permissions = {
-      "manager" => %w[create_incident edit_incident transition_status create_property view_properties manage_organizations manage_users manage_on_call manage_equipment_types create_labor create_equipment create_operational_note manage_moisture_readings manage_attachments manage_psychrometric_readings],
+      "manager" => %w[create_incident edit_incident transition_status create_property view_properties manage_organizations manage_users manage_on_call manage_equipment_types manage_daily_logs manage_readings manage_attachments],
       "office_sales" => %w[create_incident edit_incident create_property view_properties manage_organizations manage_users manage_attachments],
-      "technician" => %w[create_labor create_equipment create_operational_note manage_moisture_readings manage_attachments manage_psychrometric_readings],
+      "technician" => %w[manage_daily_logs manage_readings manage_attachments],
       "property_manager" => %w[create_incident view_properties],
       "area_manager" => %w[create_incident view_properties],
       "other" => %w[view_properties]

@@ -105,12 +105,12 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
     post invitations_path, params: {
       email: "custom@genixo.com", user_type: "technician",
       title: "Lead Technician",
-      permissions: %w[create_labor create_equipment manage_attachments],
+      permissions: %w[manage_daily_logs manage_attachments],
       notification_preferences: { status_change: "true", new_message: "true", daily_digest: "false" }
     }
     inv = Invitation.last
     assert_equal "Lead Technician", inv.title
-    assert_equal %w[create_labor create_equipment manage_attachments], inv.permissions
+    assert_equal %w[manage_daily_logs manage_attachments], inv.permissions
     assert_equal true, inv.notification_preferences["status_change"]
     assert_equal true, inv.notification_preferences["new_message"]
     assert_equal false, inv.notification_preferences["daily_digest"]
@@ -238,7 +238,7 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
       invited_by_user: @manager, email: "full@genixo.com",
       user_type: "technician", expires_at: 7.days.from_now,
       title: "Senior Tech",
-      permissions: %w[create_labor create_equipment manage_moisture_readings],
+      permissions: %w[manage_daily_logs manage_readings],
       notification_preferences: { "status_change" => true, "daily_digest" => false }
     )
 
@@ -251,10 +251,10 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
 
     user = User.find_by(email_address: "full@genixo.com")
     assert_equal "Senior Tech", user.title
-    assert_equal %w[create_labor create_equipment manage_moisture_readings], user.permissions
+    assert_equal %w[manage_daily_logs manage_readings], user.permissions
     assert_equal true, user.notification_preferences["status_change"]
     assert_equal false, user.notification_preferences["daily_digest"]
-    assert user.can?(:create_labor)
+    assert user.can?(:manage_daily_logs)
     assert_not user.can?(:manage_users)
   end
 

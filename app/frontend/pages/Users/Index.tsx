@@ -42,6 +42,7 @@ interface RoleOption {
 interface OrgOption {
   id: number;
   name: string;
+  is_mitigation: boolean;
   role_options: RoleOption[];
 }
 
@@ -50,15 +51,21 @@ interface PermissionOption {
   label: string;
 }
 
+interface NotificationOption {
+  key: string;
+  label: string;
+  description: string;
+}
+
 export default function UsersIndex() {
-  const { active_users, deactivated_users, pending_invitations, org_options, permissions_options, role_defaults, notification_keys, routes } = usePage<SharedProps & {
+  const { active_users, deactivated_users, pending_invitations, org_options, permissions_options, role_defaults, notification_options, routes } = usePage<SharedProps & {
     active_users: UserRow[];
     deactivated_users: UserRow[];
     pending_invitations: PendingInvitation[];
     org_options: OrgOption[];
     permissions_options: PermissionOption[];
     role_defaults: Record<string, string[]>;
-    notification_keys: string[];
+    notification_options: NotificationOption[];
   }>().props;
 
   const [showDeactivated, setShowDeactivated] = useState(false);
@@ -165,7 +172,9 @@ export default function UsersIndex() {
                   </Select>
                 </div>
               )}
+            </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Role</label>
                 <Select value={form.data.user_type} onValueChange={(v) => form.setData("user_type", v)}>
@@ -181,6 +190,8 @@ export default function UsersIndex() {
                   <p className="text-sm text-muted-foreground">Role options are scoped to the selected organization.</p>
                 )}
               </div>
+              <FormField id="invite_title" label="Title" hint="optional" value={form.data.title}
+                onChange={(v) => form.setData("title", v)} />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -190,14 +201,10 @@ export default function UsersIndex() {
                 onChange={(v) => form.setData("last_name", v)} />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField id="invite_phone" label="Phone" hint="optional" type="tel" value={form.data.phone}
-                onChange={(v) => form.setData("phone", v)} />
-              <FormField id="invite_title" label="Title" hint="optional" value={form.data.title}
-                onChange={(v) => form.setData("title", v)} />
-            </div>
+            <FormField id="invite_phone" label="Phone" hint="optional" type="tel" value={form.data.phone}
+              onChange={(v) => form.setData("phone", v)} />
 
-            {form.data.user_type && (
+            {form.data.user_type && selectedOrg?.is_mitigation && (
               <div className="space-y-3">
                 <label className="text-sm font-medium">Permissions</label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -223,20 +230,24 @@ export default function UsersIndex() {
             {form.data.user_type && (
               <div className="space-y-3">
                 <label className="text-sm font-medium">Notification Preferences</label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  {notification_keys.map((key) => (
-                    <div key={key} className="flex items-center gap-2">
+                <div className="space-y-3">
+                  {notification_options.map((n) => (
+                    <div key={n.key} className="flex items-start gap-3">
                       <Checkbox
-                        id={`notif_${key}`}
-                        checked={form.data.notification_preferences[key] || false}
+                        id={`notif_${n.key}`}
+                        checked={form.data.notification_preferences[n.key] || false}
                         onCheckedChange={(checked) => {
                           form.setData("notification_preferences", {
                             ...form.data.notification_preferences,
-                            [key]: checked === true,
+                            [n.key]: checked === true,
                           });
                         }}
+                        className="mt-0.5"
                       />
-                      <label htmlFor={`notif_${key}`} className="text-sm cursor-pointer">{key.replace(/_/g, " ")}</label>
+                      <label htmlFor={`notif_${n.key}`} className="cursor-pointer">
+                        <div className="text-sm font-medium text-foreground">{n.label}</div>
+                        <div className="text-xs text-muted-foreground">{n.description}</div>
+                      </label>
                     </div>
                   ))}
                 </div>
