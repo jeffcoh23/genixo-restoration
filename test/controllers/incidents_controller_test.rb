@@ -31,7 +31,7 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
       email_address: "pm@greystar.com", first_name: "Test", last_name: "PM", password: "password123")
     @area_mgr = User.create!(organization: @greystar, user_type: "area_manager",
       email_address: "am@greystar.com", first_name: "Test", last_name: "AreaMgr", password: "password123")
-    @pm_mgr = User.create!(organization: @greystar, user_type: "pm_manager",
+    @pm_mgr = User.create!(organization: @greystar, user_type: "other",
       email_address: "pmmgr@greystar.com", first_name: "Test", last_name: "PMMgr", password: "password123")
 
     # Assign PM users to the property
@@ -192,7 +192,7 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
-  test "pm_manager gets 404 on new incident page" do
+  test "other user gets 404 on new incident page" do
     login_as @pm_mgr
     get new_incident_path
     assert_response :not_found
@@ -205,7 +205,7 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
 
     # Auto-assign creates 5 assignments:
     #   PM-side property assignees: @pm_user, @area_mgr (2)
-    #   PM-side pm_managers in PM org: @pm_mgr (1)
+    #   PM-side other users in PM org: @pm_mgr (1)
     #   Mitigation-side managers + office_sales: @manager, @office (2)
     assert_difference "Incident.count", 1 do
       assert_difference "ActivityEvent.count", 2 do

@@ -10,7 +10,7 @@ class AssignmentNotificationJobTest < ActiveSupport::TestCase
       email_address: "mgr@genixo.com", first_name: "Test", last_name: "Manager", password: "password123")
     @tech = User.create!(organization: @genixo, user_type: "technician",
       email_address: "tech@genixo.com", first_name: "Test", last_name: "Tech", password: "password123",
-      notification_preferences: { "user_assignment" => true })
+      notification_preferences: { "incident_user_assignment" => true })
 
     @incident = Incident.create!(
       property: @property, created_by_user: @manager, status: "active",

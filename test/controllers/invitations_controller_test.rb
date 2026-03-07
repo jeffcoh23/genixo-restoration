@@ -100,6 +100,22 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "555-1234", inv.phone
   end
 
+  test "invitation saves title, permissions, and notification_preferences" do
+    login_as @manager
+    post invitations_path, params: {
+      email: "custom@genixo.com", user_type: "technician",
+      title: "Lead Technician",
+      permissions: %w[manage_daily_logs manage_attachments],
+      notification_preferences: { status_change: "true", new_message: "true", incident_user_assignment: "false" }
+    }
+    inv = Invitation.last
+    assert_equal "Lead Technician", inv.title
+    assert_equal %w[manage_daily_logs manage_attachments], inv.permissions
+    assert_equal true, inv.notification_preferences["status_change"]
+    assert_equal true, inv.notification_preferences["new_message"]
+    assert_equal false, inv.notification_preferences["incident_user_assignment"]
+  end
+
   # --- Resend ---
 
   test "manager can resend pending invitation" do
@@ -215,6 +231,31 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
 
     inv.reload
     assert inv.accepted?
+  end
+
+  test "accept carries through title, permissions, and notification_preferences to user" do
+    inv = @genixo.invitations.create!(
+      invited_by_user: @manager, email: "full@genixo.com",
+      user_type: "technician", expires_at: 7.days.from_now,
+      title: "Senior Tech",
+      permissions: %w[manage_daily_logs manage_readings],
+      notification_preferences: { "status_change" => true, "incident_user_assignment" => false }
+    )
+
+    assert_difference "User.count", 1 do
+      post accept_invitation_path(inv.token), params: {
+        first_name: "Alex", last_name: "Jones",
+        password: "password123", password_confirmation: "password123"
+      }
+    end
+
+    user = User.find_by(email_address: "full@genixo.com")
+    assert_equal "Senior Tech", user.title
+    assert_equal %w[manage_daily_logs manage_readings], user.permissions
+    assert_equal true, user.notification_preferences["status_change"]
+    assert_equal false, user.notification_preferences["incident_user_assignment"]
+    assert user.can?(:manage_daily_logs)
+    assert_not user.can?(:manage_users)
   end
 
   test "accept rejects expired invitation" do

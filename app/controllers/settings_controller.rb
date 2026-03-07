@@ -157,9 +157,7 @@ class SettingsController < ApplicationController
     prefs = current_user.notification_preferences.merge(
       "status_change" => params[:status_change] == "true" || params[:status_change] == true,
       "new_message" => params[:new_message] == "true" || params[:new_message] == true,
-      "daily_digest" => params[:daily_digest] == "true" || params[:daily_digest] == true,
-      "incident_creation" => params[:incident_creation] == "true" || params[:incident_creation] == true,
-      "user_assignment" => params[:user_assignment] == "true" || params[:user_assignment] == true
+      "incident_user_assignment" => params[:incident_user_assignment] == "true" || params[:incident_user_assignment] == true
     )
     current_user.update!(notification_preferences: prefs)
     redirect_to settings_path, notice: "Notification preferences saved."
@@ -218,14 +216,13 @@ class SettingsController < ApplicationController
       last_name: current_user.last_name,
       email_address: current_user.email_address,
       timezone: current_user.timezone,
+      title: current_user.title,
       role_label: User::ROLE_LABELS[current_user.user_type],
       organization_name: current_user.organization.name,
       notification_preferences: {
         status_change: current_user.notification_preference("status_change"),
         new_message: current_user.notification_preference("new_message"),
-        daily_digest: current_user.notification_preference("daily_digest"),
-        incident_creation: current_user.notification_preference("incident_creation"),
-        user_assignment: current_user.notification_preference("user_assignment")
+        incident_user_assignment: current_user.notification_preference("incident_user_assignment")
       }
     }
   end

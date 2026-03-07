@@ -463,8 +463,8 @@ class IncidentsController < ApplicationController
       property_user_list = (mit_users + pm_users).map do |u|
         auto = if u.mitigation_user? && !u.technician?
           true # GenXO managers + office/sales
-        elsif u.user_type == User::PM_MANAGER
-          true # PM managers always auto-assigned
+        elsif u.user_type == User::OTHER
+          true # Other PM users always auto-assigned
         elsif prop_assigned_ids.include?(u.id) && [ User::PROPERTY_MANAGER, User::AREA_MANAGER ].include?(u.user_type)
           true # PM-side property assignees
         else
@@ -492,7 +492,7 @@ class IncidentsController < ApplicationController
       .map { |u| { id: u.id, full_name: u.full_name, role_label: User::ROLE_LABELS[u.user_type] } }
   end
 
-  TEAM_SORT_ORDER = [ User::MANAGER, User::OFFICE_SALES, User::TECHNICIAN, User::PM_MANAGER, User::AREA_MANAGER, User::PROPERTY_MANAGER ].freeze
+  TEAM_SORT_ORDER = [ User::MANAGER, User::OFFICE_SALES, User::TECHNICIAN, User::OTHER, User::AREA_MANAGER, User::PROPERTY_MANAGER ].freeze
 
   def serialize_team_users(assignments)
     assignments.sort_by { |a| [ TEAM_SORT_ORDER.index(a.user.user_type) || 99, a.user.last_name ] }.map do |a|
@@ -1007,7 +1007,8 @@ class IncidentsController < ApplicationController
         notes: entry.notes,
         user_name: entry.user&.full_name,
         created_by_name: entry.created_by_user.full_name,
-        edit_path: editable ? incident_labor_entry_path(incident, entry) : nil
+        edit_path: editable ? incident_labor_entry_path(incident, entry) : nil,
+        delete_path: editable ? incident_labor_entry_path(incident, entry) : nil
       }
       if editable
         data[:started_at] = format_time_value(entry.started_at)
@@ -1021,6 +1022,7 @@ class IncidentsController < ApplicationController
   def assignable_labor_users(incident)
     if mitigation_admin?
       users = User.where(active: true, organization_id: incident.property.mitigation_org_id)
+        .where.not(user_type: User::OFFICE_SALES)
         .order(:last_name, :first_name)
       sorted = users.sort_by { |u| [ User::LABOR_SORT_ORDER.index(u.user_type) || 99, u.last_name, u.first_name ] }
       sorted.map { |u| { id: u.id, full_name: u.full_name, role_label: User::ROLE_LABELS[u.user_type] } }
@@ -1191,6 +1193,9 @@ class IncidentsController < ApplicationController
     end
 
     dates = points.flat_map { |p| p.moisture_readings.map(&:log_date) }.uniq.sort
+    today = Time.current.in_time_zone(current_user.timezone).to_date
+    dates << today unless dates.include?(today)
+    dates.sort!
 
     {
       supervisor_pm: incident.moisture_supervisor_pm,
@@ -1221,6 +1226,9 @@ class IncidentsController < ApplicationController
     end
 
     dates = points.flat_map { |p| p.psychrometric_readings.map(&:log_date) }.uniq.sort
+    today = Time.current.in_time_zone(current_user.timezone).to_date
+    dates << today unless dates.include?(today)
+    dates.sort!
 
     {
       dates: dates.map(&:iso8601),

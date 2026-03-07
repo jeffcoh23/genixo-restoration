@@ -64,15 +64,15 @@ module Authorization
   end
 
   def can_create_labor?
-    current_user.can?(Permissions::CREATE_LABOR)
+    current_user.can?(Permissions::MANAGE_DAILY_LOGS)
   end
 
   def can_create_equipment?
-    current_user.can?(Permissions::CREATE_EQUIPMENT)
+    current_user.can?(Permissions::MANAGE_DAILY_LOGS)
   end
 
   def can_create_operational_note?
-    current_user.can?(Permissions::CREATE_OPERATIONAL_NOTE)
+    current_user.can?(Permissions::MANAGE_DAILY_LOGS)
   end
 
   def can_manage_on_call?
@@ -84,7 +84,7 @@ module Authorization
   end
 
   def can_manage_moisture_readings?
-    current_user.can?(Permissions::MANAGE_MOISTURE_READINGS)
+    current_user.can?(Permissions::MANAGE_READINGS)
   end
 
   def can_manage_attachments?
@@ -92,7 +92,7 @@ module Authorization
   end
 
   def can_manage_psychrometric_readings?
-    current_user.can?(Permissions::MANAGE_PSYCHROMETRIC_READINGS)
+    current_user.can?(Permissions::MANAGE_READINGS)
   end
 
   # --- Resource-scoped checks (need a specific record) ---

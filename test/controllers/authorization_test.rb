@@ -13,7 +13,7 @@ class AuthorizationTest < ActionDispatch::IntegrationTest
     @tech = create_user(@genixo, "technician", "tech@genixo.com")
     @pm = create_user(@greystar, "property_manager", "pm@greystar.com")
     @am = create_user(@greystar, "area_manager", "am@greystar.com")
-    @pm_mgr = create_user(@greystar, "pm_manager", "mgr@greystar.com")
+    @pm_mgr = create_user(@greystar, "other", "mgr@greystar.com")
     @sandal_pm = create_user(@sandalwood, "property_manager", "pm@sandalwood.com")
 
     # Properties
@@ -136,14 +136,14 @@ class AuthorizationTest < ActionDispatch::IntegrationTest
 
   # --- PM user with direct incident assignment (no property assignment) ---
 
-  test "pm_manager sees incident via direct assignment even without property assignment" do
+  test "other user sees incident via direct assignment even without property assignment" do
     IncidentAssignment.create!(incident: @incident_greystar, user: @pm_mgr, assigned_by_user: @manager)
     login_as @pm_mgr
     get incident_path(@incident_greystar)
     assert_response :success
   end
 
-  test "pm_manager cannot see incident without any assignment" do
+  test "other user cannot see incident without any assignment" do
     login_as @pm_mgr
     get incident_path(@incident_greystar)
     assert_response :not_found

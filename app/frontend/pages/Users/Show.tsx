@@ -10,8 +10,25 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { SharedProps } from "@/types";
 import useInertiaAction from "@/hooks/useInertiaAction";
+
+interface PermissionOption {
+  value: string;
+  label: string;
+}
+
+interface NotificationOption {
+  key: string;
+  label: string;
+  description: string;
+}
+
+interface TimezoneOption {
+  value: string;
+  label: string;
+}
 
 interface AssignedProperty {
   id: number;
@@ -37,9 +54,12 @@ interface UserDetail {
   last_name: string;
   email: string;
   phone: string | null;
+  title: string | null;
   role_label: string;
   organization_name: string;
   timezone: string;
+  permissions: string[];
+  notification_preferences: Record<string, boolean>;
   active: boolean;
   is_pm_user: boolean;
   update_path: string;
@@ -50,12 +70,15 @@ interface UserDetail {
 }
 
 export default function UserShow() {
-  const { user, can_edit, can_edit_role, can_deactivate, role_options, routes } = usePage<SharedProps & {
+  const { user, can_edit, can_edit_role, can_deactivate, role_options, permissions_options, notification_options, timezone_options, routes } = usePage<SharedProps & {
     user: UserDetail;
     can_edit: boolean;
     can_edit_role: boolean;
     can_deactivate: boolean;
     role_options: { value: string; label: string }[];
+    permissions_options: PermissionOption[];
+    notification_options: NotificationOption[];
+    timezone_options: TimezoneOption[];
   }>().props;
   const [editing, setEditing] = useState(false);
   const [confirmDeactivate, setConfirmDeactivate] = useState(false);
@@ -67,6 +90,9 @@ export default function UserShow() {
     phone: user.phone || "",
     timezone: user.timezone,
     user_type: user.user_type,
+    title: user.title || "",
+    permissions: user.permissions || [],
+    notification_preferences: user.notification_preferences || {},
   });
 
   function startEdit() {
@@ -77,6 +103,9 @@ export default function UserShow() {
       phone: user.phone || "",
       timezone: user.timezone,
       user_type: user.user_type,
+      title: user.title || "",
+      permissions: user.permissions || [],
+      notification_preferences: user.notification_preferences || {},
     });
     setEditing(true);
   }
@@ -114,7 +143,7 @@ export default function UserShow() {
               <Badge variant="destructive">Deactivated</Badge>
             )}
           </div>
-          <p className="text-muted-foreground mt-1">{user.role_label} at {user.organization_name}</p>
+          <p className="text-muted-foreground mt-1">{user.title ? `${user.title} — ` : ""}{user.role_label} at {user.organization_name}</p>
           <div className="flex gap-4 text-sm text-muted-foreground mt-1">
             <span>{user.email}</span>
             {user.phone && <span>{user.phone}</span>}
@@ -139,7 +168,7 @@ export default function UserShow() {
       <InlineActionFeedback error={statusAction.error} onDismiss={statusAction.clearFeedback} className="mb-4" />
 
       <Dialog open={editing} onOpenChange={setEditing}>
-        <DialogContent className="sm:max-w-xl">
+        <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit User</DialogTitle>
           </DialogHeader>
@@ -212,17 +241,86 @@ export default function UserShow() {
                   <Input value={user.role_label} disabled className="h-10" />
                 )}
               </div>
+              {can_edit_role && (
+                <div className="space-y-2">
+                  <label htmlFor="title" className="text-sm font-medium">Title</label>
+                  <Input
+                    id="title"
+                    placeholder="e.g. Regional Director"
+                    value={editForm.data.title}
+                    onChange={(e) => editForm.setData("title", e.target.value)}
+                    className="h-10"
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label htmlFor="timezone" className="text-sm font-medium">Timezone</label>
-                <Input
-                  id="timezone"
-                  value={editForm.data.timezone}
-                  onChange={(e) => editForm.setData("timezone", e.target.value)}
-                  className="h-10"
-                />
+                <label className="text-sm font-medium">Timezone</label>
+                <Select value={editForm.data.timezone} onValueChange={(v) => editForm.setData("timezone", v)}>
+                  <SelectTrigger className="h-10">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {timezone_options.map((tz) => (
+                      <SelectItem key={tz.value} value={tz.value}>{tz.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 {editForm.errors.timezone && <p className="text-sm text-destructive">{editForm.errors.timezone}</p>}
               </div>
             </div>
+
+            {can_edit_role && !user.is_pm_user && (
+              <div className="space-y-3">
+                <label className="text-sm font-medium">Permissions</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {permissions_options.map((p) => (
+                    <div key={p.value} className="flex items-center gap-2">
+                      <Checkbox
+                        id={`edit_perm_${p.value}`}
+                        checked={editForm.data.permissions.includes(p.value)}
+                        onCheckedChange={(checked) => {
+                          const next = checked
+                            ? [...editForm.data.permissions, p.value]
+                            : editForm.data.permissions.filter((v) => v !== p.value);
+                          editForm.setData("permissions", next);
+                        }}
+                      />
+                      <label htmlFor={`edit_perm_${p.value}`} className="text-sm cursor-pointer">{p.label}</label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {can_edit_role && (
+              <div className="space-y-3">
+                <label className="text-sm font-medium">Notification Preferences</label>
+                <div className="rounded-md border border-border divide-y divide-border">
+                  {notification_options.map((n) => (
+                    <div key={n.key} className="flex items-start gap-3 px-3 py-2.5">
+                      <Checkbox
+                        id={`edit_notif_${n.key}`}
+                        checked={editForm.data.notification_preferences[n.key] || false}
+                        onCheckedChange={(checked) => {
+                          editForm.setData("notification_preferences", {
+                            ...editForm.data.notification_preferences,
+                            [n.key]: checked === true,
+                          });
+                        }}
+                        className="mt-0.5"
+                      />
+                      <label htmlFor={`edit_notif_${n.key}`} className="cursor-pointer">
+                        <div className="text-sm font-medium text-foreground">{n.label}</div>
+                        <div className="text-xs text-muted-foreground">{n.description}</div>
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="flex justify-end gap-2 pt-1">
               <Button type="button" variant="ghost" onClick={() => setEditing(false)}>Cancel</Button>
@@ -233,6 +331,44 @@ export default function UserShow() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Permissions (mitigation users only) */}
+      {!user.is_pm_user && permissions_options.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-lg font-semibold text-foreground mb-3">Permissions</h2>
+          <div className="flex flex-wrap gap-2">
+            {permissions_options.map((p) => (
+              <Badge
+                key={p.value}
+                variant={user.permissions.includes(p.value) ? "default" : "outline"}
+                className={user.permissions.includes(p.value) ? "" : "text-muted-foreground"}
+              >
+                {p.label}
+              </Badge>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Notification Preferences */}
+      {notification_options.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-lg font-semibold text-foreground mb-3">Notification Preferences</h2>
+          <div className="rounded-md border border-border divide-y divide-border">
+            {notification_options.map((n) => (
+              <div key={n.key} className="flex items-center justify-between px-3 py-2.5">
+                <div>
+                  <div className="text-sm font-medium text-foreground">{n.label}</div>
+                  <div className="text-xs text-muted-foreground">{n.description}</div>
+                </div>
+                <Badge variant={user.notification_preferences[n.key] ? "default" : "outline"} className={user.notification_preferences[n.key] ? "" : "text-muted-foreground"}>
+                  {user.notification_preferences[n.key] ? "On" : "Off"}
+                </Badge>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Property Assignments (PM users only) */}
       <section className="mb-8">

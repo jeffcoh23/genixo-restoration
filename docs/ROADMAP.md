@@ -10,9 +10,125 @@
 
 ---
 
-## Phase 1: Foundation
+## Phase 1: Quick Fixes & Cleanup
 
-App setup, database, auth, and app shell.
+Small independent items to polish the current app.
+
+- [ ] **Labor edit/delete** — add "Entries" section below summary grid in `LaborPanel.tsx`:
+  - Desktop (sm+): compact table — Employee | Date | Time | Hours | pencil/trash icons
+  - Mobile (<sm): card stack — each entry is a card with name, hours, date, time range, edit/trash icons (no horizontal scroll)
+  - Pencil opens existing `LaborForm` pre-filled (already supports `entry` prop)
+  - Trash shows confirm dialog → `router.delete(entry.edit_path)`
+  - Backend: `update`/`destroy` already exist — wire delete path into props, add activity logging
+  - Uses `labor_entries` prop already passed to LaborPanel (currently unused)
+  - Files: `LaborPanel.tsx`, `labor_entries_controller.rb`, `incidents_controller.rb` (serialize delete_path)
+- [ ] **Remove DFR auto-generation from documents panel**
+- [ ] **Add "Proposal" as a document category** in upload form dropdown
+- [ ] **Loading states + user-friendly errors** — empty/loading/error states across all pages
+- [ ] **404 page** — branded not-found page
+
+---
+
+## Phase 2: Greystar Seed Data & Branding
+
+Real client data for demos and onboarding.
+
+- [ ] **Seed Greystar construction team** (5 users with titles, phones, regions, notification prefs)
+- [ ] **Client logo per PM org** — configurable logo displayed in the app (start with Greystar)
+- [ ] **Show assigned Genixo team on incident detail** — needs more thought. Maybe show assigned managers on Manage tab (exclude Office/Sales roles). Needs discussion before implementing.
+
+---
+
+## Phase 3: Incident Creation & Auto-Assignment Rework
+
+Biggest workflow change — how incidents get created and who gets auto-assigned.
+
+- [ ] PM creates **emergency** → PM picks PM-side people, backend auto-assigns on-call + `auto_assign_emergencies` users
+- [ ] PM creates **non-emergency** → PM picks PM-side people, backend auto-assigns on-call only
+- [ ] Genixo creates incident → on-call + auto-assign users pre-selected, creator can modify
+- [ ] **On-call settings**: new `auto_assign_emergencies` user list section
+- [ ] Update `IncidentCreationService` + auto-assignment tests
+- [ ] **Emergency auto-reply**: on-screen confirmation message
+- [ ] **Non-emergency auto-reply**: "confirmation call on next business day"
+- [ ] **Emergency phone number** displayed prominently in app
+
+---
+
+## Phase 4: Guest Incident Submission
+
+Unauthenticated emergency requests from property managers without accounts.
+
+- [ ] "Don't have an account?" link on login page
+- [ ] Guest incident form — name, email, phone, property, description, emergency toggle
+- [ ] Email domain allowlist (hardcode `@greystar.com` + others)
+- [ ] Auto-recognize existing properties
+- [ ] Create incident + send invitation
+- [ ] Confirmation: "you will receive a call within 5-10 minutes"
+
+---
+
+## Phase 5: Per-Incident Notifications & Client-Facing Views
+
+Refinement features for notification control and client-appropriate data views.
+
+### Per-incident notification overrides
+
+- [ ] Messages + status changes toggles per incident
+- [ ] Default: inherit from global, override per-incident
+- [ ] PM users control their own; mitigation controls anyone assigned
+- [ ] UI: settings icon on Manage tab
+- [ ] All notification jobs check per-incident override first
+
+### Client-facing moisture view
+
+- [ ] Client sees: initial (wet) + most recent (dry) only
+- [ ] "Dry" indicator when fully dry
+- [ ] Full daily readings for Genixo team only
+
+---
+
+## Post-MVP
+
+Deferred features. Infrastructure is in place for all of these.
+
+| Feature | Notes |
+|---------|-------|
+| External stakeholder access | Adjusters & third parties with per-incident, read-only (no messages) access |
+| Messaging overhaul | Email bridge (reply-from-email), per-incident recipient config, weekly executive digest |
+| Reports & data export | CSV + formatted PDF export for daily logs, readings, labor, equipment |
+| Accessibility + QA pass | Focus states, keyboard nav, contrast, responsive QA, cross-browser, perf testing |
+| Gantt chart / project timeline | Interactive incident timeline view using [SVAR React Gantt](https://svar.dev/react/gantt/) (MIT). Visualize incident phases, equipment deployments, and labor across a drag-and-drop timeline. |
+| Visual moisture mapping | Color-coded unit floor plans with grid drawing tool. Reference Cotton's approach. |
+| Real-time updates | ActionCable / Solid Cable tables created. Add live updates. |
+| SMS/voice notifications | Plug provider into `NotificationDispatchService`. Required for emergency auto-reply SMS. |
+| Equipment barcode scanning | `equipment_identifier` field exists. Add camera scan. |
+| Invoicing/billing | Status fields exist. Add invoice generation. |
+| Signature capture | File uploads for MVP. In-app signature pad post-MVP. |
+| On-call rotation scheduling | Manual for MVP. Automated rotation post-MVP. |
+| Dark mode | Design tokens are semantic — theming straightforward. |
+| OAuth / SSO | Email/password for MVP. Add if PM orgs require. |
+| Analytics / reporting | Add dashboards for volume, response times, costs. |
+| Mobile app (PWA or React Native) | Persistent login, push notifications, tablet support for moisture mapping. Top priority per Greystar. |
+| DFR formatting | Dress up daily field report PDF — reference Cotton's format for a more professional look |
+
+---
+
+## Build Principles
+
+- **Build vertically.** One feature end-to-end (model → service → controller → page → tests) before starting the next.
+- **Test as you go.** Service and controller tests alongside the code. E2E tests after each phase.
+- **Authorization from day one.** Every controller action scoped from the start.
+- **Seed data is your testing ground.** Keep seeds current as schema evolves.
+- **Deploy early.** Get on Heroku after Phase 1. Deploy after each phase.
+
+---
+
+## Archived
+
+> Completed phases and scratchpad items preserved for reference.
+
+<details>
+<summary>Phase 1: Foundation (completed)</summary>
 
 ### App Setup
 
@@ -26,8 +142,6 @@ App setup, database, auth, and app shell.
 - [x] Set up `Procfile.dev` (Puma + Vite)
 
 ### Database & Models
-
-Each item = migration + model + validations + associations per SCHEMA.md.
 
 - [x] `organizations` table + model
 - [x] `users` table + model (including user_type validation per org type)
@@ -51,8 +165,6 @@ Each item = migration + model + validations + associations per SCHEMA.md.
 
 ### Seeds
 
-Per PROJECT_SETUP.md seed data section.
-
 - [x] Seed organizations (3 orgs: 1 mitigation, 2 PM)
 - [x] Seed users (14 Genixo + 3 Greystar + 1 Sandalwood = 18 users)
 - [x] Seed properties (3 properties) + property assignments
@@ -75,13 +187,10 @@ Per PROJECT_SETUP.md seed data section.
 - [x] Flash message component
 - [x] Placeholder pages for all routes
 
-**Done when:** Log in as any seed user, see correct sidebar for their role, navigate between placeholder pages.
+</details>
 
----
-
-## Phase 2: Core Data Management
-
-Orgs, properties, users, invitations. Multi-tenant authorization.
+<details>
+<summary>Phase 2: Core Data Management (completed)</summary>
 
 ### Authorization
 
@@ -123,13 +232,10 @@ Orgs, properties, users, invitations. Multi-tenant authorization.
 - [x] Cross-org invitations (mitigation → PM org)
 - [x] Invitation tests — full flow + edge cases
 
-**Done when:** Full CRUD for orgs, properties, users. Invite → accept → login works. PM isolation confirmed by tests.
+</details>
 
----
-
-## Phase 3: Incidents — Core
-
-Incident lifecycle, dashboard, detail page, assignments.
+<details>
+<summary>Phase 3: Incidents — Core (completed)</summary>
 
 ### Incident Creation
 
@@ -179,13 +285,10 @@ Incident lifecycle, dashboard, detail page, assignments.
 - [x] Tab bar — Activity, Daily Log, Messages, Documents
 - [x] Compose area pinned to viewport bottom on Messages tab
 
-**Done when:** Create incident → dashboard → detail → change status → assign users → add contacts. All role scoping works.
+</details>
 
----
-
-## Phase 4: Incident Activity
-
-Messages, labor, equipment, notes, attachments, daily log, documents panel.
+<details>
+<summary>Phase 4: Incident Activity (completed)</summary>
 
 ### Messages
 
@@ -229,13 +332,10 @@ Messages, labor, equipment, notes, attachments, daily log, documents panel.
 - [x] Documents panel UI — photo grid + document list (see VIEWS.md §Right Panel: Documents)
 - [x] Category filter
 
-**Done when:** Labor, equipment, notes, files, messages all work. Everything appears in daily log. Documents panel shows all attachments with filtering.
+</details>
 
----
-
-## Phase 5: Notifications & Escalation
-
-Email delivery and emergency response chain.
+<details>
+<summary>Phase 5: Notifications & Escalation (completed)</summary>
 
 ### Email Infrastructure
 
@@ -273,13 +373,10 @@ Email delivery and emergency response chain.
 - [x] All notification jobs respect user preferences
 - [x] Tests — preferences honored
 
-**Done when:** Emails fire on correct triggers. Escalation chain works end-to-end. Preferences respected.
+</details>
 
----
-
-## Phase 6: Polish & Remaining Features
-
-Complete the app for production use.
+<details>
+<summary>Phase 6: Polish & Remaining Features (completed)</summary>
 
 ### Unread Tracking
 
@@ -318,9 +415,7 @@ Complete the app for production use.
 
 - [x] Empty states for all lists and panels (see VIEWS.md §Empty States)
 
-### Phase 6A: Token Refresh (CSS-only, no component changes)
-
-Update `application.css` tokens and global styles. Zero component code changes — the whole app gets prettier instantly.
+### Phase 6A: Token Refresh
 
 - [x] Refresh DESIGN.md with "warm & polished" direction — new color palette, typography, shadow/depth system
 - [x] Audit every page against new design tokens, document findings in `docs/UI_AUDIT.md`
@@ -329,225 +424,48 @@ Update `application.css` tokens and global styles. Zero component code changes �
 - [x] Status color tuning — better contrast and vibrancy against warm backgrounds
 - [x] Deploy and visual QA — verify token changes look good across all pages
 
-### Phase 6B: Structural Polish (component + layout changes)
-
-Component-level work. Only start after 6A is deployed and validated.
+### Phase 6B: Structural Polish
 
 - [x] Replace ugly default flash messages with a polished toast/notification component
 - [x] Install missing shadcn primitives: `Select`, `Textarea` (Tabs, Sheet, Dialog already existed)
-- [x] Replace all raw HTML form controls (`<select>`, `<textarea>`, `<button>`) with shadcn components
-- [x] Migrate all hardcoded colors (`text-blue-600`, `bg-red-50`, `bg-amber-100`, etc.) to design tokens
-- [x] Convert all hand-rolled modals to shadcn Dialog (NoteForm, LaborForm, EquipmentForm, ActivityForm, IncidentEditForm, OverviewPanel)
+- [x] Replace all raw HTML form controls with shadcn components
+- [x] Migrate all hardcoded colors to design tokens
+- [x] Convert all hand-rolled modals to shadcn Dialog
 - [x] StatusBadge uses `statusColor()` — colored badges on Users/Show and Properties/Show
 - [x] Daily Log visual separation — accent headers, row hover, breathing room
 - [x] Table polish — Equipment + Labor panels with `px-4 py-3` padding + hover states
-- ~~Add composable layout primitives~~ — N/A: current Card + manual structure is fine
-- ~~Refactor DataTable/DetailList~~ — N/A: already correct at 65 and 22 lines
-- ~~Centralize statusColor + timeAgo~~ — N/A: statusColor shared, dates formatted server-side
-- ~~Migrate remaining CRUD/detail pages~~ — N/A: low-traffic, working fine
-- ~~Redesign on-call settings page~~ — N/A: functional, low priority
-- [ ] Accessibility + polish pass: focus states, keyboard nav, contrast, tap targets, spacing consistency
-- [ ] Visual QA sign-off across mobile/tablet/desktop for all six roles
 
-### Final QA
+### E2E Tests
 
-- [ ] Loading states + user-friendly errors (see DESIGN.md §Tone & Voice)
-- [ ] 404 page
-- [ ] Responsive QA — mobile, tablet, desktop
-- [x] E2E system tests — critical happy paths (see list below)
-- [ ] Cross-browser check
-- [ ] Performance testing — production-scale data (300+ properties per PM org, 1000+ incidents, 50+ users). Profile N+1 queries, pagination efficiency, index page load times, incident show with 100+ attachments
+- [x] P1 — Critical (~20 tests): auth, data isolation, incident creation, status transitions, messages, labor, equipment, team assignment
+- [x] P2 — Core Workflows (~40 tests): auth extended, dashboard, incident list, daily ops, team extended, admin CRUD, settings, role blocking
+- [x] P3 — Edge Cases (~40 tests): incident edge cases, daily ops edge cases, admin edge cases, settings edge cases, cross-cutting
 
-### E2E Test Paths (Capybara + Playwright)
+</details>
 
-Full test plan with 100 test cases across 8 files: see [TESTING.md §E2E Test Plan](TESTING.md#e2e-test-plan).
+<details>
+<summary>Completed scratchpad items</summary>
 
-#### P1 — Critical (gates production, ~20 tests)
+- [x] Hide dashboard from sidebar, make `/` → incidents index
+- [x] "Organizations" verbiage → "Property Management"
+- [x] Modal forms: don't close when clicking outside
+- [x] Equipment placed_at/removed_at: date-only inputs
+- [x] PM users cannot edit incidents after creation
+- [x] Incidents Index: separate "Unread" from "Activity" column
+- [x] Daily log activity form: default status "Complete"
+- [x] Properties Index: org filter dropdown
+- [x] New Incident form: split Mitigation/PM team selects
+- [x] "Job Started" status between Active and Completed
+- [x] Equipment change history + inventory tracking
+- [x] Equipment inventory with cascading dropdowns
+- [x] Camera capture + bulk photo upload
+- [x] Moisture readings — in-app structured tracking with inline editing, batch recording, copy from previous
+- [x] Psychrometric readings — in-app tracking with inline editing, GPP auto-calculation, G-Dep, batch recording
+- [x] Manage tab: clarify "PM Manager" vs "Property Manager" role labels — renamed `pm_manager` → `other`
+- [x] Remove daily digest email notification — job disabled, removed from settings UI
+- [x] Status change notifications off by default for all users
+- [x] Merge incident creation + assignment notifications into one — `incident_user_assignment`
+- [x] Add `title` string column to users (display-only, shown on profiles and team lists)
+- [x] Add title field to invite/create user forms
 
-- [x] **Authentication basics** (A1–A4, A12–A13) — login all roles, logout, deactivated mid-session, return-to redirect
-- [x] **Data isolation** (H1–H4) — PM cross-org incidents, PM cross-org properties, cross-org equipment, technician unassigned
-- [x] **Incident creation** (C1, C3) — emergency incident (manager), standard incident (PM user)
-- [x] **Status transitions** (C15–C16) — standard path, quote/proposal path
-- [x] **Messages** (E1) — send message on incident
-- [x] **Labor** (E4) — technician logs labor entry
-- [x] **Equipment** (E9) — place equipment on incident
-- [x] **Team assignment** (D1–D2) — assign mitigation user, assign PM user (own org)
-
-#### P2 — Core Workflows (~40 tests)
-
-- [x] **Auth extended** (A5–A11) — forgot password, reset, invitation accept/expired
-- [x] **Dashboard** (B1–B3) — manager, technician, PM views
-- [x] **Incident list** (C7–C13) — filters, search, sort, pagination, detail view, edit
-- [x] **Daily ops** (E2, E5–E7, E12, E15–E17) — attachments, manager labor, delete, equipment removal, activity entries, notes, documents
-- [x] **Team extended** (D3–D7) — PM restrictions, remove user, property assignments
-- [x] **Admin CRUD** (F1, F3, F6, F9) — create org, create property, invite user, deactivate user
-- [x] **Settings** (G1–G2) — update profile, change password
-- [x] **Role blocking** (H5–H10) — technician/PM blocked from admin pages
-
-#### P3 — Edge Cases (~40 tests)
-
-- [x] **Incident edge cases** (C2, C4–C6, C14, C17–C19, C22–C23) — quote type, validation, team assignment form, technician restrictions, escalation resolution, DFR download, emergency indicators
-- [x] **Daily ops edge cases** (E3, E8, E10–E11, E13–E14, E18–E20) — empty message, ownership restrictions, inventory picker, "Other" type, contacts CRUD
-- [x] **Admin edge cases** (F2, F4–F5, F7–F8, F10–F22) — edit restrictions, PM org limits, resend invitation, self-deactivation blocked, equipment inventory management, on-call config
-- [x] **Settings edge cases** (G3–G6) — wrong password, mismatch, preferences, read-only display
-- [x] **Cross-cutting** (H11–H15, B4–B6, C20–C21) — login redirect, emergency visuals, pagination+filters, unread badge lifecycle
-
-**Done when:** Fully usable by all six roles. No dead ends, no missing states. Ready for production.
-
----
-
-## Scratchpad
-
-> Active backlog of fixes, improvements, and features. Check off as completed. Remove if no longer needed.
-
-### Quick Fixes
-
-- [x] Hide dashboard from sidebar, make `/` → incidents index, redirect logged-in users away from login page
-- [x] "Organizations" verbiage → "Property Management" in UI text (code/models stay same)
-- [x] Modal forms: don't close when clicking outside the overlay
-- [x] Equipment placed_at and removed_at: date-only inputs, remove time
-- [x] PM users cannot edit incidents after creation (add permission check)
-- [x] Incidents Index: separate "Unread" column from "Activity" timestamp column
-- [x] Daily log activity form: default status to "Complete" instead of "Active"
-
-### Medium
-
-- [x] Properties Index: add organization filter dropdown for mitigation users
-- [x] New Incident form: split user assignment into two selects (Mitigation Team / PM Team), PM users only see their own
-- [x] Add "Job Started" status between Active and Completed — update StatusTransitionService, model constants, labels, frontend statusColor
-- [x] Equipment change history: "Where is DH-042 right now?" — add last-seen/current-incident column to inventory page, per-item placement history
-
-### Larger Features
-
-- [x] Equipment inventory: new `equipment_items` table (belongs to equipment_type, has model name + identifier). Cascading dropdown on placement form: pick type → shows available items of that type. `equipment_entries` references specific item instead of free-text model/identifier
-- [x] Camera capture + bulk photo upload — HTML5 `capture="environment"` for rear camera on mobile. Multi-file input, shared category/date, upload progress. Optimized for techs snapping 10+ photos per visit
-- [ ] Labor edit/delete — individual entry list below summary grid with pencil/trash icons. Pencil opens LaborForm pre-filled, trash confirms then deletes. Backend: add update/destroy to labor_entries controller with permission checks + activity logging
-
-### Moisture Readings
-
-In-app structured moisture tracking. Replaces spreadsheet-based workflow with per-incident moisture logs.
-
-**Data model:**
-- `moisture_reading_sets` — one per incident per date (belongs_to incident, has date, created_by_user)
-- `moisture_readings` — individual readings (belongs_to moisture_reading_set, fields: unit, room, item, material, goal, measurement_unit [%/Pts], value)
-
-**Spreadsheet structure (reference: Moisture Readings.xlsx):**
-- Header: Job Number, Supervisor/PM
-- Columns: Unit | Room | Item | Material | Goal | %/Pts | Date1 | Date2 | ...
-- Each row tracks one measurement point (e.g. Unit 1107, Bathroom, Wall, Drywall, Goal 7.5, Pts)
-- Readings recorded per date — values trend toward goal over time
-- Materials: Drywall, Wood, Carpet — each has different goal thresholds
-- Multiple units per incident, multiple rooms per unit, multiple items per room
-
-**UI:**
-- New tab or section on incident detail — "Moisture"
-- Date selector to view/add readings for a specific date
-- Table view matching spreadsheet layout: rows = measurement points, columns = dates
-- Color coding: red when above goal, green when at/below goal
-- Add reading form: select unit/room/item/material (or add new), enter value
-- "Copy from previous" — pre-fill measurement points from last reading date so tech just enters new values
-- Export to spreadsheet for PM reporting
-
-**Build steps:**
-- [ ] Migration: `moisture_reading_sets` + `moisture_readings` tables
-- [ ] Models + validations
-- [ ] Controller endpoints (CRUD for reading sets + individual readings)
-- [ ] Frontend: moisture tab UI with date selector + reading table
-- [ ] "Copy from previous" feature
-- [ ] Export to CSV/Excel
-- [ ] Tests
-
-### Psychometric Readings
-
-In-app psychometric (psychrometric) tracking. Measures environmental conditions per room/zone per dehumidifier to verify drying progress.
-
-**Data model:**
-- `psychometric_reading_sets` — one per incident per date (belongs_to incident, has date, created_by_user)
-- `psychometric_readings` — individual readings (belongs_to psychometric_reading_set, fields: room_zone, rh [relative humidity %], temperature_f, gpp [grains per pound], g_dep [grain depression])
-
-**Spreadsheet structure (reference: Psychometric Readings.xlsx):**
-- Header: Job Number, Supervisor/PM, Page
-- Columns per date: Rh | F° | GPP | G-Dep (4 measurements repeated for each date)
-- Rows: Room/Zone labels (unit numbers like 1107, 1207, 1208) with associated dehumidifier labels (Dehu 1, Dehu 2, Dehu 3)
-- Multiple dates tracked across columns (e.g. 5/27, 5/28, 5/29, ...)
-
-**Key metrics:**
-- **Rh** — Relative Humidity (%)
-- **F°** — Temperature (Fahrenheit)
-- **GPP** — Grains Per Pound (absolute moisture in air)
-- **G-Dep** — Grain Depression (difference between ambient GPP and dew point GPP — higher = more drying capacity)
-
-**UI:**
-- Section on incident detail alongside moisture readings — "Psychometric" tab or combined "Readings" tab
-- Date selector to view/add readings for a specific date
-- Table: rows = rooms/zones + dehu labels, columns = Rh / F° / GPP / G-Dep per date
-- Trend indicators: show improvement/regression between dates
-- Add reading form: select room/zone (or add new), enter Rh, F°, GPP, G-Dep
-- "Copy zones from previous" — pre-fill room/zone list so tech just enters new values
-- Export to spreadsheet
-
-**Build steps:**
-- [ ] Migration: `psychometric_reading_sets` + `psychometric_readings` tables
-- [ ] Models + validations (GPP/G-Dep can be auto-calculated from Rh + F° if desired)
-- [ ] Controller endpoints
-- [ ] Frontend: psychometric tab UI
-- [ ] "Copy zones from previous" feature
-- [ ] Export to CSV/Excel
-- [ ] Tests
-
-### Gantt Chart
-
-Interactive timeline view for incident project management. Bird's-eye view of all work across an incident or across multiple active incidents.
-
-**Library:** [SVAR React Gantt](https://svar.dev/react/gantt/) (MIT license)
-
-**Per-incident Gantt (incident detail view):**
-- Timeline bars for: incident phases (status transitions with timestamps), equipment deployments (placed_at → removed_at), labor blocks, activity entries
-- Data already exists — pull from `activity_events`, `equipment_entries`, `labor_entries`, status transition timestamps
-- Read-only for MVP, drag-to-reschedule later
-- Date range auto-fits to incident duration
-
-**Cross-incident Gantt (manager dashboard or separate page):**
-- All active incidents as rows, timeline showing duration + current phase
-- Filter by property, status, team member
-- Click incident bar → navigate to incident detail
-
-**Build steps:**
-- [ ] Install SVAR React Gantt package
-- [ ] Per-incident Gantt: controller endpoint to serialize timeline data from existing models
-- [ ] Per-incident Gantt: React component with Gantt chart on incident detail
-- [ ] Cross-incident Gantt: controller endpoint for multi-incident timeline data
-- [ ] Cross-incident Gantt: dedicated page or dashboard section
-- [ ] Tests
-
----
-
-## Post-MVP
-
-Deferred features. Infrastructure is in place for all of these.
-
-| Feature | Notes |
-|---------|-------|
-| Gantt chart / project timeline | Interactive incident timeline view using [SVAR React Gantt](https://svar.dev/react/gantt/) (MIT). Visualize incident phases, equipment deployments, and labor across a drag-and-drop timeline. Managers get a bird's-eye view of all active jobs. |
-| Real-time updates | ActionCable / Solid Cable tables created. Add live updates. |
-| SMS/voice notifications | Plug provider into `NotificationDispatchService`. |
-| Equipment barcode scanning | `equipment_identifier` field exists. Add camera scan. |
-| Structured moisture data | File uploads for MVP. In-app data entry post-MVP. |
-| Invoicing/billing | Status fields exist. Add invoice generation. |
-| Signature capture | File uploads for MVP. In-app signature pad post-MVP. |
-| On-call rotation scheduling | Manual for MVP. Automated rotation post-MVP. |
-| Structured daily summaries | Operational notes for MVP. Dedicated model if needed. |
-| Dark mode | Design tokens are semantic — theming straightforward. |
-| Mobile native app | Responsive web for MVP. Evaluate React Native / PWA. |
-| OAuth / SSO | Email/password for MVP. Add if PM orgs require. |
-| Analytics / reporting | Add dashboards for volume, response times, costs. |
-
----
-
-## Build Principles
-
-- **Build vertically.** One feature end-to-end (model → service → controller → page → tests) before starting the next.
-- **Test as you go.** Service and controller tests alongside the code. E2E tests after each phase.
-- **Authorization from day one.** Every controller action scoped from the start.
-- **Seed data is your testing ground.** Keep seeds current as schema evolves.
-- **Deploy early.** Get on Heroku after Phase 1. Deploy after each phase.
+</details>

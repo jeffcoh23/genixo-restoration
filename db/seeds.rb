@@ -108,7 +108,8 @@ end
 users[:amy] = User.find_or_create_by!(organization: greystar, email_address: "amy@greystar.com") do |u|
   u.first_name = "Amy"
   u.last_name = "Chen"
-  u.user_type = "pm_manager"
+  u.user_type = "other"
+  u.title = "Regional Director"
   u.phone = "713-555-0203"
   u.password = "password"
   u.timezone = "America/Chicago"
@@ -125,6 +126,11 @@ users[:bob] = User.find_or_create_by!(organization: sandalwood, email_address: "
   u.phone = "512-555-0301"
   u.password = "password"
   u.timezone = "America/Chicago"
+end
+
+# Backfill permissions from role defaults for any users missing them
+User.where("permissions = '[]'::jsonb").find_each do |u|
+  u.update_columns(permissions: Permissions.defaults_for(u.user_type))
 end
 
 puts "  Users: #{User.count}"
@@ -234,8 +240,8 @@ if Incident.count.zero?
       assigned << u
     end
 
-    # pm_managers in the PM org (auto-assigned to all incidents in their org)
-    User.where(organization: property.property_management_org, user_type: "pm_manager", active: true).find_each do |u|
+    # others in the PM org (auto-assigned to all incidents in their org)
+    User.where(organization: property.property_management_org, user_type: "other", active: true).find_each do |u|
       assigned << u unless assigned.include?(u)
     end
 

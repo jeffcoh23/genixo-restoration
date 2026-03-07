@@ -31,15 +31,8 @@ export default function AppLayout({ children, wide }: { children: React.ReactNod
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
-        <div className="flex items-center justify-between p-4 lg:justify-center">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-bold">
-              G
-            </div>
-            <span className="text-sm font-semibold text-sidebar-foreground">
-              Genixo Restoration
-            </span>
-          </div>
+        <div className="flex items-center justify-between p-4">
+          <img src="/brand/genixio-horizontal-white-caps.png" alt="Genixo Restoration" className="h-7" />
           <Button
             variant="ghost"
             size="sm"
@@ -63,9 +56,7 @@ export default function AppLayout({ children, wide }: { children: React.ReactNod
           <Button variant="ghost" size="sm" className="h-auto p-0" onClick={() => setSidebarOpen(true)}>
             <Menu className="h-5 w-5 text-foreground" />
           </Button>
-          <span className="text-sm font-semibold text-foreground">
-            Genixo Restoration
-          </span>
+          <img src="/brand/genixio-horizontal-white-caps.png" alt="Genixo Restoration" className="h-6" />
         </div>
 
         <div className={`mx-auto ${wide ? "max-w-7xl" : "max-w-5xl"} px-4 py-6 sm:px-6`}>

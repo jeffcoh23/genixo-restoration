@@ -1,5 +1,5 @@
 import { useForm, usePage } from "@inertiajs/react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import AppLayout from "@/layout/AppLayout";
 import InlineActionFeedback from "@/components/InlineActionFeedback";
 import PageHeader from "@/components/PageHeader";
@@ -8,6 +8,7 @@ import FormField from "@/components/FormField";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { SharedProps } from "@/types";
 import useInertiaAction from "@/hooks/useInertiaAction";
 
@@ -17,6 +18,7 @@ interface UserRow {
   full_name: string;
   email: string;
   phone: string | null;
+  title: string | null;
   role_label: string;
   organization_name: string;
 }
@@ -40,15 +42,30 @@ interface RoleOption {
 interface OrgOption {
   id: number;
   name: string;
+  is_mitigation: boolean;
   role_options: RoleOption[];
 }
 
+interface PermissionOption {
+  value: string;
+  label: string;
+}
+
+interface NotificationOption {
+  key: string;
+  label: string;
+  description: string;
+}
+
 export default function UsersIndex() {
-  const { active_users, deactivated_users, pending_invitations, org_options, routes } = usePage<SharedProps & {
+  const { active_users, deactivated_users, pending_invitations, org_options, permissions_options, role_defaults, notification_options, routes } = usePage<SharedProps & {
     active_users: UserRow[];
     deactivated_users: UserRow[];
     pending_invitations: PendingInvitation[];
     org_options: OrgOption[];
+    permissions_options: PermissionOption[];
+    role_defaults: Record<string, string[]>;
+    notification_options: NotificationOption[];
   }>().props;
 
   const [showDeactivated, setShowDeactivated] = useState(false);
@@ -62,10 +79,24 @@ export default function UsersIndex() {
     first_name: "",
     last_name: "",
     phone: "",
+    title: "",
+    permissions: [] as string[],
+    notification_preferences: {} as Record<string, boolean>,
     organization_id: org_options[0]?.id?.toString() || "",
   });
 
   const selectedOrg = org_options.find((o) => o.id.toString() === form.data.organization_id);
+
+  // Auto-fill permissions when role changes
+  const prevUserType = useRef(form.data.user_type);
+  useEffect(() => {
+    if (form.data.user_type !== prevUserType.current) {
+      prevUserType.current = form.data.user_type;
+      if (form.data.user_type && role_defaults[form.data.user_type]) {
+        form.setData("permissions", role_defaults[form.data.user_type]);
+      }
+    }
+  }, [form.data.user_type, form, role_defaults]);
 
   const groupedActiveUsers = useMemo(
     () => active_users.reduce<Record<string, UserRow[]>>((groups, user) => {
@@ -93,7 +124,7 @@ export default function UsersIndex() {
       render: (u) => <LinkCell href={u.path}>{u.full_name}</LinkCell>,
     },
     { header: "Email", render: (u) => <MutedCell>{u.email}</MutedCell> },
-    { header: "Role", render: (u) => <MutedCell>{u.role_label}</MutedCell> },
+    { header: "Role", render: (u) => <MutedCell>{u.title ? `${u.title} (${u.role_label})` : u.role_label}</MutedCell> },
     { header: "Phone", render: (u) => <MutedCell>{u.phone || "—"}</MutedCell> },
   ];
 
@@ -141,7 +172,9 @@ export default function UsersIndex() {
                   </Select>
                 </div>
               )}
+            </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Role</label>
                 <Select value={form.data.user_type} onValueChange={(v) => form.setData("user_type", v)}>
@@ -157,16 +190,69 @@ export default function UsersIndex() {
                   <p className="text-sm text-muted-foreground">Role options are scoped to the selected organization.</p>
                 )}
               </div>
+              <FormField id="invite_title" label="Title" hint="optional" value={form.data.title}
+                onChange={(v) => form.setData("title", v)} />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField id="invite_first" label="First Name" hint="optional" value={form.data.first_name}
                 onChange={(v) => form.setData("first_name", v)} />
               <FormField id="invite_last" label="Last Name" hint="optional" value={form.data.last_name}
                 onChange={(v) => form.setData("last_name", v)} />
-              <FormField id="invite_phone" label="Phone" hint="optional" type="tel" value={form.data.phone}
-                onChange={(v) => form.setData("phone", v)} />
             </div>
+
+            <FormField id="invite_phone" label="Phone" hint="optional" type="tel" value={form.data.phone}
+              onChange={(v) => form.setData("phone", v)} />
+
+            {form.data.user_type && selectedOrg?.is_mitigation && (
+              <div className="space-y-3">
+                <label className="text-sm font-medium">Permissions</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {permissions_options.map((p) => (
+                    <div key={p.value} className="flex items-center gap-2">
+                      <Checkbox
+                        id={`perm_${p.value}`}
+                        checked={form.data.permissions.includes(p.value)}
+                        onCheckedChange={(checked) => {
+                          const next = checked
+                            ? [...form.data.permissions, p.value]
+                            : form.data.permissions.filter((v) => v !== p.value);
+                          form.setData("permissions", next);
+                        }}
+                      />
+                      <label htmlFor={`perm_${p.value}`} className="text-sm cursor-pointer">{p.label}</label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {form.data.user_type && (
+              <div className="space-y-3">
+                <label className="text-sm font-medium">Notification Preferences</label>
+                <div className="rounded-md border border-border divide-y divide-border">
+                  {notification_options.map((n) => (
+                    <div key={n.key} className="flex items-start gap-3 px-3 py-2.5">
+                      <Checkbox
+                        id={`notif_${n.key}`}
+                        checked={form.data.notification_preferences[n.key] || false}
+                        onCheckedChange={(checked) => {
+                          form.setData("notification_preferences", {
+                            ...form.data.notification_preferences,
+                            [n.key]: checked === true,
+                          });
+                        }}
+                        className="mt-0.5"
+                      />
+                      <label htmlFor={`notif_${n.key}`} className="cursor-pointer">
+                        <div className="text-sm font-medium text-foreground">{n.label}</div>
+                        <div className="text-xs text-muted-foreground">{n.description}</div>
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="flex items-center justify-end gap-2 pt-1">
               <Button type="button" variant="outline" onClick={() => setShowInviteModal(false)}>

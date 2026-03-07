@@ -5,10 +5,10 @@ class User < ApplicationRecord
   OFFICE_SALES      = "office_sales"
   PROPERTY_MANAGER  = "property_manager"
   AREA_MANAGER      = "area_manager"
-  PM_MANAGER        = "pm_manager"
+  OTHER             = "other"
 
   MITIGATION_TYPES = [ MANAGER, TECHNICIAN, OFFICE_SALES ].freeze
-  PM_TYPES = [ PROPERTY_MANAGER, AREA_MANAGER, PM_MANAGER ].freeze
+  PM_TYPES = [ PROPERTY_MANAGER, AREA_MANAGER, OTHER ].freeze
   ALL_TYPES = (MITIGATION_TYPES + PM_TYPES).freeze
 
   ROLE_LABELS = {
@@ -17,11 +17,11 @@ class User < ApplicationRecord
     OFFICE_SALES => "Office/Sales",
     PROPERTY_MANAGER => "Property Manager",
     AREA_MANAGER => "Area Manager",
-    PM_MANAGER => "PM Manager"
+    OTHER => "Other"
   }.freeze
 
   # Sort order for labor-related dropdowns (technicians first)
-  LABOR_SORT_ORDER = [ TECHNICIAN, MANAGER, OFFICE_SALES, PROPERTY_MANAGER, AREA_MANAGER, PM_MANAGER ].freeze
+  LABOR_SORT_ORDER = [ TECHNICIAN, MANAGER, OFFICE_SALES, PROPERTY_MANAGER, AREA_MANAGER, OTHER ].freeze
 
   has_secure_password validations: false
 
@@ -44,6 +44,8 @@ class User < ApplicationRecord
   validates :user_type, presence: true, inclusion: { in: ALL_TYPES }
   validates :timezone, presence: true
   validate :user_type_matches_org_type
+
+  before_validation :set_default_permissions, on: :create
 
   normalizes :email_address, with: ->(e) { e.strip.downcase }
   normalizes :phone, with: ->(p) {
@@ -82,15 +84,19 @@ class User < ApplicationRecord
   end
 
   def can?(permission)
-    Permissions.has?(user_type, permission)
+    permissions.include?(permission.to_s)
   end
 
   NOTIFICATION_DEFAULTS = {
     "status_change" => false,
     "new_message" => false,
-    "daily_digest" => true,
-    "incident_creation" => false,
-    "user_assignment" => false
+    "incident_user_assignment" => false
+  }.freeze
+
+  NOTIFICATION_LABELS = {
+    "status_change" => { label: "Status changes", description: "Get notified when an incident status changes" },
+    "new_message" => { label: "New messages", description: "Get notified when someone sends a message on your incidents" },
+    "incident_user_assignment" => { label: "Assignment alerts", description: "Get notified when you're assigned to or a new incident is created for you" }
   }.freeze
 
   def notification_preference(key)
@@ -98,6 +104,10 @@ class User < ApplicationRecord
   end
 
   private
+
+  def set_default_permissions
+    self.permissions = Permissions.defaults_for(user_type) if permissions.blank? && user_type.present?
+  end
 
   def user_type_matches_org_type
     return unless organization && user_type.present?

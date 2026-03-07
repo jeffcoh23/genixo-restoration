@@ -55,7 +55,7 @@ class UserPermissionsTest < ApplicationSystemTestCase
 
     click_button "Edit"
     within("[role='dialog']") do
-      find("[role='combobox']").click
+      all("[role='combobox']").first.click
     end
     find("[role='option']", text: "Office/Sales").click
     within("[role='dialog']") do
@@ -74,7 +74,8 @@ class UserPermissionsTest < ApplicationSystemTestCase
 
     within("[role='dialog']") do
       assert_selector "input[disabled][value='Office/Sales']"
-      assert_no_selector "[role='combobox']"
+      # Only the timezone combobox should be present — no role combobox
+      assert_selector "[role='combobox']", count: 1
     end
   end
 
