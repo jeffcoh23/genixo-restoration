@@ -1022,6 +1022,7 @@ class IncidentsController < ApplicationController
   def assignable_labor_users(incident)
     if mitigation_admin?
       users = User.where(active: true, organization_id: incident.property.mitigation_org_id)
+        .where.not(user_type: User::OFFICE_SALES)
         .order(:last_name, :first_name)
       sorted = users.sort_by { |u| [ User::LABOR_SORT_ORDER.index(u.user_type) || 99, u.last_name, u.first_name ] }
       sorted.map { |u| { id: u.id, full_name: u.full_name, role_label: User::ROLE_LABELS[u.user_type] } }
@@ -1192,6 +1193,9 @@ class IncidentsController < ApplicationController
     end
 
     dates = points.flat_map { |p| p.moisture_readings.map(&:log_date) }.uniq.sort
+    today = Time.current.in_time_zone(current_user.timezone).to_date
+    dates << today unless dates.include?(today)
+    dates.sort!
 
     {
       supervisor_pm: incident.moisture_supervisor_pm,
@@ -1222,6 +1226,9 @@ class IncidentsController < ApplicationController
     end
 
     dates = points.flat_map { |p| p.psychrometric_readings.map(&:log_date) }.uniq.sort
+    today = Time.current.in_time_zone(current_user.timezone).to_date
+    dates << today unless dates.include?(today)
+    dates.sort!
 
     {
       dates: dates.map(&:iso8601),
