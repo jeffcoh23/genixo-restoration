@@ -67,10 +67,11 @@ export default function LaborPanel({ labor_log, labor_entries, can_manage_labor,
     setVisibleCount(PAGE_SIZE);
   };
 
-  const totalFilteredHours = useMemo(
-    () => filteredEntries.reduce((sum, e) => sum + e.hours, 0),
-    [filteredEntries]
-  );
+  const totalFilteredHours = useMemo(() => {
+    let sum = 0;
+    for (const e of filteredEntries) sum += e.hours;
+    return sum;
+  }, [filteredEntries]);
 
   const handleDelete = (entry: LaborEntry) => {
     if (!entry.delete_path) return;
@@ -231,11 +232,8 @@ export default function LaborPanel({ labor_log, labor_entries, can_manage_labor,
                       <tbody>
                         {visibleEntries.map((entry, i) => (
                           <tr key={entry.id} className={`border-b border-border last:border-b-0 transition-colors hover:bg-muted/30 ${i % 2 === 0 ? "bg-background" : "bg-muted/10"}`}>
-                            <td className="px-4 py-2.5 text-sm">
-                              <span className="font-medium text-foreground">{entry.user_name || entry.role_label}</span>
-                              {!entry.user_name && (
-                                <span className="ml-1.5 text-[10px] uppercase tracking-wider text-muted-foreground/60 font-medium">role</span>
-                              )}
+                            <td className="px-4 py-2.5 text-sm font-medium text-foreground">
+                              {entry.user_name || entry.role_label}
                             </td>
                             <td className="px-4 py-2.5 text-sm text-muted-foreground">
                               {entry.log_date_label}
