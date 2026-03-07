@@ -6,7 +6,7 @@ import type { IncidentAttachment } from "../types";
 import AttachmentForm from "./AttachmentForm";
 
 const PAGE_SIZE = 30;
-const CATEGORY_ORDER = [ "moisture_mapping", "moisture_readings", "psychrometric_log", "signed_document", "sign_in_sheet", "general" ];
+const CATEGORY_ORDER = [ "moisture_mapping", "moisture_readings", "psychrometric_log", "signed_document", "sign_in_sheet", "proposal", "general" ];
 
 interface DocumentPanelProps {
   attachments: IncidentAttachment[];

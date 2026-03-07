@@ -284,7 +284,7 @@ class IncidentsController < ApplicationController
   def dfr
     date = params[:date].presence || Date.current.to_s
     DfrPdfJob.perform_later(@incident.id, date, current_user.timezone, current_user.id)
-    redirect_to incident_path(@incident), notice: "DFR PDF is being generated. It will appear in documents shortly."
+    redirect_to incident_path(@incident), notice: "DFR PDF is being generated. It will appear in the daily log shortly."
   end
 
   def attachments_page

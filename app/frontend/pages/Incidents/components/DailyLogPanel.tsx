@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { router, usePoll } from "@inertiajs/react";
-import { ChevronDown, FileText, Loader2, Pencil } from "lucide-react";
+import { ChevronDown, FileText, Loader2, Pencil, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type {
   DailyActivity,
@@ -34,33 +34,39 @@ export default function DailyLogPanel({
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [activityForm, setActivityForm] = useState<{ open: boolean; entry?: DailyActivity }>({ open: false });
   const [collapsedRows, setCollapsedRows] = useState<Set<string>>(new Set());
-  const [requestedDfrs, setRequestedDfrs] = useState<Set<string>>(new Set());
+  // Track requested DFRs with the URL at time of request (to detect regeneration completing)
+  const [requestedDfrs, setRequestedDfrs] = useState<Map<string, string | null>>(new Map());
   const { start: startPolling, stop: stopPolling } = usePoll(5000, {
     only: ["daily_log_table_groups"],
   }, { autoStart: false });
 
-  // Derive which requested DFRs are still pending (not yet generated)
+  // Derive which requested DFRs are still pending
   const pendingDfr = useMemo(() => {
     const pending = new Set<string>();
-    for (const dateKey of requestedDfrs) {
+    for (const [dateKey, oldUrl] of requestedDfrs) {
       const group = daily_log_table_groups.find((g) => g.date_key === dateKey);
-      if (!group?.dfr) pending.add(dateKey);
+      // Pending if: no DFR yet, OR the URL hasn't changed (regeneration not complete)
+      if (!group?.dfr || group.dfr.url === oldUrl) pending.add(dateKey);
     }
     return pending;
   }, [requestedDfrs, daily_log_table_groups]);
 
-  // Stop polling once all requested DFRs have been generated
+  // Stop polling once all requested DFRs have been generated/regenerated
   useEffect(() => {
     if (requestedDfrs.size > 0 && pendingDfr.size === 0) {
       stopPolling();
+      setRequestedDfrs(new Map());
     }
   }, [pendingDfr.size, requestedDfrs.size, stopPolling]);
 
   const handleGenerateDfr = useCallback((dateKey: string) => {
+    // Capture current DFR URL (null if generating for first time)
+    const currentGroup = daily_log_table_groups.find((g) => g.date_key === dateKey);
+    const currentUrl = currentGroup?.dfr?.url ?? null;
     router.post(dfr_path, { date: dateKey }, { preserveScroll: true });
-    setRequestedDfrs((prev) => new Set(prev).add(dateKey));
+    setRequestedDfrs((prev) => new Map(prev).set(dateKey, currentUrl));
     startPolling();
-  }, [dfr_path, startPolling]);
+  }, [dfr_path, startPolling, daily_log_table_groups]);
 
   // When a specific date is selected, all rows are expanded by default (user collapses them).
   // When "All Dates" is selected, all rows are collapsed by default (user expands them).
@@ -208,17 +214,34 @@ export default function DailyLogPanel({
                     {group.date_label}
                   </span>
                   {group.dfr ? (
-                    <a
-                      href={group.dfr.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      data-testid={`dfr-link-${group.date_key}`}
-                      className="inline-flex items-center gap-1 h-auto py-0.5 px-1.5 text-sm text-primary hover:text-primary/80 font-medium"
-                      title={`Download ${group.dfr.filename}`}
-                    >
-                      <FileText className="h-3 w-3" />
-                      DFR
-                    </a>
+                    <span className="inline-flex items-center gap-1">
+                      <a
+                        href={group.dfr.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        data-testid={`dfr-link-${group.date_key}`}
+                        className="inline-flex items-center gap-1 h-auto py-0.5 px-1.5 text-sm text-primary hover:text-primary/80 font-medium"
+                        title={`Download ${group.dfr.filename}`}
+                      >
+                        <FileText className="h-3 w-3" />
+                        DFR
+                      </a>
+                      {pendingDfr.has(group.date_key) ? (
+                        <Loader2
+                          className="h-3 w-3 animate-spin text-muted-foreground"
+                          data-testid={`dfr-refreshing-${group.date_key}`}
+                        />
+                      ) : (
+                        <button
+                          onClick={() => handleGenerateDfr(group.date_key)}
+                          data-testid={`dfr-refresh-${group.date_key}`}
+                          className="p-0.5 rounded hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-colors"
+                          title="Regenerate DFR"
+                        >
+                          <RefreshCw className="h-3 w-3" />
+                        </button>
+                      )}
+                    </span>
                   ) : pendingDfr.has(group.date_key) ? (
                     <span
                       data-testid={`dfr-processing-${group.date_key}`}

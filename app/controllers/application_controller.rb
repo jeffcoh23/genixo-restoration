@@ -6,6 +6,8 @@ class ApplicationController < ActionController::Base
 
   allow_browser versions: :modern
 
+  rescue_from ActiveRecord::RecordNotFound, with: :render_not_found
+
   around_action :set_user_timezone
 
   inertia_share flash: -> {
@@ -89,6 +91,10 @@ class ApplicationController < ActionController::Base
 
 
   private
+
+  def render_not_found
+    render inertia: "Error", props: { status: 404, message: "Page not found" }, status: :not_found
+  end
 
   def set_user_timezone(&block)
     zone = current_user&.timezone || "UTC"
