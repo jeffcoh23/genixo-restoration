@@ -1,5 +1,7 @@
-import { Link } from "@inertiajs/react";
+import { Link, usePage } from "@inertiajs/react";
+import { Button } from "@/components/ui/button";
 import AppLayout from "@/layout/AppLayout";
+import { SharedProps } from "@/types";
 
 interface ErrorProps {
   status: number;
@@ -17,6 +19,7 @@ const DESCRIPTIONS: Record<number, string> = {
 };
 
 export default function Error({ status, message }: ErrorProps) {
+  const { routes } = usePage<SharedProps>().props;
   const title = message || TITLES[status] || "Something went wrong";
   const description = DESCRIPTIONS[status] || "An unexpected error occurred.";
 
@@ -27,18 +30,12 @@ export default function Error({ status, message }: ErrorProps) {
         <h1 className="text-2xl font-bold text-foreground mb-2">{title}</h1>
         <p className="text-muted-foreground mb-8 max-w-md">{description}</p>
         <div className="flex gap-3">
-          <button
-            onClick={() => window.history.back()}
-            className="inline-flex items-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-accent transition-colors"
-          >
+          <Button variant="outline" onClick={() => window.history.back()}>
             Go back
-          </button>
-          <Link
-            href="/incidents"
-            className="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-          >
-            Go to incidents
-          </Link>
+          </Button>
+          <Button asChild>
+            <Link href={routes.incidents}>Go to incidents</Link>
+          </Button>
         </div>
       </div>
     </AppLayout>

@@ -1,4 +1,5 @@
 import React from "react";
+import { Button } from "@/components/ui/button";
 
 interface Props {
   children: React.ReactNode;
@@ -24,12 +25,9 @@ export default class ErrorBoundary extends React.Component<Props, State> {
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <h1 className="text-2xl font-bold text-foreground mb-2">Something went wrong</h1>
           <p className="text-muted-foreground mb-6">An unexpected error occurred while rendering this page.</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-          >
+          <Button onClick={() => window.location.reload()}>
             Reload page
-          </button>
+          </Button>
         </div>
       );
     }

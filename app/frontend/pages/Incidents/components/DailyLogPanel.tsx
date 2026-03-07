@@ -55,9 +55,16 @@ export default function DailyLogPanel({
   useEffect(() => {
     if (requestedDfrs.size > 0 && pendingDfr.size === 0) {
       stopPolling();
-      setRequestedDfrs(new Map());
     }
   }, [pendingDfr.size, requestedDfrs.size, stopPolling]);
+
+  // Clear completed requests after polling stops (separate effect to avoid cascading renders)
+  useEffect(() => {
+    if (requestedDfrs.size > 0 && pendingDfr.size === 0) {
+      const timer = setTimeout(() => setRequestedDfrs(new Map()), 0);
+      return () => clearTimeout(timer);
+    }
+  }, [pendingDfr.size, requestedDfrs.size]);
 
   const handleGenerateDfr = useCallback((dateKey: string) => {
     // Capture current DFR URL (null if generating for first time)
@@ -232,14 +239,16 @@ export default function DailyLogPanel({
                           data-testid={`dfr-refreshing-${group.date_key}`}
                         />
                       ) : (
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={() => handleGenerateDfr(group.date_key)}
                           data-testid={`dfr-refresh-${group.date_key}`}
-                          className="p-0.5 rounded hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-colors"
+                          className="h-auto p-0.5 text-muted-foreground hover:text-foreground"
                           title="Regenerate DFR"
                         >
                           <RefreshCw className="h-3 w-3" />
-                        </button>
+                        </Button>
                       )}
                     </span>
                   ) : pendingDfr.has(group.date_key) ? (
