@@ -103,6 +103,7 @@ Rails.application.routes.draw do
   patch "on-call", to: "settings#update_on_call", as: :update_on_call_settings
   post "on-call/contacts", to: "settings#create_escalation_contact", as: :escalation_contacts
   delete "on-call/contacts/:id", to: "settings#destroy_escalation_contact", as: :escalation_contact
+  patch "on-call/auto-assign", to: "settings#update_auto_assign", as: :update_auto_assign
   patch "on-call/contacts/reorder", to: "settings#reorder_escalation_contacts", as: :reorder_escalation_contacts
 
   # Equipment Items (inventory)

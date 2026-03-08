@@ -134,6 +134,7 @@ class UsersController < ApplicationController
       timezone: user.timezone,
       permissions: user.permissions,
       notification_preferences: user.notification_preferences,
+      auto_assign: user.auto_assign,
       update_path: user_path(user),
       is_pm_user: user.pm_user?,
       deactivate_path: deactivate_user_path(user),
@@ -188,6 +189,7 @@ class UsersController < ApplicationController
     if can_edit_role_for_target?
       allowed << :user_type
       allowed << :title
+      allowed << :auto_assign
       allowed << { permissions: [] }
       allowed << { notification_preferences: User::NOTIFICATION_DEFAULTS.keys }
     end

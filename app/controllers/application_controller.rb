@@ -81,6 +81,17 @@ class ApplicationController < ActionController::Base
     UnreadCacheService.has_unread?(current_user)
   }
 
+  inertia_share emergency_phone: -> {
+    next nil unless current_user&.pm_user?
+
+    mit_org_id = Property.where(property_management_org_id: current_user.organization_id)
+                         .pick(:mitigation_org_id)
+    next nil unless mit_org_id
+
+    mit_org = Organization.find(mit_org_id)
+    format_phone(mit_org.phone)
+  }
+
   inertia_share today: -> {
     Time.current.to_date.iso8601
   }

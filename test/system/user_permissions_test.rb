@@ -82,7 +82,7 @@ class UserPermissionsTest < ApplicationSystemTestCase
   private
 
   def assert_not_found_rendered
-    production_404 = page.has_text?("The page you were looking for") && page.has_text?("exist")
+    production_404 = page.has_text?("Page not found")
     debug_404 = page.has_text?("ActiveRecord::RecordNotFound")
 
     assert(production_404 || debug_404, "Expected not-found response, got:\n#{page.text}")

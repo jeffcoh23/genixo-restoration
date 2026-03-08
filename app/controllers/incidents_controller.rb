@@ -77,7 +77,14 @@ class IncidentsController < ApplicationController
   end
 
   def new
-    properties = creatable_properties.includes(:property_management_org)
+    properties = creatable_properties.includes(:property_management_org, :mitigation_org)
+
+    # For PM users, look up the mitigation org phone for emergency callout
+    emergency_phone = if current_user.pm_user?
+      mit_org = properties.first&.mitigation_org
+      format_phone(mit_org&.phone)
+    end
+
     render inertia: "Incidents/New", props: {
       properties: properties.map { |p| { id: p.id, name: p.name, address: p.short_address, organization_id: p.property_management_org_id, organization_name: p.property_management_org.name } },
       organizations: properties.map(&:property_management_org).uniq.sort_by(&:name).map { |o| { id: o.id, name: o.name } },
@@ -85,7 +92,9 @@ class IncidentsController < ApplicationController
       damage_types: Incident::DAMAGE_TYPES.map { |t| { value: t, label: Incident::DAMAGE_LABELS[t] } },
       can_assign: can_assign_to_incident?,
       can_manage_contacts: can_manage_contacts?,
-      property_users: can_assign_to_incident? ? assignable_users_by_property : {}
+      property_users: can_assign_to_incident? ? assignable_users_by_property : {},
+      emergency_phone: emergency_phone,
+      creator_org_type: current_user.mitigation_user? ? "mitigation" : "pm"
     }
   end
 
@@ -97,7 +106,15 @@ class IncidentsController < ApplicationController
       params: incident_params
     ).call
 
-    redirect_to incident_path(incident), notice: "Incident created."
+    notice = if current_user.pm_user? && incident.emergency?
+      "Emergency dispatched. The on-call team has been notified and will contact you shortly."
+    elsif current_user.pm_user?
+      "Incident submitted. You'll receive a confirmation call on the next business day."
+    else
+      "Incident created."
+    end
+
+    redirect_to incident_path(incident), notice: notice
   rescue ActiveRecord::RecordNotFound
     redirect_to new_incident_path, alert: "Property not found."
   rescue ActiveRecord::RecordInvalid => e
@@ -183,7 +200,7 @@ class IncidentsController < ApplicationController
         },
         deployed_equipment: deployed_equipment,
         assignments_path: incident_assignments_path(@incident),
-        mitigation_team: serialize_team_users(assigned.select { |a| a.user.mitigation_user? }),
+        mitigation_team: serialize_team_users(assigned.select { |a| a.user.mitigation_user? && a.user.user_type != User::OFFICE_SALES }),
         pm_team: serialize_team_users(assigned.select { |a| a.user.pm_user? }),
         show_stats: @incident.labor_entries.any? || deployed_equipment.any?,
         stats: incident_stats(@incident, deployed_equipment),
@@ -454,24 +471,33 @@ class IncidentsController < ApplicationController
     prop_assignments = PropertyAssignment.where(property: properties).pluck(:property_id, :user_id)
     assigned_by_property = prop_assignments.group_by(&:first).transform_values { |v| v.map(&:last).to_set }
 
+    # Look up on-call primary user per mitigation org
+    on_call_configs = OnCallConfiguration.where(
+      organization_id: properties.map(&:mitigation_org_id).uniq
+    ).index_by(&:organization_id)
+
     result = {}
     properties.each do |property|
       mit_users = current_user.pm_user? ? [] : (users_by_org[property.mitigation_org_id] || [])
       pm_users = users_by_org[property.property_management_org_id] || []
-      prop_assigned_ids = assigned_by_property[property.id] || Set.new
+      on_call_primary_id = on_call_configs[property.mitigation_org_id]&.primary_user_id
 
       property_user_list = (mit_users + pm_users).map do |u|
-        auto = if u.mitigation_user? && !u.technician?
-          true # GenXO managers + office/sales
-        elsif u.user_type == User::OTHER
-          true # Other PM users always auto-assigned
-        elsif prop_assigned_ids.include?(u.id) && [ User::PROPERTY_MANAGER, User::AREA_MANAGER ].include?(u.user_type)
-          true # PM-side property assignees
+        auto = if u.mitigation_user?
+          u.auto_assign # From the DB column
         else
-          false
+          false # PM users: all unchecked for PM creators
         end
 
-        { id: u.id, full_name: u.full_name, role_label: User::ROLE_LABELS[u.user_type], organization_name: u.organization.name, org_type: u.mitigation_user? ? "mitigation" : "pm", auto_assign: auto }
+        {
+          id: u.id,
+          full_name: u.full_name,
+          role_label: User::ROLE_LABELS[u.user_type],
+          organization_name: u.organization.name,
+          org_type: u.mitigation_user? ? "mitigation" : "pm",
+          auto_assign: auto,
+          is_on_call: u.id == on_call_primary_id
+        }
       end
 
       result[property.id] = property_user_list
@@ -492,7 +518,7 @@ class IncidentsController < ApplicationController
       .map { |u| { id: u.id, full_name: u.full_name, role_label: User::ROLE_LABELS[u.user_type] } }
   end
 
-  TEAM_SORT_ORDER = [ User::MANAGER, User::OFFICE_SALES, User::TECHNICIAN, User::OTHER, User::AREA_MANAGER, User::PROPERTY_MANAGER ].freeze
+  TEAM_SORT_ORDER = [ User::MANAGER, User::TECHNICIAN, User::OTHER, User::AREA_MANAGER, User::PROPERTY_MANAGER ].freeze
 
   def serialize_team_users(assignments)
     assignments.sort_by { |a| [ TEAM_SORT_ORDER.index(a.user.user_type) || 99, a.user.last_name ] }.map do |a|

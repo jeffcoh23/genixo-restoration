@@ -86,7 +86,10 @@ All users across both org types. `user_type` determines permissions.
 | phone | string | | For notifications and escalation |
 | timezone | string | NOT NULL, DEFAULT `'America/Chicago'` | IANA timezone for display. All datetimes stored as UTC, displayed in user's timezone. |
 | user_type | string | NOT NULL | See user types below |
+| title | string | | Display-only job title (e.g., "Regional Director") |
 | notification_preferences | jsonb | NOT NULL, DEFAULT `{}` | See notification preferences |
+| permissions | jsonb | NOT NULL, DEFAULT `[]` | Per-user permission overrides (array of permission strings). Defaults from role on create. |
+| auto_assign | boolean | NOT NULL, DEFAULT false | If true, user is auto-assigned to every new incident. Mitigation users only. |
 | active | boolean | NOT NULL, DEFAULT true | Soft deactivation |
 | created_at | datetime | NOT NULL | |
 | updated_at | datetime | NOT NULL | |
@@ -101,7 +104,7 @@ Mitigation org:
 Property Management org:
 - `property_manager` — Sees assigned properties and their incidents. Creates incidents, uploads intake attachments, sends messages.
 - `area_manager` — Same as property_manager but typically assigned to multiple properties.
-- `pm_manager` — Same permissions as property_manager. Sees properties via property assignments and incidents via incident assignments. Used for higher-level PM staff. Automatically assigned to new incidents on properties in their PM org.
+- `other` — General PM-side role for regional directors, maintenance leads, etc. Sees properties via property assignments and incidents via incident assignments. Cannot create incidents by default (but permissions are per-user configurable).
 
 **Notification preferences (jsonb):**
 ```json
@@ -246,7 +249,7 @@ new → acknowledged → active → on_hold → completed → completed_billed �
 
 ### incident_assignments
 
-Links users to incidents. **Auto-assigned at creation:** all PM users on the property + all mitigation managers/office_sales. Techs are assigned later by managers. Assignment/unassignment generates activity events.
+Links users to incidents. **Auto-assigned at creation:** mitigation users with `auto_assign = true` (+ on-call primary user for emergencies). PM-side users are selected manually by the creator. Techs are assigned later by managers. Assignment/unassignment generates activity events.
 
 | Column | Type | Constraints | Notes |
 |--------|------|-------------|-------|
@@ -258,11 +261,12 @@ Links users to incidents. **Auto-assigned at creation:** all PM users on the pro
 | updated_at | datetime | NOT NULL | |
 
 **Auto-assignment at incident creation:**
-- All `property_manager` and `area_manager` users assigned to that property (via `property_assignments`)
-- All `pm_manager` users in the property's PM org
-- All `manager` and `office_sales` users in the servicing mitigation org
-- **NOT** technicians — they are assigned by managers, typically when the incident is made active
+- **Mitigation-side:** All users with `auto_assign = true` in the servicing mitigation org
+- **Mitigation-side (emergency only):** The on-call primary user is also auto-assigned
+- **PM-side:** Nobody — the creator manually selects PM users during incident creation
+- **NOT** technicians — they are assigned later by managers, typically when the incident is made active
 - `assigned_by_user_id` = the incident creator for auto-assignments
+- When a PM user creates an incident, mitigation auto-assign users are added invisibly (PM user can't see/uncheck them)
 
 **Indexes:**
 - `index_incident_assignments_on_incident_id_and_user_id` (unique)
@@ -755,7 +759,7 @@ Generated via consolidated migration. See playbook for details.
 | **Office/Sales** (Mitigation) | All properties their org services | All incidents (read-only operational) | Properties, PM orgs, users | Nothing operational |
 | **Property Manager** (PM) | Assigned properties only | Incidents on assigned properties | Incidents, messages, intake attachments | Nothing operational |
 | **Area Manager** (PM) | Assigned properties (multiple) | Incidents on assigned properties | Same as Property Manager | Same as Property Manager |
-| **PM Manager** (PM) | Assigned properties + via incident assignments | Assigned incidents + incidents on assigned properties | Same as Property Manager | Same as Property Manager |
+| **Other** (PM) | Assigned properties + via incident assignments | Assigned incidents + incidents on assigned properties | Nothing by default (per-user configurable) | Nothing operational |
 
 ---
 

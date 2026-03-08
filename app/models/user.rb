@@ -44,6 +44,7 @@ class User < ApplicationRecord
   validates :user_type, presence: true, inclusion: { in: ALL_TYPES }
   validates :timezone, presence: true
   validate :user_type_matches_org_type
+  validate :auto_assign_only_for_mitigation
 
   before_validation :set_default_permissions, on: :create
 
@@ -58,6 +59,7 @@ class User < ApplicationRecord
   attribute :timezone, default: "Central Time (US & Canada)"
 
   scope :active, -> { where(active: true) }
+  scope :auto_assigned, -> { where(auto_assign: true) }
 
   def full_name
     "#{first_name} #{last_name}"
@@ -116,6 +118,12 @@ class User < ApplicationRecord
       errors.add(:user_type, "#{user_type} is not valid for a mitigation organization")
     elsif organization.property_management? && !PM_TYPES.include?(user_type)
       errors.add(:user_type, "#{user_type} is not valid for a property management organization")
+    end
+  end
+
+  def auto_assign_only_for_mitigation
+    if auto_assign? && !MITIGATION_TYPES.include?(user_type)
+      errors.add(:auto_assign, "can only be enabled for mitigation users")
     end
   end
 end

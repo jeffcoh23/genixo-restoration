@@ -34,9 +34,23 @@
 | Org Type | User Types |
 |----------|-----------|
 | Mitigation | `manager`, `technician`, `office_sales` |
-| Property Management | `property_manager`, `area_manager`, `pm_manager` |
+| Property Management | `property_manager`, `area_manager`, `other` |
 
 A user belongs to exactly one organization. A user's `user_type` must be valid for their org's type — a PM org cannot have a `technician`, and a mitigation org cannot have a `property_manager`.
+
+### Per-User Permissions
+
+Permissions are stored as a jsonb array on each user (`permissions` column). When a user is created, permissions default from their role via `Permissions.defaults_for(user_type)`. Managers can then toggle individual permissions per user through the user edit modal.
+
+- `user.can?(Permissions::CREATE_INCIDENT)` — checks the user's `permissions` array
+- Mitigation users have toggleable permissions visible in the UI (see `Permissions::MITIGATION_VISIBLE_PERMISSIONS`)
+- PM-side user permissions are role-derived and not currently editable per-user
+
+### Auto-Assign Flag
+
+Mitigation users can be flagged with `auto_assign = true`. These users are automatically assigned to every new incident created on properties their org services. Managed via:
+- The user edit modal (per-user toggle)
+- The On-Call Settings page (bulk checkboxes for all mitigation users)
 
 ### Email Uniqueness
 
@@ -72,11 +86,11 @@ Email is globally unique across all organizations. One email address = one user 
 
 ### Property Assignments
 
-- PM-side users (property_manager, area_manager, pm_manager) must be **assigned to specific properties** via `property_assignments` to see them.
+- PM-side users (property_manager, area_manager, other) must be **assigned to specific properties** via `property_assignments` to see them.
 - PM-side users can also see incidents they're directly assigned to (via `incident_assignments`), even without a property assignment.
-- A property_manager is typically assigned to one property. An area_manager is assigned to multiple. A pm_manager may or may not be assigned to properties — they get auto-assigned to incidents instead.
+- A property_manager is typically assigned to one property. An area_manager is assigned to multiple. An `other` user may or may not be assigned to properties.
 - Assignment is done by mitigation managers or office_sales when setting up the relationship.
-- PM-side users (property_manager, area_manager, pm_manager) can also assign/unassign **their own org's users** to/from properties they are assigned to.
+- PM-side users (property_manager, area_manager, other) can also assign/unassign **their own org's users** to/from properties they are assigned to.
 - Mitigation-side users do NOT have property assignments — their visibility is org-wide.
 
 ### Creation & Editing
@@ -91,8 +105,8 @@ Email is globally unique across all organizations. One email address = one user 
 
 ### Creation
 
-- **Who can create:** Managers (mitigation), office_sales (mitigation), property_managers (PM), area_managers (PM).
-- **Technicians cannot create incidents.**
+- **Who can create:** Any user with the `create_incident` permission. By default: managers (mitigation), office_sales (mitigation), property_managers (PM), area_managers (PM). Per-user permissions can grant or revoke this.
+- **Technicians and `other` PM users cannot create incidents by default.**
 - The creator must have visibility into the property (via org membership or property assignment).
 - Required fields: `property_id`, `description`, `damage_type`, `project_type`.
 - `emergency` is derived from `project_type` at creation (`emergency_response` → true). Can be changed by managers afterward.
@@ -153,10 +167,11 @@ QUOTE / PROPOSAL (RFQ):
 
 ### Who Can Change Status
 
-- **Managers** can make any valid transition.
-- **Technicians** cannot change status.
-- **Office/Sales** cannot change status (read-only on operational data).
-- **PM/AM users** cannot change status. They can see the current status but cannot modify it.
+- Users with the `transition_status` permission can make any valid transition (managers by default).
+- **Technicians** cannot change status by default.
+- **Office/Sales** cannot change status by default (read-only on operational data).
+- **PM/AM/Other users** cannot change status. They can see the current status but cannot modify it.
+- Per-user permissions can grant or revoke status transition ability.
 
 ### Emergency Flag
 
@@ -171,7 +186,7 @@ QUOTE / PROPOSAL (RFQ):
 ### Incident Assignments
 
 - **Mitigation managers** can assign or unassign any user to/from incidents.
-- **PM-side users** (property_manager, area_manager, pm_manager) can assign or unassign **their own org's users** to/from incidents they can see. They cannot manage mitigation-side assignments.
+- **PM-side users** (property_manager, area_manager, other) can assign or unassign **their own org's users** to/from incidents they can see. They cannot manage mitigation-side assignments.
 - Typically technicians are assigned by managers when the incident is made active, but **any user** can be assigned.
 - Technicians are NOT pre-assigned to properties. Assignment is per-incident, based on availability.
 - A user can be assigned to multiple incidents simultaneously.
@@ -181,11 +196,17 @@ QUOTE / PROPOSAL (RFQ):
 
 ### Auto-Assignment at Creation
 
-- When an incident is created, the system **automatically assigns** default users:
-  - All `property_manager` and `area_manager` users assigned to that property (via `property_assignments`)
-  - All `pm_manager` users in the property's PM org (gives them visibility without needing property assignments)
-  - All `manager` and `office_sales` users in the servicing mitigation org
-  - **NOT** technicians — they are assigned later by managers, typically when the incident is made active
+When an incident is created, the system auto-assigns users based on the `auto_assign` flag and emergency status:
+
+**Mitigation-side:**
+- All users with `auto_assign = true` in the servicing mitigation org
+- For **emergency** incidents only: the on-call primary user is also auto-assigned
+- **NOT** technicians — they are assigned later by managers, typically when the incident is made active
+
+**PM-side:**
+- Nobody is auto-assigned. The creator manually selects PM users during incident creation.
+- When a PM user creates an incident, they see only their own org's users in the assignment list. Mitigation auto-assign users are added invisibly by the backend (the PM user can't see or uncheck them).
+- When a Genixo user creates an incident, they see all assignable users and auto-assign users are pre-checked.
 
 ### Incident Contacts
 
@@ -378,7 +399,7 @@ All groups sorted by `last_activity_at` descending (most recent activity first).
 - **Manager:** Sees all groups. Can take action on any incident.
 - **Technician:** Sees only assigned incidents. Grouped the same way but filtered.
 - **Office/Sales:** Same view as manager but read-only on operational data.
-- **PM/AM/PM Manager:** Sees incidents on assigned properties + directly assigned incidents. Cannot modify operational data.
+- **PM/AM/Other:** Sees incidents on assigned properties + directly assigned incidents. Cannot modify operational data.
 
 ---
 
@@ -387,6 +408,7 @@ All groups sorted by `last_activity_at` descending (most recent activity first).
 | Model | Rule | Enforcement |
 |-------|------|-------------|
 | User | `user_type` valid for org's `organization_type` | Model validation |
+| User | `auto_assign` only for mitigation users | Model validation |
 | User | Email globally unique | DB unique index on `email_address` |
 | Incident | Status transitions follow allowed map | Service-level validation (`StatusTransitionService`) |
 | Incident | `property_id` must be visible to creator | Controller-level (scoped query) |

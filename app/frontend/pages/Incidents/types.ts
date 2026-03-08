@@ -329,6 +329,7 @@ export interface NewIncidentAssignableUser {
   organization_name: string;
   org_type: "mitigation" | "pm";
   auto_assign: boolean;
+  is_on_call: boolean;
 }
 
 export interface NewIncidentProperty {
@@ -352,6 +353,8 @@ export interface NewIncidentProps {
   can_assign: boolean;
   can_manage_contacts: boolean;
   property_users: Record<string, NewIncidentAssignableUser[]>;
+  emergency_phone: string | null;
+  creator_org_type: "mitigation" | "pm";
 }
 
 export interface EquipmentLogItem {

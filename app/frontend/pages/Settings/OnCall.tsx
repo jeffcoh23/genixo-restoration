@@ -5,6 +5,7 @@ import AppLayout from "@/layout/AppLayout";
 import InlineActionFeedback from "@/components/InlineActionFeedback";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import useInertiaAction from "@/hooks/useInertiaAction";
@@ -31,23 +32,36 @@ interface OnCallConfig {
   contacts: EscalationContact[];
 }
 
+interface AutoAssignUser {
+  id: number;
+  full_name: string;
+  role_label: string;
+  auto_assign: boolean;
+}
+
 interface OnCallProps {
   config: OnCallConfig | null;
   managers: Manager[];
   available_escalation_managers: Manager[];
+  auto_assign_users: AutoAssignUser[];
   update_path: string;
   contacts_path: string;
   reorder_path: string;
+  auto_assign_path: string;
 }
 
 export default function OnCallSettings() {
-  const { config, managers, available_escalation_managers, update_path, contacts_path, reorder_path } = usePage<SharedProps & OnCallProps>().props;
+  const { config, managers, available_escalation_managers, auto_assign_users, update_path, contacts_path, reorder_path, auto_assign_path } = usePage<SharedProps & OnCallProps>().props;
 
   const [primaryUserId, setPrimaryUserId] = useState(config?.primary_user_id ?? "");
   const [timeoutMinutes, setTimeoutMinutes] = useState(config?.escalation_timeout_minutes ?? 10);
   const [newContactUserId, setNewContactUserId] = useState("");
+  const [selectedAutoAssignIds, setSelectedAutoAssignIds] = useState<number[]>(
+    () => auto_assign_users.filter((u) => u.auto_assign).map((u) => u.id)
+  );
   const configAction = useInertiaAction();
   const chainAction = useInertiaAction();
+  const autoAssignAction = useInertiaAction();
 
   const handleSaveConfig = (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,6 +100,19 @@ export default function OnCallSettings() {
     const contactIds = contacts.map((c) => c.id);
 
     chainAction.runPatch(reorder_path, { contact_ids: contactIds }, { errorMessage: "Could not reorder escalation contacts." });
+  };
+
+  const toggleAutoAssign = (userId: number) => {
+    setSelectedAutoAssignIds((prev) =>
+      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
+    );
+  };
+
+  const handleSaveAutoAssign = (e: React.FormEvent) => {
+    e.preventDefault();
+    autoAssignAction.runPatch(auto_assign_path, { user_ids: selectedAutoAssignIds }, {
+      errorMessage: "Could not save auto-assign settings.",
+    });
   };
 
   // Server pre-filters managers not already in escalation contacts; only exclude current primary selection
@@ -230,6 +257,43 @@ export default function OnCallSettings() {
             )}
           </div>
         )}
+        {/* Auto-assign */}
+        <div className="bg-card rounded-lg border border-border shadow-sm p-5">
+          <h2 className="text-sm font-semibold text-foreground">Auto-Assign</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            These team members are automatically assigned to every new incident.
+          </p>
+          <InlineActionFeedback error={autoAssignAction.error} onDismiss={autoAssignAction.clearFeedback} className="mt-3" />
+
+          <form onSubmit={handleSaveAutoAssign}>
+            <div className="mt-3 divide-y divide-border">
+              {auto_assign_users.map((u) => {
+                const checked = selectedAutoAssignIds.includes(u.id);
+                return (
+                  <label
+                    key={u.id}
+                    htmlFor={`auto-assign-${u.id}`}
+                    className={`flex items-center gap-3 px-3 py-3 text-sm cursor-pointer transition-colors hover:bg-muted/30 ${checked ? "bg-accent/70" : ""}`}
+                  >
+                    <Checkbox
+                      id={`auto-assign-${u.id}`}
+                      checked={checked}
+                      onCheckedChange={() => toggleAutoAssign(u.id)}
+                    />
+                    <span className="text-foreground">{u.full_name}</span>
+                    <span className="text-muted-foreground text-sm ml-auto">{u.role_label}</span>
+                  </label>
+                );
+              })}
+            </div>
+
+            <div className="mt-4">
+              <Button type="submit" size="sm" className="h-11 sm:h-10" disabled={autoAssignAction.processing}>
+                {autoAssignAction.processing ? "Saving..." : "Save Auto-Assign"}
+              </Button>
+            </div>
+          </form>
+        </div>
       </div>
     </AppLayout>
   );

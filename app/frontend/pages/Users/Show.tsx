@@ -60,6 +60,7 @@ interface UserDetail {
   timezone: string;
   permissions: string[];
   notification_preferences: Record<string, boolean>;
+  auto_assign: boolean;
   active: boolean;
   is_pm_user: boolean;
   update_path: string;
@@ -93,6 +94,7 @@ export default function UserShow() {
     title: user.title || "",
     permissions: user.permissions || [],
     notification_preferences: user.notification_preferences || {},
+    auto_assign: user.auto_assign,
   });
 
   function startEdit() {
@@ -106,6 +108,7 @@ export default function UserShow() {
       title: user.title || "",
       permissions: user.permissions || [],
       notification_preferences: user.notification_preferences || {},
+      auto_assign: user.auto_assign,
     });
     setEditing(true);
   }
@@ -292,6 +295,19 @@ export default function UserShow() {
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {can_edit_role && !user.is_pm_user && (
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="edit_auto_assign"
+                  checked={editForm.data.auto_assign}
+                  onCheckedChange={(checked) => editForm.setData("auto_assign", checked === true)}
+                />
+                <label htmlFor="edit_auto_assign" className="text-sm font-medium cursor-pointer">
+                  Auto-assign to new incidents
+                </label>
               </div>
             )}
 

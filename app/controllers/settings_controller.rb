@@ -59,13 +59,17 @@ class SettingsController < ApplicationController
     existing_contact_ids = config ? config.escalation_contacts.pluck(:user_id) : []
     available_escalation = managers.where.not(id: existing_contact_ids)
 
+    auto_assign_users = org.users.active.where(user_type: User::MITIGATION_TYPES).order(:last_name, :first_name)
+
     render inertia: "Settings/OnCall", props: {
       config: config ? serialize_on_call_config(config) : nil,
       managers: managers.map { |u| { id: u.id, full_name: u.full_name, role_label: User::ROLE_LABELS[u.user_type] } },
       available_escalation_managers: available_escalation.map { |u| { id: u.id, full_name: u.full_name, role_label: User::ROLE_LABELS[u.user_type] } },
+      auto_assign_users: auto_assign_users.map { |u| { id: u.id, full_name: u.full_name, role_label: User::ROLE_LABELS[u.user_type], auto_assign: u.auto_assign } },
       update_path: update_on_call_settings_path,
       contacts_path: escalation_contacts_path,
-      reorder_path: reorder_escalation_contacts_path
+      reorder_path: reorder_escalation_contacts_path,
+      auto_assign_path: update_auto_assign_path
     }
   end
 
@@ -124,6 +128,23 @@ class SettingsController < ApplicationController
     end
 
     redirect_to on_call_settings_path, notice: "Escalation contact removed."
+  end
+
+  def update_auto_assign
+    authorize_manage_on_call!
+
+    org = current_user.organization
+    selected_ids = Array(params[:user_ids]).map(&:to_i)
+    mitigation_users = org.users.active.where(user_type: User::MITIGATION_TYPES)
+
+    ActiveRecord::Base.transaction do
+      mitigation_users.each do |u|
+        new_value = selected_ids.include?(u.id)
+        u.update_column(:auto_assign, new_value) if u.auto_assign != new_value
+      end
+    end
+
+    redirect_to on_call_settings_path, notice: "Auto-assign settings saved."
   end
 
   def reorder_escalation_contacts

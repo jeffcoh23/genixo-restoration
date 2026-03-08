@@ -83,7 +83,7 @@ class SecurityTest < ApplicationSystemTestCase
   private
 
   def assert_not_found_rendered
-    production_404 = page.has_text?("The page you were looking for") && page.has_text?("exist")
+    production_404 = page.has_text?("Page not found")
     debug_404 = page.has_text?("ActiveRecord::RecordNotFound")
 
     assert(production_404 || debug_404, "Expected production 404 page or test debug not-found page, but got:\n#{page.text}")

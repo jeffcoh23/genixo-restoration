@@ -19,9 +19,9 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     )
 
     # Mitigation org users
-    @manager = User.create!(organization: @genixo, user_type: "manager",
+    @manager = User.create!(organization: @genixo, user_type: "manager", auto_assign: true,
       email_address: "mgr@genixo.com", first_name: "Test", last_name: "Manager", password: "password123")
-    @office = User.create!(organization: @genixo, user_type: "office_sales",
+    @office = User.create!(organization: @genixo, user_type: "office_sales", auto_assign: true,
       email_address: "office@genixo.com", first_name: "Test", last_name: "Office", password: "password123")
     @tech = User.create!(organization: @genixo, user_type: "technician",
       email_address: "tech@genixo.com", first_name: "Test", last_name: "Tech", password: "password123")
@@ -203,13 +203,14 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
   test "creates incident with valid params" do
     login_as @manager
 
-    # Auto-assign creates 5 assignments:
-    #   PM-side property assignees: @pm_user, @area_mgr (2)
-    #   PM-side other users in PM org: @pm_mgr (1)
-    #   Mitigation-side managers + office_sales: @manager, @office (2)
+    # Auto-assign creates 3 assignments:
+    #   Mitigation-side auto_assign users: @manager, @office (2)
+    #   Emergency on-call primary user (if configured) — not configured here
+    #   + on-call primary for emergency: uses on_call_config if present
+    # Since emergency_response + on_call not configured, expect 2
     assert_difference "Incident.count", 1 do
       assert_difference "ActivityEvent.count", 2 do
-        assert_difference "IncidentAssignment.count", 5 do
+        assert_difference "IncidentAssignment.count", 2 do
           post incidents_path, params: {
             incident: {
               property_id: @property.id,

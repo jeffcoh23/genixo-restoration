@@ -12,7 +12,7 @@ class IncidentsAdditionalTest < ApplicationSystemTestCase
     @property_a = Property.create!(name: "River Oaks", mitigation_org: @mitigation, property_management_org: @pm)
     @property_b = Property.create!(name: "Sandalwood Towers", mitigation_org: @mitigation, property_management_org: @other_pm)
 
-    @manager = User.create!(organization: @mitigation, user_type: User::MANAGER,
+    @manager = User.create!(organization: @mitigation, user_type: User::MANAGER, auto_assign: true,
       email_address: "manager@example.com", first_name: "Mia", last_name: "Manager", password: "password123")
     @actor = User.create!(organization: @mitigation, user_type: User::TECHNICIAN,
       email_address: "actor@example.com", first_name: "Alex", last_name: "Actor", password: "password123")
@@ -185,7 +185,7 @@ class IncidentsAdditionalTest < ApplicationSystemTestCase
   end
 
   test "incident create respects team assignment selections" do
-    office = User.create!(organization: @mitigation, user_type: User::OFFICE_SALES,
+    office = User.create!(organization: @mitigation, user_type: User::OFFICE_SALES, auto_assign: true,
       email_address: "office@example.com", first_name: "Olive", last_name: "Office", password: "password123")
     tech = User.create!(organization: @mitigation, user_type: User::TECHNICIAN,
       email_address: "tech2@example.com", first_name: "Toby", last_name: "Tech", password: "password123")
@@ -205,7 +205,7 @@ class IncidentsAdditionalTest < ApplicationSystemTestCase
     click_radix_option("Flood")
     fill_in "description", with: "Team assignment selection test"
 
-    assert_selector "[data-testid='new-incident-selected-count']", text: "4 members selected"
+    assert_selector "[data-testid='new-incident-selected-count']", text: "2 members selected"
     office_checkbox = find("[data-testid='new-incident-assign-checkbox-#{office.id}']")
     tech_checkbox = find("[data-testid='new-incident-assign-checkbox-#{tech.id}']")
     assert_equal "checked", office_checkbox["data-state"]
@@ -213,12 +213,12 @@ class IncidentsAdditionalTest < ApplicationSystemTestCase
 
     # Office is auto-assigned; mitigation technician is not. Toggle to validate user-driven selection changes.
     office_checkbox.click
-    assert_selector "[data-testid='new-incident-selected-count']", text: "3 members selected"
+    assert_selector "[data-testid='new-incident-selected-count']", text: "1 member selected"
     assert_equal "unchecked", find("[data-testid='new-incident-assign-checkbox-#{office.id}']")["data-state"]
 
     tech_checkbox = find("[data-testid='new-incident-assign-checkbox-#{tech.id}']")
     tech_checkbox.click
-    assert_selector "[data-testid='new-incident-selected-count']", text: "4 members selected"
+    assert_selector "[data-testid='new-incident-selected-count']", text: "2 members selected"
     assert_equal "checked", find("[data-testid='new-incident-assign-checkbox-#{tech.id}']")["data-state"]
 
     incident = nil
@@ -228,11 +228,11 @@ class IncidentsAdditionalTest < ApplicationSystemTestCase
       incident = Incident.order(:id).last
     end
     assigned_ids = incident.assigned_user_ids
-    assert_includes assigned_ids, @manager.id
-    assert_includes assigned_ids, pm_mgr.id
-    assert_includes assigned_ids, pm_prop.id
-    assert_includes assigned_ids, tech.id
-    assert_not_includes assigned_ids, office.id
+    assert_includes assigned_ids, @manager.id     # auto_assign=true, kept checked
+    assert_includes assigned_ids, tech.id          # manually checked
+    assert_not_includes assigned_ids, office.id    # auto_assign=true, manually unchecked
+    assert_not_includes assigned_ids, pm_mgr.id    # PM users not pre-selected
+    assert_not_includes assigned_ids, pm_prop.id   # PM users not pre-selected
   end
 
   test "incident create persists contacts" do
@@ -523,7 +523,7 @@ class IncidentsAdditionalTest < ApplicationSystemTestCase
   end
 
   def assert_not_found_rendered
-    production_404 = page.has_text?("The page you were looking for") && page.has_text?("exist")
+    production_404 = page.has_text?("Page not found")
     debug_404 = page.has_text?("ActiveRecord::RecordNotFound")
     assert(production_404 || debug_404, "Expected not-found response, got:\n#{page.text}")
   end
