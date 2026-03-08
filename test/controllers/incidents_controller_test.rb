@@ -709,6 +709,59 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     assert_equal Date.parse("2026-02-20"), att.log_date
   end
 
+  # --- Emergency phone shared prop ---
+
+  test "PM user sees emergency_phone in shared props" do
+    @genixo.update!(phone: "2105550100")
+    login_as @pm_user
+    get incidents_path
+    assert_response :success
+    assert_includes response.body, "(210) 555-0100"
+  end
+
+  test "mitigation user does not see emergency_phone" do
+    @genixo.update!(phone: "2105550100")
+    login_as @manager
+    get incidents_path
+    assert_response :success
+    assert_not_includes response.body, "(210) 555-0100"
+  end
+
+  # --- Post-creation flash messages ---
+
+  test "PM emergency creation shows dispatch flash" do
+    login_as @pm_user
+    post incidents_path, params: {
+      incident: {
+        property_id: @property.id, project_type: "emergency_response",
+        damage_type: "flood", description: "Pipe burst emergency"
+      }
+    }
+    assert_equal "Emergency dispatched. The on-call team has been notified and will contact you shortly.", flash[:notice]
+  end
+
+  test "PM non-emergency creation shows next business day flash" do
+    login_as @pm_user
+    post incidents_path, params: {
+      incident: {
+        property_id: @property.id, project_type: "mitigation_rfq",
+        damage_type: "flood", description: "Slow leak needs attention"
+      }
+    }
+    assert_equal "Incident submitted. You'll receive a confirmation call on the next business day.", flash[:notice]
+  end
+
+  test "mitigation creation shows generic flash" do
+    login_as @manager
+    post incidents_path, params: {
+      incident: {
+        property_id: @property.id, project_type: "emergency_response",
+        damage_type: "flood", description: "Manager-created emergency"
+      }
+    }
+    assert_equal "Incident created.", flash[:notice]
+  end
+
   test "index shows closed incidents when status filter includes closed" do
     closed = create_test_incident(status: "closed", property: @property, description: "Closed job")
     login_as @manager

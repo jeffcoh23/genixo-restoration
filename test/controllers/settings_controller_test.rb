@@ -54,3 +54,48 @@ class SettingsControllerReorderTest < ActionDispatch::IntegrationTest
     post login_path, params: { email_address: user.email_address, password: "password123" }
   end
 end
+
+class SettingsControllerAutoAssignTest < ActionDispatch::IntegrationTest
+  setup do
+    @org = Organization.create!(name: "Genixo", organization_type: "mitigation")
+    @manager = User.create!(organization: @org, user_type: "manager",
+      email_address: "mgr@genixo.com", first_name: "Test", last_name: "Manager", password: "password123")
+    @tech = User.create!(organization: @org, user_type: "technician",
+      email_address: "tech@genixo.com", first_name: "Test", last_name: "Tech", password: "password123")
+    @office = User.create!(organization: @org, user_type: "office_sales",
+      email_address: "office@genixo.com", first_name: "Test", last_name: "Office", password: "password123")
+  end
+
+  test "sets auto_assign on selected users" do
+    login_as @manager
+    patch update_auto_assign_path, params: { user_ids: [ @manager.id, @tech.id ] }
+    assert_redirected_to on_call_settings_path
+
+    assert @manager.reload.auto_assign
+    assert @tech.reload.auto_assign
+    assert_not @office.reload.auto_assign
+  end
+
+  test "clears auto_assign on unselected users" do
+    @office.update_column(:auto_assign, true)
+    login_as @manager
+    patch update_auto_assign_path, params: { user_ids: [ @manager.id ] }
+
+    assert @manager.reload.auto_assign
+    assert_not @tech.reload.auto_assign
+    assert_not @office.reload.auto_assign
+  end
+
+  test "requires manager role" do
+    login_as @tech
+    patch update_auto_assign_path, params: { user_ids: [ @tech.id ] }
+    assert_response :not_found
+    assert_not @tech.reload.auto_assign
+  end
+
+  private
+
+  def login_as(user)
+    post login_path, params: { email_address: user.email_address, password: "password123" }
+  end
+end
