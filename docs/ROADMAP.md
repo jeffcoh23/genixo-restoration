@@ -62,11 +62,9 @@ Unauthenticated emergency requests from property managers without accounts.
 
 ---
 
-## Phase 5: Per-Incident Notifications & Client-Facing Views
+## Phase 5: Per-Incident Notification Overrides
 
-Refinement features for notification control and client-appropriate data views.
-
-### Per-incident notification overrides
+Let users control notifications per incident instead of only globally.
 
 - [ ] Messages + status changes toggles per incident
 - [ ] Default: inherit from global, override per-incident
@@ -74,11 +72,15 @@ Refinement features for notification control and client-appropriate data views.
 - [ ] UI: settings icon on Manage tab
 - [ ] All notification jobs check per-incident override first
 
-### Client-facing moisture view
+---
 
-- [ ] Client sees: initial (wet) + most recent (dry) only
-- [ ] "Dry" indicator when fully dry
-- [ ] Full daily readings for Genixo team only
+---
+
+## Still Considering
+
+Features that may or may not be needed. Revisit later.
+
+- [ ] **Client-facing moisture view** — PM sees only initial (wet) + most recent (dry) readings; "Dry" indicator when fully dry; full daily readings for Genixo team only
 
 ---
 
