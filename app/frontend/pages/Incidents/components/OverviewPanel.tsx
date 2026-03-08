@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useForm } from "@inertiajs/react";
-import { Mail, Pencil, Phone, Plus, UserPlus, X } from "lucide-react";
+import { router, useForm } from "@inertiajs/react";
+import { Bell, Mail, Pencil, Phone, Plus, UserPlus, X } from "lucide-react";
 import InlineActionFeedback from "@/components/InlineActionFeedback";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -290,6 +290,91 @@ function AssignSelect({ users, onAssign, disabled = false }: {
   );
 }
 
+function NotificationOverridesDialog({ user, onClose }: { user: TeamUser; onClose: () => void }) {
+  const path = user.notification_overrides_path!;
+  const overrides = user.notification_overrides;
+  const global = user.global_preferences;
+
+  const hasStatusOverride = "status_change" in overrides;
+  const hasMessageOverride = "new_message" in overrides;
+
+  const effectiveStatus = hasStatusOverride ? overrides.status_change : global.status_change;
+  const effectiveMessage = hasMessageOverride ? overrides.new_message : global.new_message;
+
+  const [statusChange, setStatusChange] = useState(effectiveStatus);
+  const [newMessage, setNewMessage] = useState(effectiveMessage);
+  const [submitting, setSubmitting] = useState(false);
+
+  const hasOverrides = hasStatusOverride || hasMessageOverride;
+
+  const handleSave = () => {
+    setSubmitting(true);
+    router.patch(path, {
+      status_change: statusChange ? "1" : "0",
+      new_message: newMessage ? "1" : "0",
+    }, {
+      preserveScroll: true,
+      onFinish: () => { setSubmitting(false); onClose(); },
+    });
+  };
+
+  const handleReset = () => {
+    setSubmitting(true);
+    router.patch(path, {}, {
+      preserveScroll: true,
+      onFinish: () => { setSubmitting(false); onClose(); },
+    });
+  };
+
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Notification Preferences</DialogTitle>
+        </DialogHeader>
+        <p className="text-xs text-muted-foreground -mt-1">
+          Override your global notification settings for this incident.
+        </p>
+        <div className="space-y-3 pt-1">
+          <label className="flex items-center gap-2.5 cursor-pointer">
+            <Checkbox
+              checked={statusChange}
+              onCheckedChange={(checked) => setStatusChange(checked === true)}
+            />
+            <span className="text-sm">
+              Status changes
+              {!hasStatusOverride && <span className="text-muted-foreground ml-1">(default)</span>}
+            </span>
+          </label>
+          <label className="flex items-center gap-2.5 cursor-pointer">
+            <Checkbox
+              checked={newMessage}
+              onCheckedChange={(checked) => setNewMessage(checked === true)}
+            />
+            <span className="text-sm">
+              New messages
+              {!hasMessageOverride && <span className="text-muted-foreground ml-1">(default)</span>}
+            </span>
+          </label>
+        </div>
+        <div className="flex items-center justify-between pt-2">
+          {hasOverrides ? (
+            <Button variant="ghost" size="sm" onClick={handleReset} disabled={submitting} className="text-muted-foreground text-xs">
+              Reset to defaults
+            </Button>
+          ) : <div />}
+          <div className="flex gap-2">
+            <Button variant="ghost" size="sm" onClick={onClose} disabled={submitting}>Cancel</Button>
+            <Button size="sm" onClick={handleSave} disabled={submitting}>
+              {submitting ? "Saving..." : "Save"}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function UserList({ users, expandedUserId, onToggleExpand, onRemove, actionsDisabled = false }: {
   users: TeamUser[];
   expandedUserId: number | null;
@@ -297,6 +382,8 @@ function UserList({ users, expandedUserId, onToggleExpand, onRemove, actionsDisa
   onRemove: (name: string, path: string) => void;
   actionsDisabled?: boolean;
 }) {
+  const [notifUser, setNotifUser] = useState<TeamUser | null>(null);
+
   // Group users by role, preserving backend sort order
   const groups: { role: string; users: TeamUser[] }[] = [];
   for (const u of users) {
@@ -334,18 +421,31 @@ function UserList({ users, expandedUserId, onToggleExpand, onRemove, actionsDisa
                     ) : (
                       <span className="text-foreground">{u.full_name}</span>
                     )}
-                    {u.remove_path && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => { e.stopPropagation(); onRemove(u.full_name, u.remove_path!); }}
-                        disabled={actionsDisabled}
-                        className="h-8 w-8 sm:h-7 sm:w-7 p-0 ml-auto text-muted-foreground hover:text-destructive transition-colors"
-                        title={`Remove ${u.full_name}`}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    )}
+                    <div className="flex items-center gap-0.5 ml-auto shrink-0">
+                      {u.notification_overrides_path && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => { e.stopPropagation(); setNotifUser(u); }}
+                          className="h-8 w-8 sm:h-7 sm:w-7 p-0 text-muted-foreground hover:text-foreground transition-colors"
+                          title="Notification preferences"
+                        >
+                          <Bell className="h-3 w-3" />
+                        </Button>
+                      )}
+                      {u.remove_path && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => { e.stopPropagation(); onRemove(u.full_name, u.remove_path!); }}
+                          disabled={actionsDisabled}
+                          className="h-8 w-8 sm:h-7 sm:w-7 p-0 text-muted-foreground hover:text-destructive transition-colors"
+                          title={`Remove ${u.full_name}`}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                   {isExpanded && (
                     <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground ml-8 mt-1 mb-1 pl-1">
@@ -369,6 +469,10 @@ function UserList({ users, expandedUserId, onToggleExpand, onRemove, actionsDisa
           </div>
         </div>
       ))}
+
+      {notifUser && (
+        <NotificationOverridesDialog user={notifUser} onClose={() => setNotifUser(null)} />
+      )}
     </div>
   );
 }

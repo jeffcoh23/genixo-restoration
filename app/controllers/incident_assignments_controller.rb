@@ -1,6 +1,7 @@
 class IncidentAssignmentsController < ApplicationController
   before_action :set_incident
-  before_action :require_assign_permission
+  before_action :require_assign_permission, except: :update_notifications
+  before_action :set_assignment, only: :update_notifications
 
   def create
     user = assignable_users.find(params[:user_id])
@@ -16,6 +17,18 @@ class IncidentAssignmentsController < ApplicationController
     redirect_to incident_path(@incident), notice: "#{user.full_name} assigned."
   rescue ActiveRecord::RecordNotUnique, ActiveRecord::RecordInvalid
     redirect_to incident_path(@incident), alert: "User is already assigned."
+  end
+
+  def update_notifications
+    raise ActiveRecord::RecordNotFound unless can_update_notification_overrides?(@assignment.user)
+
+    overrides = {}
+    IncidentAssignment::OVERRIDABLE_NOTIFICATION_KEYS.each do |key|
+      overrides[key] = params[key] == "1" if params.key?(key)
+    end
+
+    @assignment.update!(notification_overrides: overrides)
+    redirect_to incident_path(@incident), notice: "Notification preferences updated."
   end
 
   def destroy
@@ -41,6 +54,10 @@ class IncidentAssignmentsController < ApplicationController
 
   def set_incident
     @incident = find_visible_incident!(params[:incident_id])
+  end
+
+  def set_assignment
+    @assignment = @incident.incident_assignments.find(params[:id])
   end
 
   def require_assign_permission

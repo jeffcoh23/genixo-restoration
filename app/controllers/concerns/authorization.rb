@@ -115,4 +115,8 @@ module Authorization
     return true if mitigation_admin?
     current_user.pm_user? && property.assigned_users.exists?(id: current_user.id)
   end
+
+  def can_update_notification_overrides?(user)
+    user.id == current_user.id
+  end
 end

@@ -48,6 +48,27 @@ class StatusChangeNotificationJobTest < ActiveSupport::TestCase
     assert_equal 1, ActionMailer::Base.deliveries.size
   end
 
+  test "per-incident override enables notification when global is disabled" do
+    @tech.update!(notification_preferences: { "status_change" => false })
+    @incident.incident_assignments.find_by(user: @tech).update!(notification_overrides: { "status_change" => true })
+
+    perform_enqueued_jobs do
+      StatusChangeNotificationJob.perform_now(@incident.id, "acknowledged", "active")
+    end
+    # Manager has global enabled, tech has override enabled = 2 emails
+    assert_equal 2, ActionMailer::Base.deliveries.size
+  end
+
+  test "per-incident override disables notification when global is enabled" do
+    @incident.incident_assignments.find_by(user: @tech).update!(notification_overrides: { "status_change" => false })
+
+    perform_enqueued_jobs do
+      StatusChangeNotificationJob.perform_now(@incident.id, "acknowledged", "active")
+    end
+    # Only manager gets email, tech is overridden to disabled
+    assert_equal 1, ActionMailer::Base.deliveries.size
+  end
+
   test "does nothing if incident is gone" do
     perform_enqueued_jobs do
       StatusChangeNotificationJob.perform_now(0, "acknowledged", "active")

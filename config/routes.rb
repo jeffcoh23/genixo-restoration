@@ -25,7 +25,11 @@ Rails.application.routes.draw do
       post :dfr
       get :attachments_page
     end
-    resources :assignments, controller: "incident_assignments", only: %i[create destroy]
+    resources :assignments, controller: "incident_assignments", only: %i[create destroy] do
+      member do
+        patch :update_notifications
+      end
+    end
     resources :contacts, controller: "incident_contacts", only: %i[create update destroy]
     resources :messages, only: %i[create]
     resources :activity_entries, only: %i[create update]

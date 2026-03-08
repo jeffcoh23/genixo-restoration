@@ -80,7 +80,7 @@ genixo_user_data.each do |data|
   key = data.delete(:key)
   auto = data.delete(:auto_assign) || false
   users[key] = User.find_or_create_by!(organization: genixo, email_address: data[:email_address]) do |u|
-    u.assign_attributes(data.merge(password: "password", timezone: "America/Chicago", auto_assign: auto))
+    u.assign_attributes(data.merge(password: "password", timezone: "Central Time (US & Canada)", auto_assign: auto))
   end
   users[key].update_column(:auto_assign, auto) if users[key].auto_assign != auto
 end

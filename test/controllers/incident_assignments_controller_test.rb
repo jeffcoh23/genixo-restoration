@@ -119,6 +119,46 @@ class IncidentAssignmentsControllerTest < ActionDispatch::IntegrationTest
     assert_equal @tech.id, event.metadata["assigned_user_id"]
   end
 
+  # --- Notification overrides ---
+
+  test "user can update their own notification overrides" do
+    assignment = IncidentAssignment.find_by(incident: @incident, user: @manager)
+    login_as @manager
+    patch update_notifications_incident_assignment_path(@incident, assignment),
+      params: { status_change: "1", new_message: "0" }
+    assert_redirected_to incident_path(@incident)
+    assignment.reload
+    assert_equal({ "status_change" => true, "new_message" => false }, assignment.notification_overrides)
+  end
+
+  test "user cannot update another user's notification overrides" do
+    assignment = IncidentAssignment.find_by(incident: @incident, user: @manager)
+    IncidentAssignment.create!(incident: @incident, user: @tech, assigned_by_user: @manager)
+    login_as @tech
+    patch update_notifications_incident_assignment_path(@incident, assignment),
+      params: { status_change: "1" }
+    assert_response :not_found
+  end
+
+  test "only known keys are stored in notification overrides" do
+    assignment = IncidentAssignment.find_by(incident: @incident, user: @manager)
+    login_as @manager
+    patch update_notifications_incident_assignment_path(@incident, assignment),
+      params: { status_change: "1", bogus_key: "1" }
+    assignment.reload
+    assert_equal({ "status_change" => true }, assignment.notification_overrides)
+    assert_not assignment.notification_overrides.key?("bogus_key")
+  end
+
+  test "empty params clears notification overrides" do
+    assignment = IncidentAssignment.find_by(incident: @incident, user: @manager)
+    assignment.update!(notification_overrides: { "status_change" => true })
+    login_as @manager
+    patch update_notifications_incident_assignment_path(@incident, assignment)
+    assignment.reload
+    assert_equal({}, assignment.notification_overrides)
+  end
+
   private
 
   def login_as(user)

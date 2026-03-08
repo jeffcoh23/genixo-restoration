@@ -8,6 +8,9 @@ export interface TeamUser {
   phone: string | null;
   phone_raw: string | null;
   remove_path: string | null;
+  notification_overrides_path: string | null;
+  notification_overrides: Record<string, boolean>;
+  global_preferences: { status_change: boolean; new_message: boolean };
 }
 
 export interface AssignableUser {

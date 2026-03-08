@@ -1,7 +1,18 @@
 class SettingsController < ApplicationController
   include TimeFormatting
 
-  TIMEZONE_OPTIONS = ActiveSupport::TimeZone.us_zones.map { |tz| { value: tz.name, label: tz.to_s } }.freeze
+  US_TIMEZONE_NAMES = [
+    "Pacific Time (US & Canada)",
+    "Arizona",
+    "Mountain Time (US & Canada)",
+    "Central Time (US & Canada)",
+    "Eastern Time (US & Canada)"
+  ].freeze
+
+  TIMEZONE_OPTIONS = US_TIMEZONE_NAMES.map { |name|
+    tz = ActiveSupport::TimeZone[name]
+    { value: tz.name, label: tz.to_s }
+  }.freeze
 
   def show
     render inertia: "Settings/Profile", props: {

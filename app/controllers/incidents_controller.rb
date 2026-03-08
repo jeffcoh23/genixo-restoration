@@ -531,7 +531,14 @@ class IncidentsController < ApplicationController
         email: a.user.email_address,
         phone: format_phone(a.user.phone),
         phone_raw: a.user.phone,
-        remove_path: can_remove_assignment?(a.user) ? incident_assignment_path(@incident, a) : nil
+        remove_path: can_remove_assignment?(a.user) ? incident_assignment_path(@incident, a) : nil,
+        notification_overrides_path: can_update_notification_overrides?(a.user) ?
+          update_notifications_incident_assignment_path(@incident, a) : nil,
+        notification_overrides: a.notification_overrides,
+        global_preferences: {
+          status_change: a.user.notification_preference("status_change"),
+          new_message: a.user.notification_preference("new_message")
+        }
       }
     end
   end

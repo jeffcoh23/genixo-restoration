@@ -66,11 +66,11 @@ Unauthenticated emergency requests from property managers without accounts.
 
 Let users control notifications per incident instead of only globally.
 
-- [ ] Messages + status changes toggles per incident
-- [ ] Default: inherit from global, override per-incident
-- [ ] PM users control their own; mitigation controls anyone assigned
-- [ ] UI: settings icon on Manage tab
-- [ ] All notification jobs check per-incident override first
+- [x] Messages + status changes toggles per incident
+- [x] Default: inherit from global, override per-incident
+- [x] Users control their own notification overrides only
+- [x] UI: bell icon on Manage tab for current user's row
+- [x] All notification jobs check per-incident override first
 
 ---
 

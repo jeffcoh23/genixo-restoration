@@ -88,88 +88,90 @@ export default function PropertyShow() {
         action={can_edit ? { href: property.edit_path, label: "Edit" } : undefined}
       />
 
-      {property.address && <p className="text-muted-foreground -mt-4 mb-2">{property.address}</p>}
-      {property.unit_summary && <p className="text-sm text-muted-foreground mb-4">{property.unit_summary}</p>}
+      <div className="rounded-xl border border-border bg-card shadow-sm p-6">
+        {property.address && <p className="text-muted-foreground mb-2">{property.address}</p>}
+        {property.unit_summary && <p className="text-sm text-muted-foreground mb-4">{property.unit_summary}</p>}
 
-      <div className="flex gap-6 text-sm text-muted-foreground mb-8">
-        <div>
-          <span className="font-medium text-foreground">PM Organization:</span>{" "}
-          <Link href={property.pm_org.path} className="text-primary hover:underline">{property.pm_org.name}</Link>
-        </div>
-        <div>
-          <span className="font-medium text-foreground">Mitigation:</span> {property.mitigation_org.name}
-        </div>
-      </div>
-
-      {/* Assigned Users */}
-      <section className="mb-8">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold text-foreground">Assigned Users</h2>
-          {can_assign && assignable_users.length > 0 && (
-            <Button variant="outline" size="sm" onClick={() => setShowAssignForm(!showAssignForm)}>
-              {showAssignForm ? "Cancel" : "+ Assign"}
-            </Button>
-          )}
-        </div>
-
-        <InlineActionFeedback error={assignmentAction.error} onDismiss={assignmentAction.clearFeedback} className="mb-3" />
-
-        {showAssignForm && (
-          <div className="flex gap-2 mb-4">
-            <Select value={selectedUserId} onValueChange={(value) => { assignmentAction.clearFeedback(); setSelectedUserId(value); }} disabled={assignmentAction.processing}>
-              <SelectTrigger className="max-w-xs" disabled={assignmentAction.processing}>
-                <SelectValue placeholder="Select a user..." />
-              </SelectTrigger>
-              <SelectContent>
-                {assignable_users.map((u) => (
-                  <SelectItem key={u.id} value={String(u.id)}>{u.full_name} ({u.role_label})</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button size="sm" onClick={handleAssign} disabled={!selectedUserId || assignmentAction.processing}>
-              {assignmentAction.processing ? "Assigning..." : "Assign"}
-            </Button>
+        <div className="flex gap-6 text-sm text-muted-foreground mb-8">
+          <div>
+            <span className="font-medium text-foreground">PM Organization:</span>{" "}
+            <Link href={property.pm_org.path} className="text-primary hover:underline">{property.pm_org.name}</Link>
           </div>
-        )}
+          <div>
+            <span className="font-medium text-foreground">Mitigation:</span> {property.mitigation_org.name}
+          </div>
+        </div>
 
-        <DetailList isEmpty={property.assigned_users.length === 0} emptyMessage="No users assigned to this property.">
-          {property.assigned_users.map((user) => (
-            <DetailRow key={user.id}>
-              <div>
-                <Link href={user.path} className="font-medium text-primary hover:underline">{user.full_name}</Link>
-                <span className="text-sm text-muted-foreground ml-2">{user.email}</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-sm text-muted-foreground">{user.role_label}</span>
-                {can_assign && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-9 sm:h-7 px-2 text-sm sm:text-xs text-muted-foreground hover:text-destructive"
-                    onClick={() => handleRemove(user)}
-                    disabled={assignmentAction.processing}
-                  >
-                    Remove
-                  </Button>
-                )}
-              </div>
-            </DetailRow>
-          ))}
-        </DetailList>
-      </section>
+        {/* Assigned Users */}
+        <section className="mb-8">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold text-foreground">Assigned Users</h2>
+            {can_assign && assignable_users.length > 0 && (
+              <Button variant="outline" size="sm" onClick={() => setShowAssignForm(!showAssignForm)}>
+                {showAssignForm ? "Cancel" : "+ Assign"}
+              </Button>
+            )}
+          </div>
 
-      {/* Incidents */}
-      <section>
-        <h2 className="text-lg font-semibold text-foreground mb-3">Incidents</h2>
-        <DetailList isEmpty={property.incidents.length === 0} emptyMessage="No incidents for this property.">
-          {property.incidents.map((incident) => (
-            <DetailRow key={incident.id}>
-              <Link href={incident.path} className="font-medium text-primary hover:underline">{incident.summary}</Link>
-              <StatusBadge status={incident.status} label={incident.status_label} />
-            </DetailRow>
-          ))}
-        </DetailList>
-      </section>
+          <InlineActionFeedback error={assignmentAction.error} onDismiss={assignmentAction.clearFeedback} className="mb-3" />
+
+          {showAssignForm && (
+            <div className="flex gap-2 mb-4">
+              <Select value={selectedUserId} onValueChange={(value) => { assignmentAction.clearFeedback(); setSelectedUserId(value); }} disabled={assignmentAction.processing}>
+                <SelectTrigger className="max-w-xs" disabled={assignmentAction.processing}>
+                  <SelectValue placeholder="Select a user..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {assignable_users.map((u) => (
+                    <SelectItem key={u.id} value={String(u.id)}>{u.full_name} ({u.role_label})</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button size="sm" onClick={handleAssign} disabled={!selectedUserId || assignmentAction.processing}>
+                {assignmentAction.processing ? "Assigning..." : "Assign"}
+              </Button>
+            </div>
+          )}
+
+          <DetailList isEmpty={property.assigned_users.length === 0} emptyMessage="No users assigned to this property.">
+            {property.assigned_users.map((user) => (
+              <DetailRow key={user.id}>
+                <div>
+                  <Link href={user.path} className="font-medium text-primary hover:underline">{user.full_name}</Link>
+                  <span className="text-sm text-muted-foreground ml-2">{user.email}</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-sm text-muted-foreground">{user.role_label}</span>
+                  {can_assign && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-9 sm:h-7 px-2 text-sm sm:text-xs text-muted-foreground hover:text-destructive"
+                      onClick={() => handleRemove(user)}
+                      disabled={assignmentAction.processing}
+                    >
+                      Remove
+                    </Button>
+                  )}
+                </div>
+              </DetailRow>
+            ))}
+          </DetailList>
+        </section>
+
+        {/* Incidents */}
+        <section>
+          <h2 className="text-lg font-semibold text-foreground mb-3">Incidents</h2>
+          <DetailList isEmpty={property.incidents.length === 0} emptyMessage="No incidents for this property.">
+            {property.incidents.map((incident) => (
+              <DetailRow key={incident.id}>
+                <Link href={incident.path} className="font-medium text-primary hover:underline">{incident.summary}</Link>
+                <StatusBadge status={incident.status} label={incident.status_label} />
+              </DetailRow>
+            ))}
+          </DetailList>
+        </section>
+      </div>
 
       <Dialog open={!!confirmRemoveUser} onOpenChange={(open) => !open && setConfirmRemoveUser(null)}>
         <DialogContent className="sm:max-w-sm">

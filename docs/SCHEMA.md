@@ -257,6 +257,7 @@ Links users to incidents. **Auto-assigned at creation:** mitigation users with `
 | incident_id | bigint | NOT NULL, FK | |
 | user_id | bigint | NOT NULL, FK → users | Any user |
 | assigned_by_user_id | bigint | NOT NULL, FK → users | Who assigned (system for auto-assign, or the manager) |
+| notification_overrides | jsonb | NOT NULL, DEFAULT `{}` | Per-incident notification preference overrides. Empty = inherit global. Keys: `status_change`, `new_message`. |
 | created_at | datetime | NOT NULL | |
 | updated_at | datetime | NOT NULL | |
 
