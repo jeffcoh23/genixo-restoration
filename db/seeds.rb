@@ -55,8 +55,8 @@ puts "  Organizations: #{Organization.count}"
 
 genixo_user_data = [
   # Managers (7)
-  { key: :fred,     first_name: "Fred",     last_name: "Hall",    email_address: "fhall@genixoconstruction.com",   user_type: "manager",   phone: "210-763-2025" },
-  { key: :daniel,   first_name: "Daniel",   last_name: "Hutson",  email_address: "dhutson@genixoconstruction.com", user_type: "manager",   phone: "830-463-9104" },
+  { key: :fred,     first_name: "Fred",     last_name: "Hall",    email_address: "fhall@genixoconstruction.com",   user_type: "manager",   phone: "210-763-2025", auto_assign: true },
+  { key: :daniel,   first_name: "Daniel",   last_name: "Hutson",  email_address: "dhutson@genixoconstruction.com", user_type: "manager",   phone: "830-463-9104", auto_assign: true },
   { key: :caleb,    first_name: "Caleb",    last_name: "Miller",  email_address: "cmiller@genixoconstruction.com", user_type: "manager",   phone: nil },
   { key: :jeremy,   first_name: "Jeremy",   last_name: "Owen",    email_address: "jowen@genixoconstruction.com",   user_type: "manager",   phone: "832-797-8773" },
   { key: :john,     first_name: "John",     last_name: "Tucker",  email_address: "jtucker@genixoconstruction.com", user_type: "manager",   phone: "657-414-9166" },
@@ -78,9 +78,11 @@ users = {}
 
 genixo_user_data.each do |data|
   key = data.delete(:key)
+  auto = data.delete(:auto_assign) || false
   users[key] = User.find_or_create_by!(organization: genixo, email_address: data[:email_address]) do |u|
-    u.assign_attributes(data.merge(password: "password", timezone: "America/Chicago"))
+    u.assign_attributes(data.merge(password: "password", timezone: "America/Chicago", auto_assign: auto))
   end
+  users[key].update_column(:auto_assign, auto) if users[key].auto_assign != auto
 end
 
 # ==========================================================================
@@ -111,6 +113,56 @@ users[:amy] = User.find_or_create_by!(organization: greystar, email_address: "am
   u.user_type = "other"
   u.title = "Regional Director"
   u.phone = "713-555-0203"
+  u.password = "password"
+  u.timezone = "America/Chicago"
+end
+
+users[:carlos] = User.find_or_create_by!(organization: greystar, email_address: "carlos@greystar.com") do |u|
+  u.first_name = "Carlos"
+  u.last_name = "Mendez"
+  u.user_type = "other"
+  u.title = "Maintenance Supervisor"
+  u.phone = "713-555-0204"
+  u.password = "password"
+  u.timezone = "America/Chicago"
+end
+
+users[:diana] = User.find_or_create_by!(organization: greystar, email_address: "diana@greystar.com") do |u|
+  u.first_name = "Diana"
+  u.last_name = "Patel"
+  u.user_type = "other"
+  u.title = "Community Manager"
+  u.phone = "713-555-0205"
+  u.password = "password"
+  u.timezone = "America/Chicago"
+end
+
+users[:frank] = User.find_or_create_by!(organization: greystar, email_address: "frank@greystar.com") do |u|
+  u.first_name = "Frank"
+  u.last_name = "Nguyen"
+  u.user_type = "other"
+  u.title = "Regional Maintenance Director"
+  u.phone = "713-555-0206"
+  u.password = "password"
+  u.timezone = "America/Chicago"
+end
+
+users[:lisa] = User.find_or_create_by!(organization: greystar, email_address: "lisa@greystar.com") do |u|
+  u.first_name = "Lisa"
+  u.last_name = "Washington"
+  u.user_type = "other"
+  u.title = "Leasing Manager"
+  u.phone = "713-555-0207"
+  u.password = "password"
+  u.timezone = "America/Chicago"
+end
+
+users[:marcus] = User.find_or_create_by!(organization: greystar, email_address: "marcus@greystar.com") do |u|
+  u.first_name = "Marcus"
+  u.last_name = "Thompson"
+  u.user_type = "other"
+  u.title = "Facilities Coordinator"
+  u.phone = "713-555-0208"
   u.password = "password"
   u.timezone = "America/Chicago"
 end

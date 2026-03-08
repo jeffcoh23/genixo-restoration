@@ -71,21 +71,20 @@ class IncidentCreationService
   def default_auto_assign_users
     users_to_assign = Set.new
 
-    # PM-side: property assignees (property_managers, area_managers on this property)
-    @property.assigned_users.active.where(user_type: [ User::PROPERTY_MANAGER, User::AREA_MANAGER ]).find_each do |u|
+    # Mitigation-side: users with auto_assign flag
+    @property.mitigation_org.users.active.auto_assigned.find_each do |u|
       users_to_assign << u
     end
 
-    # PM-side: all "other" users in the property's PM org
-    @property.property_management_org.users.active.where(user_type: User::OTHER).find_each do |u|
-      users_to_assign << u
+    # Mitigation-side (emergency only): add on-call primary user
+    if @incident.emergency?
+      on_call_config = @property.mitigation_org.on_call_configuration
+      if on_call_config&.primary_user
+        users_to_assign << on_call_config.primary_user
+      end
     end
 
-    # Mitigation-side: managers + office_sales (NOT technicians)
-    @property.mitigation_org.users.active.where(user_type: [ User::MANAGER, User::OFFICE_SALES ]).find_each do |u|
-      users_to_assign << u
-    end
-
+    # PM-side: nobody — PM creator picks manually
     users_to_assign
   end
 

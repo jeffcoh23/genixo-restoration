@@ -11,9 +11,9 @@ class IncidentsTest < ApplicationSystemTestCase
       city: "Houston", state: "TX", zip: "77001", unit_count: 24
     )
 
-    @manager = User.create!(organization: @genixo, user_type: "manager",
+    @manager = User.create!(organization: @genixo, user_type: "manager", auto_assign: true,
       email_address: "mgr@genixo.com", first_name: "Test", last_name: "Manager", password: "password123")
-    @office = User.create!(organization: @genixo, user_type: "office_sales",
+    @office = User.create!(organization: @genixo, user_type: "office_sales", auto_assign: true,
       email_address: "office@genixo.com", first_name: "Test", last_name: "Office", password: "password123")
 
     @pm_user = User.create!(organization: @greystar, user_type: "property_manager",
@@ -48,7 +48,7 @@ class IncidentsTest < ApplicationSystemTestCase
     incident = Incident.last
     assert_equal "acknowledged", incident.status
 
-    # Team auto-assigned: manager + office from mitigation side, PM users from PM side
+    # Team auto-assigned: manager + office (auto_assign=true) from mitigation side
     assert incident.assigned_users.include?(@manager)
     assert incident.assigned_users.include?(@office)
   end
@@ -81,7 +81,7 @@ class IncidentsTest < ApplicationSystemTestCase
     assert_text "Sunset Apartments"
     assert_text "Water damage in lobby area"
 
-    # Mitigation managers should be auto-assigned
+    # Mitigation auto_assign users should be auto-assigned
     incident = Incident.last
     assert incident.assigned_users.include?(@manager)
   end

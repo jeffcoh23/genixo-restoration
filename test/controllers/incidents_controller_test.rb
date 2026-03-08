@@ -19,9 +19,9 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     )
 
     # Mitigation org users
-    @manager = User.create!(organization: @genixo, user_type: "manager",
+    @manager = User.create!(organization: @genixo, user_type: "manager", auto_assign: true,
       email_address: "mgr@genixo.com", first_name: "Test", last_name: "Manager", password: "password123")
-    @office = User.create!(organization: @genixo, user_type: "office_sales",
+    @office = User.create!(organization: @genixo, user_type: "office_sales", auto_assign: true,
       email_address: "office@genixo.com", first_name: "Test", last_name: "Office", password: "password123")
     @tech = User.create!(organization: @genixo, user_type: "technician",
       email_address: "tech@genixo.com", first_name: "Test", last_name: "Tech", password: "password123")
@@ -203,13 +203,14 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
   test "creates incident with valid params" do
     login_as @manager
 
-    # Auto-assign creates 5 assignments:
-    #   PM-side property assignees: @pm_user, @area_mgr (2)
-    #   PM-side other users in PM org: @pm_mgr (1)
-    #   Mitigation-side managers + office_sales: @manager, @office (2)
+    # Auto-assign creates 3 assignments:
+    #   Mitigation-side auto_assign users: @manager, @office (2)
+    #   Emergency on-call primary user (if configured) — not configured here
+    #   + on-call primary for emergency: uses on_call_config if present
+    # Since emergency_response + on_call not configured, expect 2
     assert_difference "Incident.count", 1 do
       assert_difference "ActivityEvent.count", 2 do
-        assert_difference "IncidentAssignment.count", 5 do
+        assert_difference "IncidentAssignment.count", 2 do
           post incidents_path, params: {
             incident: {
               property_id: @property.id,
@@ -706,6 +707,59 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     att.reload
     assert_equal "New desc", att.description
     assert_equal Date.parse("2026-02-20"), att.log_date
+  end
+
+  # --- Emergency phone shared prop ---
+
+  test "PM user sees emergency_phone in shared props" do
+    @genixo.update!(phone: "2105550100")
+    login_as @pm_user
+    get incidents_path
+    assert_response :success
+    assert_includes response.body, "(210) 555-0100"
+  end
+
+  test "mitigation user does not see emergency_phone" do
+    @genixo.update!(phone: "2105550100")
+    login_as @manager
+    get incidents_path
+    assert_response :success
+    assert_not_includes response.body, "(210) 555-0100"
+  end
+
+  # --- Post-creation flash messages ---
+
+  test "PM emergency creation shows dispatch flash" do
+    login_as @pm_user
+    post incidents_path, params: {
+      incident: {
+        property_id: @property.id, project_type: "emergency_response",
+        damage_type: "flood", description: "Pipe burst emergency"
+      }
+    }
+    assert_equal "Emergency dispatched. The on-call team has been notified and will contact you shortly.", flash[:notice]
+  end
+
+  test "PM non-emergency creation shows next business day flash" do
+    login_as @pm_user
+    post incidents_path, params: {
+      incident: {
+        property_id: @property.id, project_type: "mitigation_rfq",
+        damage_type: "flood", description: "Slow leak needs attention"
+      }
+    }
+    assert_equal "Incident submitted. You'll receive a confirmation call on the next business day.", flash[:notice]
+  end
+
+  test "mitigation creation shows generic flash" do
+    login_as @manager
+    post incidents_path, params: {
+      incident: {
+        property_id: @property.id, project_type: "emergency_response",
+        damage_type: "flood", description: "Manager-created emergency"
+      }
+    }
+    assert_equal "Incident created.", flash[:notice]
   end
 
   test "index shows closed incidents when status filter includes closed" do

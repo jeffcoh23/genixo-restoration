@@ -6,6 +6,8 @@ class ApplicationController < ActionController::Base
 
   allow_browser versions: :modern
 
+  rescue_from ActiveRecord::RecordNotFound, with: :render_not_found
+
   around_action :set_user_timezone
 
   inertia_share flash: -> {
@@ -79,6 +81,17 @@ class ApplicationController < ActionController::Base
     UnreadCacheService.has_unread?(current_user)
   }
 
+  inertia_share emergency_phone: -> {
+    next nil unless current_user&.pm_user?
+
+    mit_org_id = Property.where(property_management_org_id: current_user.organization_id)
+                         .pick(:mitigation_org_id)
+    next nil unless mit_org_id
+
+    mit_org = Organization.find(mit_org_id)
+    format_phone(mit_org.phone)
+  }
+
   inertia_share today: -> {
     Time.current.to_date.iso8601
   }
@@ -89,6 +102,10 @@ class ApplicationController < ActionController::Base
 
 
   private
+
+  def render_not_found
+    render inertia: "Error", props: { status: 404, message: "Page not found" }, status: :not_found
+  end
 
   def set_user_timezone(&block)
     zone = current_user&.timezone || "UTC"

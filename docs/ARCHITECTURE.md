@@ -60,33 +60,45 @@ Authorization has two layers: **scoped queries** for data visibility, and a **ce
 
 #### Permissions Model
 
-`app/models/permissions.rb` — single source of truth for role → permission mapping. Constants + a static map, easily replaceable with a database-backed system when per-user overrides are needed.
+`app/models/permissions.rb` — defines permission constants, role defaults, and human-readable labels. Each user stores their actual permissions in a `permissions` jsonb array on the `users` table. Defaults are set from the role on user creation.
 
 ```ruby
 class Permissions
-  CREATE_INCIDENT       = :create_incident
-  TRANSITION_STATUS     = :transition_status
-  CREATE_PROPERTY       = :create_property
-  VIEW_PROPERTIES       = :view_properties
-  MANAGE_ORGANIZATIONS  = :manage_organizations
-  MANAGE_USERS          = :manage_users
-  MANAGE_ON_CALL        = :manage_on_call
+  CREATE_INCIDENT        = :create_incident
+  EDIT_INCIDENT          = :edit_incident
+  TRANSITION_STATUS      = :transition_status
+  CREATE_PROPERTY        = :create_property
+  VIEW_PROPERTIES        = :view_properties
+  MANAGE_ORGANIZATIONS   = :manage_organizations
+  MANAGE_USERS           = :manage_users
+  MANAGE_ON_CALL         = :manage_on_call
   MANAGE_EQUIPMENT_TYPES = :manage_equipment_types
+  MANAGE_DAILY_LOGS      = :manage_daily_logs
+  MANAGE_READINGS        = :manage_readings
+  MANAGE_ATTACHMENTS     = :manage_attachments
 
   ROLE_PERMISSIONS = {
-    "manager"          => [all 8],
-    "office_sales"     => [CREATE_INCIDENT, CREATE_PROPERTY, VIEW_PROPERTIES, MANAGE_ORGANIZATIONS, MANAGE_USERS],
-    "technician"       => [],
+    "manager"          => [all 12],
+    "office_sales"     => [CREATE_INCIDENT, EDIT_INCIDENT, CREATE_PROPERTY, VIEW_PROPERTIES,
+                           MANAGE_ORGANIZATIONS, MANAGE_USERS, MANAGE_ATTACHMENTS],
+    "technician"       => [MANAGE_DAILY_LOGS, MANAGE_READINGS, MANAGE_ATTACHMENTS],
     "property_manager" => [CREATE_INCIDENT, VIEW_PROPERTIES],
     "area_manager"     => [CREATE_INCIDENT, VIEW_PROPERTIES],
-    "pm_manager"       => [VIEW_PROPERTIES]
+    "other"            => [VIEW_PROPERTIES]
   }.freeze
 
+  # Permissions shown as toggleable checkboxes in the user edit modal (mitigation users only)
+  MITIGATION_VISIBLE_PERMISSIONS = [
+    CREATE_INCIDENT, EDIT_INCIDENT, TRANSITION_STATUS,
+    MANAGE_DAILY_LOGS, MANAGE_READINGS, MANAGE_USERS
+  ].freeze
+
   def self.has?(user_type, permission) ... end
+  def self.defaults_for(user_type) ... end
 end
 ```
 
-Usage: `current_user.can?(Permissions::CREATE_INCIDENT)` — delegates to `Permissions.has?`.
+**Per-user permissions:** `user.can?(Permissions::CREATE_INCIDENT)` checks the user's `permissions` jsonb array — NOT `Permissions.has?`. This allows managers to toggle individual permissions per user. Defaults are set from `ROLE_PERMISSIONS` at user creation via `set_default_permissions` callback.
 
 #### Scoped Queries
 
@@ -101,11 +113,17 @@ module Authorization
   def find_visible_incident!(id) ...
   def find_visible_property!(id) ...
 
-  # Permission helpers (delegate to Permissions model)
-  def can_create_incident? ...
-  def can_view_properties? ...
-  def can_manage_organizations? ...
-  # etc.
+  # Permission helpers (delegate to user's per-user permissions array)
+  def can_create_incident? ...     # Permissions::CREATE_INCIDENT
+  def can_edit_incident? ...       # Permissions::EDIT_INCIDENT
+  def can_transition_status? ...   # Permissions::TRANSITION_STATUS
+  def can_view_properties? ...     # Permissions::VIEW_PROPERTIES
+  def can_manage_organizations? ...# Permissions::MANAGE_ORGANIZATIONS
+  def can_manage_users? ...        # Permissions::MANAGE_USERS
+  def can_create_labor? ...        # Permissions::MANAGE_DAILY_LOGS
+  def can_manage_on_call? ...      # Permissions::MANAGE_ON_CALL
+  def can_manage_moisture_readings? ... # Permissions::MANAGE_READINGS
+  def can_manage_attachments? ...  # Permissions::MANAGE_ATTACHMENTS
 
   # Resource-scoped checks (need a specific record)
   def mitigation_admin? ...
@@ -221,27 +239,38 @@ class IncidentCreationService
     )
   end
 
-  def auto_assign_users!
-    users_to_assign = []
+  def assign_users
+    users_to_assign = default_auto_assign_users
 
-    # PM-side: property_managers and area_managers assigned to this property
-    users_to_assign += User.joins(:property_assignments)
-                           .where(property_assignments: { property_id: @property.id })
-
-    # PM-side: pm_managers in the property's PM org
-    users_to_assign += User.where(organization_id: @property.property_management_org_id,
-                                   user_type: "pm_manager")
-
-    # Mitigation-side: managers and office_sales (not techs)
-    users_to_assign += User.where(organization_id: @property.mitigation_org_id,
-                                   user_type: %w[manager office_sales])
-
-    users_to_assign.uniq(&:id).each do |user|
-      @incident.incident_assignments.create!(
-        user: user,
-        assigned_by_user: @user
-      )
+    # When the UI sends assignment selections, merge with hidden auto-assigns.
+    # PM creators can't see mitigation auto-assign users — those are preserved.
+    if @params.key?(:additional_user_ids)
+      selected_ids = Array(@params[:additional_user_ids]).map(&:to_i)
+      selectable_ids = selectable_user_ids_for_creator
+      preserved = users_to_assign.reject { |u| selectable_ids.include?(u.id) }
+      selected = User.where(id: selected_ids & selectable_ids, active: true)
+      users_to_assign = preserved.to_set.merge(selected)
     end
+
+    users_to_assign.each do |u|
+      @incident.incident_assignments.create!(user: u, assigned_by_user: @user)
+    end
+  end
+
+  def default_auto_assign_users
+    users = Set.new
+
+    # Mitigation-side: users with auto_assign flag
+    @property.mitigation_org.users.active.auto_assigned.find_each { |u| users << u }
+
+    # Mitigation-side (emergency only): add on-call primary user
+    if @incident.emergency?
+      config = @property.mitigation_org.on_call_configuration
+      users << config.primary_user if config&.primary_user
+    end
+
+    # PM-side: nobody — PM creator picks manually
+    users
   end
 end
 ```
@@ -699,6 +728,14 @@ inertia_share auth: -> {
     authenticated: !!Current.user
   }
 },
+emergency_phone: -> {
+  # For PM users: mitigation org phone number, displayed in sidebar
+  next nil unless current_user&.pm_user?
+  mit_org_id = Property.where(property_management_org_id: current_user.organization_id)
+                       .pick(:mitigation_org_id)
+  next nil unless mit_org_id
+  format_phone(Organization.find(mit_org_id).phone)
+},
 routes: -> {
   # Genixo-specific routes shared with frontend
   {
@@ -763,7 +800,7 @@ The dashboard and navigation adapt based on `auth.user.user_type`:
 - **Manager**: Full dashboard with all incidents, emergency highlights, assignment controls
 - **Technician**: Dashboard filtered to assigned incidents only, quick-action buttons for labor/equipment/notes
 - **Office/Sales**: Full incident visibility, user/property/org management, read-only on operational data
-- **PM/AM/PM Manager**: Incidents on assigned properties + directly assigned incidents, messaging, can manage own org's assignments
+- **PM/AM/Other**: Incidents on assigned properties + directly assigned incidents, messaging, can manage own org's assignments
 
 ---
 
@@ -830,7 +867,7 @@ Stub external services (notification providers) in tests. Use `ActiveJob::TestHe
 
 ### Why Permissions model instead of Pundit/CanCanCan?
 
-The `Permissions` model is a lightweight, centralized map of role → permission constants. It avoids the overhead of a full RBAC gem while keeping all permission logic in one replaceable file. To grant a new permission to a role, add it to the `ROLE_PERMISSIONS` hash. When per-user overrides are needed (e.g. temporary escalation), replace the static map with a database-backed lookup — the `user.can?(permission)` interface stays the same.
+The `Permissions` model defines permission constants and role defaults. Each user stores their actual permissions in a `permissions` jsonb array on the `users` table. Roles provide sensible defaults via `Permissions.defaults_for(user_type)` at user creation, but managers can toggle individual permissions per user through the edit modal. The `user.can?(permission)` interface checks the user's stored permissions array, enabling per-user customization without a full RBAC gem.
 
 ### Why `last_activity_at` denormalization?
 

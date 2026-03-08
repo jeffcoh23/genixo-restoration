@@ -14,18 +14,13 @@
 
 Small independent items to polish the current app.
 
-- [ ] **Labor edit/delete** — add "Entries" section below summary grid in `LaborPanel.tsx`:
-  - Desktop (sm+): compact table — Employee | Date | Time | Hours | pencil/trash icons
-  - Mobile (<sm): card stack — each entry is a card with name, hours, date, time range, edit/trash icons (no horizontal scroll)
-  - Pencil opens existing `LaborForm` pre-filled (already supports `entry` prop)
-  - Trash shows confirm dialog → `router.delete(entry.edit_path)`
-  - Backend: `update`/`destroy` already exist — wire delete path into props, add activity logging
-  - Uses `labor_entries` prop already passed to LaborPanel (currently unused)
-  - Files: `LaborPanel.tsx`, `labor_entries_controller.rb`, `incidents_controller.rb` (serialize delete_path)
-- [ ] **Remove DFR auto-generation from documents panel**
-- [ ] **Add "Proposal" as a document category** in upload form dropdown
-- [ ] **Loading states + user-friendly errors** — empty/loading/error states across all pages
-- [ ] **404 page** — branded not-found page
+- [x] **Labor edit/delete** — add "Entries" section below summary grid in `LaborPanel.tsx`
+- [x] **Remove DFR auto-generation from documents panel**
+- [x] **Add "Proposal" as a document category** in upload form dropdown
+- [x] **DFR refresh** — allow re-generation of existing DFRs with refresh icon
+- [x] **Navigation progress bar** — thin animated bar during Inertia navigations
+- [x] **Error boundary** — catch rendering crashes with friendly message
+- [x] **404 page** — branded not-found page inside app shell (rescue_from RecordNotFound)
 
 ---
 
@@ -33,9 +28,9 @@ Small independent items to polish the current app.
 
 Real client data for demos and onboarding.
 
-- [ ] **Seed Greystar construction team** (5 users with titles, phones, regions, notification prefs)
-- [ ] **Client logo per PM org** — configurable logo displayed in the app (start with Greystar)
-- [ ] **Show assigned Genixo team on incident detail** — needs more thought. Maybe show assigned managers on Manage tab (exclude Office/Sales roles). Needs discussion before implementing.
+- [x] **Seed Greystar construction team** (5 users with titles, phones, regions, notification prefs)
+- [x] **Client logo per PM org** — configurable logo displayed in the app (start with Greystar)
+- [x] **Filter Office/Sales from incident team display** — excluded from Manage tab team list, still assignable via dropdown
 
 ---
 
@@ -43,14 +38,14 @@ Real client data for demos and onboarding.
 
 Biggest workflow change — how incidents get created and who gets auto-assigned.
 
-- [ ] PM creates **emergency** → PM picks PM-side people, backend auto-assigns on-call + `auto_assign_emergencies` users
-- [ ] PM creates **non-emergency** → PM picks PM-side people, backend auto-assigns on-call only
-- [ ] Genixo creates incident → on-call + auto-assign users pre-selected, creator can modify
-- [ ] **On-call settings**: new `auto_assign_emergencies` user list section
-- [ ] Update `IncidentCreationService` + auto-assignment tests
-- [ ] **Emergency auto-reply**: on-screen confirmation message
-- [ ] **Non-emergency auto-reply**: "confirmation call on next business day"
-- [ ] **Emergency phone number** displayed prominently in app
+- [x] PM creates **emergency** → PM picks PM-side people, backend auto-assigns on-call + `auto_assign` users
+- [x] PM creates **non-emergency** → PM picks PM-side people, backend auto-assigns `auto_assign` users only
+- [x] Genixo creates incident → auto-assign users pre-selected, emergency adds on-call, creator can modify
+- [x] **On-call settings**: new auto-assign user list section
+- [x] Update `IncidentCreationService` with new auto-assign logic
+- [x] **Emergency auto-reply**: on-screen confirmation message
+- [x] **Non-emergency auto-reply**: "confirmation call on next business day"
+- [x] **Emergency phone number** displayed prominently in app
 
 ---
 
@@ -67,11 +62,9 @@ Unauthenticated emergency requests from property managers without accounts.
 
 ---
 
-## Phase 5: Per-Incident Notifications & Client-Facing Views
+## Phase 5: Per-Incident Notification Overrides
 
-Refinement features for notification control and client-appropriate data views.
-
-### Per-incident notification overrides
+Let users control notifications per incident instead of only globally.
 
 - [ ] Messages + status changes toggles per incident
 - [ ] Default: inherit from global, override per-incident
@@ -79,11 +72,15 @@ Refinement features for notification control and client-appropriate data views.
 - [ ] UI: settings icon on Manage tab
 - [ ] All notification jobs check per-incident override first
 
-### Client-facing moisture view
+---
 
-- [ ] Client sees: initial (wet) + most recent (dry) only
-- [ ] "Dry" indicator when fully dry
-- [ ] Full daily readings for Genixo team only
+---
+
+## Still Considering
+
+Features that may or may not be needed. Revisit later.
+
+- [ ] **Client-facing moisture view** — PM sees only initial (wet) + most recent (dry) readings; "Dry" indicator when fully dry; full daily readings for Genixo team only
 
 ---
 

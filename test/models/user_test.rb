@@ -109,6 +109,27 @@ class UserTest < ActiveSupport::TestCase
     assert_nil user.phone
   end
 
+  test "allows auto_assign for mitigation users" do
+    user = build_user(organization: @mitigation_org, user_type: "manager", auto_assign: true)
+    assert user.valid?
+  end
+
+  test "rejects auto_assign for PM users" do
+    user = build_user(organization: @pm_org, user_type: "property_manager", auto_assign: true)
+    assert_not user.valid?
+    assert user.errors[:auto_assign].any? { |e| e.include?("mitigation") }
+  end
+
+  test "auto_assigned scope returns only auto_assign users" do
+    auto = build_user(email_address: "auto@test.com", auto_assign: true)
+    auto.save!
+    manual = build_user(email_address: "manual@test.com", auto_assign: false)
+    manual.save!
+
+    assert_includes User.auto_assigned, auto
+    assert_not_includes User.auto_assigned, manual
+  end
+
   test "active scope excludes deactivated users" do
     active = build_user(email_address: "active@test.com")
     active.save!
