@@ -123,11 +123,6 @@ class IncidentAssignmentsController < ApplicationController
     mitigation_admin? || current_user.pm_user?
   end
 
-  def can_remove_assignment?(user)
-    return true if mitigation_admin?
-    current_user.pm_user? && (user.organization_id == current_user.organization_id || user.guest?)
-  end
-
   def assignable_users
     if mitigation_admin?
       # Can assign any active user from either org

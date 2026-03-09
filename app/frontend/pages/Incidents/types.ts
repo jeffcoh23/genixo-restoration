@@ -290,7 +290,7 @@ export interface IncidentDetail {
   mitigation_team: TeamUser[];
   pm_team: TeamUser[];
   guest_team: GuestUser[];
-  guest_assignments_path: string;
+  guest_assignments_path: string | null;
   contacts: Contact[];
   valid_transitions: Transition[];
 }

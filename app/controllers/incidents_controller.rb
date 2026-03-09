@@ -206,7 +206,7 @@ class IncidentsController < ApplicationController
         }),
         pm_team: serialize_team_users(assigned.select { |a| a.user.pm_user? }),
         guest_team: serialize_guest_users(assigned.select { |a| a.user.guest? }),
-        guest_assignments_path: guest_incident_assignments_path(@incident),
+        guest_assignments_path: can_assign_to_incident? ? guest_incident_assignments_path(@incident) : nil,
         show_stats: @incident.labor_entries.any? || deployed_equipment.any?,
         stats: incident_stats(@incident, deployed_equipment),
         contacts_path: incident_contacts_path(@incident),
@@ -453,11 +453,6 @@ class IncidentsController < ApplicationController
     mitigation_admin? || current_user.pm_user?
   end
 
-  def can_remove_assignment?(user)
-    return true if mitigation_admin?
-    current_user.pm_user? && (user.organization_id == current_user.organization_id || user.guest?)
-  end
-
   def assignable_users_by_property
     properties = creatable_properties.includes(:mitigation_org, :property_management_org)
 
@@ -537,11 +532,11 @@ class IncidentsController < ApplicationController
         remove_path: can_remove_assignment?(a.user) ? incident_assignment_path(@incident, a) : nil,
         notification_overrides_path: can_update_notification_overrides?(a.user) ?
           update_notifications_incident_assignment_path(@incident, a) : nil,
-        notification_overrides: a.notification_overrides,
-        global_preferences: {
+        notification_overrides: a.user.id == current_user.id ? a.notification_overrides : {},
+        global_preferences: a.user.id == current_user.id ? {
           status_change: a.user.notification_preference("status_change"),
           new_message: a.user.notification_preference("new_message")
-        }
+        } : {}
       }
     end
   end

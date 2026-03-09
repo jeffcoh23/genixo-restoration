@@ -121,4 +121,9 @@ module Authorization
   def can_update_notification_overrides?(user)
     user.id == current_user.id
   end
+
+  def can_remove_assignment?(user)
+    return true if mitigation_admin?
+    current_user.pm_user? && (user.organization_id == current_user.organization_id || user.guest?)
+  end
 end

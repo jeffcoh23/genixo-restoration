@@ -59,8 +59,8 @@ class PropertiesController < ApplicationController
             remove_path: property_assignment_path(@property, a) }
         },
         incidents: @property.incidents.order(created_at: :desc).limit(20).map { |i|
-          { id: i.id, summary: incident_summary(i), status: i.status, status_label: Incident::STATUS_LABELS[i.status],
-            path: incident_path(i) }
+          { id: i.id, summary: incident_summary(i), status: i.status, display_status: i.display_status,
+            status_label: Incident::STATUS_LABELS[i.status], path: incident_path(i) }
         }
       },
       can_edit: can_edit_property?(@property),

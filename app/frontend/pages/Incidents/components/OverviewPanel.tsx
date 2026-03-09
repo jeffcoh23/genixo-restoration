@@ -181,7 +181,7 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
             </h3>
             {can_assign && (
               <InviteGuestButton
-                guestAssignmentsPath={incident.guest_assignments_path}
+                guestAssignmentsPath={incident.guest_assignments_path!}
                 processing={teamAction.processing}
               />
             )}
@@ -404,7 +404,7 @@ function UserList({ users, onRemove, actionsDisabled = false }: {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => setNotifUser(u)}
+                          onClick={(e) => { e.stopPropagation(); setNotifUser(u); }}
                           className="h-8 w-8 sm:h-7 sm:w-7 p-0 text-muted-foreground hover:text-foreground transition-colors"
                           title="Notification preferences"
                         >
@@ -415,7 +415,7 @@ function UserList({ users, onRemove, actionsDisabled = false }: {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => onRemove(u.full_name, u.remove_path!)}
+                          onClick={(e) => { e.stopPropagation(); onRemove(u.full_name, u.remove_path!); }}
                           disabled={actionsDisabled}
                           className="h-8 w-8 sm:h-7 sm:w-7 p-0 text-muted-foreground hover:text-destructive transition-colors"
                           title={`Remove ${u.full_name}`}
