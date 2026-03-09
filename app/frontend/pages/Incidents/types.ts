@@ -22,6 +22,7 @@ export interface GuestUser {
   email: string;
   phone: string | null;
   phone_raw: string | null;
+  pending: boolean;
   remove_path: string | null;
 }
 

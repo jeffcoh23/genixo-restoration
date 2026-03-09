@@ -700,7 +700,10 @@ function GuestList({ guests, onRemove, actionsDisabled = false }: {
                 {g.initials}
               </div>
               <div className="flex-1 min-w-0">
-                <span className="text-foreground truncate block">{g.full_name}</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-foreground truncate">{g.full_name}</span>
+                  {g.pending && <span className="text-xs font-medium text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">Pending</span>}
+                </div>
                 {g.title && <span className="text-xs text-muted-foreground">{g.title}</span>}
               </div>
               {hasContact && (

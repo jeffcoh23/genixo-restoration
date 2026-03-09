@@ -1,4 +1,10 @@
+<% if @guest %>
+You've been invited to view incident details on Genixo Restoration.
+
+Create your account to access the incidents shared with you:
+<% else %>
 You've been invited to join <%= @invitation.organization.name %> as a <%= @invitation.user_type.titleize %>.
+<% end %>
 
 Accept your invitation: <%= @accept_url %>
 

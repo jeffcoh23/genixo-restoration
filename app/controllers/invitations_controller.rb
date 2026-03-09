@@ -84,18 +84,35 @@ class InvitationsController < ApplicationController
       return
     end
 
-    user = @invitation.organization.users.new(
-      email_address: @invitation.email,
-      user_type: @invitation.user_type,
-      first_name: params[:first_name],
-      last_name: params[:last_name],
-      phone: params[:phone].presence,
-      title: @invitation.title,
-      permissions: @invitation.permissions,
-      notification_preferences: @invitation.notification_preferences,
-      password: params[:password],
-      password_confirmation: params[:password_confirmation]
-    )
+    # Guest users are pre-created (inactive) by create_guest — find and activate them
+    # Only applies to guest invitations — normal invitations always create fresh users
+    existing_user = if @invitation.user_type == User::GUEST
+      User.find_by(email_address: @invitation.email, active: false, user_type: User::GUEST)
+    end
+    if existing_user
+      user = existing_user
+      user.assign_attributes(
+        first_name: params[:first_name],
+        last_name: params[:last_name],
+        phone: params[:phone].presence,
+        password: params[:password],
+        password_confirmation: params[:password_confirmation],
+        active: true
+      )
+    else
+      user = @invitation.organization.users.new(
+        email_address: @invitation.email,
+        user_type: @invitation.user_type,
+        first_name: params[:first_name],
+        last_name: params[:last_name],
+        phone: params[:phone].presence,
+        title: @invitation.title,
+        permissions: @invitation.permissions,
+        notification_preferences: @invitation.notification_preferences,
+        password: params[:password],
+        password_confirmation: params[:password_confirmation]
+      )
+    end
 
     if user.save
       @invitation.update!(accepted_at: Time.current)

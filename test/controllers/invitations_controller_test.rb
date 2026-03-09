@@ -304,6 +304,69 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to invitation_path(inv.token)
   end
 
+  # --- Guest invitation acceptance ---
+
+  test "accept activates pre-created inactive guest user" do
+    external_org = Organization.create!(name: "External", organization_type: "external")
+    guest = User.create!(organization: external_org, user_type: "guest",
+      email_address: "adjuster@insurance.com", first_name: "Jane", last_name: "Doe",
+      password: SecureRandom.hex(20), active: false)
+
+    inv = external_org.invitations.create!(
+      invited_by_user: @manager, email: "adjuster@insurance.com",
+      user_type: "guest", expires_at: 30.days.from_now
+    )
+
+    assert_no_difference "User.count" do
+      post accept_invitation_path(inv.token), params: {
+        first_name: "Jane", last_name: "Doe",
+        password: "password123", password_confirmation: "password123"
+      }
+    end
+    assert_redirected_to incidents_path
+
+    guest.reload
+    assert guest.active?, "Guest should be activated"
+    assert guest.authenticate("password123"), "Password should be updated"
+    inv.reload
+    assert inv.accepted?
+  end
+
+  test "accept does not reactivate a deactivated non-guest user" do
+    # Deactivated manager with same email as a guest invitation
+    deactivated = User.create!(organization: @genixo, user_type: "manager",
+      email_address: "reuse@example.com", first_name: "Old", last_name: "Manager",
+      password: "password123", active: false)
+
+    external_org = Organization.create!(name: "External", organization_type: "external")
+    inv = external_org.invitations.create!(
+      invited_by_user: @manager, email: "reuse@example.com",
+      user_type: "guest", expires_at: 30.days.from_now
+    )
+
+    # Should fail because no inactive guest user exists — only the deactivated manager
+    assert_no_difference "User.count" do
+      post accept_invitation_path(inv.token), params: {
+        first_name: "New", last_name: "Guest",
+        password: "password123", password_confirmation: "password123"
+      }
+    end
+
+    deactivated.reload
+    assert_not deactivated.active?, "Deactivated manager should stay deactivated"
+  end
+
+  test "guest invitation show page hides org name" do
+    external_org = Organization.create!(name: "External", organization_type: "external")
+    inv = external_org.invitations.create!(
+      invited_by_user: @manager, email: "guest@example.com",
+      user_type: "guest", title: "Insurance Adjuster", expires_at: 30.days.from_now
+    )
+
+    get invitation_path(inv.token)
+    assert_response :success
+  end
+
   private
 
   def login_as(user)

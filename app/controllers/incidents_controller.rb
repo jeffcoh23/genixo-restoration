@@ -154,7 +154,7 @@ class IncidentsController < ApplicationController
     )
 
     assigned = @incident.incident_assignments.includes(user: :organization)
-      .joins(:user).where(users: { active: true })
+      .joins(:user).where("users.active = true OR users.user_type = ?", User::GUEST)
       .order("users.last_name, users.first_name")
 
     render inertia: "Incidents/Show", props: {
@@ -557,6 +557,7 @@ class IncidentsController < ApplicationController
         email: a.user.email_address,
         phone: format_phone(a.user.phone),
         phone_raw: a.user.phone,
+        pending: !a.user.active?,
         remove_path: can_remove_assignment?(a.user) ? incident_assignment_path(@incident, a) : nil
       }
     end
