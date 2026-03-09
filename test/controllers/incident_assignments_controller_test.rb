@@ -247,6 +247,43 @@ class IncidentAssignmentsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to incident_path(@incident)
   end
 
+  test "create_guest rejects email of existing non-guest user" do
+    Organization.create!(name: "External", organization_type: "external")
+    login_as @manager
+
+    assert_no_difference "IncidentAssignment.count" do
+      post guest_incident_assignments_path(@incident), params: {
+        email: @tech.email_address, first_name: "Test", last_name: "Tech"
+      }
+    end
+    assert_redirected_to incident_path(@incident)
+    assert_match(/non-guest account/, flash[:alert])
+  end
+
+  test "re-inviting inactive guest to new incident resends invitation" do
+    external = Organization.create!(name: "External", organization_type: "external")
+    guest = User.create!(organization: external, user_type: "guest",
+      email_address: "returning@guest.com", first_name: "Return", last_name: "Guest",
+      password: SecureRandom.hex(20), active: false)
+    old_invitation = external.invitations.create!(
+      invited_by_user: @manager, email: "returning@guest.com",
+      user_type: "guest", expires_at: 30.days.from_now
+    )
+    old_token = old_invitation.token
+
+    login_as @manager
+    assert_no_difference "User.count" do
+      post guest_incident_assignments_path(@incident), params: {
+        email: "returning@guest.com", first_name: "Return", last_name: "Guest"
+      }
+    end
+    assert_redirected_to incident_path(@incident)
+
+    old_invitation.reload
+    assert_not_equal old_token, old_invitation.token, "Invitation token should be refreshed"
+    assert old_invitation.expires_at > 29.days.from_now, "Expiry should be reset"
+  end
+
   test "pm_user can remove a guest assignment" do
     external = Organization.create!(name: "External", organization_type: "external")
     guest = User.create!(organization: external, user_type: "guest",

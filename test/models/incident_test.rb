@@ -35,6 +35,30 @@ class IncidentTest < ActiveSupport::TestCase
     assert_includes Incident.visible_to(guest), @incident
   end
 
+  # --- display_status ---
+
+  test "display_status returns emergency for emergency new incident" do
+    @incident.update!(status: "new", emergency: true)
+    assert_equal "emergency", @incident.display_status
+  end
+
+  test "display_status returns emergency for emergency acknowledged incident" do
+    @incident.update!(status: "acknowledged", emergency: true)
+    assert_equal "emergency", @incident.display_status
+  end
+
+  test "display_status returns normal status for emergency active incident" do
+    @incident.update!(status: "active", emergency: true)
+    assert_equal "active", @incident.display_status
+  end
+
+  test "display_status returns normal status for non-emergency new incident" do
+    @incident.update!(status: "new", emergency: false)
+    assert_equal "new", @incident.display_status
+  end
+
+  # --- Guest visibility ---
+
   test "guest cannot see unassigned incidents" do
     guest = User.create!(organization: @external, user_type: "guest",
       email_address: "guest2@example.com", first_name: "Bob", last_name: "Owner",

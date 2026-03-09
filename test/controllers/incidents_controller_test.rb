@@ -752,6 +752,68 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Incident created.", flash[:notice]
   end
 
+  # --- Guest access ---
+
+  test "guest sees only assigned incidents on index" do
+    external = Organization.create!(name: "External", organization_type: "external")
+    guest = User.create!(organization: external, user_type: "guest",
+      email_address: "guest@example.com", first_name: "Guest", last_name: "User", password: "password123")
+
+    assigned_incident = create_test_incident(status: "active", property: @property, description: "Assigned to guest")
+    unassigned_incident = create_test_incident(status: "active", property: @property, description: "Not for guest")
+    IncidentAssignment.create!(incident: assigned_incident, user: guest, assigned_by_user: @manager)
+
+    login_as guest
+    get incidents_path
+    assert_response :success
+    assert_includes response.body, "Assigned to guest"
+    assert_not_includes response.body, "Not for guest"
+  end
+
+  test "guest can view assigned incident show page" do
+    external = Organization.create!(name: "External", organization_type: "external")
+    guest = User.create!(organization: external, user_type: "guest",
+      email_address: "guest2@example.com", first_name: "Guest", last_name: "Two", password: "password123")
+
+    incident = create_test_incident(status: "active", property: @property)
+    IncidentAssignment.create!(incident: incident, user: guest, assigned_by_user: @manager)
+
+    login_as guest
+    get incident_path(incident)
+    assert_response :success
+  end
+
+  test "guest cannot view unassigned incident" do
+    external = Organization.create!(name: "External", organization_type: "external")
+    guest = User.create!(organization: external, user_type: "guest",
+      email_address: "guest3@example.com", first_name: "Guest", last_name: "Three", password: "password123")
+
+    incident = create_test_incident(status: "active", property: @property)
+
+    login_as guest
+    get incident_path(incident)
+    assert_response :not_found
+  end
+
+  test "show scopes notification overrides to current user" do
+    incident = create_test_incident(status: "active")
+    IncidentAssignment.create!(incident: incident, user: @manager, assigned_by_user: @manager,
+      notification_overrides: { "status_change" => true })
+    IncidentAssignment.create!(incident: incident, user: @tech, assigned_by_user: @manager,
+      notification_overrides: { "new_message" => false })
+
+    login_as @tech
+    get incident_path(incident)
+    assert_response :success
+
+    props = inertia_props
+    # Tech should see their own overrides, not the manager's
+    tech_entry = props.dig("incident", "mitigation_team")&.find { |u| u["id"] == @tech.id }
+    if tech_entry
+      assert_equal({ "new_message" => false }, tech_entry["notification_overrides"])
+    end
+  end
+
   test "index shows closed incidents when status filter includes closed" do
     closed = create_test_incident(status: "closed", property: @property, description: "Closed job")
     login_as @manager

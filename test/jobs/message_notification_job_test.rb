@@ -66,6 +66,16 @@ class MessageNotificationJobTest < ActiveSupport::TestCase
     assert_equal 0, ActionMailer::Base.deliveries.size
   end
 
+  test "skips inactive users" do
+    @tech.update!(active: false)
+    message = @incident.messages.create!(user: @manager, body: "Inactive user test")
+
+    perform_enqueued_jobs do
+      MessageNotificationJob.perform_now(message.id)
+    end
+    assert_equal 0, ActionMailer::Base.deliveries.size
+  end
+
   test "does nothing if message is gone" do
     perform_enqueued_jobs do
       MessageNotificationJob.perform_now(0)
