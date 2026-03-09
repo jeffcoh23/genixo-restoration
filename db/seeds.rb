@@ -89,82 +89,59 @@ end
 # Users — Greystar Properties (PM)
 # ==========================================================================
 
-users[:jane] = User.find_or_create_by!(organization: greystar, email_address: "jane@greystar.com") do |u|
-  u.first_name = "Jane"
-  u.last_name = "Smith"
+# Kristopher Morris — Senior Manager of Construction, Houston (most-referenced PM user)
+users[:jane] = User.find_or_create_by!(organization: greystar, email_address: "kristopher.morris@greystar.com") do |u|
+  u.first_name = "Kristopher"
+  u.last_name = "Morris"
   u.user_type = "property_manager"
-  u.phone = "713-555-0201"
+  u.title = "Senior Manager of Construction"
+  u.phone = "281-757-7876"
   u.password = "password"
-  u.timezone = "America/Chicago"
+  u.timezone = "Central Time (US & Canada)"
 end
 
-users[:tom] = User.find_or_create_by!(organization: greystar, email_address: "tom@greystar.com") do |u|
-  u.first_name = "Tom"
-  u.last_name = "Rodriguez"
+# Makenzie Costlow — Senior Manager of Construction, Dallas
+users[:tom] = User.find_or_create_by!(organization: greystar, email_address: "makenzie.costlow@greystar.com") do |u|
+  u.first_name = "Makenzie"
+  u.last_name = "Costlow"
   u.user_type = "area_manager"
-  u.phone = "713-555-0202"
+  u.title = "Senior Manager of Construction"
+  u.phone = "903-941-2664"
   u.password = "password"
-  u.timezone = "America/Chicago"
+  u.timezone = "Central Time (US & Canada)"
 end
 
-users[:amy] = User.find_or_create_by!(organization: greystar, email_address: "amy@greystar.com") do |u|
-  u.first_name = "Amy"
-  u.last_name = "Chen"
+# Michael Best — Senior Director of Construction, Texas/Minnesota
+users[:amy] = User.find_or_create_by!(organization: greystar, email_address: "michael.best@greystar.com") do |u|
+  u.first_name = "Michael"
+  u.last_name = "Best"
   u.user_type = "other"
-  u.title = "Regional Director"
-  u.phone = "713-555-0203"
+  u.title = "Senior Director of Construction"
+  u.phone = "713-918-9077"
   u.password = "password"
-  u.timezone = "America/Chicago"
+  u.timezone = "Central Time (US & Canada)"
 end
 
-users[:carlos] = User.find_or_create_by!(organization: greystar, email_address: "carlos@greystar.com") do |u|
-  u.first_name = "Carlos"
-  u.last_name = "Mendez"
+# Tobias Webb — Senior Manager of Construction, Dallas
+users[:carlos] = User.find_or_create_by!(organization: greystar, email_address: "tobias.webb@greystar.com") do |u|
+  u.first_name = "Tobias"
+  u.last_name = "Webb"
   u.user_type = "other"
-  u.title = "Maintenance Supervisor"
-  u.phone = "713-555-0204"
+  u.title = "Senior Manager of Construction"
+  u.phone = "469-659-2484"
   u.password = "password"
-  u.timezone = "America/Chicago"
+  u.timezone = "Central Time (US & Canada)"
 end
 
-users[:diana] = User.find_or_create_by!(organization: greystar, email_address: "diana@greystar.com") do |u|
-  u.first_name = "Diana"
-  u.last_name = "Patel"
+# Darren North — Senior Manager of Construction, Austin
+users[:diana] = User.find_or_create_by!(organization: greystar, email_address: "darren.north@greystar.com") do |u|
+  u.first_name = "Darren"
+  u.last_name = "North"
   u.user_type = "other"
-  u.title = "Community Manager"
-  u.phone = "713-555-0205"
+  u.title = "Senior Manager of Construction"
+  u.phone = "760-840-7535"
   u.password = "password"
-  u.timezone = "America/Chicago"
-end
-
-users[:frank] = User.find_or_create_by!(organization: greystar, email_address: "frank@greystar.com") do |u|
-  u.first_name = "Frank"
-  u.last_name = "Nguyen"
-  u.user_type = "other"
-  u.title = "Regional Maintenance Director"
-  u.phone = "713-555-0206"
-  u.password = "password"
-  u.timezone = "America/Chicago"
-end
-
-users[:lisa] = User.find_or_create_by!(organization: greystar, email_address: "lisa@greystar.com") do |u|
-  u.first_name = "Lisa"
-  u.last_name = "Washington"
-  u.user_type = "other"
-  u.title = "Leasing Manager"
-  u.phone = "713-555-0207"
-  u.password = "password"
-  u.timezone = "America/Chicago"
-end
-
-users[:marcus] = User.find_or_create_by!(organization: greystar, email_address: "marcus@greystar.com") do |u|
-  u.first_name = "Marcus"
-  u.last_name = "Thompson"
-  u.user_type = "other"
-  u.title = "Facilities Coordinator"
-  u.phone = "713-555-0208"
-  u.password = "password"
-  u.timezone = "America/Chicago"
+  u.timezone = "Central Time (US & Canada)"
 end
 
 # ==========================================================================

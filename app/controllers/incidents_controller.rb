@@ -200,7 +200,9 @@ class IncidentsController < ApplicationController
         },
         deployed_equipment: deployed_equipment,
         assignments_path: incident_assignments_path(@incident),
-        mitigation_team: serialize_team_users(assigned.select { |a| a.user.mitigation_user? && a.user.user_type != User::OFFICE_SALES }),
+        mitigation_team: serialize_team_users(assigned.select { |a|
+          a.user.mitigation_user? && (current_user.mitigation_user? || a.user.user_type != User::OFFICE_SALES)
+        }),
         pm_team: serialize_team_users(assigned.select { |a| a.user.pm_user? }),
         show_stats: @incident.labor_entries.any? || deployed_equipment.any?,
         stats: incident_stats(@incident, deployed_equipment),
@@ -218,7 +220,6 @@ class IncidentsController < ApplicationController
             remove_path: can_manage_contacts? ? incident_contact_path(@incident, c) : nil
           }
         },
-        pm_contacts: serialize_pm_contacts(@incident),
         messages_path: incident_messages_path(@incident),
         activity_entries_path: incident_activity_entries_path(@incident),
         labor_entries_path: incident_labor_entries_path(@incident),
@@ -249,7 +250,6 @@ class IncidentsController < ApplicationController
       can_manage_moisture: can_manage_moisture_readings?,
       can_manage_psychrometric: can_manage_psychrometric_readings?,
       can_manage_attachments: can_manage_attachments?,
-      show_mitigation_team: current_user.mitigation_user?,
       can_create_notes: can_create_operational_note?,
       project_types: Incident::PROJECT_TYPES.map { |t| { value: t, label: Incident::PROJECT_TYPE_LABELS[t] } },
       damage_types: Incident::DAMAGE_TYPES.map { |t| { value: t, label: Incident::DAMAGE_LABELS[t] } },
@@ -1138,25 +1138,6 @@ class IncidentsController < ApplicationController
       true
     rescue LoadError
       false
-    end
-  end
-
-  def serialize_pm_contacts(incident)
-    property = incident.property
-    pm_org = property.property_management_org
-    pm_user_ids = PropertyAssignment.where(property: property)
-      .joins(:user).where(users: { active: true, organization_id: pm_org.id })
-      .pluck(:user_id)
-
-    User.where(id: pm_user_ids).order(:last_name, :first_name).map do |u|
-      {
-        id: u.id,
-        name: u.full_name,
-        title: User::ROLE_LABELS[u.user_type],
-        email: u.email_address,
-        phone: format_phone(u.phone),
-        phone_raw: u.phone
-      }
     end
   end
 

@@ -43,7 +43,6 @@ export default function IncidentShow() {
     can_manage_moisture = false,
     can_manage_psychrometric = false,
     can_manage_attachments = false,
-    show_mitigation_team = true,
     moisture_data,
     psychrometric_data,
     assignable_mitigation_users = [],
@@ -324,7 +323,6 @@ export default function IncidentShow() {
                 can_manage_contacts={can_manage_contacts}
                 assignable_mitigation_users={assignable_mitigation_users}
                 assignable_pm_users={assignable_pm_users}
-                show_mitigation_team={show_mitigation_team}
               />
             </Deferred>
           )}

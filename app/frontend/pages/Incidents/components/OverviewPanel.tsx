@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { router, useForm } from "@inertiajs/react";
-import { Bell, Mail, Pencil, Phone, Plus, UserPlus, X } from "lucide-react";
+import { Bell, ChevronDown, Mail, Pencil, Phone, Plus, UserPlus, X } from "lucide-react";
 import InlineActionFeedback from "@/components/InlineActionFeedback";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -17,14 +17,12 @@ interface OverviewPanelProps {
   can_manage_contacts: boolean;
   assignable_mitigation_users: AssignableUser[];
   assignable_pm_users: AssignableUser[];
-  show_mitigation_team: boolean;
 }
 
-export default function OverviewPanel({ incident, can_assign, can_manage_contacts, assignable_mitigation_users, assignable_pm_users, show_mitigation_team }: OverviewPanelProps) {
+export default function OverviewPanel({ incident, can_assign, can_manage_contacts, assignable_mitigation_users, assignable_pm_users }: OverviewPanelProps) {
   const [contactFormOpen, setContactFormOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [confirmRemoveUser, setConfirmRemoveUser] = useState<{ name: string; path: string } | null>(null);
-  const [expandedUserId, setExpandedUserId] = useState<number | null>(null);
   const teamAction = useInertiaAction();
   const contactAction = useInertiaAction();
 
@@ -52,10 +50,9 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
 
   return (
     <div className="overflow-y-auto h-full p-4 bg-background">
-      <div className={`mx-auto grid max-w-[1500px] grid-cols-1 md:grid-cols-2 ${show_mitigation_team ? "xl:grid-cols-3" : ""} gap-4 items-start`}>
-        {/* Column 1: Mitigation Team (hidden for PM users) */}
-        {show_mitigation_team && (
-          <section className="rounded-xl border border-border bg-card shadow-sm p-4 space-y-3">
+      <div className="mx-auto grid max-w-[1500px] grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 items-start">
+        {/* Column 1: Mitigation Team */}
+        <section className="rounded-xl border border-border bg-card shadow-sm p-4 space-y-3">
             <div className="flex items-center gap-2">
               <h3 className="text-sm font-semibold text-foreground flex-1">
                 Mitigation Team <span className="text-muted-foreground tabular-nums">{incident.mitigation_team.length}</span>
@@ -71,14 +68,11 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
             ) : (
                 <UserList
                   users={incident.mitigation_team}
-                  expandedUserId={expandedUserId}
-                  onToggleExpand={setExpandedUserId}
                   onRemove={(name, path) => setConfirmRemoveUser({ name, path })}
                   actionsDisabled={teamAction.processing}
                 />
               )}
-          </section>
-        )}
+        </section>
 
         {/* Column 2: Property Management */}
         <section className="rounded-xl border border-border bg-card shadow-sm p-4 space-y-3">
@@ -92,52 +86,14 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
           </div>
           <InlineActionFeedback error={teamAction.error} onDismiss={teamAction.clearFeedback} />
 
-          {incident.pm_team.length === 0 && incident.pm_contacts.length === 0 ? (
-            <p className="text-muted-foreground text-sm">No PM team members.</p>
+          {incident.pm_team.length === 0 ? (
+            <p className="text-muted-foreground text-sm">No PM team members assigned.</p>
           ) : (
-            <div className="space-y-3">
-              {incident.pm_team.length > 0 && (
-                  <UserList
-                    users={incident.pm_team}
-                    expandedUserId={expandedUserId}
-                    onToggleExpand={setExpandedUserId}
-                    onRemove={(name, path) => setConfirmRemoveUser({ name, path })}
-                    actionsDisabled={teamAction.processing}
-                  />
-                )}
-
-              {incident.pm_contacts.length > 0 && (
-                <div className="space-y-2">
-                  {incident.pm_team.length > 0 && (
-                    <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide pt-1">Contacts</div>
-                  )}
-                  {incident.pm_contacts.map((c) => (
-                    <div key={c.id} className="rounded-md border border-border bg-background p-2.5">
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-foreground">
-                          {c.name}
-                          {c.title && <span className="text-muted-foreground font-normal"> &middot; {c.title}</span>}
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mt-1">
-                          {c.email && (
-                            <span className="flex items-center gap-1">
-                              <Mail className="h-2.5 w-2.5" />
-                              {c.email}
-                            </span>
-                          )}
-                          {c.phone && (
-                            <span className="flex items-center gap-1">
-                              <Phone className="h-2.5 w-2.5" />
-                              {c.phone}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            <UserList
+              users={incident.pm_team}
+              onRemove={(name, path) => setConfirmRemoveUser({ name, path })}
+              actionsDisabled={teamAction.processing}
+            />
           )}
         </section>
 
@@ -375,13 +331,12 @@ function NotificationOverridesDialog({ user, onClose }: { user: TeamUser; onClos
   );
 }
 
-function UserList({ users, expandedUserId, onToggleExpand, onRemove, actionsDisabled = false }: {
+function UserList({ users, onRemove, actionsDisabled = false }: {
   users: TeamUser[];
-  expandedUserId: number | null;
-  onToggleExpand: (id: number | null) => void;
   onRemove: (name: string, path: string) => void;
   actionsDisabled?: boolean;
 }) {
+  const [expandedId, setExpandedId] = useState<number | null>(null);
   const [notifUser, setNotifUser] = useState<TeamUser | null>(null);
 
   // Group users by role, preserving backend sort order
@@ -400,33 +355,33 @@ function UserList({ users, expandedUserId, onToggleExpand, onRemove, actionsDisa
       {groups.map((group) => (
         <div key={group.role}>
           <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">{group.role}s</div>
-          <div className="space-y-1.5">
+          <div className="space-y-1">
             {group.users.map((u) => {
-              const isExpanded = expandedUserId === u.id;
-              const hasContact = u.email || u.phone;
+              const isExpanded = expandedId === u.id;
+              const hasContact = !!(u.email || u.phone);
+
               return (
-                <div key={u.id}>
-                  <div className="flex items-center gap-2 text-sm rounded-md border border-border bg-background px-2 py-1.5 hover:bg-muted/25 transition-colors">
-                    <div className="h-6 w-6 rounded-full bg-muted/70 flex items-center justify-center text-xs font-medium text-muted-foreground shrink-0">
-                      {u.initials}
-                    </div>
-                    {hasContact ? (
-                      <Button
-                        variant="link"
-                        className="text-foreground text-left h-auto p-0"
-                        onClick={() => onToggleExpand(isExpanded ? null : u.id)}
-                      >
-                        {u.full_name}
-                      </Button>
-                    ) : (
-                      <span className="text-foreground">{u.full_name}</span>
-                    )}
-                    <div className="flex items-center gap-0.5 ml-auto shrink-0">
+                <div key={u.id} className="rounded-md border border-border bg-background overflow-hidden">
+                  <div className="flex items-center gap-2 px-2 py-1.5 text-sm">
+                    <Button
+                      variant="ghost"
+                      className="flex items-center gap-2 flex-1 min-w-0 text-left h-auto p-0 hover:bg-transparent"
+                      onClick={() => hasContact && setExpandedId(isExpanded ? null : u.id)}
+                    >
+                      <div className="h-6 w-6 rounded-full bg-muted/70 flex items-center justify-center text-xs font-medium text-muted-foreground shrink-0">
+                        {u.initials}
+                      </div>
+                      <span className="text-foreground truncate">{u.full_name}</span>
+                      {hasContact && (
+                        <ChevronDown className={`h-3 w-3 text-muted-foreground shrink-0 transition-transform duration-150 ${isExpanded ? "rotate-180" : ""}`} />
+                      )}
+                    </Button>
+                    <div className="flex items-center gap-0.5 shrink-0">
                       {u.notification_overrides_path && (
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={(e) => { e.stopPropagation(); setNotifUser(u); }}
+                          onClick={() => setNotifUser(u)}
                           className="h-8 w-8 sm:h-7 sm:w-7 p-0 text-muted-foreground hover:text-foreground transition-colors"
                           title="Notification preferences"
                         >
@@ -437,7 +392,7 @@ function UserList({ users, expandedUserId, onToggleExpand, onRemove, actionsDisa
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={(e) => { e.stopPropagation(); onRemove(u.full_name, u.remove_path!); }}
+                          onClick={() => onRemove(u.full_name, u.remove_path!)}
                           disabled={actionsDisabled}
                           className="h-8 w-8 sm:h-7 sm:w-7 p-0 text-muted-foreground hover:text-destructive transition-colors"
                           title={`Remove ${u.full_name}`}
@@ -447,17 +402,18 @@ function UserList({ users, expandedUserId, onToggleExpand, onRemove, actionsDisa
                       )}
                     </div>
                   </div>
-                  {isExpanded && (
-                    <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground ml-8 mt-1 mb-1 pl-1">
+
+                  {isExpanded && hasContact && (
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-2 pb-2 ml-8 text-xs text-muted-foreground">
                       {u.email && (
-                        <a href={`mailto:${u.email}`} className="flex items-center gap-1 hover:text-foreground transition-colors" onClick={(e) => e.stopPropagation()}>
-                          <Mail className="h-2.5 w-2.5" />
+                        <a href={`mailto:${u.email}`} className="flex items-center gap-1.5 hover:text-foreground transition-colors">
+                          <Mail className="h-3 w-3" />
                           {u.email}
                         </a>
                       )}
                       {u.phone && (
-                        <a href={`tel:${u.phone_raw}`} className="flex items-center gap-1 hover:text-foreground transition-colors" onClick={(e) => e.stopPropagation()}>
-                          <Phone className="h-2.5 w-2.5" />
+                        <a href={`tel:${u.phone_raw}`} className="flex items-center gap-1.5 hover:text-foreground transition-colors">
+                          <Phone className="h-3 w-3" />
                           {u.phone}
                         </a>
                       )}

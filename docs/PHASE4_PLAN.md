@@ -137,9 +137,11 @@ Content: "Your incident has been received. Set up your account to track it."
 
 **File:** `app/frontend/pages/Login.tsx`
 - Add small link below "Forgot password?": "Submit an incident without an account"
+- Add emergency callout below the login card: phone icon + "In case of emergency, call [emergency phone number]" — prominent but not competing with login form. Use `text-destructive` or amber styling to signal urgency.
 
 **File:** `app/controllers/sessions_controller.rb`
 - Add `guest_incident_path: new_guest_incident_path` to props
+- Add `emergency_phone: ENV["EMERGENCY_PHONE"]` to props (same pattern as Incidents/New)
 
 ---
 

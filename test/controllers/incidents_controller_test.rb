@@ -620,25 +620,15 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
 
   # --- Hide closed incidents by default ---
 
-  # --- Manage tab visibility ---
+  # --- Manage tab: mitigation team visible to all ---
 
-  test "mitigation user sees show_mitigation_team true" do
-    incident = create_test_incident(status: "active", property: @property)
-    login_as @manager
-    get incident_path(incident)
-    assert_response :success
-    assert_includes response.body, "show_mitigation_team"
-    # HTML-encoded JSON: &quot; surrounds keys
-    assert_includes response.body, "show_mitigation_team&quot;:true"
-  end
-
-  test "PM user sees show_mitigation_team false" do
+  test "PM user sees mitigation team on incident" do
     incident = create_test_incident(status: "active", property: @property)
     IncidentAssignment.create!(incident: incident, user: @pm_user, assigned_by_user: @manager)
     login_as @pm_user
     get incident_path(incident)
     assert_response :success
-    assert_includes response.body, "show_mitigation_team&quot;:false"
+    assert_includes response.body, "mitigation_team"
   end
 
   # --- Hide closed incidents by default ---

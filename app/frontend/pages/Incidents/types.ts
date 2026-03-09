@@ -276,7 +276,6 @@ export interface IncidentDetail {
   mitigation_team: TeamUser[];
   pm_team: TeamUser[];
   contacts: Contact[];
-  pm_contacts: { id: number; name: string; title: string | null; email: string | null; phone: string | null }[];
   valid_transitions: Transition[];
 }
 
@@ -454,7 +453,6 @@ export interface ShowProps {
   can_manage_moisture: boolean;
   can_manage_psychrometric: boolean;
   can_manage_attachments: boolean;
-  show_mitigation_team: boolean;
   can_create_notes: boolean;
   moisture_data: MoistureData;
   psychrometric_data: PsychrometricData;
