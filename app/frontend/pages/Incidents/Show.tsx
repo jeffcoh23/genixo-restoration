@@ -55,8 +55,14 @@ export default function IncidentShow() {
     back_path,
   } = usePage<SharedProps & ShowProps>().props;
 
+  const VALID_TABS = ["daily_log", "labor", "equipment", "photos", "documents", "messages", "readings", "manage"];
+  const initialTab = (() => {
+    const param = new URLSearchParams(window.location.search).get("tab");
+    return param && VALID_TABS.includes(param) ? param : "daily_log";
+  })();
+
   const [statusOpen, setStatusOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("daily_log");
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [readingsView, setReadingsView] = useState<ReadingsView>("moisture");
   const [editFormOpen, setEditFormOpen] = useState(false);
   const [markedTabs, setMarkedTabs] = useState<Set<string>>(new Set());
@@ -67,6 +73,11 @@ export default function IncidentShow() {
 
   const handleTabChange = useCallback((tab: string) => {
     setActiveTab(tab);
+
+    const url = new URL(window.location.href);
+    if (tab === "daily_log") url.searchParams.delete("tab");
+    else url.searchParams.set("tab", tab);
+    window.history.replaceState({}, "", url.toString());
 
     const tabToType: Record<string, string> = { messages: "messages", daily_log: "activity" };
     const readType = tabToType[tab];
