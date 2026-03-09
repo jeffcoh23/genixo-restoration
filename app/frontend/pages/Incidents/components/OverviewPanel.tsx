@@ -54,7 +54,7 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
         {/* Column 1: Mitigation Team */}
         <section className="rounded-xl border border-border bg-card shadow-sm p-4 space-y-3">
             <div className="flex items-center gap-2">
-              <h3 className="text-sm font-semibold text-foreground flex-1">
+              <h3 className="text-sm font-semibold text-foreground flex-1 whitespace-nowrap">
                 Mitigation Team <span className="text-muted-foreground tabular-nums">{incident.mitigation_team.length}</span>
               </h3>
               {can_assign && assignable_mitigation_users.length > 0 && (
@@ -77,7 +77,7 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
         {/* Column 2: Property Management */}
         <section className="rounded-xl border border-border bg-card shadow-sm p-4 space-y-3">
           <div className="flex items-center gap-2">
-            <h3 className="text-sm font-semibold text-foreground flex-1">
+            <h3 className="text-sm font-semibold text-foreground flex-1 whitespace-nowrap">
               Property Management <span className="text-muted-foreground tabular-nums">{incident.pm_team.length}</span>
             </h3>
             {can_assign && assignable_pm_users.length > 0 && (
@@ -100,7 +100,7 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
         {/* Column 3: Contacts */}
         <section className="rounded-xl border border-border bg-card shadow-sm p-4 space-y-3">
           <div className="flex items-center gap-2">
-            <h3 className="text-sm font-semibold text-foreground flex-1">
+            <h3 className="text-sm font-semibold text-foreground flex-1 whitespace-nowrap">
               Contacts <span className="text-muted-foreground tabular-nums">{incident.contacts.length}</span>
             </h3>
             {can_manage_contacts && (
@@ -362,20 +362,17 @@ function UserList({ users, onRemove, actionsDisabled = false }: {
 
               return (
                 <div key={u.id} className="rounded-md border border-border bg-background overflow-hidden">
-                  <div className="flex items-center gap-2 px-2 py-1.5 text-sm">
-                    <Button
-                      variant="ghost"
-                      className="flex items-center gap-2 flex-1 min-w-0 text-left h-auto p-0 hover:bg-transparent"
-                      onClick={() => hasContact && setExpandedId(isExpanded ? null : u.id)}
-                    >
-                      <div className="h-6 w-6 rounded-full bg-muted/70 flex items-center justify-center text-xs font-medium text-muted-foreground shrink-0">
-                        {u.initials}
-                      </div>
-                      <span className="text-foreground truncate">{u.full_name}</span>
-                      {hasContact && (
-                        <ChevronDown className={`h-3 w-3 text-muted-foreground shrink-0 transition-transform duration-150 ${isExpanded ? "rotate-180" : ""}`} />
-                      )}
-                    </Button>
+                  <div
+                    className={`flex items-center gap-2 px-2 py-1.5 text-sm ${hasContact ? "cursor-pointer hover:bg-muted/25 transition-colors" : ""}`}
+                    onClick={() => hasContact && setExpandedId(isExpanded ? null : u.id)}
+                  >
+                    <div className="h-6 w-6 rounded-full bg-muted/70 flex items-center justify-center text-xs font-medium text-muted-foreground shrink-0">
+                      {u.initials}
+                    </div>
+                    <span className="text-foreground truncate flex-1">{u.full_name}</span>
+                    {hasContact && (
+                      <ChevronDown className={`h-3 w-3 text-muted-foreground shrink-0 transition-transform duration-150 ${isExpanded ? "rotate-180" : ""}`} />
+                    )}
                     <div className="flex items-center gap-0.5 shrink-0">
                       {u.notification_overrides_path && (
                         <Button
