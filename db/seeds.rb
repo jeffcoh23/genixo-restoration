@@ -58,7 +58,7 @@ puts "  Organizations: #{Organization.count}"
 #                 Office/Estimating/BD → office_sales
 
 genixo_user_data = [
-  # Managers (7)
+  # Managers (9)
   { key: :fred,     first_name: "Fred",     last_name: "Hall",    email_address: "fhall@genixoconstruction.com",   user_type: "manager",   phone: "210-763-2025", auto_assign: true },
   { key: :daniel,   first_name: "Daniel",   last_name: "Hutson",  email_address: "dhutson@genixoconstruction.com", user_type: "manager",   phone: "830-463-9104", auto_assign: true },
   { key: :caleb,    first_name: "Caleb",    last_name: "Miller",  email_address: "cmiller@genixoconstruction.com", user_type: "manager",   phone: nil },
@@ -66,6 +66,8 @@ genixo_user_data = [
   { key: :john,     first_name: "John",     last_name: "Tucker",  email_address: "jtucker@genixoconstruction.com", user_type: "manager",   phone: "657-414-9166" },
   { key: :anthony,  first_name: "Anthony",  last_name: "Wagner",  email_address: "awagner@genixoconstruction.com", user_type: "manager",   phone: "405-742-7066" },
   { key: :gordon,   first_name: "Gordon",   last_name: "Ward",    email_address: "gward@genixoconstruction.com",   user_type: "manager",   phone: "210-777-8686" },
+  { key: :david,    first_name: "David",    last_name: "Cohen",   email_address: "dcohen@genixoconstruction.com",  user_type: "manager",   phone: "203-218-0897" },
+  { key: :robin,    first_name: "Robin",    last_name: "Mayo",    email_address: "rmayo20@hotmail.com",             user_type: "manager",   phone: nil },
   # Technicians (3)
   { key: :henry,    first_name: "Henry",    last_name: "Tello",     email_address: "htello@genixoconstruction.com",    user_type: "technician", phone: "346-412-8623" },
   { key: :zachary,  first_name: "Zachary",  last_name: "Meyer",     email_address: "zmeyer@genixoconstruction.com",    user_type: "technician", phone: "512-308-8872" },
