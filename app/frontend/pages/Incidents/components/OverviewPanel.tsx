@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { extractInertiaErrorMessage } from "@/hooks/useInertiaAction";
 import useInertiaAction from "@/hooks/useInertiaAction";
-import type { Contact, IncidentDetail, AssignableUser, TeamUser } from "../types";
+import type { Contact, IncidentDetail, AssignableUser, TeamUser, GuestUser } from "../types";
 
 interface OverviewPanelProps {
   incident: IncidentDetail;
@@ -50,7 +50,7 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
 
   return (
     <div className="overflow-y-auto h-full p-4 bg-background">
-      <div className="mx-auto grid max-w-[1500px] grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 items-start">
+      <div className="mx-auto grid max-w-[1800px] grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-start">
         {/* Column 1: Mitigation Team */}
         <section className="rounded-xl border border-border bg-card shadow-sm p-4 space-y-3">
             <div className="flex items-center gap-2">
@@ -170,6 +170,32 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
                 </div>
               ))}
             </div>
+          )}
+        </section>
+
+        {/* Column 4: External Guests */}
+        <section className="rounded-xl border border-border bg-card shadow-sm p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-semibold text-foreground flex-1 whitespace-nowrap">
+              External <span className="text-muted-foreground tabular-nums">{incident.guest_team.length}</span>
+            </h3>
+            {can_assign && (
+              <InviteGuestButton
+                guestAssignmentsPath={incident.guest_assignments_path}
+                processing={teamAction.processing}
+              />
+            )}
+          </div>
+          <InlineActionFeedback error={teamAction.error} onDismiss={teamAction.clearFeedback} />
+
+          {incident.guest_team.length === 0 ? (
+            <p className="text-muted-foreground text-sm">No external guests.</p>
+          ) : (
+            <GuestList
+              guests={incident.guest_team}
+              onRemove={(name, path) => setConfirmRemoveUser({ name, path })}
+              actionsDisabled={teamAction.processing}
+            />
           )}
         </section>
       </div>
@@ -551,5 +577,168 @@ function ContactFormModal({ contact, contacts_path, onClose }: {
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function InviteGuestButton({ guestAssignmentsPath, processing }: {
+  guestAssignmentsPath: string;
+  processing: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const form = useForm({
+    email: "",
+    first_name: "",
+    last_name: "",
+    title: "",
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitError(null);
+    form.post(guestAssignmentsPath, {
+      preserveScroll: true,
+      onSuccess: () => { setOpen(false); form.reset(); },
+      onError: (errors: Record<string, unknown>) => setSubmitError(extractInertiaErrorMessage(errors, "Could not invite guest.")),
+    });
+  };
+
+  return (
+    <>
+      <Button variant="outline" size="sm" className="h-10 sm:h-8 text-sm sm:text-xs gap-1.5" onClick={() => setOpen(true)}>
+        <UserPlus className="h-3 w-3" />
+        Invite
+      </Button>
+      <Dialog open={open} onOpenChange={(o) => { if (!o) { setOpen(false); setSubmitError(null); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Invite External Guest</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <InlineActionFeedback error={submitError} onDismiss={() => setSubmitError(null)} />
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">
+                Email <span className="text-destructive">*</span>
+              </label>
+              <Input
+                type="email"
+                value={form.data.email}
+                onChange={(e) => form.setData("email", e.target.value)}
+                placeholder="adjuster@insurance.com"
+                className="mt-1"
+                required
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">
+                  First Name <span className="text-destructive">*</span>
+                </label>
+                <Input
+                  value={form.data.first_name}
+                  onChange={(e) => form.setData("first_name", e.target.value)}
+                  className="mt-1"
+                  required
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">
+                  Last Name <span className="text-destructive">*</span>
+                </label>
+                <Input
+                  value={form.data.last_name}
+                  onChange={(e) => form.setData("last_name", e.target.value)}
+                  className="mt-1"
+                  required
+                />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">
+                Title <span className="text-muted-foreground font-normal">(optional)</span>
+              </label>
+              <Input
+                value={form.data.title}
+                onChange={(e) => form.setData("title", e.target.value)}
+                placeholder="e.g. Insurance Adjuster, Building Owner"
+                className="mt-1"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)} disabled={form.processing}>Cancel</Button>
+              <Button type="submit" size="sm" disabled={form.processing || processing}>
+                {form.processing ? "Inviting..." : "Invite Guest"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+function GuestList({ guests, onRemove, actionsDisabled = false }: {
+  guests: GuestUser[];
+  onRemove: (name: string, path: string) => void;
+  actionsDisabled?: boolean;
+}) {
+  const [expandedId, setExpandedId] = useState<number | null>(null);
+
+  return (
+    <div className="space-y-1">
+      {guests.map((g) => {
+        const isExpanded = expandedId === g.id;
+        const hasContact = !!(g.email || g.phone);
+
+        return (
+          <div key={g.id} className="rounded-md border border-border bg-background overflow-hidden">
+            <div
+              className={`flex items-center gap-2 px-2 py-1.5 text-sm ${hasContact ? "cursor-pointer hover:bg-muted/25 transition-colors" : ""}`}
+              onClick={() => hasContact && setExpandedId(isExpanded ? null : g.id)}
+            >
+              <div className="h-6 w-6 rounded-full bg-muted/70 flex items-center justify-center text-xs font-medium text-muted-foreground shrink-0">
+                {g.initials}
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="text-foreground truncate block">{g.full_name}</span>
+                {g.title && <span className="text-xs text-muted-foreground">{g.title}</span>}
+              </div>
+              {hasContact && (
+                <ChevronDown className={`h-3 w-3 text-muted-foreground shrink-0 transition-transform duration-150 ${isExpanded ? "rotate-180" : ""}`} />
+              )}
+              {g.remove_path && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => { e.stopPropagation(); onRemove(g.full_name, g.remove_path!); }}
+                  disabled={actionsDisabled}
+                  className="h-8 w-8 sm:h-7 sm:w-7 p-0 text-muted-foreground hover:text-destructive transition-colors shrink-0"
+                  title={`Remove ${g.full_name}`}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              )}
+            </div>
+
+            {isExpanded && hasContact && (
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-2 pb-2 ml-8 text-xs text-muted-foreground">
+                {g.email && (
+                  <a href={`mailto:${g.email}`} className="flex items-center gap-1.5 hover:text-foreground transition-colors">
+                    <Mail className="h-3 w-3" />
+                    {g.email}
+                  </a>
+                )}
+                {g.phone && (
+                  <a href={`tel:${g.phone_raw}`} className="flex items-center gap-1.5 hover:text-foreground transition-colors">
+                    <Phone className="h-3 w-3" />
+                    {g.phone}
+                  </a>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 }

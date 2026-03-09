@@ -31,6 +31,60 @@ class IncidentAssignmentsController < ApplicationController
     redirect_to incident_path(@incident), notice: "Notification preferences updated."
   end
 
+  def create_guest
+    external_org = Organization.find_by!(organization_type: "external")
+    email = params[:email]&.strip&.downcase
+
+    user = User.find_by(email_address: email)
+
+    if user && !user.guest?
+      redirect_to incident_path(@incident), alert: "#{email} already has a non-guest account."
+      return
+    end
+
+    if user.nil?
+      user = external_org.users.new(
+        email_address: email,
+        first_name: params[:first_name],
+        last_name: params[:last_name],
+        title: params[:title].presence,
+        user_type: User::GUEST,
+        password: SecureRandom.hex(20),
+        active: false
+      )
+      unless user.save
+        redirect_to incident_path(@incident), alert: "Could not create guest: #{user.errors.full_messages.first}"
+        return
+      end
+
+      invitation = external_org.invitations.create!(
+        invited_by_user: current_user,
+        email: email,
+        user_type: User::GUEST,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        title: user.title,
+        permissions: [],
+        expires_at: 30.days.from_now
+      )
+      InvitationMailer.invite(invitation).deliver_later
+    end
+
+    assignment = @incident.incident_assignments.find_or_create_by!(user: user) do |a|
+      a.assigned_by_user = current_user
+    end
+
+    if assignment.previously_new_record?
+      ActivityLogger.log(
+        incident: @incident, event_type: "user_assigned", user: current_user,
+        metadata: { assigned_user_id: user.id, assigned_user_name: user.full_name }
+      )
+      AssignmentNotificationJob.perform_later(assignment.id) if user.active?
+    end
+
+    redirect_to incident_path(@incident), notice: "#{user.full_name} invited as guest."
+  end
+
   def destroy
     assignment = @incident.incident_assignments.find(params[:id])
     user = assignment.user
@@ -71,7 +125,7 @@ class IncidentAssignmentsController < ApplicationController
 
   def can_remove_assignment?(user)
     return true if mitigation_admin?
-    current_user.pm_user? && user.organization_id == current_user.organization_id
+    current_user.pm_user? && (user.organization_id == current_user.organization_id || user.guest?)
   end
 
   def assignable_users

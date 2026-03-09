@@ -56,12 +56,18 @@ class InvitationsController < ApplicationController
       return
     end
 
+    role_label = if @invitation.user_type == User::GUEST
+      @invitation.title.presence || "Guest"
+    else
+      User::ROLE_LABELS[@invitation.user_type]
+    end
+
     render inertia: "Invitations/Accept", props: {
       invitation: {
         token: @invitation.token,
         email: @invitation.email,
-        organization_name: @invitation.organization.name,
-        role_label: User::ROLE_LABELS[@invitation.user_type],
+        organization_name: @invitation.organization.external? ? nil : @invitation.organization.name,
+        role_label: role_label,
         first_name: @invitation.first_name,
         last_name: @invitation.last_name,
         phone: @invitation.phone
@@ -94,7 +100,9 @@ class InvitationsController < ApplicationController
     if user.save
       @invitation.update!(accepted_at: Time.current)
       start_new_session_for(user)
-      redirect_to dashboard_path, notice: "Welcome to #{@invitation.organization.name}!"
+      after_path = user.guest? ? incidents_path : dashboard_path
+      welcome_msg = user.guest? ? "Welcome! You now have access to your assigned incidents." : "Welcome to #{@invitation.organization.name}!"
+      redirect_to after_path, notice: welcome_msg
     else
       redirect_to invitation_path(@invitation.token),
         inertia: { errors: user.errors.to_hash },

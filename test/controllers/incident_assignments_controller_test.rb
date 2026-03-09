@@ -159,6 +159,108 @@ class IncidentAssignmentsControllerTest < ActionDispatch::IntegrationTest
     assert_equal({}, assignment.notification_overrides)
   end
 
+  # --- Guest invite ---
+
+  test "manager can invite a guest" do
+    Organization.create!(name: "External", organization_type: "external")
+    login_as @manager
+
+    assert_difference "User.count", 1 do
+      assert_difference "Invitation.count", 1 do
+        assert_difference "IncidentAssignment.count", 1 do
+          post guest_incident_assignments_path(@incident), params: {
+            email: "adjuster@insurance.com", first_name: "Jane", last_name: "Doe", title: "Insurance Adjuster"
+          }
+        end
+      end
+    end
+    assert_redirected_to incident_path(@incident)
+
+    guest = User.find_by(email_address: "adjuster@insurance.com")
+    assert_equal "guest", guest.user_type
+    assert_equal "Insurance Adjuster", guest.title
+    assert_not guest.active?
+    assert @incident.assigned_users.include?(guest)
+  end
+
+  test "pm_user can invite a guest" do
+    Organization.create!(name: "External", organization_type: "external")
+    login_as @pm_user
+
+    assert_difference "User.count", 1 do
+      post guest_incident_assignments_path(@incident), params: {
+        email: "owner@building.com", first_name: "Bob", last_name: "Owner", title: "Building Owner"
+      }
+    end
+    assert_redirected_to incident_path(@incident)
+  end
+
+  test "technician cannot invite a guest" do
+    Organization.create!(name: "External", organization_type: "external")
+    IncidentAssignment.create!(incident: @incident, user: @tech, assigned_by_user: @manager)
+    login_as @tech
+
+    assert_no_difference "User.count" do
+      post guest_incident_assignments_path(@incident), params: {
+        email: "someone@example.com", first_name: "No", last_name: "Access"
+      }
+    end
+    assert_response :not_found
+  end
+
+  test "inviting same guest email to second incident does not duplicate user" do
+    Organization.create!(name: "External", organization_type: "external")
+    login_as @manager
+
+    post guest_incident_assignments_path(@incident), params: {
+      email: "shared@guest.com", first_name: "Shared", last_name: "Guest"
+    }
+
+    second_incident = Incident.create!(
+      property: @property, created_by_user: @manager,
+      status: "active", project_type: "emergency_response",
+      damage_type: "fire", description: "Second incident"
+    )
+    IncidentAssignment.create!(incident: second_incident, user: @manager, assigned_by_user: @manager)
+
+    assert_no_difference "User.count" do
+      post guest_incident_assignments_path(second_incident), params: {
+        email: "shared@guest.com", first_name: "Shared", last_name: "Guest"
+      }
+    end
+    assert_redirected_to incident_path(second_incident)
+
+    guest = User.find_by(email_address: "shared@guest.com")
+    assert_equal 2, guest.incident_assignments.count
+  end
+
+  test "manager can remove a guest assignment" do
+    external = Organization.create!(name: "External", organization_type: "external")
+    guest = User.create!(organization: external, user_type: "guest",
+      email_address: "removeme@guest.com", first_name: "Remove", last_name: "Me", password: "password123")
+    assignment = IncidentAssignment.create!(incident: @incident, user: guest, assigned_by_user: @manager)
+
+    login_as @manager
+    assert_difference "IncidentAssignment.count", -1 do
+      delete incident_assignment_path(@incident, assignment)
+    end
+    assert_redirected_to incident_path(@incident)
+  end
+
+  test "pm_user can remove a guest assignment" do
+    external = Organization.create!(name: "External", organization_type: "external")
+    guest = User.create!(organization: external, user_type: "guest",
+      email_address: "removeme2@guest.com", first_name: "Remove", last_name: "Me2", password: "password123")
+    assignment = IncidentAssignment.create!(incident: @incident, user: guest, assigned_by_user: @manager)
+
+    IncidentAssignment.create!(incident: @incident, user: @pm_user, assigned_by_user: @manager)
+    login_as @pm_user
+    assert_difference "IncidentAssignment.count", -1 do
+      delete incident_assignment_path(@incident, assignment)
+    end
+    assert_redirected_to incident_path(@incident)
+  end
+
   private
 
   def login_as(user)

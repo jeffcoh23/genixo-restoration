@@ -107,7 +107,7 @@ class IncidentsController < ApplicationController
     ).call
 
     notice = if current_user.pm_user? && incident.emergency?
-      "Emergency dispatched. The on-call team has been notified and will contact you shortly."
+      "Emergency dispatched. You will receive a confirmation call within 5-10 minutes."
     elsif current_user.pm_user?
       "Incident submitted. You'll receive a confirmation call on the next business day."
     else
@@ -205,6 +205,8 @@ class IncidentsController < ApplicationController
           a.user.mitigation_user? && (current_user.mitigation_user? || a.user.user_type != User::OFFICE_SALES)
         }),
         pm_team: serialize_team_users(assigned.select { |a| a.user.pm_user? }),
+        guest_team: serialize_guest_users(assigned.select { |a| a.user.guest? }),
+        guest_assignments_path: guest_incident_assignments_path(@incident),
         show_stats: @incident.labor_entries.any? || deployed_equipment.any?,
         stats: incident_stats(@incident, deployed_equipment),
         contacts_path: incident_contacts_path(@incident),
@@ -453,7 +455,7 @@ class IncidentsController < ApplicationController
 
   def can_remove_assignment?(user)
     return true if mitigation_admin?
-    current_user.pm_user? && user.organization_id == current_user.organization_id
+    current_user.pm_user? && (user.organization_id == current_user.organization_id || user.guest?)
   end
 
   def assignable_users_by_property
@@ -540,6 +542,22 @@ class IncidentsController < ApplicationController
           status_change: a.user.notification_preference("status_change"),
           new_message: a.user.notification_preference("new_message")
         }
+      }
+    end
+  end
+
+  def serialize_guest_users(assignments)
+    assignments.sort_by { |a| a.user.last_name }.map do |a|
+      {
+        id: a.user.id,
+        assignment_id: a.id,
+        full_name: a.user.full_name,
+        initials: a.user.initials,
+        title: a.user.title,
+        email: a.user.email_address,
+        phone: format_phone(a.user.phone),
+        phone_raw: a.user.phone,
+        remove_path: can_remove_assignment?(a.user) ? incident_assignment_path(@incident, a) : nil
       }
     end
   end

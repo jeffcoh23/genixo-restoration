@@ -74,6 +74,21 @@ Let users control notifications per incident instead of only globally.
 
 ---
 
+## Phase 6: Guest User Access
+
+Read-only incident viewing for external people (insurance adjusters, building owners, consultants).
+
+- [x] System "External" org type + guest user type with zero permissions
+- [x] Guest visibility scoping — only assigned incidents, no properties
+- [x] Guest sidebar — "My Incidents" + "Settings" only, title as role label, org name hidden
+- [x] Guest dashboard redirect → incidents index
+- [x] Manage tab "External" section — invite guest with email, name, title
+- [x] Guest invitation flow — reuses existing invitation system, 30-day expiry
+- [x] Guest dedup — same email invited to multiple incidents reuses account
+- [x] PM users can assign/remove guests from incidents they can see
+- [x] All incident tabs read-only for guests (zero permissions → no edit buttons)
+- [x] Emergency confirmation text — "You will receive a confirmation call within 5-10 minutes"
+
 ---
 
 ## Still Considering
@@ -90,7 +105,7 @@ Deferred features. Infrastructure is in place for all of these.
 
 | Feature | Notes |
 |---------|-------|
-| External stakeholder access | Adjusters & third parties with per-incident, read-only (no messages) access |
+| External stakeholder access | ~~Basic guest access done (Phase 6).~~ Remaining: configurable message access per guest, bulk guest management |
 | Messaging overhaul | Email bridge (reply-from-email), per-incident recipient config, weekly executive digest |
 | Reports & data export | CSV + formatted PDF export for daily logs, readings, labor, equipment |
 | Accessibility + QA pass | Focus states, keyboard nav, contrast, responsive QA, cross-browser, perf testing |

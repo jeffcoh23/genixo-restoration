@@ -7,9 +7,12 @@ class User < ApplicationRecord
   AREA_MANAGER      = "area_manager"
   OTHER             = "other"
 
+  GUEST             = "guest"
+
   MITIGATION_TYPES = [ MANAGER, TECHNICIAN, OFFICE_SALES ].freeze
   PM_TYPES = [ PROPERTY_MANAGER, AREA_MANAGER, OTHER ].freeze
-  ALL_TYPES = (MITIGATION_TYPES + PM_TYPES).freeze
+  EXTERNAL_TYPES = [ GUEST ].freeze
+  ALL_TYPES = (MITIGATION_TYPES + PM_TYPES + EXTERNAL_TYPES).freeze
 
   ROLE_LABELS = {
     MANAGER => "Manager",
@@ -17,7 +20,8 @@ class User < ApplicationRecord
     OFFICE_SALES => "Office/Sales",
     PROPERTY_MANAGER => "Property Manager",
     AREA_MANAGER => "Area Manager",
-    OTHER => "Other"
+    OTHER => "Other",
+    GUEST => "Guest"
   }.freeze
 
   # Sort order for labor-related dropdowns (technicians first)
@@ -85,6 +89,10 @@ class User < ApplicationRecord
     PM_TYPES.include?(user_type)
   end
 
+  def guest?
+    user_type == GUEST
+  end
+
   def can?(permission)
     permissions.include?(permission.to_s)
   end
@@ -118,6 +126,8 @@ class User < ApplicationRecord
       errors.add(:user_type, "#{user_type} is not valid for a mitigation organization")
     elsif organization.property_management? && !PM_TYPES.include?(user_type)
       errors.add(:user_type, "#{user_type} is not valid for a property management organization")
+    elsif organization.external? && !EXTERNAL_TYPES.include?(user_type)
+      errors.add(:user_type, "#{user_type} is not valid for an external organization")
     end
   end
 

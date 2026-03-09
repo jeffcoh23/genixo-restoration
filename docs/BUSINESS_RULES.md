@@ -12,6 +12,7 @@
 
 - **Mitigation org** — the service provider (e.g., Genixo Construction). Performs restoration work.
 - **Property management (PM) org** — the client (e.g., Greystar, Sandalwood). Owns properties.
+- **External org** — system org for guest users. One seeded "External" org. Invisible to guests — they don't see an org name.
 
 ### Isolation
 
@@ -35,6 +36,7 @@
 |----------|-----------|
 | Mitigation | `manager`, `technician`, `office_sales` |
 | Property Management | `property_manager`, `area_manager`, `other` |
+| External | `guest` |
 
 A user belongs to exactly one organization. A user's `user_type` must be valid for their org's type — a PM org cannot have a `technician`, and a mitigation org cannot have a `property_manager`.
 
@@ -62,6 +64,17 @@ Email is globally unique across all organizations. One email address = one user 
 - Deactivated users cannot log in.
 - Their historical data (labor entries, messages, activity events) remains intact and attributed to them.
 - Deactivated users should not appear in assignment dropdowns or active user lists.
+
+### Guest Users
+
+- Guest users (e.g., insurance adjusters, building owners, consultants) have read-only access to specific incidents.
+- All guests belong to the system "External" organization internally.
+- Guests have zero permissions — all `can_*` checks return false, making the entire UI read-only.
+- Guests see only incidents they are assigned to (same scoping as technicians).
+- Guest sidebar shows only "My Incidents" and "Settings" links. Org name is hidden.
+- The `title` field on the user record describes their role (e.g., "Insurance Adjuster"), displayed in the sidebar and team lists.
+- Guests are invited per-incident from the Manage tab's "External" section.
+- Inviting a guest to a second incident reuses the existing user account (no duplicate).
 
 ### Invitations
 
@@ -186,7 +199,8 @@ QUOTE / PROPOSAL (RFQ):
 ### Incident Assignments
 
 - **Mitigation managers** can assign or unassign any user to/from incidents.
-- **PM-side users** (property_manager, area_manager, other) can assign or unassign **their own org's users** to/from incidents they can see. They cannot manage mitigation-side assignments.
+- **PM-side users** (property_manager, area_manager, other) can assign or unassign **their own org's users** to/from incidents they can see. They can also remove guest users. They cannot manage mitigation-side assignments.
+- **Guest users** can be invited to incidents by mitigation managers or PM users via the "External" section on the Manage tab. Guests are assigned per-incident and receive an invitation email if they don't yet have an account.
 - Typically technicians are assigned by managers when the incident is made active, but **any user** can be assigned.
 - Technicians are NOT pre-assigned to properties. Assignment is per-incident, based on availability.
 - A user can be assigned to multiple incidents simultaneously.
@@ -289,6 +303,7 @@ When an incident is created, the system auto-assigns users based on the `auto_as
 | Daily digest | Users with `daily_digest` enabled | Email (scheduled) |
 
 - Users control their notification preferences via `notification_preferences` jsonb on their user record.
+- **Per-incident overrides:** Users can override their global notification preferences on a per-incident basis via `notification_overrides` jsonb on `incident_assignments`. Empty = inherit global preferences. Keys: `status_change`, `new_message`. All notification jobs check per-incident overrides first.
 - Notification delivery is provider-agnostic (see `ARCHITECTURE.md`).
 
 ---
@@ -360,7 +375,7 @@ When an incident is created, the system auto-assigns users based on the `auto_as
 
 - Polymorphic — can attach to `Incident` or `Message`.
 - **Who can upload:** Any user who can see the incident/message.
-- Each attachment has a `category`: `photo`, `moisture_mapping`, `moisture_readings`, `psychrometric_log`, `signed_document`, `general`.
+- Each attachment has a `category`: `photo`, `dfr`, `moisture_mapping`, `moisture_readings`, `psychrometric_log`, `signed_document`, `sign_in_sheet`, `proposal`, `general`.
 - Files are stored via Active Storage (local disk in dev, S3 in production).
 - Attachments are **never deleted** for audit trail purposes.
 - Uploading an attachment generates an `activity_event` on the parent incident.

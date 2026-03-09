@@ -13,6 +13,8 @@ module Authorization
       Property.joins(incidents: :incident_assignments)
               .where(incident_assignments: { user_id: current_user.id })
               .distinct
+    when User::GUEST
+      Property.none
     when *User::PM_TYPES
       Property.joins(:property_assignments)
               .where(property_assignments: { user_id: current_user.id })

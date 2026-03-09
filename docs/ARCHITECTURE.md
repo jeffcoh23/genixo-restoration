@@ -28,10 +28,17 @@ Genixo Restoration is a multi-tenant incident management platform with two tenan
 │         │                        │  └── Property E    │  │
 │         │                        └───────────────────┘  │
 │         │                                               │
+│         │            ┌───────────────────┐              │
+│         │            │ External Org      │              │
+│         │            │  └── Guest users  │              │
+│         │            │     (read-only,   │              │
+│         │            │      per-incident)│              │
+│         │            └───────────────────┘              │
 │         ▼                                               │
 │  Incidents live on Properties                           │
 │  Mitigation org staff work across all PM orgs           │
 │  PM orgs are isolated from each other                   │
+│  Guest users see only assigned incidents (read-only)    │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -84,7 +91,8 @@ class Permissions
     "technician"       => [MANAGE_DAILY_LOGS, MANAGE_READINGS, MANAGE_ATTACHMENTS],
     "property_manager" => [CREATE_INCIDENT, VIEW_PROPERTIES],
     "area_manager"     => [CREATE_INCIDENT, VIEW_PROPERTIES],
-    "other"            => [VIEW_PROPERTIES]
+    "other"            => [VIEW_PROPERTIES],
+    "guest"            => []
   }.freeze
 
   # Permissions shown as toggleable checkboxes in the user edit modal (mitigation users only)
@@ -698,7 +706,7 @@ class Attachment < ApplicationRecord
   has_one_attached :file
 
   validates :category, inclusion: {
-    in: %w[photo moisture_mapping moisture_readings psychrometric_log signed_document general]
+    in: %w[photo dfr moisture_mapping moisture_readings psychrometric_log signed_document sign_in_sheet proposal general]
   }
 end
 ```
@@ -721,8 +729,9 @@ inertia_share auth: -> {
       full_name: Current.user.full_name,
       initials: Current.user.initials,
       user_type: Current.user.user_type,
+      title: Current.user.title,
       organization_type: Current.user.organization.organization_type,
-      organization_name: Current.user.organization.name,
+      organization_name: Current.user.guest? ? nil : Current.user.organization.name,
       timezone: Current.user.timezone
     } : nil,
     authenticated: !!Current.user
@@ -801,6 +810,7 @@ The dashboard and navigation adapt based on `auth.user.user_type`:
 - **Technician**: Dashboard filtered to assigned incidents only, quick-action buttons for labor/equipment/notes
 - **Office/Sales**: Full incident visibility, user/property/org management, read-only on operational data
 - **PM/AM/Other**: Incidents on assigned properties + directly assigned incidents, messaging, can manage own org's assignments
+- **Guest**: Only assigned incidents visible, all tabs read-only (no edit buttons), sidebar shows only "My Incidents" + "Settings", org name hidden, title displayed as role label
 
 ---
 

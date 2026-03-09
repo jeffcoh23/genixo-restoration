@@ -727,7 +727,7 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
         damage_type: "flood", description: "Pipe burst emergency"
       }
     }
-    assert_equal "Emergency dispatched. The on-call team has been notified and will contact you shortly.", flash[:notice]
+    assert_equal "Emergency dispatched. You will receive a confirmation call within 5-10 minutes.", flash[:notice]
   end
 
   test "PM non-emergency creation shows next business day flash" do

@@ -13,6 +13,18 @@ export interface TeamUser {
   global_preferences: { status_change: boolean; new_message: boolean };
 }
 
+export interface GuestUser {
+  id: number;
+  assignment_id: number;
+  full_name: string;
+  initials: string;
+  title: string | null;
+  email: string;
+  phone: string | null;
+  phone_raw: string | null;
+  remove_path: string | null;
+}
+
 export interface AssignableUser {
   id: number;
   full_name: string;
@@ -276,6 +288,8 @@ export interface IncidentDetail {
   }[];
   mitigation_team: TeamUser[];
   pm_team: TeamUser[];
+  guest_team: GuestUser[];
+  guest_assignments_path: string;
   contacts: Contact[];
   valid_transitions: Transition[];
 }

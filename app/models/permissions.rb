@@ -37,7 +37,8 @@ class Permissions
     ],
     User::OTHER => [
       VIEW_PROPERTIES
-    ]
+    ],
+    User::GUEST => []
   }.freeze
 
   ALL_PERMISSIONS = [

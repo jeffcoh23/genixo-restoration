@@ -44,6 +44,10 @@ sandalwood = Organization.find_or_create_by!(name: "Sandalwood Management") do |
   org.zip = "78701"
 end
 
+Organization.find_or_create_by!(name: "External") do |org|
+  org.organization_type = "external"
+end
+
 puts "  Organizations: #{Organization.count}"
 
 # ==========================================================================

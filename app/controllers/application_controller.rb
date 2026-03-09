@@ -28,8 +28,9 @@ class ApplicationController < ActionController::Base
         initials: current_user.initials,
         user_type: current_user.user_type,
         role_label: User::ROLE_LABELS[current_user.user_type],
+        title: current_user.title,
         organization_type: current_user.organization.organization_type,
-        organization_name: current_user.organization.name,
+        organization_name: current_user.guest? ? nil : current_user.organization.name,
         timezone: current_user.timezone
       } : nil,
       authenticated: !!current_user
@@ -115,6 +116,13 @@ class ApplicationController < ActionController::Base
   # Server-side nav filtering — the client just renders what it receives
   def nav_items_for_user(user)
     return [] unless user
+
+    if user.guest?
+      return [
+        { label: "My Incidents", href: incidents_path, icon: "AlertTriangle" },
+        { label: "Settings", href: settings_path, icon: "Settings" }
+      ]
+    end
 
     items = [
       { label: "Incidents", href: incidents_path, icon: "AlertTriangle" }

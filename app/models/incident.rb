@@ -53,6 +53,8 @@ class Incident < ApplicationRecord
       joins(:property).where(properties: { mitigation_org_id: user.organization_id })
     when User::TECHNICIAN
       joins(:incident_assignments).where(incident_assignments: { user_id: user.id })
+    when User::GUEST
+      joins(:incident_assignments).where(incident_assignments: { user_id: user.id })
     when *User::PM_TYPES
       property_ids = PropertyAssignment.where(user_id: user.id).select(:property_id)
       incident_ids = IncidentAssignment.where(user_id: user.id).select(:incident_id)

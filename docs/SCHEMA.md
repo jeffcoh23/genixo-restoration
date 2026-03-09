@@ -7,7 +7,7 @@
 ## Entity Relationship Overview
 
 ```
-Organization (mitigation or property_management)
+Organization (mitigation, property_management, or external)
 ├── has_many :users
 ├── has_many :properties (PM org owns, Mitigation org services)
 ├── has_many :equipment_types (Mitigation org only)
@@ -50,13 +50,13 @@ Incident
 
 ### organizations
 
-The top-level tenant. Two types: `mitigation` (service provider) and `property_management` (client).
+The top-level tenant. Three types: `mitigation` (service provider), `property_management` (client), and `external` (system org for guest users).
 
 | Column | Type | Constraints | Notes |
 |--------|------|-------------|-------|
 | id | bigint | PK | |
 | name | string | NOT NULL | e.g., "Genixo Construction", "Greystar" |
-| organization_type | string | NOT NULL | `mitigation` or `property_management` |
+| organization_type | string | NOT NULL | `mitigation`, `property_management`, or `external` |
 | phone | string | | Main office phone |
 | email | string | | Main contact email |
 | street_address | string | | |
@@ -105,6 +105,9 @@ Property Management org:
 - `property_manager` — Sees assigned properties and their incidents. Creates incidents, uploads intake attachments, sends messages.
 - `area_manager` — Same as property_manager but typically assigned to multiple properties.
 - `other` — General PM-side role for regional directors, maintenance leads, etc. Sees properties via property assignments and incidents via incident assignments. Cannot create incidents by default (but permissions are per-user configurable).
+
+External org:
+- `guest` — Read-only access to assigned incidents only. No permissions. Invited per-incident by mitigation managers or PM users. Title field describes their role (e.g., "Insurance Adjuster", "Building Owner").
 
 **Notification preferences (jsonb):**
 ```json
@@ -623,8 +626,10 @@ Each attachment `has_one_attached :file` via Active Storage.
 - `moisture_mapping`
 - `moisture_readings`
 - `psychrometric_log`
+- `dfr` (Daily Field Report)
 - `signed_document`
 - `sign_in_sheet`
+- `proposal`
 - `general`
 
 **Indexes:**
@@ -716,6 +721,9 @@ User invitation flow. Manager or Office/Sales creates an invitation, system send
 | first_name | string | | Optional — pre-filled by inviter |
 | last_name | string | | Optional — pre-filled by inviter |
 | phone | string | | Optional — pre-filled by inviter |
+| title | string | | Role/position label for guest users (e.g., "Insurance Adjuster") |
+| permissions | jsonb | NOT NULL, DEFAULT `[]` | Permissions to assign to the user on accept |
+| notification_preferences | jsonb | NOT NULL, DEFAULT `{}` | Notification prefs to assign on accept |
 | token | string | NOT NULL, UNIQUE | Signup token |
 | accepted_at | datetime | | Null until accepted |
 | expires_at | datetime | NOT NULL | |
@@ -761,6 +769,7 @@ Generated via consolidated migration. See playbook for details.
 | **Property Manager** (PM) | Assigned properties only | Incidents on assigned properties | Incidents, messages, intake attachments | Nothing operational |
 | **Area Manager** (PM) | Assigned properties (multiple) | Incidents on assigned properties | Same as Property Manager | Same as Property Manager |
 | **Other** (PM) | Assigned properties + via incident assignments | Assigned incidents + incidents on assigned properties | Nothing by default (per-user configurable) | Nothing operational |
+| **Guest** (External) | None | Only assigned incidents | Nothing | Nothing (pure read-only) |
 
 ---
 
@@ -784,6 +793,10 @@ Incident.joins(property: :property_assignments)
         .where(property_assignments: { user_id: current_user.id })
         .or(Incident.joins(:incident_assignments)
                     .where(incident_assignments: { user_id: current_user.id }))
+
+# Guest — only incidents they are assigned to
+Incident.joins(:incident_assignments)
+        .where(incident_assignments: { user_id: current_user.id })
 
 # Dashboard — incidents sorted by most recent activity
 Incident.where(property_id: visible_property_ids)

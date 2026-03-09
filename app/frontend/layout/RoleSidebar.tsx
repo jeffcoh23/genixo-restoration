@@ -74,7 +74,7 @@ export default function RoleSidebar({ onNavigate }: { onNavigate: () => void }) 
 
       {/* User info + logout */}
       <div className="border-t border-sidebar-border px-4 py-3">
-        {ORG_LOGOS[user.organization_name] && (
+        {user.organization_name && ORG_LOGOS[user.organization_name] && (
           <img
             src={ORG_LOGOS[user.organization_name]}
             alt={user.organization_name}
@@ -84,11 +84,13 @@ export default function RoleSidebar({ onNavigate }: { onNavigate: () => void }) 
         <div className="text-sm font-medium text-sidebar-foreground">
           {user.full_name}
         </div>
+        {user.organization_name && (
+          <div className="text-xs text-sidebar-muted-foreground">
+            {user.organization_name}
+          </div>
+        )}
         <div className="text-xs text-sidebar-muted-foreground">
-          {user.organization_name}
-        </div>
-        <div className="text-xs text-sidebar-muted-foreground">
-          {user.role_label}
+          {user.title || user.role_label}
         </div>
         {emergency_phone && (
           <a

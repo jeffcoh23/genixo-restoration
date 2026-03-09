@@ -258,7 +258,7 @@ export default function NewIncident() {
                 <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0 text-amber-700" />
                 <div>
                   <p className="font-semibold">Emergency escalation is enabled.</p>
-                  <p className="mt-0.5">Submitting this request immediately notifies the on-call chain and starts time-based escalation.</p>
+                  <p className="mt-0.5">You will receive a confirmation call within 5-10 minutes of submitting this request.</p>
                 </div>
               </div>
               {emergency_phone && (

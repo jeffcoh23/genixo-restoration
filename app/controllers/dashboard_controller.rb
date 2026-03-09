@@ -1,5 +1,10 @@
 class DashboardController < ApplicationController
   def show
+    if current_user.guest?
+      redirect_to incidents_path
+      return
+    end
+
     service = DashboardService.new(user: current_user)
     groups = service.grouped_incidents
     unread = UnreadCacheService.unread_counts(current_user)

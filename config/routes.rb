@@ -26,6 +26,9 @@ Rails.application.routes.draw do
       get :attachments_page
     end
     resources :assignments, controller: "incident_assignments", only: %i[create destroy] do
+      collection do
+        post :create_guest, as: :guest
+      end
       member do
         patch :update_notifications
       end

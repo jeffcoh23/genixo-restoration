@@ -7,8 +7,9 @@ export interface AuthUser {
   initials: string;
   user_type: string;
   role_label: string;
+  title: string | null;
   organization_type: string;
-  organization_name: string;
+  organization_name: string | null;
   timezone: string;
 }
 
