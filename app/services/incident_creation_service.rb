@@ -71,21 +71,25 @@ class IncidentCreationService
   def default_auto_assign_users
     users_to_assign = Set.new
 
-    # PM-side: property assignees (property_managers, area_managers on this property)
-    @property.assigned_users.active.where(user_type: [ User::PROPERTY_MANAGER, User::AREA_MANAGER ]).find_each do |u|
+    # Mitigation-side: users with auto_assign flag
+    @property.mitigation_org.users.active.auto_assigned.find_each do |u|
       users_to_assign << u
     end
 
-    # PM-side: all pm_managers in the property's PM org
-    @property.property_management_org.users.active.where(user_type: User::PM_MANAGER).find_each do |u|
-      users_to_assign << u
+    # Mitigation-side: always include on-call primary user
+    on_call_config = @property.mitigation_org.on_call_configuration
+    if on_call_config&.primary_user&.active?
+      users_to_assign << on_call_config.primary_user
     end
 
-    # Mitigation-side: managers + office_sales (NOT technicians)
-    @property.mitigation_org.users.active.where(user_type: [ User::MANAGER, User::OFFICE_SALES ]).find_each do |u|
-      users_to_assign << u
+    # Fallback: if no auto-assign users and no on-call, assign all active mitigation managers
+    if users_to_assign.empty?
+      @property.mitigation_org.users.active.where(user_type: User::MANAGER).find_each do |u|
+        users_to_assign << u
+      end
     end
 
+    # PM-side: nobody — PM creator picks manually
     users_to_assign
   end
 
@@ -125,9 +129,19 @@ class IncidentCreationService
   end
 
   def send_notifications
-    if @user.notification_preference("incident_creation")
+    if @user.notification_preference("incident_user_assignment")
       IncidentMailer.creation_confirmation(@incident).deliver_later
     end
+
+    # Auto-assigned and on-call users always get notified on incident creation,
+    # regardless of their notification preferences. These users were specifically
+    # configured to receive new incidents — their preference setting should not
+    # suppress this critical notification.
+    @incident.incident_assignments.each do |assignment|
+      next if assignment.user_id == @user.id
+      AssignmentNotificationJob.perform_later(assignment.id, force: true)
+    end
+
     EscalationJob.perform_later(@incident.id) if @incident.emergency?
   end
 end

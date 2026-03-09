@@ -6,6 +6,8 @@ class ApplicationController < ActionController::Base
 
   allow_browser versions: :modern
 
+  rescue_from ActiveRecord::RecordNotFound, with: :render_not_found
+
   around_action :set_user_timezone
 
   inertia_share flash: -> {
@@ -26,8 +28,9 @@ class ApplicationController < ActionController::Base
         initials: current_user.initials,
         user_type: current_user.user_type,
         role_label: User::ROLE_LABELS[current_user.user_type],
+        title: current_user.title,
         organization_type: current_user.organization.organization_type,
-        organization_name: current_user.organization.name,
+        organization_name: current_user.guest? ? nil : current_user.organization.name,
         timezone: current_user.timezone
       } : nil,
       authenticated: !!current_user
@@ -79,6 +82,17 @@ class ApplicationController < ActionController::Base
     UnreadCacheService.has_unread?(current_user)
   }
 
+  inertia_share emergency_phone: -> {
+    next nil unless current_user&.pm_user?
+
+    mit_org_id = Property.where(property_management_org_id: current_user.organization_id)
+                         .pick(:mitigation_org_id)
+    next nil unless mit_org_id
+
+    mit_org = Organization.find(mit_org_id)
+    format_phone(mit_org.phone)
+  }
+
   inertia_share today: -> {
     Time.current.to_date.iso8601
   }
@@ -90,6 +104,10 @@ class ApplicationController < ActionController::Base
 
   private
 
+  def render_not_found
+    render inertia: "Error", props: { status: 404, message: "Page not found" }, status: :not_found
+  end
+
   def set_user_timezone(&block)
     zone = current_user&.timezone || "UTC"
     Time.use_zone(zone, &block)
@@ -98,6 +116,13 @@ class ApplicationController < ActionController::Base
   # Server-side nav filtering — the client just renders what it receives
   def nav_items_for_user(user)
     return [] unless user
+
+    if user.guest?
+      return [
+        { label: "My Incidents", href: incidents_path, icon: "AlertTriangle" },
+        { label: "Settings", href: settings_path, icon: "Settings" }
+      ]
+    end
 
     items = [
       { label: "Incidents", href: incidents_path, icon: "AlertTriangle" }

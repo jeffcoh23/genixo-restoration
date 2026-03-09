@@ -43,7 +43,6 @@ export default function IncidentShow() {
     can_manage_moisture = false,
     can_manage_psychrometric = false,
     can_manage_attachments = false,
-    show_mitigation_team = true,
     moisture_data,
     psychrometric_data,
     assignable_mitigation_users = [],
@@ -56,8 +55,14 @@ export default function IncidentShow() {
     back_path,
   } = usePage<SharedProps & ShowProps>().props;
 
+  const VALID_TABS = ["daily_log", "labor", "equipment", "photos", "documents", "messages", "readings", "manage"];
+  const initialTab = (() => {
+    const param = new URLSearchParams(window.location.search).get("tab");
+    return param && VALID_TABS.includes(param) ? param : "daily_log";
+  })();
+
   const [statusOpen, setStatusOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("daily_log");
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [readingsView, setReadingsView] = useState<ReadingsView>("moisture");
   const [editFormOpen, setEditFormOpen] = useState(false);
   const [markedTabs, setMarkedTabs] = useState<Set<string>>(new Set());
@@ -68,6 +73,11 @@ export default function IncidentShow() {
 
   const handleTabChange = useCallback((tab: string) => {
     setActiveTab(tab);
+
+    const url = new URL(window.location.href);
+    if (tab === "daily_log") url.searchParams.delete("tab");
+    else url.searchParams.set("tab", tab);
+    window.history.replaceState({}, "", url.toString());
 
     const tabToType: Record<string, string> = { messages: "messages", daily_log: "activity" };
     const readType = tabToType[tab];
@@ -122,13 +132,13 @@ export default function IncidentShow() {
                   onClick={() => setStatusOpen(!statusOpen)}
                   data-testid="incident-status-trigger"
                   disabled={statusAction.processing}
-                  className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium ${statusColor(incident.status)} hover:opacity-90 transition-opacity`}
+                  className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium ${statusColor(incident.display_status)} hover:opacity-90 transition-opacity`}
                 >
                   {incident.status_label}
                   <ChevronDown className="h-3.5 w-3.5" />
                 </Button>
               ) : (
-                <Badge className={`text-sm px-3 py-1.5 ${statusColor(incident.status)}`}>
+                <Badge className={`text-sm px-3 py-1.5 ${statusColor(incident.display_status)}`}>
                   {incident.status_label}
                 </Badge>
               )}
@@ -324,7 +334,6 @@ export default function IncidentShow() {
                 can_manage_contacts={can_manage_contacts}
                 assignable_mitigation_users={assignable_mitigation_users}
                 assignable_pm_users={assignable_pm_users}
-                show_mitigation_team={show_mitigation_team}
               />
             </Deferred>
           )}

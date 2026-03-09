@@ -484,6 +484,8 @@ export default function MoisturePanel({ moisture_data, can_manage_moisture }: Mo
                       <select
                         value={newRow.measurement_unit}
                         onChange={(e) => setNewRowField("measurement_unit", e.target.value)}
+                        onKeyDown={handleNewRowKeyDown}
+                        onBlur={handleNewRowBlur}
                         className="h-7 text-xs border border-border rounded px-1 bg-background text-foreground"
                       >
                         <option value="Pts">Pts</option>

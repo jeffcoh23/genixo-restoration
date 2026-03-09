@@ -15,6 +15,7 @@ interface IncidentCard {
   organization_name: string;
   description: string;
   status: string;
+  display_status: string;
   status_label: string;
   project_type_label: string;
   damage_label: string;
@@ -139,7 +140,7 @@ function IncidentGroup({
                 <div className="flex items-center gap-2 shrink-0">
                   <IncidentNotificationBadge kind="messages" count={incident.unread_messages} />
                   <IncidentNotificationBadge kind="activity" count={incident.unread_activity} />
-                  <StatusBadge status={incident.status} label={incident.status_label} />
+                  <StatusBadge status={incident.display_status} label={incident.status_label} />
                 </div>
               </div>
             </Link>

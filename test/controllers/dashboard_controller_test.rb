@@ -35,6 +35,16 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "guest is redirected to incidents index" do
+    external = Organization.create!(name: "External", organization_type: "external")
+    guest = User.create!(organization: external, user_type: "guest",
+      email_address: "guest@example.com", first_name: "Jane", last_name: "Adjuster",
+      password: "password123")
+    login_as guest
+    get dashboard_path
+    assert_redirected_to incidents_path
+  end
+
   test "unauthenticated user is redirected to login" do
     get dashboard_path
     assert_redirected_to login_path

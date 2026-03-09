@@ -14,6 +14,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { SharedProps, NavItem } from "@/types";
 
+const ORG_LOGOS: Record<string, string> = {
+  "Greystar Properties": "/brand/greystar-logo-light.png",
+};
+
 const iconMap: Record<string, React.ReactNode> = {
   AlertTriangle: <AlertTriangle className="h-4 w-4" />,
   Building2: <Building2 className="h-4 w-4" />,
@@ -26,7 +30,7 @@ const iconMap: Record<string, React.ReactNode> = {
 };
 
 export default function RoleSidebar({ onNavigate }: { onNavigate: () => void }) {
-  const { auth, routes, nav_items, has_unread_incidents } = usePage<SharedProps>().props;
+  const { auth, routes, nav_items, has_unread_incidents, emergency_phone } = usePage<SharedProps>().props;
   const user = auth.user;
   if (!user) return null;
 
@@ -70,15 +74,33 @@ export default function RoleSidebar({ onNavigate }: { onNavigate: () => void }) 
 
       {/* User info + logout */}
       <div className="border-t border-sidebar-border px-4 py-3">
+        {user.organization_name && ORG_LOGOS[user.organization_name] && (
+          <img
+            src={ORG_LOGOS[user.organization_name]}
+            alt={user.organization_name}
+            className="h-5 mb-3"
+          />
+        )}
         <div className="text-sm font-medium text-sidebar-foreground">
           {user.full_name}
         </div>
+        {user.organization_name && (
+          <div className="text-xs text-sidebar-muted-foreground">
+            {user.organization_name}
+          </div>
+        )}
         <div className="text-xs text-sidebar-muted-foreground">
-          {user.organization_name}
+          {user.title || user.role_label}
         </div>
-        <div className="text-xs text-sidebar-muted-foreground">
-          {user.role_label}
-        </div>
+        {emergency_phone && (
+          <a
+            href={`tel:${emergency_phone.replace(/\D/g, "")}`}
+            className="flex items-center gap-1.5 mt-2 text-xs text-sidebar-muted-foreground hover:text-sidebar-foreground transition-colors"
+          >
+            <Phone className="h-3 w-3" />
+            Emergency: {emergency_phone}
+          </a>
+        )}
         <Button
           variant="ghost"
           size="sm"

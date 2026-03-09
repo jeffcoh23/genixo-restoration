@@ -1,6 +1,6 @@
 import { Link, useForm, usePage } from "@inertiajs/react";
 import { FormEvent, useState } from "react";
-import { AlertTriangle, Building2, ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
+import { AlertTriangle, Building2, ChevronDown, ChevronUp, Phone, Plus, Trash2 } from "lucide-react";
 import AppLayout from "@/layout/AppLayout";
 import PageHeader from "@/components/PageHeader";
 import FormField from "@/components/FormField";
@@ -22,8 +22,10 @@ interface ContactRow {
 }
 
 export default function NewIncident() {
-  const { properties, organizations = [], project_types, damage_types, can_assign, can_manage_contacts, property_users = {}, routes } =
+  const { properties, organizations = [], project_types, damage_types, can_assign, can_manage_contacts, property_users = {}, emergency_phone, creator_org_type, routes } =
     usePage<SharedProps & NewIncidentProps>().props;
+
+  const isMitigationCreator = creator_org_type === "mitigation";
 
   const [selectedOrgId, setSelectedOrgId] = useState(() => {
     if (organizations.length === 1) return String(organizations[0].id);
@@ -37,7 +39,7 @@ export default function NewIncident() {
     : properties;
 
   const initialPropertyId = properties.length === 1 ? String(properties[0].id) : "";
-  const initialAutoAssignIds = initialPropertyId
+  const initialAutoAssignIds = initialPropertyId && isMitigationCreator
     ? (property_users[initialPropertyId] || []).filter((u) => u.auto_assign).map((u) => u.id)
     : [];
 
@@ -77,13 +79,48 @@ export default function NewIncident() {
 
   const handlePropertyChange = (propertyId: string) => {
     const users = propertyId ? (property_users[propertyId] || []) : [];
-    const autoIds = users.filter((u) => u.auto_assign).map((u) => u.id);
+    // PM creator: all unchecked. Genixo creator: pre-check auto_assign users
+    const autoIds = isMitigationCreator
+      ? users.filter((u) => u.auto_assign).map((u) => u.id)
+      : [];
     setData((prev) => ({
       ...prev,
       property_id: propertyId,
       additional_user_ids: autoIds,
       location_of_damage: "",
     }));
+  };
+
+  const handleProjectTypeChange = (projectType: string) => {
+    const users = data.property_id ? (property_users[data.property_id] || []) : [];
+    if (isMitigationCreator) {
+      const isEmergencyNow = projectType === "emergency_response";
+      const wasEmergency = data.project_type === "emergency_response";
+      if (isEmergencyNow && !wasEmergency) {
+        // Add on-call user
+        const onCallUser = users.find((u) => u.is_on_call);
+        if (onCallUser && !data.additional_user_ids.includes(onCallUser.id)) {
+          setData((prev) => ({
+            ...prev,
+            project_type: projectType,
+            additional_user_ids: [...prev.additional_user_ids, onCallUser.id],
+          }));
+          return;
+        }
+      } else if (!isEmergencyNow && wasEmergency) {
+        // Remove on-call user (unless they're also auto_assign)
+        const onCallUser = users.find((u) => u.is_on_call);
+        if (onCallUser && !onCallUser.auto_assign) {
+          setData((prev) => ({
+            ...prev,
+            project_type: projectType,
+            additional_user_ids: prev.additional_user_ids.filter((id) => id !== onCallUser.id),
+          }));
+          return;
+        }
+      }
+    }
+    setData("project_type", projectType);
   };
 
   const toggleUser = (userId: number) => {
@@ -198,7 +235,7 @@ export default function NewIncident() {
                     name="project_type"
                     value={pt.value}
                     checked={data.project_type === pt.value}
-                    onChange={(e) => setData("project_type", e.target.value)}
+                    onChange={(e) => handleProjectTypeChange(e.target.value)}
                     className="sr-only"
                   />
                   <span className={`h-4 w-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
@@ -221,9 +258,15 @@ export default function NewIncident() {
                 <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0 text-amber-700" />
                 <div>
                   <p className="font-semibold">Emergency escalation is enabled.</p>
-                  <p className="mt-0.5">Submitting this request immediately notifies the on-call chain and starts time-based escalation.</p>
+                  <p className="mt-0.5">You will receive a confirmation call within 5-10 minutes of submitting this request.</p>
                 </div>
               </div>
+              {emergency_phone && (
+                <div className="flex items-center gap-2 mt-3 pt-3 border-t border-amber-300/50">
+                  <Phone className="h-4 w-4 flex-shrink-0 text-amber-700" />
+                  <p>For immediate emergency assistance, call <a href={`tel:${emergency_phone.replace(/\D/g, "")}`} className="font-semibold underline">{emergency_phone}</a></p>
+                </div>
+              )}
             </div>
           )}
         </section>
@@ -343,7 +386,9 @@ export default function NewIncident() {
           <section className="rounded-lg border border-border bg-card p-5 space-y-4 shadow-sm">
             <h2 className="text-base font-semibold text-foreground">Team Assignment</h2>
             <p className="text-sm text-muted-foreground">
-              Assigned members are notified immediately. Uncheck anyone who should not be added to this incident.
+              {isMitigationCreator
+                ? "Auto-assigned members are pre-selected. Adjust as needed."
+                : "Select team members to notify about this incident."}
             </p>
 
             {mitigationUsers.length > 0 && (

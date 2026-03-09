@@ -1,7 +1,7 @@
 class Organization < ApplicationRecord
   include HasAddress
 
-  TYPES = %w[mitigation property_management].freeze
+  TYPES = %w[mitigation property_management external].freeze
 
   has_many :users, dependent: :destroy
 
@@ -26,5 +26,9 @@ class Organization < ApplicationRecord
 
   def property_management?
     organization_type == "property_management"
+  end
+
+  def external?
+    organization_type == "external"
   end
 end

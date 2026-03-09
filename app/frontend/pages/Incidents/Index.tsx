@@ -16,6 +16,7 @@ interface Incident {
   property_name: string;
   description: string;
   status: string;
+  display_status: string;
   status_label: string;
   project_type: string;
   project_type_label: string;
@@ -327,7 +328,7 @@ export default function IncidentsIndex() {
                       </span>
                       <ChevronRight className="h-3.5 w-3.5 opacity-60 transition-transform group-active:translate-x-0.5" />
                     </div>
-                    <StatusBadge status={incident.status} label={incident.status_label} />
+                    <StatusBadge status={incident.display_status} label={incident.status_label} />
                   </div>
                   <p className="mt-2 text-sm text-muted-foreground line-clamp-2">{incident.description}</p>
                   <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
@@ -383,7 +384,7 @@ export default function IncidentsIndex() {
                           {incident.description}
                         </td>
                         <td className="px-4 py-3">
-                          <StatusBadge status={incident.status} label={incident.status_label} />
+                          <StatusBadge status={incident.display_status} label={incident.status_label} />
                         </td>
                         <td className="px-4 py-3 text-muted-foreground">
                           {incident.project_type_label}

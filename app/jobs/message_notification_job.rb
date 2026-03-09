@@ -8,9 +8,11 @@ class MessageNotificationJob < ApplicationJob
     incident = message.incident
     sender = message.user
 
-    incident.assigned_users.active.find_each do |user|
+    incident.incident_assignments.includes(:user).each do |assignment|
+      user = assignment.user
       next if user.id == sender.id
-      next unless user.notification_preference("new_message")
+      next unless user.active?
+      next unless assignment.effective_notification_preference("new_message")
       IncidentMailer.new_message(user, message).deliver_later
     end
   end

@@ -1,5 +1,10 @@
 class DashboardController < ApplicationController
   def show
+    if current_user.guest?
+      redirect_to incidents_path
+      return
+    end
+
     service = DashboardService.new(user: current_user)
     groups = service.grouped_incidents
     unread = UnreadCacheService.unread_counts(current_user)
@@ -29,6 +34,7 @@ class DashboardController < ApplicationController
       organization_name: incident.property.property_management_org.name,
       description: incident.description.truncate(80),
       status: incident.status,
+      display_status: incident.display_status,
       status_label: incident.display_status_label,
       project_type_label: Incident::PROJECT_TYPE_LABELS[incident.project_type],
       damage_label: Incident::DAMAGE_LABELS[incident.damage_type],

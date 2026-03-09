@@ -1,17 +1,54 @@
-import { usePage } from "@inertiajs/react";
-import { useState } from "react";
+import { router, usePage } from "@inertiajs/react";
+import { useEffect, useRef, useState } from "react";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SharedProps } from "@/types";
 import RoleSidebar from "./RoleSidebar";
 import FlashMessages from "./FlashMessages";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 export default function AppLayout({ children, wide }: { children: React.ReactNode; wide?: boolean }) {
   const { flash } = usePage<SharedProps>().props;
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [progress, setProgress] = useState<number | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  useEffect(() => {
+    const removeStart = router.on("start", (event) => {
+      // Skip progress bar for non-navigation requests (e.g. DFR generation with preserveScroll)
+      if ((event.detail.visit as { preserveScroll?: boolean }).preserveScroll) return;
+      setProgress(0);
+      // Animate to 80% over 300ms
+      requestAnimationFrame(() => setProgress(80));
+    });
+
+    const removeFinish = router.on("finish", () => {
+      setProgress(100);
+      timerRef.current = setTimeout(() => setProgress(null), 200);
+    });
+
+    return () => {
+      removeStart();
+      removeFinish();
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
 
   return (
     <div className="flex h-screen bg-background" data-app-shell-frame>
+      {/* Navigation progress bar */}
+      {progress !== null && (
+        <div className="fixed top-0 left-0 right-0 z-[100] h-0.5">
+          <div
+            className="h-full bg-primary transition-all ease-out"
+            style={{
+              width: `${progress}%`,
+              transitionDuration: progress === 100 ? "150ms" : "300ms",
+              opacity: progress === 100 ? 0 : 1,
+            }}
+          />
+        </div>
+      )}
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
@@ -31,15 +68,8 @@ export default function AppLayout({ children, wide }: { children: React.ReactNod
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
-        <div className="flex items-center justify-between p-4 lg:justify-center">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-bold">
-              G
-            </div>
-            <span className="text-sm font-semibold text-sidebar-foreground">
-              Genixo Restoration
-            </span>
-          </div>
+        <div className="flex items-center justify-between p-4">
+          <img src="/brand/genixio-horizontal-white-caps.png" alt="Genixo Restoration" className="h-7" />
           <Button
             variant="ghost"
             size="sm"
@@ -63,14 +93,14 @@ export default function AppLayout({ children, wide }: { children: React.ReactNod
           <Button variant="ghost" size="sm" className="h-auto p-0" onClick={() => setSidebarOpen(true)}>
             <Menu className="h-5 w-5 text-foreground" />
           </Button>
-          <span className="text-sm font-semibold text-foreground">
-            Genixo Restoration
-          </span>
+          <img src="/brand/genixio-horizontal-white-caps.png" alt="Genixo Restoration" className="h-6" />
         </div>
 
         <div className={`mx-auto ${wide ? "max-w-7xl" : "max-w-5xl"} px-4 py-6 sm:px-6`}>
           <FlashMessages flash={flash} />
-          {children}
+          <ErrorBoundary>
+            {children}
+          </ErrorBoundary>
         </div>
       </main>
     </div>

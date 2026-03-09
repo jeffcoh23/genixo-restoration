@@ -1,6 +1,8 @@
 require "test_helper"
 
 class IncidentCreationServiceTest < ActiveSupport::TestCase
+  include ActiveJob::TestHelper
+
   setup do
     @genixo = Organization.create!(name: "Genixo", organization_type: "mitigation")
     @greystar = Organization.create!(name: "Greystar", organization_type: "property_management")
@@ -8,9 +10,9 @@ class IncidentCreationServiceTest < ActiveSupport::TestCase
     @property = Property.create!(name: "Sunset Apts", mitigation_org: @genixo, property_management_org: @greystar)
 
     # Mitigation users
-    @manager = User.create!(organization: @genixo, user_type: "manager",
+    @manager = User.create!(organization: @genixo, user_type: "manager", auto_assign: true,
       email_address: "mgr@genixo.com", first_name: "Test", last_name: "Manager", password: "password123")
-    @office = User.create!(organization: @genixo, user_type: "office_sales",
+    @office = User.create!(organization: @genixo, user_type: "office_sales", auto_assign: true,
       email_address: "office@genixo.com", first_name: "Test", last_name: "Office", password: "password123")
     @tech = User.create!(organization: @genixo, user_type: "technician",
       email_address: "tech@genixo.com", first_name: "Test", last_name: "Tech", password: "password123")
@@ -20,7 +22,7 @@ class IncidentCreationServiceTest < ActiveSupport::TestCase
       email_address: "pm@greystar.com", first_name: "Test", last_name: "PM", password: "password123")
     @area_mgr = User.create!(organization: @greystar, user_type: "area_manager",
       email_address: "am@greystar.com", first_name: "Test", last_name: "AreaMgr", password: "password123")
-    @pm_manager = User.create!(organization: @greystar, user_type: "pm_manager",
+    @pm_manager = User.create!(organization: @greystar, user_type: "other",
       email_address: "pmmgr@greystar.com", first_name: "Test", last_name: "PMMgr", password: "password123")
 
     # Assign PM users to property
@@ -60,22 +62,7 @@ class IncidentCreationServiceTest < ActiveSupport::TestCase
 
   # --- Auto-assignment ---
 
-  test "auto-assigns property-assigned PM users" do
-    incident = create_incident
-    assigned_ids = incident.incident_assignments.pluck(:user_id)
-
-    assert_includes assigned_ids, @pm_user.id
-    assert_includes assigned_ids, @area_mgr.id
-  end
-
-  test "auto-assigns pm_managers from the PM org" do
-    incident = create_incident
-    assigned_ids = incident.incident_assignments.pluck(:user_id)
-
-    assert_includes assigned_ids, @pm_manager.id
-  end
-
-  test "auto-assigns mitigation managers and office_sales" do
+  test "auto-assigns mitigation users with auto_assign flag" do
     incident = create_incident
     assigned_ids = incident.incident_assignments.pluck(:user_id)
 
@@ -83,29 +70,62 @@ class IncidentCreationServiceTest < ActiveSupport::TestCase
     assert_includes assigned_ids, @office.id
   end
 
-  test "does not auto-assign technicians" do
+  test "does not auto-assign mitigation users without auto_assign flag" do
     incident = create_incident
     assigned_ids = incident.incident_assignments.pluck(:user_id)
 
     assert_not_includes assigned_ids, @tech.id
   end
 
-  test "does not auto-assign inactive users" do
-    @pm_user.update!(active: false)
+  test "does not auto-assign PM users" do
     incident = create_incident
     assigned_ids = incident.incident_assignments.pluck(:user_id)
 
     assert_not_includes assigned_ids, @pm_user.id
+    assert_not_includes assigned_ids, @area_mgr.id
+    assert_not_includes assigned_ids, @pm_manager.id
   end
 
-  test "does not auto-assign PM users not assigned to the property" do
-    unassigned_pm = User.create!(organization: @greystar, user_type: "property_manager",
-      email_address: "other_pm@greystar.com", first_name: "Other", last_name: "PM", password: "password123")
+  test "does not auto-assign inactive users" do
+    @manager.update!(active: false)
+    incident = create_incident
+    assigned_ids = incident.incident_assignments.pluck(:user_id)
+
+    assert_not_includes assigned_ids, @manager.id
+  end
+
+  test "emergency auto-assigns on-call primary user" do
+    on_call_user = User.create!(organization: @genixo, user_type: "technician",
+      email_address: "oncall@genixo.com", first_name: "OnCall", last_name: "Tech", password: "password123")
+    OnCallConfiguration.create!(organization: @genixo, primary_user: on_call_user, escalation_timeout_minutes: 10)
+
+    incident = create_incident(project_type: "emergency_response")
+    assigned_ids = incident.incident_assignments.pluck(:user_id)
+
+    assert_includes assigned_ids, on_call_user.id
+  end
+
+  test "non-emergency also auto-assigns on-call primary user" do
+    on_call_user = User.create!(organization: @genixo, user_type: "technician",
+      email_address: "oncall@genixo.com", first_name: "OnCall", last_name: "Tech", password: "password123")
+    OnCallConfiguration.create!(organization: @genixo, primary_user: on_call_user, escalation_timeout_minutes: 10)
+
+    incident = create_incident(project_type: "other")
+    assigned_ids = incident.incident_assignments.pluck(:user_id)
+
+    assert_includes assigned_ids, on_call_user.id
+  end
+
+  test "falls back to mitigation managers when no auto-assign or on-call configured" do
+    @manager.update!(auto_assign: false)
+    @office.update!(auto_assign: false)
 
     incident = create_incident
     assigned_ids = incident.incident_assignments.pluck(:user_id)
 
-    assert_not_includes assigned_ids, unassigned_pm.id
+    assert_includes assigned_ids, @manager.id
+    assert_not_includes assigned_ids, @office.id
+    assert_not_includes assigned_ids, @tech.id
   end
 
   # --- Activity events ---
@@ -202,6 +222,40 @@ class IncidentCreationServiceTest < ActiveSupport::TestCase
     assert incident.persisted?
   end
 
+  # --- Assignment notifications ---
+
+  test "enqueues AssignmentNotificationJob for each assigned user except creator" do
+    with_test_queue_adapter do
+      incident = create_incident
+
+      assigned_non_creator = incident.incident_assignments.where.not(user_id: @manager.id)
+      assert assigned_non_creator.any?, "Expected at least one non-creator assignment"
+
+      enqueued = ActiveJob::Base.queue_adapter.enqueued_jobs
+        .select { |j| j["job_class"] == "AssignmentNotificationJob" }
+
+      assigned_non_creator.each do |assignment|
+        match = enqueued.find { |j| j["arguments"].first == assignment.id }
+        assert match, "Expected AssignmentNotificationJob enqueued for assignment #{assignment.id}"
+      end
+    end
+  end
+
+  test "does not enqueue AssignmentNotificationJob for creator" do
+    with_test_queue_adapter do
+      incident = create_incident
+
+      creator_assignment = incident.incident_assignments.find_by(user_id: @manager.id)
+      assert creator_assignment, "Creator should be assigned"
+
+      enqueued_assignment_ids = ActiveJob::Base.queue_adapter.enqueued_jobs
+        .select { |j| j["job_class"] == "AssignmentNotificationJob" }
+        .map { |j| j["arguments"].first }
+
+      assert_not_includes enqueued_assignment_ids, creator_assignment.id
+    end
+  end
+
   # --- Core attributes ---
 
   test "stores optional fields" do
@@ -219,6 +273,14 @@ class IncidentCreationServiceTest < ActiveSupport::TestCase
   end
 
   private
+
+  def with_test_queue_adapter
+    original_adapter = ActiveJob::Base.queue_adapter
+    ActiveJob::Base.queue_adapter = :test
+    yield
+  ensure
+    ActiveJob::Base.queue_adapter = original_adapter
+  end
 
   def create_incident(overrides = {})
     params = {

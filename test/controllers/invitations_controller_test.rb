@@ -100,6 +100,22 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "555-1234", inv.phone
   end
 
+  test "invitation saves title, permissions, and notification_preferences" do
+    login_as @manager
+    post invitations_path, params: {
+      email: "custom@genixo.com", user_type: "technician",
+      title: "Lead Technician",
+      permissions: %w[manage_daily_logs manage_attachments],
+      notification_preferences: { status_change: "true", new_message: "true", incident_user_assignment: "false" }
+    }
+    inv = Invitation.last
+    assert_equal "Lead Technician", inv.title
+    assert_equal %w[manage_daily_logs manage_attachments], inv.permissions
+    assert_equal true, inv.notification_preferences["status_change"]
+    assert_equal true, inv.notification_preferences["new_message"]
+    assert_equal false, inv.notification_preferences["incident_user_assignment"]
+  end
+
   # --- Resend ---
 
   test "manager can resend pending invitation" do
@@ -217,6 +233,31 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
     assert inv.accepted?
   end
 
+  test "accept carries through title, permissions, and notification_preferences to user" do
+    inv = @genixo.invitations.create!(
+      invited_by_user: @manager, email: "full@genixo.com",
+      user_type: "technician", expires_at: 7.days.from_now,
+      title: "Senior Tech",
+      permissions: %w[manage_daily_logs manage_readings],
+      notification_preferences: { "status_change" => true, "incident_user_assignment" => false }
+    )
+
+    assert_difference "User.count", 1 do
+      post accept_invitation_path(inv.token), params: {
+        first_name: "Alex", last_name: "Jones",
+        password: "password123", password_confirmation: "password123"
+      }
+    end
+
+    user = User.find_by(email_address: "full@genixo.com")
+    assert_equal "Senior Tech", user.title
+    assert_equal %w[manage_daily_logs manage_readings], user.permissions
+    assert_equal true, user.notification_preferences["status_change"]
+    assert_equal false, user.notification_preferences["incident_user_assignment"]
+    assert user.can?(:manage_daily_logs)
+    assert_not user.can?(:manage_users)
+  end
+
   test "accept rejects expired invitation" do
     inv = @genixo.invitations.create!(
       invited_by_user: @manager, email: "expired@genixo.com",
@@ -261,6 +302,69 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
       }
     end
     assert_redirected_to invitation_path(inv.token)
+  end
+
+  # --- Guest invitation acceptance ---
+
+  test "accept activates pre-created inactive guest user" do
+    external_org = Organization.create!(name: "External", organization_type: "external")
+    guest = User.create!(organization: external_org, user_type: "guest",
+      email_address: "adjuster@insurance.com", first_name: "Jane", last_name: "Doe",
+      password: SecureRandom.hex(20), active: false)
+
+    inv = external_org.invitations.create!(
+      invited_by_user: @manager, email: "adjuster@insurance.com",
+      user_type: "guest", expires_at: 30.days.from_now
+    )
+
+    assert_no_difference "User.count" do
+      post accept_invitation_path(inv.token), params: {
+        first_name: "Jane", last_name: "Doe",
+        password: "password123", password_confirmation: "password123"
+      }
+    end
+    assert_redirected_to incidents_path
+
+    guest.reload
+    assert guest.active?, "Guest should be activated"
+    assert guest.authenticate("password123"), "Password should be updated"
+    inv.reload
+    assert inv.accepted?
+  end
+
+  test "accept does not reactivate a deactivated non-guest user" do
+    # Deactivated manager with same email as a guest invitation
+    deactivated = User.create!(organization: @genixo, user_type: "manager",
+      email_address: "reuse@example.com", first_name: "Old", last_name: "Manager",
+      password: "password123", active: false)
+
+    external_org = Organization.create!(name: "External", organization_type: "external")
+    inv = external_org.invitations.create!(
+      invited_by_user: @manager, email: "reuse@example.com",
+      user_type: "guest", expires_at: 30.days.from_now
+    )
+
+    # Should fail because no inactive guest user exists — only the deactivated manager
+    assert_no_difference "User.count" do
+      post accept_invitation_path(inv.token), params: {
+        first_name: "New", last_name: "Guest",
+        password: "password123", password_confirmation: "password123"
+      }
+    end
+
+    deactivated.reload
+    assert_not deactivated.active?, "Deactivated manager should stay deactivated"
+  end
+
+  test "guest invitation show page hides org name" do
+    external_org = Organization.create!(name: "External", organization_type: "external")
+    inv = external_org.invitations.create!(
+      invited_by_user: @manager, email: "guest@example.com",
+      user_type: "guest", title: "Insurance Adjuster", expires_at: 30.days.from_now
+    )
+
+    get invitation_path(inv.token)
+    assert_response :success
   end
 
   private

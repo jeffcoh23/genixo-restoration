@@ -44,6 +44,10 @@ sandalwood = Organization.find_or_create_by!(name: "Sandalwood Management") do |
   org.zip = "78701"
 end
 
+Organization.find_or_create_by!(name: "External") do |org|
+  org.organization_type = "external"
+end
+
 puts "  Organizations: #{Organization.count}"
 
 # ==========================================================================
@@ -54,14 +58,16 @@ puts "  Organizations: #{Organization.count}"
 #                 Office/Estimating/BD → office_sales
 
 genixo_user_data = [
-  # Managers (7)
-  { key: :fred,     first_name: "Fred",     last_name: "Hall",    email_address: "fhall@genixoconstruction.com",   user_type: "manager",   phone: "210-763-2025" },
-  { key: :daniel,   first_name: "Daniel",   last_name: "Hutson",  email_address: "dhutson@genixoconstruction.com", user_type: "manager",   phone: "830-463-9104" },
+  # Managers (9)
+  { key: :fred,     first_name: "Fred",     last_name: "Hall",    email_address: "fhall@genixoconstruction.com",   user_type: "manager",   phone: "210-763-2025", auto_assign: true },
+  { key: :daniel,   first_name: "Daniel",   last_name: "Hutson",  email_address: "dhutson@genixoconstruction.com", user_type: "manager",   phone: "830-463-9104", auto_assign: true },
   { key: :caleb,    first_name: "Caleb",    last_name: "Miller",  email_address: "cmiller@genixoconstruction.com", user_type: "manager",   phone: nil },
   { key: :jeremy,   first_name: "Jeremy",   last_name: "Owen",    email_address: "jowen@genixoconstruction.com",   user_type: "manager",   phone: "832-797-8773" },
   { key: :john,     first_name: "John",     last_name: "Tucker",  email_address: "jtucker@genixoconstruction.com", user_type: "manager",   phone: "657-414-9166" },
   { key: :anthony,  first_name: "Anthony",  last_name: "Wagner",  email_address: "awagner@genixoconstruction.com", user_type: "manager",   phone: "405-742-7066" },
   { key: :gordon,   first_name: "Gordon",   last_name: "Ward",    email_address: "gward@genixoconstruction.com",   user_type: "manager",   phone: "210-777-8686" },
+  { key: :david,    first_name: "David",    last_name: "Cohen",   email_address: "dcohen@genixoconstruction.com",  user_type: "manager",   phone: "203-218-0897" },
+  { key: :robin,    first_name: "Robin",    last_name: "Mayo",    email_address: "rmayo20@hotmail.com",             user_type: "manager",   phone: nil },
   # Technicians (3)
   { key: :henry,    first_name: "Henry",    last_name: "Tello",     email_address: "htello@genixoconstruction.com",    user_type: "technician", phone: "346-412-8623" },
   { key: :zachary,  first_name: "Zachary",  last_name: "Meyer",     email_address: "zmeyer@genixoconstruction.com",    user_type: "technician", phone: "512-308-8872" },
@@ -78,40 +84,70 @@ users = {}
 
 genixo_user_data.each do |data|
   key = data.delete(:key)
+  auto = data.delete(:auto_assign) || false
   users[key] = User.find_or_create_by!(organization: genixo, email_address: data[:email_address]) do |u|
-    u.assign_attributes(data.merge(password: "password", timezone: "America/Chicago"))
+    u.assign_attributes(data.merge(password: "password", timezone: "Central Time (US & Canada)", auto_assign: auto))
   end
+  users[key].update_column(:auto_assign, auto) if users[key].auto_assign != auto
 end
 
 # ==========================================================================
 # Users — Greystar Properties (PM)
 # ==========================================================================
 
-users[:jane] = User.find_or_create_by!(organization: greystar, email_address: "jane@greystar.com") do |u|
-  u.first_name = "Jane"
-  u.last_name = "Smith"
+# Kristopher Morris — Senior Manager of Construction, Houston (most-referenced PM user)
+users[:jane] = User.find_or_create_by!(organization: greystar, email_address: "kristopher.morris@greystar.com") do |u|
+  u.first_name = "Kristopher"
+  u.last_name = "Morris"
   u.user_type = "property_manager"
-  u.phone = "713-555-0201"
+  u.title = "Senior Manager of Construction"
+  u.phone = "281-757-7876"
   u.password = "password"
-  u.timezone = "America/Chicago"
+  u.timezone = "Central Time (US & Canada)"
 end
 
-users[:tom] = User.find_or_create_by!(organization: greystar, email_address: "tom@greystar.com") do |u|
-  u.first_name = "Tom"
-  u.last_name = "Rodriguez"
+# Makenzie Costlow — Senior Manager of Construction, Dallas
+users[:tom] = User.find_or_create_by!(organization: greystar, email_address: "makenzie.costlow@greystar.com") do |u|
+  u.first_name = "Makenzie"
+  u.last_name = "Costlow"
   u.user_type = "area_manager"
-  u.phone = "713-555-0202"
+  u.title = "Senior Manager of Construction"
+  u.phone = "903-941-2664"
   u.password = "password"
-  u.timezone = "America/Chicago"
+  u.timezone = "Central Time (US & Canada)"
 end
 
-users[:amy] = User.find_or_create_by!(organization: greystar, email_address: "amy@greystar.com") do |u|
-  u.first_name = "Amy"
-  u.last_name = "Chen"
-  u.user_type = "pm_manager"
-  u.phone = "713-555-0203"
+# Michael Best — Senior Director of Construction, Texas/Minnesota
+users[:amy] = User.find_or_create_by!(organization: greystar, email_address: "michael.best@greystar.com") do |u|
+  u.first_name = "Michael"
+  u.last_name = "Best"
+  u.user_type = "other"
+  u.title = "Senior Director of Construction"
+  u.phone = "713-918-9077"
   u.password = "password"
-  u.timezone = "America/Chicago"
+  u.timezone = "Central Time (US & Canada)"
+end
+
+# Tobias Webb — Senior Manager of Construction, Dallas
+users[:carlos] = User.find_or_create_by!(organization: greystar, email_address: "tobias.webb@greystar.com") do |u|
+  u.first_name = "Tobias"
+  u.last_name = "Webb"
+  u.user_type = "other"
+  u.title = "Senior Manager of Construction"
+  u.phone = "469-659-2484"
+  u.password = "password"
+  u.timezone = "Central Time (US & Canada)"
+end
+
+# Darren North — Senior Manager of Construction, Austin
+users[:diana] = User.find_or_create_by!(organization: greystar, email_address: "darren.north@greystar.com") do |u|
+  u.first_name = "Darren"
+  u.last_name = "North"
+  u.user_type = "other"
+  u.title = "Senior Manager of Construction"
+  u.phone = "760-840-7535"
+  u.password = "password"
+  u.timezone = "Central Time (US & Canada)"
 end
 
 # ==========================================================================
@@ -125,6 +161,11 @@ users[:bob] = User.find_or_create_by!(organization: sandalwood, email_address: "
   u.phone = "512-555-0301"
   u.password = "password"
   u.timezone = "America/Chicago"
+end
+
+# Backfill permissions from role defaults for any users missing them
+User.where("permissions = '[]'::jsonb").find_each do |u|
+  u.update_columns(permissions: Permissions.defaults_for(u.user_type))
 end
 
 puts "  Users: #{User.count}"
@@ -234,8 +275,8 @@ if Incident.count.zero?
       assigned << u
     end
 
-    # pm_managers in the PM org (auto-assigned to all incidents in their org)
-    User.where(organization: property.property_management_org, user_type: "pm_manager", active: true).find_each do |u|
+    # others in the PM org (auto-assigned to all incidents in their org)
+    User.where(organization: property.property_management_org, user_type: "other", active: true).find_each do |u|
       assigned << u unless assigned.include?(u)
     end
 

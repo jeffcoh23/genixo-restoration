@@ -14,7 +14,10 @@ class UsersController < ApplicationController
       active_users: active.map { |u| serialize_user(u) },
       deactivated_users: deactivated.map { |u| serialize_user(u) },
       pending_invitations: pending.map { |inv| serialize_invitation(inv) },
-      org_options: invite_org_options
+      org_options: invite_org_options,
+      permissions_options: Permissions::MITIGATION_VISIBLE_PERMISSIONS.map { |p| { value: p.to_s, label: Permissions::PERMISSION_LABELS[p] } },
+      role_defaults: Permissions::ROLE_PERMISSIONS.transform_values { |perms| perms.map(&:to_s) },
+      notification_options: User::NOTIFICATION_LABELS.map { |key, meta| { key: key, label: meta[:label], description: meta[:description] } }
     }
   end
 
@@ -24,7 +27,10 @@ class UsersController < ApplicationController
       can_edit: can_edit_target_user?,
       can_edit_role: can_edit_role_for_target?,
       can_deactivate: @user.id != current_user.id,
-      role_options: can_edit_role_for_target? ? role_options_for(@user.organization) : []
+      role_options: can_edit_role_for_target? ? role_options_for(@user.organization) : [],
+      permissions_options: Permissions::MITIGATION_VISIBLE_PERMISSIONS.map { |p| { value: p.to_s, label: Permissions::PERMISSION_LABELS[p] } },
+      notification_options: User::NOTIFICATION_LABELS.map { |key, meta| { key: key, label: meta[:label], description: meta[:description] } },
+      timezone_options: SettingsController::TIMEZONE_OPTIONS
     }
   end
 
@@ -84,6 +90,7 @@ class UsersController < ApplicationController
       email: user.email_address,
       phone: format_phone(user.phone),
       phone_raw: user.phone,
+      title: user.title,
       role_label: User::ROLE_LABELS[user.user_type],
       organization_name: user.organization.name,
       active: user.active
@@ -114,6 +121,7 @@ class UsersController < ApplicationController
       {
         id: o.id,
         name: o.name,
+        is_mitigation: o.mitigation?,
         role_options: types.map { |t| { value: t, label: User::ROLE_LABELS[t] } }
       }
     }
@@ -124,6 +132,9 @@ class UsersController < ApplicationController
       first_name: user.first_name,
       last_name: user.last_name,
       timezone: user.timezone,
+      permissions: user.permissions,
+      notification_preferences: user.notification_preferences,
+      auto_assign: user.auto_assign,
       update_path: user_path(user),
       is_pm_user: user.pm_user?,
       deactivate_path: deactivate_user_path(user),
@@ -175,7 +186,17 @@ class UsersController < ApplicationController
 
   def user_update_params
     allowed = [ :first_name, :last_name, :email_address, :phone, :timezone ]
-    allowed << :user_type if can_edit_role_for_target?
-    params.require(:user).permit(*allowed)
+    if can_edit_role_for_target?
+      allowed << :user_type
+      allowed << :title
+      allowed << :auto_assign
+      allowed << { permissions: [] }
+      allowed << { notification_preferences: User::NOTIFICATION_DEFAULTS.keys }
+    end
+    params.require(:user).permit(*allowed).tap do |p|
+      if p[:notification_preferences].present?
+        p[:notification_preferences] = p[:notification_preferences].to_unsafe_h.transform_values { |v| v == true || v == "true" }
+      end
+    end
   end
 end

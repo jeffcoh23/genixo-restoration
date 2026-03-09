@@ -8,6 +8,22 @@ export interface TeamUser {
   phone: string | null;
   phone_raw: string | null;
   remove_path: string | null;
+  notification_overrides_path: string | null;
+  notification_overrides: Record<string, boolean>;
+  global_preferences: { status_change: boolean; new_message: boolean };
+}
+
+export interface GuestUser {
+  id: number;
+  assignment_id: number;
+  full_name: string;
+  initials: string;
+  title: string | null;
+  email: string;
+  phone: string | null;
+  phone_raw: string | null;
+  pending: boolean;
+  remove_path: string | null;
 }
 
 export interface AssignableUser {
@@ -47,6 +63,7 @@ export interface LaborEntry {
   user_name: string | null;
   created_by_name: string;
   edit_path: string | null;
+  delete_path: string | null;
   // Raw values for edit form (only present when editable)
   started_at?: string | null;
   ended_at?: string | null;
@@ -240,6 +257,7 @@ export interface IncidentDetail {
   estimated_date_of_return: string | null;
   estimated_date_of_return_label: string | null;
   status: string;
+  display_status: string;
   status_label: string;
   project_type: string;
   project_type_label: string;
@@ -271,8 +289,9 @@ export interface IncidentDetail {
   }[];
   mitigation_team: TeamUser[];
   pm_team: TeamUser[];
+  guest_team: GuestUser[];
+  guest_assignments_path: string | null;
   contacts: Contact[];
-  pm_contacts: { id: number; name: string; title: string | null; email: string | null; phone: string | null }[];
   valid_transitions: Transition[];
 }
 
@@ -328,6 +347,7 @@ export interface NewIncidentAssignableUser {
   organization_name: string;
   org_type: "mitigation" | "pm";
   auto_assign: boolean;
+  is_on_call: boolean;
 }
 
 export interface NewIncidentProperty {
@@ -351,6 +371,8 @@ export interface NewIncidentProps {
   can_assign: boolean;
   can_manage_contacts: boolean;
   property_users: Record<string, NewIncidentAssignableUser[]>;
+  emergency_phone: string | null;
+  creator_org_type: "mitigation" | "pm";
 }
 
 export interface EquipmentLogItem {
@@ -447,7 +469,6 @@ export interface ShowProps {
   can_manage_moisture: boolean;
   can_manage_psychrometric: boolean;
   can_manage_attachments: boolean;
-  show_mitigation_team: boolean;
   can_create_notes: boolean;
   moisture_data: MoistureData;
   psychrometric_data: PsychrometricData;

@@ -18,6 +18,7 @@ const CATEGORIES = [
   { value: "psychrometric_log", label: "Psychrometric Log" },
   { value: "signed_document", label: "Signed Document" },
   { value: "sign_in_sheet", label: "Sign-In Sheet" },
+  { value: "proposal", label: "Proposal" },
   { value: "general", label: "General" },
 ];
 

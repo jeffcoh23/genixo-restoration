@@ -1,6 +1,7 @@
 class IncidentAssignmentsController < ApplicationController
   before_action :set_incident
-  before_action :require_assign_permission
+  before_action :require_assign_permission, except: :update_notifications
+  before_action :set_assignment, only: :update_notifications
 
   def create
     user = assignable_users.find(params[:user_id])
@@ -16,6 +17,79 @@ class IncidentAssignmentsController < ApplicationController
     redirect_to incident_path(@incident), notice: "#{user.full_name} assigned."
   rescue ActiveRecord::RecordNotUnique, ActiveRecord::RecordInvalid
     redirect_to incident_path(@incident), alert: "User is already assigned."
+  end
+
+  def update_notifications
+    raise ActiveRecord::RecordNotFound unless can_update_notification_overrides?(@assignment.user)
+
+    overrides = {}
+    IncidentAssignment::OVERRIDABLE_NOTIFICATION_KEYS.each do |key|
+      overrides[key] = params[key] == "1" if params.key?(key)
+    end
+
+    @assignment.update!(notification_overrides: overrides)
+    redirect_to incident_path(@incident), notice: "Notification preferences updated."
+  end
+
+  def create_guest
+    external_org = Organization.find_by!(organization_type: "external")
+    email = params[:email]&.strip&.downcase
+
+    user = User.find_by(email_address: email)
+
+    if user && !user.guest?
+      redirect_to incident_path(@incident), alert: "#{email} already has a non-guest account."
+      return
+    end
+
+    if user.nil?
+      user = external_org.users.new(
+        email_address: email,
+        first_name: params[:first_name],
+        last_name: params[:last_name],
+        title: params[:title].presence,
+        user_type: User::GUEST,
+        password: SecureRandom.hex(20),
+        active: false
+      )
+      unless user.save
+        redirect_to incident_path(@incident), alert: "Could not create guest: #{user.errors.full_messages.first}"
+        return
+      end
+
+      invitation = external_org.invitations.create!(
+        invited_by_user: current_user,
+        email: email,
+        user_type: User::GUEST,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        title: user.title,
+        permissions: [],
+        expires_at: 30.days.from_now
+      )
+      InvitationMailer.invite(invitation).deliver_later
+    elsif !user.active?
+      # Existing inactive guest — resend invitation so they get the email
+      invitation = user.organization.invitations.where(email: email, accepted_at: nil).first
+      if invitation
+        invitation.update!(token: SecureRandom.urlsafe_base64(32), expires_at: 30.days.from_now)
+        InvitationMailer.invite(invitation).deliver_later
+      end
+    end
+
+    assignment = @incident.incident_assignments.find_or_create_by!(user: user) do |a|
+      a.assigned_by_user = current_user
+    end
+
+    if assignment.previously_new_record?
+      ActivityLogger.log(
+        incident: @incident, event_type: "user_assigned", user: current_user,
+        metadata: { assigned_user_id: user.id, assigned_user_name: user.full_name }
+      )
+      AssignmentNotificationJob.perform_later(assignment.id) if user.active?
+    end
+
+    redirect_to incident_path(@incident), notice: "#{user.full_name} invited as guest."
   end
 
   def destroy
@@ -43,6 +117,10 @@ class IncidentAssignmentsController < ApplicationController
     @incident = find_visible_incident!(params[:incident_id])
   end
 
+  def set_assignment
+    @assignment = @incident.incident_assignments.find(params[:id])
+  end
+
   def require_assign_permission
     raise ActiveRecord::RecordNotFound unless can_assign_to_incident?
   end
@@ -50,11 +128,6 @@ class IncidentAssignmentsController < ApplicationController
   # Mitigation managers can assign anyone. PM users can assign their own org's users.
   def can_assign_to_incident?
     mitigation_admin? || current_user.pm_user?
-  end
-
-  def can_remove_assignment?(user)
-    return true if mitigation_admin?
-    current_user.pm_user? && user.organization_id == current_user.organization_id
   end
 
   def assignable_users

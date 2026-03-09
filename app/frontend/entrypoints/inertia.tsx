@@ -18,7 +18,11 @@ createInertiaApp({
       string,
       { default: React.ComponentType }
     >;
-    return pages[`../pages/${name}.tsx`];
+    const page = pages[`../pages/${name}.tsx`];
+    if (!page) {
+      return pages["../pages/Error.tsx"];
+    }
+    return page;
   },
   setup({ el, App, props }) {
     applyMobileShellClass();

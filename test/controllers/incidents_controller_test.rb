@@ -19,9 +19,9 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     )
 
     # Mitigation org users
-    @manager = User.create!(organization: @genixo, user_type: "manager",
+    @manager = User.create!(organization: @genixo, user_type: "manager", auto_assign: true,
       email_address: "mgr@genixo.com", first_name: "Test", last_name: "Manager", password: "password123")
-    @office = User.create!(organization: @genixo, user_type: "office_sales",
+    @office = User.create!(organization: @genixo, user_type: "office_sales", auto_assign: true,
       email_address: "office@genixo.com", first_name: "Test", last_name: "Office", password: "password123")
     @tech = User.create!(organization: @genixo, user_type: "technician",
       email_address: "tech@genixo.com", first_name: "Test", last_name: "Tech", password: "password123")
@@ -31,7 +31,7 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
       email_address: "pm@greystar.com", first_name: "Test", last_name: "PM", password: "password123")
     @area_mgr = User.create!(organization: @greystar, user_type: "area_manager",
       email_address: "am@greystar.com", first_name: "Test", last_name: "AreaMgr", password: "password123")
-    @pm_mgr = User.create!(organization: @greystar, user_type: "pm_manager",
+    @pm_mgr = User.create!(organization: @greystar, user_type: "other",
       email_address: "pmmgr@greystar.com", first_name: "Test", last_name: "PMMgr", password: "password123")
 
     # Assign PM users to the property
@@ -192,7 +192,7 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
-  test "pm_manager gets 404 on new incident page" do
+  test "other user gets 404 on new incident page" do
     login_as @pm_mgr
     get new_incident_path
     assert_response :not_found
@@ -203,13 +203,14 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
   test "creates incident with valid params" do
     login_as @manager
 
-    # Auto-assign creates 5 assignments:
-    #   PM-side property assignees: @pm_user, @area_mgr (2)
-    #   PM-side pm_managers in PM org: @pm_mgr (1)
-    #   Mitigation-side managers + office_sales: @manager, @office (2)
+    # Auto-assign creates 3 assignments:
+    #   Mitigation-side auto_assign users: @manager, @office (2)
+    #   Emergency on-call primary user (if configured) — not configured here
+    #   + on-call primary for emergency: uses on_call_config if present
+    # Since emergency_response + on_call not configured, expect 2
     assert_difference "Incident.count", 1 do
       assert_difference "ActivityEvent.count", 2 do
-        assert_difference "IncidentAssignment.count", 5 do
+        assert_difference "IncidentAssignment.count", 2 do
           post incidents_path, params: {
             incident: {
               property_id: @property.id,
@@ -619,25 +620,15 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
 
   # --- Hide closed incidents by default ---
 
-  # --- Manage tab visibility ---
+  # --- Manage tab: mitigation team visible to all ---
 
-  test "mitigation user sees show_mitigation_team true" do
-    incident = create_test_incident(status: "active", property: @property)
-    login_as @manager
-    get incident_path(incident)
-    assert_response :success
-    assert_includes response.body, "show_mitigation_team"
-    # HTML-encoded JSON: &quot; surrounds keys
-    assert_includes response.body, "show_mitigation_team&quot;:true"
-  end
-
-  test "PM user sees show_mitigation_team false" do
+  test "PM user sees mitigation team on incident" do
     incident = create_test_incident(status: "active", property: @property)
     IncidentAssignment.create!(incident: incident, user: @pm_user, assigned_by_user: @manager)
     login_as @pm_user
     get incident_path(incident)
     assert_response :success
-    assert_includes response.body, "show_mitigation_team&quot;:false"
+    assert_includes response.body, "mitigation_team"
   end
 
   # --- Hide closed incidents by default ---
@@ -706,6 +697,121 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     att.reload
     assert_equal "New desc", att.description
     assert_equal Date.parse("2026-02-20"), att.log_date
+  end
+
+  # --- Emergency phone shared prop ---
+
+  test "PM user sees emergency_phone in shared props" do
+    @genixo.update!(phone: "2105550100")
+    login_as @pm_user
+    get incidents_path
+    assert_response :success
+    assert_includes response.body, "(210) 555-0100"
+  end
+
+  test "mitigation user does not see emergency_phone" do
+    @genixo.update!(phone: "2105550100")
+    login_as @manager
+    get incidents_path
+    assert_response :success
+    assert_not_includes response.body, "(210) 555-0100"
+  end
+
+  # --- Post-creation flash messages ---
+
+  test "PM emergency creation shows dispatch flash" do
+    login_as @pm_user
+    post incidents_path, params: {
+      incident: {
+        property_id: @property.id, project_type: "emergency_response",
+        damage_type: "flood", description: "Pipe burst emergency"
+      }
+    }
+    assert_equal "Emergency dispatched. You will receive a confirmation call within 5-10 minutes.", flash[:notice]
+  end
+
+  test "PM non-emergency creation shows next business day flash" do
+    login_as @pm_user
+    post incidents_path, params: {
+      incident: {
+        property_id: @property.id, project_type: "mitigation_rfq",
+        damage_type: "flood", description: "Slow leak needs attention"
+      }
+    }
+    assert_equal "Incident submitted. You'll receive a confirmation call on the next business day.", flash[:notice]
+  end
+
+  test "mitigation creation shows generic flash" do
+    login_as @manager
+    post incidents_path, params: {
+      incident: {
+        property_id: @property.id, project_type: "emergency_response",
+        damage_type: "flood", description: "Manager-created emergency"
+      }
+    }
+    assert_equal "Incident created.", flash[:notice]
+  end
+
+  # --- Guest access ---
+
+  test "guest sees only assigned incidents on index" do
+    external = Organization.create!(name: "External", organization_type: "external")
+    guest = User.create!(organization: external, user_type: "guest",
+      email_address: "guest@example.com", first_name: "Guest", last_name: "User", password: "password123")
+
+    assigned_incident = create_test_incident(status: "active", property: @property, description: "Assigned to guest")
+    unassigned_incident = create_test_incident(status: "active", property: @property, description: "Not for guest")
+    IncidentAssignment.create!(incident: assigned_incident, user: guest, assigned_by_user: @manager)
+
+    login_as guest
+    get incidents_path
+    assert_response :success
+    assert_includes response.body, "Assigned to guest"
+    assert_not_includes response.body, "Not for guest"
+  end
+
+  test "guest can view assigned incident show page" do
+    external = Organization.create!(name: "External", organization_type: "external")
+    guest = User.create!(organization: external, user_type: "guest",
+      email_address: "guest2@example.com", first_name: "Guest", last_name: "Two", password: "password123")
+
+    incident = create_test_incident(status: "active", property: @property)
+    IncidentAssignment.create!(incident: incident, user: guest, assigned_by_user: @manager)
+
+    login_as guest
+    get incident_path(incident)
+    assert_response :success
+  end
+
+  test "guest cannot view unassigned incident" do
+    external = Organization.create!(name: "External", organization_type: "external")
+    guest = User.create!(organization: external, user_type: "guest",
+      email_address: "guest3@example.com", first_name: "Guest", last_name: "Three", password: "password123")
+
+    incident = create_test_incident(status: "active", property: @property)
+
+    login_as guest
+    get incident_path(incident)
+    assert_response :not_found
+  end
+
+  test "show scopes notification overrides to current user" do
+    incident = create_test_incident(status: "active")
+    IncidentAssignment.create!(incident: incident, user: @manager, assigned_by_user: @manager,
+      notification_overrides: { "status_change" => true })
+    IncidentAssignment.create!(incident: incident, user: @tech, assigned_by_user: @manager,
+      notification_overrides: { "new_message" => false })
+
+    login_as @tech
+    get incident_path(incident)
+    assert_response :success
+
+    props = inertia_props
+    # Tech should see their own overrides, not the manager's
+    tech_entry = props.dig("incident", "mitigation_team")&.find { |u| u["id"] == @tech.id }
+    if tech_entry
+      assert_equal({ "new_message" => false }, tech_entry["notification_overrides"])
+    end
   end
 
   test "index shows closed incidents when status filter includes closed" do

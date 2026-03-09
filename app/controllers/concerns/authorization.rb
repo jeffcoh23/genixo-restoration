@@ -13,6 +13,8 @@ module Authorization
       Property.joins(incidents: :incident_assignments)
               .where(incident_assignments: { user_id: current_user.id })
               .distinct
+    when User::GUEST
+      Property.none
     when *User::PM_TYPES
       Property.joins(:property_assignments)
               .where(property_assignments: { user_id: current_user.id })
@@ -64,15 +66,15 @@ module Authorization
   end
 
   def can_create_labor?
-    current_user.can?(Permissions::CREATE_LABOR)
+    current_user.can?(Permissions::MANAGE_DAILY_LOGS)
   end
 
   def can_create_equipment?
-    current_user.can?(Permissions::CREATE_EQUIPMENT)
+    current_user.can?(Permissions::MANAGE_DAILY_LOGS)
   end
 
   def can_create_operational_note?
-    current_user.can?(Permissions::CREATE_OPERATIONAL_NOTE)
+    current_user.can?(Permissions::MANAGE_DAILY_LOGS)
   end
 
   def can_manage_on_call?
@@ -84,7 +86,7 @@ module Authorization
   end
 
   def can_manage_moisture_readings?
-    current_user.can?(Permissions::MANAGE_MOISTURE_READINGS)
+    current_user.can?(Permissions::MANAGE_READINGS)
   end
 
   def can_manage_attachments?
@@ -92,7 +94,7 @@ module Authorization
   end
 
   def can_manage_psychrometric_readings?
-    current_user.can?(Permissions::MANAGE_PSYCHROMETRIC_READINGS)
+    current_user.can?(Permissions::MANAGE_READINGS)
   end
 
   # --- Resource-scoped checks (need a specific record) ---
@@ -114,5 +116,14 @@ module Authorization
   def can_assign_to_property?(property)
     return true if mitigation_admin?
     current_user.pm_user? && property.assigned_users.exists?(id: current_user.id)
+  end
+
+  def can_update_notification_overrides?(user)
+    user.id == current_user.id
+  end
+
+  def can_remove_assignment?(user)
+    return true if mitigation_admin?
+    current_user.pm_user? && (user.organization_id == current_user.organization_id || user.guest?)
   end
 end

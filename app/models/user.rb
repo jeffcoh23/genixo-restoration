@@ -5,11 +5,14 @@ class User < ApplicationRecord
   OFFICE_SALES      = "office_sales"
   PROPERTY_MANAGER  = "property_manager"
   AREA_MANAGER      = "area_manager"
-  PM_MANAGER        = "pm_manager"
+  OTHER             = "other"
+
+  GUEST             = "guest"
 
   MITIGATION_TYPES = [ MANAGER, TECHNICIAN, OFFICE_SALES ].freeze
-  PM_TYPES = [ PROPERTY_MANAGER, AREA_MANAGER, PM_MANAGER ].freeze
-  ALL_TYPES = (MITIGATION_TYPES + PM_TYPES).freeze
+  PM_TYPES = [ PROPERTY_MANAGER, AREA_MANAGER, OTHER ].freeze
+  EXTERNAL_TYPES = [ GUEST ].freeze
+  ALL_TYPES = (MITIGATION_TYPES + PM_TYPES + EXTERNAL_TYPES).freeze
 
   ROLE_LABELS = {
     MANAGER => "Manager",
@@ -17,11 +20,12 @@ class User < ApplicationRecord
     OFFICE_SALES => "Office/Sales",
     PROPERTY_MANAGER => "Property Manager",
     AREA_MANAGER => "Area Manager",
-    PM_MANAGER => "PM Manager"
+    OTHER => "Other",
+    GUEST => "Guest"
   }.freeze
 
   # Sort order for labor-related dropdowns (technicians first)
-  LABOR_SORT_ORDER = [ TECHNICIAN, MANAGER, OFFICE_SALES, PROPERTY_MANAGER, AREA_MANAGER, PM_MANAGER ].freeze
+  LABOR_SORT_ORDER = [ TECHNICIAN, MANAGER, OFFICE_SALES, PROPERTY_MANAGER, AREA_MANAGER, OTHER ].freeze
 
   has_secure_password validations: false
 
@@ -44,6 +48,9 @@ class User < ApplicationRecord
   validates :user_type, presence: true, inclusion: { in: ALL_TYPES }
   validates :timezone, presence: true
   validate :user_type_matches_org_type
+  validate :auto_assign_only_for_mitigation
+
+  before_validation :set_default_permissions, on: :create
 
   normalizes :email_address, with: ->(e) { e.strip.downcase }
   normalizes :phone, with: ->(p) {
@@ -56,6 +63,7 @@ class User < ApplicationRecord
   attribute :timezone, default: "Central Time (US & Canada)"
 
   scope :active, -> { where(active: true) }
+  scope :auto_assigned, -> { where(auto_assign: true) }
 
   def full_name
     "#{first_name} #{last_name}"
@@ -81,16 +89,24 @@ class User < ApplicationRecord
     PM_TYPES.include?(user_type)
   end
 
+  def guest?
+    user_type == GUEST
+  end
+
   def can?(permission)
-    Permissions.has?(user_type, permission)
+    permissions.include?(permission.to_s)
   end
 
   NOTIFICATION_DEFAULTS = {
     "status_change" => false,
     "new_message" => false,
-    "daily_digest" => true,
-    "incident_creation" => false,
-    "user_assignment" => false
+    "incident_user_assignment" => false
+  }.freeze
+
+  NOTIFICATION_LABELS = {
+    "status_change" => { label: "Status changes", description: "Get notified when an incident status changes" },
+    "new_message" => { label: "New messages", description: "Get notified when someone sends a message on your incidents" },
+    "incident_user_assignment" => { label: "Assignment alerts", description: "Get notified when you're assigned to or a new incident is created for you" }
   }.freeze
 
   def notification_preference(key)
@@ -99,6 +115,10 @@ class User < ApplicationRecord
 
   private
 
+  def set_default_permissions
+    self.permissions = Permissions.defaults_for(user_type) if permissions.blank? && user_type.present?
+  end
+
   def user_type_matches_org_type
     return unless organization && user_type.present?
 
@@ -106,6 +126,14 @@ class User < ApplicationRecord
       errors.add(:user_type, "#{user_type} is not valid for a mitigation organization")
     elsif organization.property_management? && !PM_TYPES.include?(user_type)
       errors.add(:user_type, "#{user_type} is not valid for a property management organization")
+    elsif organization.external? && !EXTERNAL_TYPES.include?(user_type)
+      errors.add(:user_type, "#{user_type} is not valid for an external organization")
+    end
+  end
+
+  def auto_assign_only_for_mitigation
+    if auto_assign? && !MITIGATION_TYPES.include?(user_type)
+      errors.add(:auto_assign, "can only be enabled for mitigation users")
     end
   end
 end

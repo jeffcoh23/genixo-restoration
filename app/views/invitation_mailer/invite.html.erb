@@ -1,8 +1,12 @@
 <h1>You've been invited!</h1>
 
-<p>You've been invited to join <strong><%= @invitation.organization.name %></strong> as a <strong><%= @invitation.user_type.titleize %></strong>.</p>
-
-<p>Click the link below to create your account:</p>
+<% if @guest %>
+  <p>You've been invited to view incident details on <strong>Genixo Restoration</strong>.</p>
+  <p>Click the link below to create your account and access the incidents shared with you:</p>
+<% else %>
+  <p>You've been invited to join <strong><%= @invitation.organization.name %></strong> as a <strong><%= @invitation.user_type.titleize %></strong>.</p>
+  <p>Click the link below to create your account:</p>
+<% end %>
 
 <p><%= link_to "Accept Invitation", @accept_url %></p>
 

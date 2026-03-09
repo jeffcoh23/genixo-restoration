@@ -77,7 +77,14 @@ class IncidentsController < ApplicationController
   end
 
   def new
-    properties = creatable_properties.includes(:property_management_org)
+    properties = creatable_properties.includes(:property_management_org, :mitigation_org)
+
+    # For PM users, look up the mitigation org phone for emergency callout
+    emergency_phone = if current_user.pm_user?
+      mit_org = properties.first&.mitigation_org
+      format_phone(mit_org&.phone)
+    end
+
     render inertia: "Incidents/New", props: {
       properties: properties.map { |p| { id: p.id, name: p.name, address: p.short_address, organization_id: p.property_management_org_id, organization_name: p.property_management_org.name } },
       organizations: properties.map(&:property_management_org).uniq.sort_by(&:name).map { |o| { id: o.id, name: o.name } },
@@ -85,7 +92,9 @@ class IncidentsController < ApplicationController
       damage_types: Incident::DAMAGE_TYPES.map { |t| { value: t, label: Incident::DAMAGE_LABELS[t] } },
       can_assign: can_assign_to_incident?,
       can_manage_contacts: can_manage_contacts?,
-      property_users: can_assign_to_incident? ? assignable_users_by_property : {}
+      property_users: can_assign_to_incident? ? assignable_users_by_property : {},
+      emergency_phone: emergency_phone,
+      creator_org_type: current_user.mitigation_user? ? "mitigation" : "pm"
     }
   end
 
@@ -97,7 +106,15 @@ class IncidentsController < ApplicationController
       params: incident_params
     ).call
 
-    redirect_to incident_path(incident), notice: "Incident created."
+    notice = if current_user.pm_user? && incident.emergency?
+      "Emergency dispatched. You will receive a confirmation call within 5-10 minutes."
+    elsif current_user.pm_user?
+      "Incident submitted. You'll receive a confirmation call on the next business day."
+    else
+      "Incident created."
+    end
+
+    redirect_to incident_path(incident), notice: notice
   rescue ActiveRecord::RecordNotFound
     redirect_to new_incident_path, alert: "Property not found."
   rescue ActiveRecord::RecordInvalid => e
@@ -137,7 +154,7 @@ class IncidentsController < ApplicationController
     )
 
     assigned = @incident.incident_assignments.includes(user: :organization)
-      .joins(:user).where(users: { active: true })
+      .joins(:user).where("users.active = true OR users.user_type = ?", User::GUEST)
       .order("users.last_name, users.first_name")
 
     render inertia: "Incidents/Show", props: {
@@ -156,6 +173,7 @@ class IncidentsController < ApplicationController
         estimated_date_of_return: @incident.estimated_date_of_return&.iso8601,
         estimated_date_of_return_label: format_date(@incident.estimated_date_of_return),
         status: @incident.status,
+        display_status: @incident.display_status,
         status_label: @incident.display_status_label,
         project_type: @incident.project_type,
         project_type_label: Incident::PROJECT_TYPE_LABELS[@incident.project_type],
@@ -183,8 +201,12 @@ class IncidentsController < ApplicationController
         },
         deployed_equipment: deployed_equipment,
         assignments_path: incident_assignments_path(@incident),
-        mitigation_team: serialize_team_users(assigned.select { |a| a.user.mitigation_user? }),
+        mitigation_team: serialize_team_users(assigned.select { |a|
+          a.user.mitigation_user? && (current_user.mitigation_user? || a.user.user_type != User::OFFICE_SALES)
+        }),
         pm_team: serialize_team_users(assigned.select { |a| a.user.pm_user? }),
+        guest_team: serialize_guest_users(assigned.select { |a| a.user.guest? }),
+        guest_assignments_path: can_assign_to_incident? ? guest_incident_assignments_path(@incident) : nil,
         show_stats: @incident.labor_entries.any? || deployed_equipment.any?,
         stats: incident_stats(@incident, deployed_equipment),
         contacts_path: incident_contacts_path(@incident),
@@ -201,7 +223,6 @@ class IncidentsController < ApplicationController
             remove_path: can_manage_contacts? ? incident_contact_path(@incident, c) : nil
           }
         },
-        pm_contacts: serialize_pm_contacts(@incident),
         messages_path: incident_messages_path(@incident),
         activity_entries_path: incident_activity_entries_path(@incident),
         labor_entries_path: incident_labor_entries_path(@incident),
@@ -232,7 +253,6 @@ class IncidentsController < ApplicationController
       can_manage_moisture: can_manage_moisture_readings?,
       can_manage_psychrometric: can_manage_psychrometric_readings?,
       can_manage_attachments: can_manage_attachments?,
-      show_mitigation_team: current_user.mitigation_user?,
       can_create_notes: can_create_operational_note?,
       project_types: Incident::PROJECT_TYPES.map { |t| { value: t, label: Incident::PROJECT_TYPE_LABELS[t] } },
       damage_types: Incident::DAMAGE_TYPES.map { |t| { value: t, label: Incident::DAMAGE_LABELS[t] } },
@@ -284,7 +304,7 @@ class IncidentsController < ApplicationController
   def dfr
     date = params[:date].presence || Date.current.to_s
     DfrPdfJob.perform_later(@incident.id, date, current_user.timezone, current_user.id)
-    redirect_to incident_path(@incident), notice: "DFR PDF is being generated. It will appear in documents shortly."
+    redirect_to incident_path(@incident), notice: "DFR PDF is being generated. It will appear in the daily log shortly."
   end
 
   def attachments_page
@@ -433,11 +453,6 @@ class IncidentsController < ApplicationController
     mitigation_admin? || current_user.pm_user?
   end
 
-  def can_remove_assignment?(user)
-    return true if mitigation_admin?
-    current_user.pm_user? && user.organization_id == current_user.organization_id
-  end
-
   def assignable_users_by_property
     properties = creatable_properties.includes(:mitigation_org, :property_management_org)
 
@@ -454,24 +469,33 @@ class IncidentsController < ApplicationController
     prop_assignments = PropertyAssignment.where(property: properties).pluck(:property_id, :user_id)
     assigned_by_property = prop_assignments.group_by(&:first).transform_values { |v| v.map(&:last).to_set }
 
+    # Look up on-call primary user per mitigation org
+    on_call_configs = OnCallConfiguration.where(
+      organization_id: properties.map(&:mitigation_org_id).uniq
+    ).index_by(&:organization_id)
+
     result = {}
     properties.each do |property|
       mit_users = current_user.pm_user? ? [] : (users_by_org[property.mitigation_org_id] || [])
       pm_users = users_by_org[property.property_management_org_id] || []
-      prop_assigned_ids = assigned_by_property[property.id] || Set.new
+      on_call_primary_id = on_call_configs[property.mitigation_org_id]&.primary_user_id
 
       property_user_list = (mit_users + pm_users).map do |u|
-        auto = if u.mitigation_user? && !u.technician?
-          true # GenXO managers + office/sales
-        elsif u.user_type == User::PM_MANAGER
-          true # PM managers always auto-assigned
-        elsif prop_assigned_ids.include?(u.id) && [ User::PROPERTY_MANAGER, User::AREA_MANAGER ].include?(u.user_type)
-          true # PM-side property assignees
+        auto = if u.mitigation_user?
+          u.auto_assign # From the DB column
         else
-          false
+          false # PM users: all unchecked for PM creators
         end
 
-        { id: u.id, full_name: u.full_name, role_label: User::ROLE_LABELS[u.user_type], organization_name: u.organization.name, org_type: u.mitigation_user? ? "mitigation" : "pm", auto_assign: auto }
+        {
+          id: u.id,
+          full_name: u.full_name,
+          role_label: User::ROLE_LABELS[u.user_type],
+          organization_name: u.organization.name,
+          org_type: u.mitigation_user? ? "mitigation" : "pm",
+          auto_assign: auto,
+          is_on_call: u.id == on_call_primary_id
+        }
       end
 
       result[property.id] = property_user_list
@@ -492,7 +516,7 @@ class IncidentsController < ApplicationController
       .map { |u| { id: u.id, full_name: u.full_name, role_label: User::ROLE_LABELS[u.user_type] } }
   end
 
-  TEAM_SORT_ORDER = [ User::MANAGER, User::OFFICE_SALES, User::TECHNICIAN, User::PM_MANAGER, User::AREA_MANAGER, User::PROPERTY_MANAGER ].freeze
+  TEAM_SORT_ORDER = [ User::MANAGER, User::TECHNICIAN, User::OTHER, User::AREA_MANAGER, User::PROPERTY_MANAGER ].freeze
 
   def serialize_team_users(assignments)
     assignments.sort_by { |a| [ TEAM_SORT_ORDER.index(a.user.user_type) || 99, a.user.last_name ] }.map do |a|
@@ -505,6 +529,30 @@ class IncidentsController < ApplicationController
         email: a.user.email_address,
         phone: format_phone(a.user.phone),
         phone_raw: a.user.phone,
+        remove_path: can_remove_assignment?(a.user) ? incident_assignment_path(@incident, a) : nil,
+        notification_overrides_path: can_update_notification_overrides?(a.user) ?
+          update_notifications_incident_assignment_path(@incident, a) : nil,
+        notification_overrides: a.user.id == current_user.id ? a.notification_overrides : {},
+        global_preferences: a.user.id == current_user.id ? {
+          status_change: a.user.notification_preference("status_change"),
+          new_message: a.user.notification_preference("new_message")
+        } : {}
+      }
+    end
+  end
+
+  def serialize_guest_users(assignments)
+    assignments.sort_by { |a| a.user.last_name }.map do |a|
+      {
+        id: a.user.id,
+        assignment_id: a.id,
+        full_name: a.user.full_name,
+        initials: a.user.initials,
+        title: a.user.title,
+        email: a.user.email_address,
+        phone: format_phone(a.user.phone),
+        phone_raw: a.user.phone,
+        pending: !a.user.active?,
         remove_path: can_remove_assignment?(a.user) ? incident_assignment_path(@incident, a) : nil
       }
     end
@@ -1007,7 +1055,8 @@ class IncidentsController < ApplicationController
         notes: entry.notes,
         user_name: entry.user&.full_name,
         created_by_name: entry.created_by_user.full_name,
-        edit_path: editable ? incident_labor_entry_path(incident, entry) : nil
+        edit_path: editable ? incident_labor_entry_path(incident, entry) : nil,
+        delete_path: editable ? incident_labor_entry_path(incident, entry) : nil
       }
       if editable
         data[:started_at] = format_time_value(entry.started_at)
@@ -1021,6 +1070,7 @@ class IncidentsController < ApplicationController
   def assignable_labor_users(incident)
     if mitigation_admin?
       users = User.where(active: true, organization_id: incident.property.mitigation_org_id)
+        .where.not(user_type: User::OFFICE_SALES)
         .order(:last_name, :first_name)
       sorted = users.sort_by { |u| [ User::LABOR_SORT_ORDER.index(u.user_type) || 99, u.last_name, u.first_name ] }
       sorted.map { |u| { id: u.id, full_name: u.full_name, role_label: User::ROLE_LABELS[u.user_type] } }
@@ -1106,25 +1156,6 @@ class IncidentsController < ApplicationController
     end
   end
 
-  def serialize_pm_contacts(incident)
-    property = incident.property
-    pm_org = property.property_management_org
-    pm_user_ids = PropertyAssignment.where(property: property)
-      .joins(:user).where(users: { active: true, organization_id: pm_org.id })
-      .pluck(:user_id)
-
-    User.where(id: pm_user_ids).order(:last_name, :first_name).map do |u|
-      {
-        id: u.id,
-        name: u.full_name,
-        title: User::ROLE_LABELS[u.user_type],
-        email: u.email_address,
-        phone: format_phone(u.phone),
-        phone_raw: u.phone
-      }
-    end
-  end
-
   def equipment_types_for_incident(incident)
     EquipmentType.where(organization_id: incident.property.mitigation_org_id)
       .active.order(:name)
@@ -1191,6 +1222,9 @@ class IncidentsController < ApplicationController
     end
 
     dates = points.flat_map { |p| p.moisture_readings.map(&:log_date) }.uniq.sort
+    today = Time.current.in_time_zone(current_user.timezone).to_date
+    dates << today unless dates.include?(today)
+    dates.sort!
 
     {
       supervisor_pm: incident.moisture_supervisor_pm,
@@ -1221,6 +1255,9 @@ class IncidentsController < ApplicationController
     end
 
     dates = points.flat_map { |p| p.psychrometric_readings.map(&:log_date) }.uniq.sort
+    today = Time.current.in_time_zone(current_user.timezone).to_date
+    dates << today unless dates.include?(today)
+    dates.sort!
 
     {
       dates: dates.map(&:iso8601),
@@ -1294,6 +1331,7 @@ class IncidentsController < ApplicationController
       organization_name: incident.property.property_management_org.name,
       description: incident.description.truncate(80),
       status: incident.status,
+      display_status: incident.display_status,
       status_label: incident.display_status_label,
       project_type: incident.project_type,
       project_type_label: Incident::PROJECT_TYPE_LABELS[incident.project_type],

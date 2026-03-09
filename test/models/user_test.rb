@@ -109,6 +109,62 @@ class UserTest < ActiveSupport::TestCase
     assert_nil user.phone
   end
 
+  test "allows auto_assign for mitigation users" do
+    user = build_user(organization: @mitigation_org, user_type: "manager", auto_assign: true)
+    assert user.valid?
+  end
+
+  test "rejects auto_assign for PM users" do
+    user = build_user(organization: @pm_org, user_type: "property_manager", auto_assign: true)
+    assert_not user.valid?
+    assert user.errors[:auto_assign].any? { |e| e.include?("mitigation") }
+  end
+
+  test "auto_assigned scope returns only auto_assign users" do
+    auto = build_user(email_address: "auto@test.com", auto_assign: true)
+    auto.save!
+    manual = build_user(email_address: "manual@test.com", auto_assign: false)
+    manual.save!
+
+    assert_includes User.auto_assigned, auto
+    assert_not_includes User.auto_assigned, manual
+  end
+
+  # --- Guest type ---
+
+  test "guest user type is valid for external org" do
+    external = Organization.create!(name: "External", organization_type: "external")
+    user = build_user(organization: external, user_type: "guest")
+    assert user.valid?
+    assert user.guest?
+    assert_not user.mitigation_user?
+    assert_not user.pm_user?
+  end
+
+  test "rejects non-guest type on external org" do
+    external = Organization.create!(name: "External", organization_type: "external")
+    user = build_user(organization: external, user_type: "manager")
+    assert_not user.valid?
+    assert user.errors[:user_type].any? { |e| e.include?("not valid for an external") }
+  end
+
+  test "rejects guest type on mitigation org" do
+    user = build_user(organization: @mitigation_org, user_type: "guest")
+    assert_not user.valid?
+    assert user.errors[:user_type].any? { |e| e.include?("not valid for a mitigation") }
+  end
+
+  test "guest has empty default permissions" do
+    external = Organization.create!(name: "External", organization_type: "external")
+    user = build_user(organization: external, user_type: "guest")
+    user.save!
+    assert_equal [], user.permissions
+    assert_not user.can?(:create_incident)
+    assert_not user.can?(:manage_daily_logs)
+  end
+
+  # --- Active scope ---
+
   test "active scope excludes deactivated users" do
     active = build_user(email_address: "active@test.com")
     active.save!

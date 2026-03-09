@@ -25,7 +25,14 @@ Rails.application.routes.draw do
       post :dfr
       get :attachments_page
     end
-    resources :assignments, controller: "incident_assignments", only: %i[create destroy]
+    resources :assignments, controller: "incident_assignments", only: %i[create destroy] do
+      collection do
+        post :create_guest, as: :guest
+      end
+      member do
+        patch :update_notifications
+      end
+    end
     resources :contacts, controller: "incident_contacts", only: %i[create update destroy]
     resources :messages, only: %i[create]
     resources :activity_entries, only: %i[create update]
@@ -103,6 +110,7 @@ Rails.application.routes.draw do
   patch "on-call", to: "settings#update_on_call", as: :update_on_call_settings
   post "on-call/contacts", to: "settings#create_escalation_contact", as: :escalation_contacts
   delete "on-call/contacts/:id", to: "settings#destroy_escalation_contact", as: :escalation_contact
+  patch "on-call/auto-assign", to: "settings#update_auto_assign", as: :update_auto_assign
   patch "on-call/contacts/reorder", to: "settings#reorder_escalation_contacts", as: :reorder_escalation_contacts
 
   # Equipment Items (inventory)

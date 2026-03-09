@@ -7,8 +7,9 @@ export interface AuthUser {
   initials: string;
   user_type: string;
   role_label: string;
+  title: string | null;
   organization_type: string;
-  organization_name: string;
+  organization_name: string | null;
   timezone: string;
 }
 
@@ -37,6 +38,7 @@ export interface SharedProps extends Record<string, unknown> {
   };
   permissions: Permissions;
   has_unread_incidents: boolean;
+  emergency_phone?: string;
   today: string;
   now_datetime: string;
   nav_items: NavItem[];

@@ -1,7 +1,18 @@
 class SettingsController < ApplicationController
   include TimeFormatting
 
-  TIMEZONE_OPTIONS = ActiveSupport::TimeZone.us_zones.map { |tz| { value: tz.name, label: tz.to_s } }.freeze
+  US_TIMEZONE_NAMES = [
+    "Pacific Time (US & Canada)",
+    "Arizona",
+    "Mountain Time (US & Canada)",
+    "Central Time (US & Canada)",
+    "Eastern Time (US & Canada)"
+  ].freeze
+
+  TIMEZONE_OPTIONS = US_TIMEZONE_NAMES.map { |name|
+    tz = ActiveSupport::TimeZone[name]
+    { value: tz.name, label: tz.to_s }
+  }.freeze
 
   def show
     render inertia: "Settings/Profile", props: {
@@ -59,13 +70,17 @@ class SettingsController < ApplicationController
     existing_contact_ids = config ? config.escalation_contacts.pluck(:user_id) : []
     available_escalation = managers.where.not(id: existing_contact_ids)
 
+    auto_assign_users = org.users.active.where(user_type: User::MITIGATION_TYPES).order(:last_name, :first_name)
+
     render inertia: "Settings/OnCall", props: {
       config: config ? serialize_on_call_config(config) : nil,
       managers: managers.map { |u| { id: u.id, full_name: u.full_name, role_label: User::ROLE_LABELS[u.user_type] } },
       available_escalation_managers: available_escalation.map { |u| { id: u.id, full_name: u.full_name, role_label: User::ROLE_LABELS[u.user_type] } },
+      auto_assign_users: auto_assign_users.map { |u| { id: u.id, full_name: u.full_name, role_label: User::ROLE_LABELS[u.user_type], auto_assign: u.auto_assign } },
       update_path: update_on_call_settings_path,
       contacts_path: escalation_contacts_path,
-      reorder_path: reorder_escalation_contacts_path
+      reorder_path: reorder_escalation_contacts_path,
+      auto_assign_path: update_auto_assign_path
     }
   end
 
@@ -126,6 +141,23 @@ class SettingsController < ApplicationController
     redirect_to on_call_settings_path, notice: "Escalation contact removed."
   end
 
+  def update_auto_assign
+    authorize_manage_on_call!
+
+    org = current_user.organization
+    selected_ids = Array(params[:user_ids]).map(&:to_i)
+    mitigation_users = org.users.active.where(user_type: User::MITIGATION_TYPES)
+
+    ActiveRecord::Base.transaction do
+      mitigation_users.each do |u|
+        new_value = selected_ids.include?(u.id)
+        u.update_column(:auto_assign, new_value) if u.auto_assign != new_value
+      end
+    end
+
+    redirect_to on_call_settings_path, notice: "Auto-assign settings saved."
+  end
+
   def reorder_escalation_contacts
     authorize_manage_on_call!
 
@@ -157,9 +189,7 @@ class SettingsController < ApplicationController
     prefs = current_user.notification_preferences.merge(
       "status_change" => params[:status_change] == "true" || params[:status_change] == true,
       "new_message" => params[:new_message] == "true" || params[:new_message] == true,
-      "daily_digest" => params[:daily_digest] == "true" || params[:daily_digest] == true,
-      "incident_creation" => params[:incident_creation] == "true" || params[:incident_creation] == true,
-      "user_assignment" => params[:user_assignment] == "true" || params[:user_assignment] == true
+      "incident_user_assignment" => params[:incident_user_assignment] == "true" || params[:incident_user_assignment] == true
     )
     current_user.update!(notification_preferences: prefs)
     redirect_to settings_path, notice: "Notification preferences saved."
@@ -218,14 +248,13 @@ class SettingsController < ApplicationController
       last_name: current_user.last_name,
       email_address: current_user.email_address,
       timezone: current_user.timezone,
+      title: current_user.title,
       role_label: User::ROLE_LABELS[current_user.user_type],
       organization_name: current_user.organization.name,
       notification_preferences: {
         status_change: current_user.notification_preference("status_change"),
         new_message: current_user.notification_preference("new_message"),
-        daily_digest: current_user.notification_preference("daily_digest"),
-        incident_creation: current_user.notification_preference("incident_creation"),
-        user_assignment: current_user.notification_preference("user_assignment")
+        incident_user_assignment: current_user.notification_preference("incident_user_assignment")
       }
     }
   end

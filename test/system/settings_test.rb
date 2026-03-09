@@ -91,8 +91,7 @@ class SettingsTest < ApplicationSystemTestCase
   test "notification preferences persist" do
     @user.update!(notification_preferences: {
       "status_change" => true,
-      "new_message" => true,
-      "daily_digest" => false
+      "new_message" => true
     })
 
     login_as @user
@@ -100,14 +99,12 @@ class SettingsTest < ApplicationSystemTestCase
 
     find("label[for='status_change']").click
     find("label[for='new_message']").click
-    find("label[for='daily_digest']").click
     click_button "Save Preferences"
 
     assert_text "Notification preferences saved."
     prefs = @user.reload.notification_preferences
     assert_equal false, prefs["status_change"]
     assert_equal false, prefs["new_message"]
-    assert_equal true, prefs["daily_digest"]
   end
 
   test "role and organization display are read only" do

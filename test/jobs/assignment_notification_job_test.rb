@@ -10,7 +10,7 @@ class AssignmentNotificationJobTest < ActiveSupport::TestCase
       email_address: "mgr@genixo.com", first_name: "Test", last_name: "Manager", password: "password123")
     @tech = User.create!(organization: @genixo, user_type: "technician",
       email_address: "tech@genixo.com", first_name: "Test", last_name: "Tech", password: "password123",
-      notification_preferences: { "user_assignment" => true })
+      notification_preferences: { "incident_user_assignment" => true })
 
     @incident = Incident.create!(
       property: @property, created_by_user: @manager, status: "active",
@@ -38,6 +38,27 @@ class AssignmentNotificationJobTest < ActiveSupport::TestCase
       AssignmentNotificationJob.perform_now(assignment.id)
     end
     assert_equal 0, ActionMailer::Base.deliveries.size
+  end
+
+  test "skips users with assignment notification preference disabled" do
+    @tech.update!(notification_preferences: { "incident_user_assignment" => false })
+    assignment = @incident.incident_assignments.create!(user: @tech, assigned_by_user: @manager)
+
+    perform_enqueued_jobs do
+      AssignmentNotificationJob.perform_now(assignment.id)
+    end
+    assert_equal 0, ActionMailer::Base.deliveries.size
+  end
+
+  test "force true sends notification regardless of preference" do
+    @tech.update!(notification_preferences: { "incident_user_assignment" => false })
+    assignment = @incident.incident_assignments.create!(user: @tech, assigned_by_user: @manager)
+
+    perform_enqueued_jobs do
+      AssignmentNotificationJob.perform_now(assignment.id, force: true)
+    end
+    assert_equal 1, ActionMailer::Base.deliveries.size
+    assert_equal [ "tech@genixo.com" ], ActionMailer::Base.deliveries.last.to
   end
 
   test "does nothing if assignment is gone" do

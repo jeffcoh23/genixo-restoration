@@ -12,6 +12,9 @@ class InvitationsController < ApplicationController
       first_name: params[:first_name].presence,
       last_name: params[:last_name].presence,
       phone: params[:phone].presence,
+      title: params[:title].presence,
+      permissions: Array(params[:permissions]).map(&:to_s).select(&:presence),
+      notification_preferences: notification_prefs_from_params,
       expires_at: 7.days.from_now
     )
 
@@ -53,12 +56,18 @@ class InvitationsController < ApplicationController
       return
     end
 
+    role_label = if @invitation.user_type == User::GUEST
+      @invitation.title.presence || "Guest"
+    else
+      User::ROLE_LABELS[@invitation.user_type]
+    end
+
     render inertia: "Invitations/Accept", props: {
       invitation: {
         token: @invitation.token,
         email: @invitation.email,
-        organization_name: @invitation.organization.name,
-        role_label: User::ROLE_LABELS[@invitation.user_type],
+        organization_name: @invitation.organization.external? ? nil : @invitation.organization.name,
+        role_label: role_label,
         first_name: @invitation.first_name,
         last_name: @invitation.last_name,
         phone: @invitation.phone
@@ -75,20 +84,42 @@ class InvitationsController < ApplicationController
       return
     end
 
-    user = @invitation.organization.users.new(
-      email_address: @invitation.email,
-      user_type: @invitation.user_type,
-      first_name: params[:first_name],
-      last_name: params[:last_name],
-      phone: params[:phone].presence,
-      password: params[:password],
-      password_confirmation: params[:password_confirmation]
-    )
+    # Guest users are pre-created (inactive) by create_guest — find and activate them
+    # Only applies to guest invitations — normal invitations always create fresh users
+    existing_user = if @invitation.user_type == User::GUEST
+      User.find_by(email_address: @invitation.email, active: false, user_type: User::GUEST)
+    end
+    if existing_user
+      user = existing_user
+      user.assign_attributes(
+        first_name: params[:first_name],
+        last_name: params[:last_name],
+        phone: params[:phone].presence,
+        password: params[:password],
+        password_confirmation: params[:password_confirmation],
+        active: true
+      )
+    else
+      user = @invitation.organization.users.new(
+        email_address: @invitation.email,
+        user_type: @invitation.user_type,
+        first_name: params[:first_name],
+        last_name: params[:last_name],
+        phone: params[:phone].presence,
+        title: @invitation.title,
+        permissions: @invitation.permissions,
+        notification_preferences: @invitation.notification_preferences,
+        password: params[:password],
+        password_confirmation: params[:password_confirmation]
+      )
+    end
 
     if user.save
       @invitation.update!(accepted_at: Time.current)
       start_new_session_for(user)
-      redirect_to dashboard_path, notice: "Welcome to #{@invitation.organization.name}!"
+      after_path = user.guest? ? incidents_path : dashboard_path
+      welcome_msg = user.guest? ? "Welcome! You now have access to your assigned incidents." : "Welcome to #{@invitation.organization.name}!"
+      redirect_to after_path, notice: welcome_msg
     else
       redirect_to invitation_path(@invitation.token),
         inertia: { errors: user.errors.to_hash },
@@ -100,6 +131,13 @@ class InvitationsController < ApplicationController
 
   def require_mitigation_admin
     raise ActiveRecord::RecordNotFound unless can_manage_users?
+  end
+
+  def notification_prefs_from_params
+    raw = params[:notification_preferences]
+    return {} unless raw.is_a?(ActionController::Parameters) || raw.is_a?(Hash)
+
+    raw.to_unsafe_h.transform_values { |v| v == true || v == "true" }
   end
 
   def target_organization

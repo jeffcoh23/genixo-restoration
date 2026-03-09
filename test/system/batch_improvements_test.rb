@@ -39,8 +39,10 @@ class BatchImprovementsTest < ApplicationSystemTestCase
     visit incident_path(@incident)
     click_button "Manage"
 
-    # Click manager name to expand contact info
-    click_button "Mia Manager"
+    # Click user row to expand contact info — scope within the team section
+    within("section", text: "Mitigation Team") do
+      find("span", text: "Mia Manager").click
+    end
     assert_text "(203) 218-0897"
   end
 
@@ -48,7 +50,9 @@ class BatchImprovementsTest < ApplicationSystemTestCase
     login_as @manager
     visit incident_path(@incident)
     click_button "Manage"
-    click_button "Mia Manager"
+    within("section", text: "Mitigation Team") do
+      find("span", text: "Mia Manager").click
+    end
 
     phone_link = first("a[href^='tel:']")
     assert_match(/^tel:\d+$/, phone_link["href"])
@@ -171,17 +175,22 @@ class BatchImprovementsTest < ApplicationSystemTestCase
 
   # --- Item 7: PM manage tab visibility ---
 
-  test "PM user does not see mitigation team section in manage tab" do
+  test "PM user sees mitigation team read-only in manage tab" do
     login_as @pm_user
     visit incident_path(@incident)
     click_button "Manage"
 
+    assert_text "Mitigation Team"
     assert_text "Property Management"
     assert_text "Contacts"
-    assert_no_text "Mitigation Team"
+    assert_text "External"
+    # PM user sees the team but cannot assign mitigation users
+    within("section", text: "Mitigation Team") do
+      assert_no_text "Assign User"
+    end
   end
 
-  test "mitigation user sees all three sections in manage tab" do
+  test "mitigation user sees all sections in manage tab" do
     login_as @manager
     visit incident_path(@incident)
     click_button "Manage"
@@ -189,6 +198,7 @@ class BatchImprovementsTest < ApplicationSystemTestCase
     assert_text "Mitigation Team"
     assert_text "Property Management"
     assert_text "Contacts"
+    assert_text "External"
   end
 
   # --- Item 2: DFR in daily log ---
