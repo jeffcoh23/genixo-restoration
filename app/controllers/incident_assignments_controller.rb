@@ -68,6 +68,13 @@ class IncidentAssignmentsController < ApplicationController
         expires_at: 30.days.from_now
       )
       InvitationMailer.invite(invitation).deliver_later
+    elsif !user.active?
+      # Existing inactive guest — resend invitation so they get the email
+      invitation = user.organization.invitations.where(email: email, accepted_at: nil).first
+      if invitation
+        invitation.update!(token: SecureRandom.urlsafe_base64(32), expires_at: 30.days.from_now)
+        InvitationMailer.invite(invitation).deliver_later
+      end
     end
 
     assignment = @incident.incident_assignments.find_or_create_by!(user: user) do |a|
