@@ -132,13 +132,13 @@ export default function IncidentShow() {
                   onClick={() => setStatusOpen(!statusOpen)}
                   data-testid="incident-status-trigger"
                   disabled={statusAction.processing}
-                  className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium ${statusColor(incident.status)} hover:opacity-90 transition-opacity`}
+                  className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium ${statusColor(incident.display_status)} hover:opacity-90 transition-opacity`}
                 >
                   {incident.status_label}
                   <ChevronDown className="h-3.5 w-3.5" />
                 </Button>
               ) : (
-                <Badge className={`text-sm px-3 py-1.5 ${statusColor(incident.status)}`}>
+                <Badge className={`text-sm px-3 py-1.5 ${statusColor(incident.display_status)}`}>
                   {incident.status_label}
                 </Badge>
               )}

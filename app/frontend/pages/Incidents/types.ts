@@ -244,6 +244,7 @@ export interface IncidentDetail {
   estimated_date_of_return: string | null;
   estimated_date_of_return_label: string | null;
   status: string;
+  display_status: string;
   status_label: string;
   project_type: string;
   project_type_label: string;

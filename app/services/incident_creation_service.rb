@@ -76,11 +76,16 @@ class IncidentCreationService
       users_to_assign << u
     end
 
-    # Mitigation-side (emergency only): add on-call primary user
-    if @incident.emergency?
-      on_call_config = @property.mitigation_org.on_call_configuration
-      if on_call_config&.primary_user
-        users_to_assign << on_call_config.primary_user
+    # Mitigation-side: always include on-call primary user
+    on_call_config = @property.mitigation_org.on_call_configuration
+    if on_call_config&.primary_user&.active?
+      users_to_assign << on_call_config.primary_user
+    end
+
+    # Fallback: if no auto-assign users and no on-call, assign all active mitigation managers
+    if users_to_assign.empty?
+      @property.mitigation_org.users.active.where(user_type: User::MANAGER).find_each do |u|
+        users_to_assign << u
       end
     end
 
@@ -127,6 +132,16 @@ class IncidentCreationService
     if @user.notification_preference("incident_user_assignment")
       IncidentMailer.creation_confirmation(@incident).deliver_later
     end
+
+    # Auto-assigned and on-call users always get notified on incident creation,
+    # regardless of their notification preferences. These users were specifically
+    # configured to receive new incidents — their preference setting should not
+    # suppress this critical notification.
+    @incident.incident_assignments.each do |assignment|
+      next if assignment.user_id == @user.id
+      AssignmentNotificationJob.perform_later(assignment.id, force: true)
+    end
+
     EscalationJob.perform_later(@incident.id) if @incident.emergency?
   end
 end

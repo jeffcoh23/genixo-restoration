@@ -1,6 +1,8 @@
 require "test_helper"
 
 class IncidentCreationServiceTest < ActiveSupport::TestCase
+  include ActiveJob::TestHelper
+
   setup do
     @genixo = Organization.create!(name: "Genixo", organization_type: "mitigation")
     @greystar = Organization.create!(name: "Greystar", organization_type: "property_management")
@@ -103,7 +105,7 @@ class IncidentCreationServiceTest < ActiveSupport::TestCase
     assert_includes assigned_ids, on_call_user.id
   end
 
-  test "non-emergency does not auto-assign on-call primary user" do
+  test "non-emergency also auto-assigns on-call primary user" do
     on_call_user = User.create!(organization: @genixo, user_type: "technician",
       email_address: "oncall@genixo.com", first_name: "OnCall", last_name: "Tech", password: "password123")
     OnCallConfiguration.create!(organization: @genixo, primary_user: on_call_user, escalation_timeout_minutes: 10)
@@ -111,7 +113,19 @@ class IncidentCreationServiceTest < ActiveSupport::TestCase
     incident = create_incident(project_type: "other")
     assigned_ids = incident.incident_assignments.pluck(:user_id)
 
-    assert_not_includes assigned_ids, on_call_user.id
+    assert_includes assigned_ids, on_call_user.id
+  end
+
+  test "falls back to mitigation managers when no auto-assign or on-call configured" do
+    @manager.update!(auto_assign: false)
+    @office.update!(auto_assign: false)
+
+    incident = create_incident
+    assigned_ids = incident.incident_assignments.pluck(:user_id)
+
+    assert_includes assigned_ids, @manager.id
+    assert_not_includes assigned_ids, @office.id
+    assert_not_includes assigned_ids, @tech.id
   end
 
   # --- Activity events ---
@@ -208,6 +222,40 @@ class IncidentCreationServiceTest < ActiveSupport::TestCase
     assert incident.persisted?
   end
 
+  # --- Assignment notifications ---
+
+  test "enqueues AssignmentNotificationJob for each assigned user except creator" do
+    with_test_queue_adapter do
+      incident = create_incident
+
+      assigned_non_creator = incident.incident_assignments.where.not(user_id: @manager.id)
+      assert assigned_non_creator.any?, "Expected at least one non-creator assignment"
+
+      enqueued = ActiveJob::Base.queue_adapter.enqueued_jobs
+        .select { |j| j["job_class"] == "AssignmentNotificationJob" }
+
+      assigned_non_creator.each do |assignment|
+        match = enqueued.find { |j| j["arguments"].first == assignment.id }
+        assert match, "Expected AssignmentNotificationJob enqueued for assignment #{assignment.id}"
+      end
+    end
+  end
+
+  test "does not enqueue AssignmentNotificationJob for creator" do
+    with_test_queue_adapter do
+      incident = create_incident
+
+      creator_assignment = incident.incident_assignments.find_by(user_id: @manager.id)
+      assert creator_assignment, "Creator should be assigned"
+
+      enqueued_assignment_ids = ActiveJob::Base.queue_adapter.enqueued_jobs
+        .select { |j| j["job_class"] == "AssignmentNotificationJob" }
+        .map { |j| j["arguments"].first }
+
+      assert_not_includes enqueued_assignment_ids, creator_assignment.id
+    end
+  end
+
   # --- Core attributes ---
 
   test "stores optional fields" do
@@ -225,6 +273,14 @@ class IncidentCreationServiceTest < ActiveSupport::TestCase
   end
 
   private
+
+  def with_test_queue_adapter
+    original_adapter = ActiveJob::Base.queue_adapter
+    ActiveJob::Base.queue_adapter = :test
+    yield
+  ensure
+    ActiveJob::Base.queue_adapter = original_adapter
+  end
 
   def create_incident(overrides = {})
     params = {

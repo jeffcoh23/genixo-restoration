@@ -69,6 +69,14 @@ class Incident < ApplicationRecord
     QUOTE_PROJECT_TYPES.include?(project_type)
   end
 
+  def display_status
+    if emergency && %w[new acknowledged].include?(status)
+      "emergency"
+    else
+      status
+    end
+  end
+
   def display_status_label
     if emergency && %w[new acknowledged].include?(status)
       "Emergency"
