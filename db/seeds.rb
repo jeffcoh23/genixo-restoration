@@ -24,15 +24,18 @@ genixo = Organization.find_or_create_by!(name: "Genixo Construction") do |org|
   org.zip = "78201"
 end
 
-greystar = Organization.find_or_create_by!(name: "Greystar Properties") do |org|
-  org.organization_type = "property_management"
-  org.phone = "713-555-0200"
-  org.email = "info@greystar.com"
-  org.street_address = "5678 Westheimer Rd"
-  org.city = "Houston"
-  org.state = "TX"
-  org.zip = "77056"
-end
+greystar = Organization.find_by(email: "info@greystar.com") || Organization.new
+greystar.assign_attributes(
+  name: "Greystar Properties",
+  organization_type: "property_management",
+  phone: "713-555-0200",
+  email: "info@greystar.com",
+  street_address: "5678 Westheimer Rd",
+  city: "Houston",
+  state: "TX",
+  zip: "77056"
+)
+greystar.save!
 
 sandalwood = Organization.find_or_create_by!(name: "Sandalwood Management") do |org|
   org.organization_type = "property_management"

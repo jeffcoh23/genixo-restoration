@@ -198,6 +198,41 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
+  # --- New incident: property_users scoping ---
+
+  test "new incident property_users only includes PM users assigned to that property" do
+    login_as @manager
+
+    # Create a PM user NOT assigned to @property
+    unassigned_pm = User.create!(organization: @greystar, user_type: "property_manager",
+      email_address: "unassigned@greystar.com", first_name: "Unassigned", last_name: "PM", password: "password123")
+
+    get new_incident_path
+    assert_response :success
+
+    property_users = inertia_props["property_users"][@property.id.to_s]
+    user_ids = property_users.map { |u| u["id"] }
+
+    # Assigned PM users should be included
+    assert_includes user_ids, @pm_user.id, "Property-assigned PM user should appear"
+    assert_includes user_ids, @area_mgr.id, "Property-assigned area manager should appear"
+
+    # Unassigned PM user should NOT be included
+    assert_not_includes user_ids, unassigned_pm.id, "PM user not assigned to property should not appear"
+  end
+
+  test "new incident property_users auto_assign is true for PM property_manager and area_manager" do
+    login_as @manager
+    get new_incident_path
+
+    property_users = inertia_props["property_users"][@property.id.to_s]
+    pm_user_data = property_users.find { |u| u["id"] == @pm_user.id }
+    area_mgr_data = property_users.find { |u| u["id"] == @area_mgr.id }
+
+    assert pm_user_data["auto_assign"], "Property manager should be auto-assigned"
+    assert area_mgr_data["auto_assign"], "Area manager should be auto-assigned"
+  end
+
   # --- Create with valid params ---
 
   test "creates incident with valid params" do

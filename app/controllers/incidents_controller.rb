@@ -91,7 +91,6 @@ class IncidentsController < ApplicationController
       project_types: Incident::PROJECT_TYPES.map { |t| { value: t, label: Incident::PROJECT_TYPE_LABELS[t] } },
       damage_types: Incident::DAMAGE_TYPES.map { |t| { value: t, label: Incident::DAMAGE_LABELS[t] } },
       can_assign: can_assign_to_incident?,
-      can_manage_contacts: can_manage_contacts?,
       property_users: can_assign_to_incident? ? assignable_users_by_property : {},
       emergency_phone: emergency_phone,
       creator_org_type: current_user.mitigation_user? ? "mitigation" : "pm"
@@ -357,7 +356,8 @@ class IncidentsController < ApplicationController
       :requested_next_steps, :units_affected, :affected_room_numbers, :job_id,
       :do_not_exceed_limit, :location_of_damage,
       additional_user_ids: [],
-      contacts: [ :name, :title, :email, :phone, :onsite ]
+      contacts: [ :name, :title, :email, :phone, :onsite ],
+      guests: [ :email, :first_name, :last_name, :title ]
     ).to_h.symbolize_keys
 
     # Ensure contacts is an array of hashes with symbol keys. Inertia can send
@@ -403,6 +403,29 @@ class IncidentsController < ApplicationController
       [ raw_additional_user_ids ]
     end
     permitted[:additional_user_ids] = normalized_additional_user_ids if normalized_additional_user_ids
+
+    # Normalize guests array (same Inertia indexed-hash issue as contacts)
+    raw_guests = incident_input[:guests]
+    normalized_guests = case raw_guests
+    when ActionController::Parameters
+      raw_guests.values
+    when Array
+      raw_guests
+    else
+      nil
+    end
+
+    if normalized_guests
+      permitted[:guests] = normalized_guests.map do |g|
+        if g.respond_to?(:to_unsafe_h)
+          g.to_unsafe_h.symbolize_keys
+        elsif g.is_a?(Hash)
+          g.symbolize_keys
+        else
+          g
+        end
+      end
+    end
 
     permitted
   end
@@ -477,14 +500,15 @@ class IncidentsController < ApplicationController
     result = {}
     properties.each do |property|
       mit_users = current_user.pm_user? ? [] : (users_by_org[property.mitigation_org_id] || [])
-      pm_users = users_by_org[property.property_management_org_id] || []
+      pm_assigned_ids = assigned_by_property[property.id] || Set.new
+      pm_users = (users_by_org[property.property_management_org_id] || []).select { |u| pm_assigned_ids.include?(u.id) }
       on_call_primary_id = on_call_configs[property.mitigation_org_id]&.primary_user_id
 
       property_user_list = (mit_users + pm_users).map do |u|
         auto = if u.mitigation_user?
           u.auto_assign # From the DB column
         else
-          false # PM users: all unchecked for PM creators
+          u.user_type.in?([User::PROPERTY_MANAGER, User::AREA_MANAGER])
         end
 
         {
@@ -510,9 +534,14 @@ class IncidentsController < ApplicationController
     # PM users can only assign within their own org
     return [] if current_user.pm_user? && current_user.organization_id != org_id
 
-    User.where(active: true, organization_id: org_id)
+    scope = User.where(active: true, organization_id: org_id)
       .where.not(id: incident.assigned_user_ids)
-      .order(:last_name, :first_name)
+
+    if org_type == :pm
+      scope = scope.joins(:property_assignments).where(property_assignments: { property_id: incident.property_id })
+    end
+
+    scope.order(:last_name, :first_name)
       .map { |u| { id: u.id, full_name: u.full_name, role_label: User::ROLE_LABELS[u.user_type] } }
   end
 

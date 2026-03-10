@@ -1,6 +1,6 @@
 import { Link, useForm, usePage } from "@inertiajs/react";
 import { FormEvent, useState } from "react";
-import { AlertTriangle, Building2, ChevronDown, ChevronUp, Phone, Plus, Trash2 } from "lucide-react";
+import { AlertTriangle, Building2, ChevronDown, ChevronUp, Phone, Plus, Trash2, UserPlus } from "lucide-react";
 import AppLayout from "@/layout/AppLayout";
 import PageHeader from "@/components/PageHeader";
 import FormField from "@/components/FormField";
@@ -13,16 +13,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { SharedProps } from "@/types";
 import type { NewIncidentProps, NewIncidentAssignableUser } from "./types";
 
-interface ContactRow {
-  name: string;
-  title: string;
-  email: string;
-  phone: string;
-  onsite: boolean;
-}
-
 export default function NewIncident() {
-  const { properties, organizations = [], project_types, damage_types, can_assign, can_manage_contacts, property_users = {}, emergency_phone, creator_org_type, routes } =
+  const { properties, organizations = [], project_types, damage_types, can_assign, property_users = {}, emergency_phone, creator_org_type, routes } =
     usePage<SharedProps & NewIncidentProps>().props;
 
   const isMitigationCreator = creator_org_type === "mitigation";
@@ -33,13 +25,14 @@ export default function NewIncident() {
     return "";
   });
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [guests, setGuests] = useState<{ email: string; first_name: string; last_name: string; title: string }[]>([]);
 
   const filteredProperties = selectedOrgId
     ? properties.filter((p) => String(p.organization_id) === selectedOrgId)
     : properties;
 
   const initialPropertyId = properties.length === 1 ? String(properties[0].id) : "";
-  const initialAutoAssignIds = initialPropertyId && isMitigationCreator
+  const initialAutoAssignIds = initialPropertyId
     ? (property_users[initialPropertyId] || []).filter((u) => u.auto_assign).map((u) => u.id)
     : [];
 
@@ -58,7 +51,6 @@ export default function NewIncident() {
     additional_user_ids: initialAutoAssignIds as number[],
   });
 
-  const [contacts, setContacts] = useState<ContactRow[]>([]);
   const errorEntries = Object.entries(errors);
 
   const isEmergency = data.project_type === "emergency_response";
@@ -79,10 +71,7 @@ export default function NewIncident() {
 
   const handlePropertyChange = (propertyId: string) => {
     const users = propertyId ? (property_users[propertyId] || []) : [];
-    // PM creator: all unchecked. Genixo creator: pre-check auto_assign users
-    const autoIds = isMitigationCreator
-      ? users.filter((u) => u.auto_assign).map((u) => u.id)
-      : [];
+    const autoIds = users.filter((u) => u.auto_assign).map((u) => u.id);
     setData((prev) => ({
       ...prev,
       property_id: propertyId,
@@ -132,20 +121,20 @@ export default function NewIncident() {
     }
   };
 
-  const addContactRow = () => {
-    setContacts((prev) => [...prev, { name: "", title: "", email: "", phone: "", onsite: false }]);
+  const addGuest = () => {
+    setGuests((prev) => [...prev, { email: "", first_name: "", last_name: "", title: "" }]);
   };
 
-  const updateContact = (index: number, field: keyof ContactRow, value: string) => {
-    setContacts((prev) => {
+  const updateGuest = (index: number, field: string, value: string) => {
+    setGuests((prev) => {
       const updated = [...prev];
       updated[index] = { ...updated[index], [field]: value };
       return updated;
     });
   };
 
-  const removeContact = (index: number) => {
-    setContacts((prev) => prev.filter((_, i) => i !== index));
+  const removeGuest = (index: number) => {
+    setGuests((prev) => prev.filter((_, i) => i !== index));
   };
 
   function handleSubmit(e: FormEvent) {
@@ -153,7 +142,7 @@ export default function NewIncident() {
     transform((formData) => ({
       incident: {
         ...formData,
-        contacts: contacts.filter((c) => c.name.trim() !== ""),
+        guests: guests.filter((g) => g.email.trim() !== ""),
       },
     }));
     post(routes.incidents);
@@ -413,75 +402,54 @@ export default function NewIncident() {
           </section>
         )}
 
-        {can_manage_contacts && (
-          <section className="rounded-lg border border-border bg-card p-5 space-y-3 shadow-sm">
-            <h2 className="text-base font-semibold text-foreground">Contacts</h2>
-            <p className="text-sm text-muted-foreground">Add on-site or property contacts who should be visible to the response team.</p>
+        {can_assign && (
+          <section className="rounded-lg border border-border bg-card p-5 space-y-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-semibold text-foreground">External Guests</h2>
+              <Button type="button" variant="outline" size="sm" className="h-9 gap-1.5" onClick={addGuest}>
+                <Plus className="h-3.5 w-3.5" />
+                Add Guest
+              </Button>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Invite external people (insurance adjusters, building owners, etc.) for read-only access.
+            </p>
 
-            {contacts.map((contact, index) => (
-              <div key={index} data-testid={`new-incident-contact-row-${index}`} className="rounded-md border border-border bg-muted/20 p-3 space-y-3">
+            {guests.map((guest, index) => (
+              <div key={index} className="rounded-md border border-input bg-background p-4 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-foreground">Contact {index + 1}</span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-10 w-10 sm:h-8 sm:w-8 p-0 text-muted-foreground hover:text-destructive"
-                    onClick={() => removeContact(index)}
-                    aria-label={`Remove contact ${index + 1}`}
-                  >
+                  <div className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
+                    <UserPlus className="h-4 w-4" />
+                    Guest {index + 1}
+                  </div>
+                  <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive" onClick={() => removeGuest(index)}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
-                <Input
-                  type="text"
-                  placeholder="Name *"
-                  value={contact.name}
-                  onChange={(e) => updateContact(index, "name", e.target.value)}
-                  className="h-11 sm:h-10"
-                />
-                <Input
-                  type="text"
-                  placeholder="Title"
-                  value={contact.title}
-                  onChange={(e) => updateContact(index, "title", e.target.value)}
-                  className="h-11 sm:h-10"
-                />
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <Input
-                    type="email"
-                    placeholder="Email"
-                    value={contact.email}
-                    onChange={(e) => updateContact(index, "email", e.target.value)}
-                    className="h-11 sm:h-10"
-                  />
-                  <Input
-                    type="tel"
-                    placeholder="Phone"
-                    value={contact.phone}
-                    onChange={(e) => updateContact(index, "phone", e.target.value)}
-                    className="h-11 sm:h-10"
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Email *</Label>
+                    <Input className="h-10" type="email" placeholder="email@example.com" value={guest.email} onChange={(e) => updateGuest(index, "email", e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Title / Role</Label>
+                    <Input className="h-10" placeholder="e.g. Insurance Adjuster" value={guest.title} onChange={(e) => updateGuest(index, "title", e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">First Name *</Label>
+                    <Input className="h-10" value={guest.first_name} onChange={(e) => updateGuest(index, "first_name", e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Last Name *</Label>
+                    <Input className="h-10" value={guest.last_name} onChange={(e) => updateGuest(index, "last_name", e.target.value)} />
+                  </div>
                 </div>
-                <label className="flex items-center gap-2 text-sm cursor-pointer">
-                  <Checkbox
-                    checked={contact.onsite}
-                    onCheckedChange={(checked) => {
-                      setContacts((prev) => {
-                        const updated = [...prev];
-                        updated[index] = { ...updated[index], onsite: checked === true };
-                        return updated;
-                      });
-                    }}
-                  />
-                  Onsite contact
-                </label>
               </div>
             ))}
-            <Button type="button" variant="outline" size="sm" className="h-11 sm:h-10" onClick={addContactRow}>
-              <Plus className="h-4 w-4 mr-1" />
-              Add Contact
-            </Button>
+
+            {guests.length === 0 && (
+              <p className="text-sm text-muted-foreground italic">No external guests added yet.</p>
+            )}
           </section>
         )}
 

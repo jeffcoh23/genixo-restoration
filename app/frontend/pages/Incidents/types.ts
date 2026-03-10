@@ -369,7 +369,6 @@ export interface NewIncidentProps {
   project_types: { value: string; label: string }[];
   damage_types: { value: string; label: string }[];
   can_assign: boolean;
-  can_manage_contacts: boolean;
   property_users: Record<string, NewIncidentAssignableUser[]>;
   emergency_phone: string | null;
   creator_org_type: "mitigation" | "pm";

@@ -50,12 +50,12 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
 
   return (
     <div className="overflow-y-auto h-full p-4 bg-background">
-      <div className="mx-auto grid max-w-[1800px] grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-start">
+      <div className="mx-auto grid max-w-[1800px] grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 items-start">
         {/* Column 1: Mitigation Team */}
         <section className="rounded-xl border border-border bg-card shadow-sm p-4 space-y-3">
             <div className="flex items-center gap-2">
               <h3 className="text-sm font-semibold text-foreground flex-1 whitespace-nowrap">
-                Mitigation Team <span className="text-muted-foreground tabular-nums">{incident.mitigation_team.length}</span>
+                Mitigation Team
               </h3>
               {can_assign && assignable_mitigation_users.length > 0 && (
                 <AssignSelect users={assignable_mitigation_users} onAssign={handleAssign} disabled={teamAction.processing} />
@@ -78,7 +78,7 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
         <section className="rounded-xl border border-border bg-card shadow-sm p-4 space-y-3">
           <div className="flex items-center gap-2">
             <h3 className="text-sm font-semibold text-foreground flex-1 whitespace-nowrap">
-              Property Management <span className="text-muted-foreground tabular-nums">{incident.pm_team.length}</span>
+              Property Management
             </h3>
             {can_assign && assignable_pm_users.length > 0 && (
               <AssignSelect users={assignable_pm_users} onAssign={handleAssign} disabled={teamAction.processing} />
@@ -97,87 +97,13 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
           )}
         </section>
 
-        {/* Column 3: Contacts */}
-        <section className="rounded-xl border border-border bg-card shadow-sm p-4 space-y-3">
-          <div className="flex items-center gap-2">
-            <h3 className="text-sm font-semibold text-foreground flex-1 whitespace-nowrap">
-              Contacts <span className="text-muted-foreground tabular-nums">{incident.contacts.length}</span>
-            </h3>
-            {can_manage_contacts && (
-              <Button variant="outline" size="sm" className="h-10 sm:h-8 text-sm sm:text-xs gap-1.5" onClick={() => setContactFormOpen(true)}>
-                <Plus className="h-3 w-3" />
-                Add
-              </Button>
-            )}
-          </div>
-          <InlineActionFeedback error={contactAction.error} onDismiss={contactAction.clearFeedback} />
-
-          {incident.contacts.length === 0 ? (
-            <p className="text-muted-foreground text-sm">No contacts added.</p>
-          ) : (
-            <div className="space-y-2">
-              {incident.contacts.map((c) => (
-                <div key={c.id} className="flex items-start gap-2 rounded-md border border-border bg-background p-2.5">
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-foreground">
-                      {c.name}
-                      {c.title && <span className="text-muted-foreground font-normal"> &middot; {c.title}</span>}
-                      {c.onsite && <span className="ml-1.5 inline-flex items-center rounded bg-status-success/15 px-1.5 py-0.5 text-xs font-medium text-status-success">Onsite</span>}
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mt-1">
-                      {c.email && (
-                        <span className="flex items-center gap-1">
-                          <Mail className="h-2.5 w-2.5" />
-                          {c.email}
-                        </span>
-                      )}
-                      {c.phone && (
-                        <span className="flex items-center gap-1">
-                          <Phone className="h-2.5 w-2.5" />
-                          {c.phone}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  {can_manage_contacts && (
-                    <div className="flex items-center gap-0.5 shrink-0">
-                      {c.update_path && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setEditingContact(c)}
-                          disabled={contactAction.processing}
-                          className="h-8 w-8 sm:h-6 sm:w-6 p-0 text-muted-foreground hover:text-foreground transition-colors"
-                          title={`Edit ${c.name}`}
-                        >
-                          <Pencil className="h-3 w-3" />
-                        </Button>
-                      )}
-                      {c.remove_path && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemoveContact(c.remove_path!)}
-                          disabled={contactAction.processing}
-                          className="h-8 w-8 sm:h-6 sm:w-6 p-0 text-muted-foreground hover:text-destructive transition-colors"
-                          title={`Remove ${c.name}`}
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
+        {/* Contacts section hidden — using External guests instead */}
 
         {/* Column 4: External Guests */}
         <section className="rounded-xl border border-border bg-card shadow-sm p-4 space-y-3">
           <div className="flex items-center gap-2">
             <h3 className="text-sm font-semibold text-foreground flex-1 whitespace-nowrap">
-              External <span className="text-muted-foreground tabular-nums">{incident.guest_team.length}</span>
+              External
             </h3>
             {can_assign && (
               <InviteGuestButton
@@ -700,11 +626,9 @@ function GuestList({ guests, onRemove, actionsDisabled = false }: {
                 {g.initials}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-foreground truncate">{g.full_name}</span>
-                  {g.pending && <span className="text-xs font-medium text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">Pending</span>}
-                </div>
-                {g.title && <span className="text-xs text-muted-foreground">{g.title}</span>}
+                <span className="text-foreground truncate block">{g.full_name}</span>
+                {g.title && <span className="text-xs text-muted-foreground block">{g.title}</span>}
+                {g.pending && <span className="text-[10px] font-medium text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded inline-block mt-0.5">Pending</span>}
               </div>
               {hasContact && (
                 <ChevronDown className={`h-3 w-3 text-muted-foreground shrink-0 transition-transform duration-150 ${isExpanded ? "rotate-180" : ""}`} />

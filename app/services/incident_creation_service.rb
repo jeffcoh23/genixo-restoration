@@ -10,6 +10,7 @@ class IncidentCreationService
       @incident = create_incident
       auto_transition_status
       assign_users
+      invite_guests
       create_contacts
       log_creation_events
       send_notifications
@@ -101,6 +102,63 @@ class IncidentCreationService
     end
 
     User.where(active: true, organization_id: org_ids).pluck(:id)
+  end
+
+  def invite_guests
+    guests = Array(@params[:guests]).select { |g| g[:email].present? }
+    return if guests.empty?
+
+    external_org = Organization.find_by(organization_type: "external")
+    return unless external_org
+
+    guests.each do |guest_data|
+      email = guest_data[:email].strip.downcase
+      user = User.find_by(email_address: email)
+      next if user && !user.guest? # Skip non-guest existing users
+
+      if user.nil?
+        user = external_org.users.create!(
+          email_address: email,
+          first_name: guest_data[:first_name],
+          last_name: guest_data[:last_name],
+          title: guest_data[:title].presence,
+          user_type: User::GUEST,
+          password: SecureRandom.hex(20),
+          active: false
+        )
+
+        invitation = external_org.invitations.create!(
+          invited_by_user: @user,
+          email: email,
+          user_type: User::GUEST,
+          first_name: user.first_name,
+          last_name: user.last_name,
+          title: user.title,
+          permissions: [],
+          expires_at: 30.days.from_now
+        )
+        InvitationMailer.invite(invitation).deliver_later
+      elsif !user.active?
+        # Resend invitation for inactive guest
+        invitation = user.organization.invitations.where(email: email, accepted_at: nil).first
+        if invitation
+          invitation.update!(token: SecureRandom.urlsafe_base64(32), expires_at: 30.days.from_now)
+          InvitationMailer.invite(invitation).deliver_later
+        end
+      end
+
+      assignment = @incident.incident_assignments.find_or_create_by!(user: user) do |a|
+        a.assigned_by_user = @user
+      end
+
+      if assignment.previously_new_record?
+        ActivityLogger.log(
+          incident: @incident, event_type: "user_assigned", user: @user,
+          metadata: { assigned_user_id: user.id, assigned_user_name: user.full_name }
+        )
+        AssignmentNotificationJob.perform_later(assignment.id) if user.active?
+      end
+    end
   end
 
   def create_contacts
