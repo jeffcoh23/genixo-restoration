@@ -355,7 +355,7 @@ function UserList({ users, onRemove, actionsDisabled = false }: {
   );
 }
 
-function ContactFormModal({ contact, contacts_path, onClose }: {
+function _ContactFormModal({ contact, contacts_path, onClose }: {
   contact?: Contact;
   contacts_path: string;
   onClose: () => void;

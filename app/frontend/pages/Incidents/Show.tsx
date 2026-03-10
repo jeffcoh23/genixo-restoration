@@ -36,7 +36,6 @@ export default function IncidentShow() {
     can_transition,
     can_edit = false,
     can_assign = false,
-    can_manage_contacts = false,
     can_manage_activities = false,
     can_manage_labor = false,
     can_manage_equipment = false,
