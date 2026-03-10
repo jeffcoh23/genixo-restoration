@@ -331,7 +331,6 @@ export default function IncidentShow() {
               <OverviewPanel
                 incident={incident}
                 can_assign={can_assign}
-                can_manage_contacts={can_manage_contacts}
                 assignable_mitigation_users={assignable_mitigation_users}
                 assignable_pm_users={assignable_pm_users}
               />

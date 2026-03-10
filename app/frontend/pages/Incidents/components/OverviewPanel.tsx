@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { router, useForm } from "@inertiajs/react";
-import { Bell, ChevronDown, Mail, Pencil, Phone, Plus, UserPlus, X } from "lucide-react";
+import { Bell, ChevronDown, Mail, Phone, UserPlus, X } from "lucide-react";
 import InlineActionFeedback from "@/components/InlineActionFeedback";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -14,17 +14,13 @@ import type { Contact, IncidentDetail, AssignableUser, TeamUser, GuestUser } fro
 interface OverviewPanelProps {
   incident: IncidentDetail;
   can_assign: boolean;
-  can_manage_contacts: boolean;
   assignable_mitigation_users: AssignableUser[];
   assignable_pm_users: AssignableUser[];
 }
 
-export default function OverviewPanel({ incident, can_assign, can_manage_contacts, assignable_mitigation_users, assignable_pm_users }: OverviewPanelProps) {
-  const [contactFormOpen, setContactFormOpen] = useState(false);
-  const [editingContact, setEditingContact] = useState<Contact | null>(null);
+export default function OverviewPanel({ incident, can_assign, assignable_mitigation_users, assignable_pm_users }: OverviewPanelProps) {
   const [confirmRemoveUser, setConfirmRemoveUser] = useState<{ name: string; path: string } | null>(null);
   const teamAction = useInertiaAction();
-  const contactAction = useInertiaAction();
 
   const handleAssign = (userId: number) => {
     if (teamAction.processing) return;
@@ -38,13 +34,6 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
     teamAction.runDelete(confirmRemoveUser.path, undefined, {
       errorMessage: "Could not remove user from this incident.",
       onSuccess: () => setConfirmRemoveUser(null),
-    });
-  };
-
-  const handleRemoveContact = (removePath: string) => {
-    if (contactAction.processing) return;
-    contactAction.runDelete(removePath, undefined, {
-      errorMessage: "Could not remove contact.",
     });
   };
 
@@ -144,22 +133,6 @@ export default function OverviewPanel({ incident, can_assign, can_manage_contact
         </DialogContent>
       </Dialog>
 
-      {/* Add contact modal */}
-      {contactFormOpen && (
-        <ContactFormModal
-          contacts_path={incident.contacts_path}
-          onClose={() => setContactFormOpen(false)}
-        />
-      )}
-
-      {/* Edit contact modal */}
-      {editingContact && editingContact.update_path && (
-        <ContactFormModal
-          contact={editingContact}
-          contacts_path={incident.contacts_path}
-          onClose={() => setEditingContact(null)}
-        />
-      )}
     </div>
   );
 }
@@ -628,7 +601,7 @@ function GuestList({ guests, onRemove, actionsDisabled = false }: {
               <div className="flex-1 min-w-0">
                 <span className="text-foreground truncate block">{g.full_name}</span>
                 {g.title && <span className="text-xs text-muted-foreground block">{g.title}</span>}
-                {g.pending && <span className="text-[10px] font-medium text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded inline-block mt-0.5">Pending</span>}
+                {g.pending && <span className="text-xs font-medium text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded inline-block mt-0.5">Pending</span>}
               </div>
               {hasContact && (
                 <ChevronDown className={`h-3 w-3 text-muted-foreground shrink-0 transition-transform duration-150 ${isExpanded ? "rotate-180" : ""}`} />

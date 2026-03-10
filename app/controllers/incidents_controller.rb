@@ -508,7 +508,7 @@ class IncidentsController < ApplicationController
         auto = if u.mitigation_user?
           u.auto_assign # From the DB column
         else
-          u.user_type.in?([User::PROPERTY_MANAGER, User::AREA_MANAGER])
+          u.user_type.in?([ User::PROPERTY_MANAGER, User::AREA_MANAGER ])
         end
 
         {
