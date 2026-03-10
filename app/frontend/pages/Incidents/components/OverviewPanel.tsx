@@ -355,7 +355,8 @@ function UserList({ users, onRemove, actionsDisabled = false }: {
   );
 }
 
-function _ContactFormModal({ contact, contacts_path, onClose }: {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function ContactFormModal({ contact, contacts_path, onClose }: {
   contact?: Contact;
   contacts_path: string;
   onClose: () => void;
