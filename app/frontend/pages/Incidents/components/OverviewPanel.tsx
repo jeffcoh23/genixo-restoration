@@ -380,7 +380,7 @@ function UserList({ users, onRemove, actionsDisabled = false }: {
     <div className="space-y-2">
       {groups.map((group) => (
         <div key={group.role}>
-          <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">{group.role}s</div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">{group.role}</div>
           <div className="space-y-1">
             {group.users.map((u) => {
               const isExpanded = expandedId === u.id;
