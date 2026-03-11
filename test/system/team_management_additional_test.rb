@@ -30,8 +30,11 @@ class TeamManagementAdditionalTest < ApplicationSystemTestCase
       email_address: "pm@example.com", first_name: "Pam", last_name: "PM", password: "password123")
     @pm_manager = User.create!(organization: @pm, user_type: User::OTHER,
       email_address: "pmmgr@example.com", first_name: "Paul", last_name: "Manager", password: "password123")
+    @pm_unassigned = User.create!(organization: @pm, user_type: User::OTHER,
+      email_address: "pmunassigned@example.com", first_name: "Uma", last_name: "Unassigned", password: "password123")
 
     PropertyAssignment.create!(user: @pm_user, property: @property)
+    PropertyAssignment.create!(user: @pm_manager, property: @property)
 
     @incident = Incident.create!(
       property: @property,
@@ -117,14 +120,17 @@ class TeamManagementAdditionalTest < ApplicationSystemTestCase
 
     click_button "+ Assign"
     find("[role='combobox']").click
-    find("[role='option']", text: "Paul Manager (Other)").click
+    find("[role='option']", text: "Uma Unassigned (Other)").click
     click_button "Assign"
 
-    assert_text "Paul Manager"
-    assert PropertyAssignment.exists?(user: @pm_manager, property: @property)
+    assert_text "Uma Unassigned"
+    assert PropertyAssignment.exists?(user: @pm_unassigned, property: @property)
   end
 
   test "manager removes property assignment" do
+    # Remove @pm_manager so only @pm_user remains, then remove @pm_user
+    PropertyAssignment.find_by!(user: @pm_manager, property: @property).destroy!
+
     assignment = PropertyAssignment.find_by!(user: @pm_user, property: @property)
 
     login_as @manager

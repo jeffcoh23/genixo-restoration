@@ -22,6 +22,7 @@ class TeamManagementTest < ApplicationSystemTestCase
       email_address: "pmmgr@greystar.com", first_name: "Dan", last_name: "PMMgr", password: "password123")
 
     PropertyAssignment.create!(user: @pm_user, property: @property)
+    PropertyAssignment.create!(user: @pm_mgr, property: @property)
 
     @incident = Incident.create!(
       property: @property, created_by_user: @manager,

@@ -191,13 +191,9 @@ class IncidentCreationService
       IncidentMailer.creation_confirmation(@incident).deliver_later
     end
 
-    # Auto-assigned and on-call users always get notified on incident creation,
-    # regardless of their notification preferences. These users were specifically
-    # configured to receive new incidents — their preference setting should not
-    # suppress this critical notification.
     @incident.incident_assignments.each do |assignment|
       next if assignment.user_id == @user.id
-      AssignmentNotificationJob.perform_later(assignment.id, force: true)
+      AssignmentNotificationJob.perform_later(assignment.id)
     end
 
     EscalationJob.perform_later(@incident.id) if @incident.emergency?

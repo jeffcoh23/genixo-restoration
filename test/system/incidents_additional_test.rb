@@ -205,7 +205,8 @@ class IncidentsAdditionalTest < ApplicationSystemTestCase
     click_radix_option("Flood")
     fill_in "description", with: "Team assignment selection test"
 
-    assert_selector "[data-testid='new-incident-selected-count']", text: "2 members selected"
+    # 3 auto-selected: @manager (auto_assign), office (auto_assign), pm_prop (property_manager on property)
+    assert_selector "[data-testid='new-incident-selected-count']", text: "3 members selected"
     office_checkbox = find("[data-testid='new-incident-assign-checkbox-#{office.id}']")
     tech_checkbox = find("[data-testid='new-incident-assign-checkbox-#{tech.id}']")
     assert_equal "checked", office_checkbox["data-state"]
@@ -213,12 +214,12 @@ class IncidentsAdditionalTest < ApplicationSystemTestCase
 
     # Office is auto-assigned; mitigation technician is not. Toggle to validate user-driven selection changes.
     office_checkbox.click
-    assert_selector "[data-testid='new-incident-selected-count']", text: "1 member selected"
+    assert_selector "[data-testid='new-incident-selected-count']", text: "2 members selected"
     assert_equal "unchecked", find("[data-testid='new-incident-assign-checkbox-#{office.id}']")["data-state"]
 
     tech_checkbox = find("[data-testid='new-incident-assign-checkbox-#{tech.id}']")
     tech_checkbox.click
-    assert_selector "[data-testid='new-incident-selected-count']", text: "2 members selected"
+    assert_selector "[data-testid='new-incident-selected-count']", text: "3 members selected"
     assert_equal "checked", find("[data-testid='new-incident-assign-checkbox-#{tech.id}']")["data-state"]
 
     incident = nil
@@ -231,46 +232,11 @@ class IncidentsAdditionalTest < ApplicationSystemTestCase
     assert_includes assigned_ids, @manager.id     # auto_assign=true, kept checked
     assert_includes assigned_ids, tech.id          # manually checked
     assert_not_includes assigned_ids, office.id    # auto_assign=true, manually unchecked
-    assert_not_includes assigned_ids, pm_mgr.id    # PM users not pre-selected
-    assert_not_includes assigned_ids, pm_prop.id   # PM users not pre-selected
+    assert_not_includes assigned_ids, pm_mgr.id    # PM "other" type not auto-selected
+    assert_includes assigned_ids, pm_prop.id       # property_manager on property, auto-selected
   end
 
-  test "incident create persists contacts" do
-    login_as @manager
-    visit new_incident_path
-
-    select_new_incident_org_and_property("Greystar", "River Oaks")
-
-    find("label", text: "Emergency Response").click
-    open_radix_select("Damage Type")
-    click_radix_option("Flood")
-    fill_in "description", with: "Incident with contacts"
-
-    click_button "Add Contact"
-    contact_row = find("[data-testid='new-incident-contact-row-0']")
-    within(contact_row) do
-      find("input[placeholder='Name *']").fill_in with: "Jane Contact"
-      find("input[placeholder='Title']").fill_in with: "Property Manager"
-      find("input[placeholder='Email']").fill_in with: "jane@example.com"
-      find("input[placeholder='Phone']").fill_in with: "713-555-0101"
-      find("label", text: "Onsite contact").click
-    end
-
-    incident = nil
-    assert_difference -> { Incident.count }, +1 do
-      click_button "Create Request"
-      assert_text "Incident created."
-      incident = Incident.order(:id).last
-    end
-
-    find("[data-testid='incident-tab-manage']").click
-
-    contact = incident.incident_contacts.find_by!(name: "Jane Contact")
-    assert_equal true, contact.onsite
-    assert_text "Jane Contact"
-    assert_text "Property Manager"
-    assert_text "jane@example.com"
-  end
+  # Contacts UI removed from incident creation form (managed post-creation via Manage tab)
 
   test "technician cannot edit incident" do
     IncidentAssignment.create!(incident: @active_incident, user: @actor, assigned_by_user: @manager)

@@ -182,7 +182,6 @@ class BatchImprovementsTest < ApplicationSystemTestCase
 
     assert_text "Mitigation Team"
     assert_text "Property Management"
-    assert_text "Contacts"
     assert_text "External"
     # PM user sees the team but cannot assign mitigation users
     within("section", text: "Mitigation Team") do
@@ -197,7 +196,6 @@ class BatchImprovementsTest < ApplicationSystemTestCase
 
     assert_text "Mitigation Team"
     assert_text "Property Management"
-    assert_text "Contacts"
     assert_text "External"
   end
 

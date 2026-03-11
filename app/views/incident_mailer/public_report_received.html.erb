@@ -1,0 +1,55 @@
+<% if @is_emergency %>
+<h2 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: #c53030;">Emergency Public Incident Report</h2>
+<% else %>
+<h2 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: #1a2b33;">New Public Incident Report</h2>
+<% end %>
+
+<p style="margin: 0 0 16px 0; font-size: 14px; color: #3d5361; line-height: 1.5;">
+  A new incident has been reported via the public form. No account was used — please review and create an incident if appropriate.
+</p>
+
+<h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: #1a2b33;">Reporter</h3>
+<table style="width: 100%; border-collapse: collapse; margin: 0 0 24px 0;">
+  <tr>
+    <td style="padding: 8px 0; font-size: 13px; color: #8899a4; width: 120px;">Email</td>
+    <td style="padding: 8px 0; font-size: 13px; color: #1a2b33;"><%= @report[:reporter_email] %></td>
+  </tr>
+  <% if @report[:reporter_name].present? %>
+  <tr>
+    <td style="padding: 8px 0; font-size: 13px; color: #8899a4;">Name</td>
+    <td style="padding: 8px 0; font-size: 13px; color: #1a2b33;"><%= @report[:reporter_name] %></td>
+  </tr>
+  <% end %>
+  <% if @report[:reporter_phone].present? %>
+  <tr>
+    <td style="padding: 8px 0; font-size: 13px; color: #8899a4;">Phone</td>
+    <td style="padding: 8px 0; font-size: 13px; color: #1a2b33;"><%= @report[:reporter_phone] %></td>
+  </tr>
+  <% end %>
+</table>
+
+<h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: #1a2b33;">Incident Details</h3>
+<table style="width: 100%; border-collapse: collapse; margin: 0 0 24px 0;">
+  <% if @report[:property_description].present? %>
+  <tr>
+    <td style="padding: 8px 0; font-size: 13px; color: #8899a4; width: 120px;">Property</td>
+    <td style="padding: 8px 0; font-size: 13px; color: #1a2b33;"><%= @report[:property_description] %></td>
+  </tr>
+  <% end %>
+  <tr>
+    <td style="padding: 8px 0; font-size: 13px; color: #8899a4;">Project Type</td>
+    <td style="padding: 8px 0; font-size: 13px; color: #1a2b33;"><%= @project_label %></td>
+  </tr>
+  <tr>
+    <td style="padding: 8px 0; font-size: 13px; color: #8899a4;">Damage Type</td>
+    <td style="padding: 8px 0; font-size: 13px; color: #1a2b33;"><%= @damage_label %></td>
+  </tr>
+</table>
+
+<div style="margin: 0 0 24px 0; padding: 12px 16px; background-color: #f0f4f5; border-radius: 6px;">
+  <p style="margin: 0; font-size: 13px; color: #3d5361; line-height: 1.6; white-space: pre-wrap;"><%= @report[:description] %></p>
+</div>
+
+<p style="margin: 0; font-size: 12px; color: #8899a4;">
+  This was submitted via the public report form. No incident record has been created yet — please review and take appropriate action.
+</p>

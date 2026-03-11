@@ -50,15 +50,14 @@ class AssignmentNotificationJobTest < ActiveSupport::TestCase
     assert_equal 0, ActionMailer::Base.deliveries.size
   end
 
-  test "force true sends notification regardless of preference" do
+  test "force flag is ignored — preferences always respected" do
     @tech.update!(notification_preferences: { "incident_user_assignment" => false })
     assignment = @incident.incident_assignments.create!(user: @tech, assigned_by_user: @manager)
 
     perform_enqueued_jobs do
       AssignmentNotificationJob.perform_now(assignment.id, force: true)
     end
-    assert_equal 1, ActionMailer::Base.deliveries.size
-    assert_equal [ "tech@genixo.com" ], ActionMailer::Base.deliveries.last.to
+    assert_equal 0, ActionMailer::Base.deliveries.size
   end
 
   test "does nothing if assignment is gone" do
