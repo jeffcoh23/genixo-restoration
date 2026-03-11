@@ -14,8 +14,8 @@ const tabs = [
   { key: "equipment", label: "Equipment" },
   { key: "photos", label: "Photos" },
   { key: "documents", label: "Documents" },
-  { key: "messages", label: "Messages" },
   { key: "readings", label: "Readings" },
+  { key: "messages", label: "Messages" },
   { key: "manage", label: "Manage" },
 ];
 
