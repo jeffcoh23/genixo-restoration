@@ -64,9 +64,9 @@ class IncidentPanelsTest < ApplicationSystemTestCase
     assert_operator daily_log, :<, labor
     assert_operator labor, :<, equipment
     assert_operator equipment, :<, documents
-    assert_operator documents, :<, messages
-    assert_operator messages, :<, readings
-    assert_operator readings, :<, manage
+    assert_operator documents, :<, readings
+    assert_operator readings, :<, messages
+    assert_operator messages, :<, manage
   end
 
   test "messages panel has file and camera controls" do
