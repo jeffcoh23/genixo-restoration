@@ -79,7 +79,7 @@ class PublicIncidentReportService
     config = mit_org.on_call_configuration
     return unless config
 
-    contacts = [config.primary_user] + config.escalation_contacts.order(:position).map(&:user)
+    contacts = [ config.primary_user ] + config.escalation_contacts.order(:position).map(&:user)
     contacts.compact.each do |user|
       next unless user.phone.present?
       NotificationService.send_sms(
