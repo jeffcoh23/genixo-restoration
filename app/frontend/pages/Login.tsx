@@ -1,4 +1,5 @@
 import { Link, useForm, usePage } from "@inertiajs/react";
+import { Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,10 +15,12 @@ interface FlashMessages {
 interface Props extends Record<string, unknown> {
   flash: FlashMessages;
   forgot_password_path: string;
+  report_incident_path: string;
+  emergency_phone: string | null;
 }
 
 export default function Login() {
-  const { flash, forgot_password_path } = usePage<Props>().props;
+  const { flash, forgot_password_path, report_incident_path, emergency_phone } = usePage<Props>().props;
   const { data, setData, post, processing, errors } = useForm({
     email_address: "",
     password: "",
@@ -87,6 +90,27 @@ export default function Login() {
             <Link href={forgot_password_path} className="text-sm text-muted-foreground hover:text-foreground">
               Forgot password?
             </Link>
+          </div>
+
+          <div className="mt-6 pt-4 border-t border-border text-center space-y-2">
+            <Link
+              href={report_incident_path}
+              className="text-sm font-medium text-primary hover:text-primary/80"
+            >
+              Report an Incident
+            </Link>
+            {emergency_phone && (
+              <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+                <Phone className="h-3 w-3" />
+                <span>Emergency: </span>
+                <a
+                  href={`tel:${emergency_phone.replace(/\D/g, "")}`}
+                  className="font-semibold text-destructive hover:underline"
+                >
+                  {emergency_phone}
+                </a>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

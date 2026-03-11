@@ -31,6 +31,16 @@ class IncidentMailer < ApplicationMailer
     mail(to: user.email_address, subject: "New message on #{@property.name}")
   end
 
+  def public_report_received(user, report, is_emergency)
+    @user = user
+    @report = report
+    @is_emergency = is_emergency
+    @project_label = Incident::PROJECT_TYPE_LABELS[report[:project_type]] || report[:project_type]
+    @damage_label = Incident::DAMAGE_LABELS[report[:damage_type]] || report[:damage_type]
+    subject = is_emergency ? "EMERGENCY: Public Incident Report — Immediate Review Needed" : "New Public Incident Report Submitted"
+    mail(to: user.email_address, subject: subject)
+  end
+
   def escalation_alert(incident, user)
     @incident = incident
     @user = user

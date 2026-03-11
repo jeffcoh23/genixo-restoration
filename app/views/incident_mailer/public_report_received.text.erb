@@ -1,0 +1,20 @@
+<%= @is_emergency ? "EMERGENCY " : "" %>PUBLIC INCIDENT REPORT
+
+A new incident has been reported via the public form. No account was used — please review and create an incident if appropriate.
+
+REPORTER
+--------
+Email: <%= @report[:reporter_email] %>
+<% if @report[:reporter_name].present? %>Name: <%= @report[:reporter_name] %><% end %>
+<% if @report[:reporter_phone].present? %>Phone: <%= @report[:reporter_phone] %><% end %>
+
+INCIDENT DETAILS
+----------------
+<% if @report[:property_description].present? %>Property: <%= @report[:property_description] %>
+<% end %>Project Type: <%= @project_label %>
+Damage Type: <%= @damage_label %>
+
+<%= @report[:description] %>
+
+---
+This was submitted via the public report form. No incident record has been created yet.

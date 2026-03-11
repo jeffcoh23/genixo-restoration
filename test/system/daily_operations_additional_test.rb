@@ -367,74 +367,7 @@ class DailyOperationsAdditionalTest < ApplicationSystemTestCase
     assert_equal "operational_note_added", @incident.activity_events.order(:id).last.event_type
   end
 
-  test "add incident contact" do
-    login_as @manager
-    visit incident_path(@incident)
-    click_button "Manage"
-
-    within(contacts_section) { click_button "Add" }
-
-    within("[role='dialog']") do
-      fill_in "Contact name", with: "Carla Contact"
-      fill_in "e.g. Property Manager", with: "Resident Liaison"
-      find("input[type='email']").set("carla@example.com")
-      find("input[type='tel']").set("713-555-0199")
-      click_button "Add Contact"
-    end
-
-    assert_text "Contact added."
-    assert_text "Carla Contact"
-    contact = @incident.incident_contacts.order(:id).last
-    assert_equal "Resident Liaison", contact.title
-    assert_equal "carla@example.com", contact.email
-  end
-
-  test "update incident contact" do
-    contact = IncidentContact.create!(
-      incident: @incident,
-      created_by_user: @manager,
-      name: "Carla Contact",
-      title: "Resident Liaison",
-      email: "carla@example.com",
-      phone: "713-555-0100"
-    )
-
-    login_as @manager
-    visit incident_path(@incident)
-    click_button "Manage"
-
-    find("button[title='Edit #{contact.name}']").click
-    within("[role='dialog']") do
-      find("input[type='tel']").set("713-555-0199")
-      fill_in "e.g. Property Manager", with: "Property Liaison"
-      click_button "Save"
-    end
-
-    assert_text "Contact updated."
-    assert_text "Property Liaison"
-    assert_equal "7135550199", contact.reload.phone
-    assert_equal "Property Liaison", contact.title
-  end
-
-  test "remove incident contact" do
-    contact = IncidentContact.create!(
-      incident: @incident,
-      created_by_user: @manager,
-      name: "Remove Me",
-      title: "Tenant",
-      email: "remove@example.com"
-    )
-
-    login_as @manager
-    visit incident_path(@incident)
-    click_button "Manage"
-
-    find("button[title='Remove #{contact.name}']").click
-
-    assert_text "removed."
-    within(contacts_section) { assert_no_text "Remove Me" }
-    assert_nil IncidentContact.find_by(id: contact.id)
-  end
+  # Contacts UI removed from Manage tab (replaced by External guests)
 
   private
 
@@ -458,9 +391,6 @@ class DailyOperationsAdditionalTest < ApplicationSystemTestCase
     page.execute_script(js, incident_messages_path(@incident), body, filename, content_type)
   end
 
-  def contacts_section
-    all("section").find { |section| section.text.include?("Contacts") }
-  end
 
   def submit_labor_entry_patch(entry, role_label:, started_at:, ended_at:, notes:)
     js = <<~JS

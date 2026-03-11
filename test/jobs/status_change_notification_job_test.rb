@@ -69,6 +69,13 @@ class StatusChangeNotificationJobTest < ActiveSupport::TestCase
     assert_equal 1, ActionMailer::Base.deliveries.size
   end
 
+  test "skips non-notifiable status transitions like new and acknowledged" do
+    perform_enqueued_jobs do
+      StatusChangeNotificationJob.perform_now(@incident.id, "new", "acknowledged")
+    end
+    assert_equal 0, ActionMailer::Base.deliveries.size
+  end
+
   test "does nothing if incident is gone" do
     perform_enqueued_jobs do
       StatusChangeNotificationJob.perform_now(0, "acknowledged", "active")

@@ -47,7 +47,7 @@ sandalwood = Organization.find_or_create_by!(name: "Sandalwood Management") do |
   org.zip = "78701"
 end
 
-Organization.find_or_create_by!(name: "External") do |org|
+external_org = Organization.find_or_create_by!(name: "External") do |org|
   org.organization_type = "external"
 end
 
@@ -99,7 +99,7 @@ end
 # ==========================================================================
 
 # Kristopher Morris — Senior Manager of Construction, Houston (most-referenced PM user)
-users[:jane] = User.find_or_create_by!(organization: greystar, email_address: "kristopher.morris@greystar.com") do |u|
+users[:jane] = User.find_or_create_by!(organization: greystar, email_address: "kristopher.morris@greystar.example") do |u|
   u.first_name = "Kristopher"
   u.last_name = "Morris"
   u.user_type = "property_manager"
@@ -110,7 +110,7 @@ users[:jane] = User.find_or_create_by!(organization: greystar, email_address: "k
 end
 
 # Makenzie Costlow — Senior Manager of Construction, Dallas
-users[:tom] = User.find_or_create_by!(organization: greystar, email_address: "makenzie.costlow@greystar.com") do |u|
+users[:tom] = User.find_or_create_by!(organization: greystar, email_address: "makenzie.costlow@greystar.example") do |u|
   u.first_name = "Makenzie"
   u.last_name = "Costlow"
   u.user_type = "area_manager"
@@ -121,7 +121,7 @@ users[:tom] = User.find_or_create_by!(organization: greystar, email_address: "ma
 end
 
 # Michael Best — Senior Director of Construction, Texas/Minnesota
-users[:amy] = User.find_or_create_by!(organization: greystar, email_address: "michael.best@greystar.com") do |u|
+users[:amy] = User.find_or_create_by!(organization: greystar, email_address: "michael.best@greystar.example") do |u|
   u.first_name = "Michael"
   u.last_name = "Best"
   u.user_type = "other"
@@ -132,7 +132,7 @@ users[:amy] = User.find_or_create_by!(organization: greystar, email_address: "mi
 end
 
 # Tobias Webb — Senior Manager of Construction, Dallas
-users[:carlos] = User.find_or_create_by!(organization: greystar, email_address: "tobias.webb@greystar.com") do |u|
+users[:carlos] = User.find_or_create_by!(organization: greystar, email_address: "tobias.webb@greystar.example") do |u|
   u.first_name = "Tobias"
   u.last_name = "Webb"
   u.user_type = "other"
@@ -143,7 +143,7 @@ users[:carlos] = User.find_or_create_by!(organization: greystar, email_address: 
 end
 
 # Darren North — Senior Manager of Construction, Austin
-users[:diana] = User.find_or_create_by!(organization: greystar, email_address: "darren.north@greystar.com") do |u|
+users[:diana] = User.find_or_create_by!(organization: greystar, email_address: "darren.north@greystar.example") do |u|
   u.first_name = "Darren"
   u.last_name = "North"
   u.user_type = "other"
@@ -157,7 +157,7 @@ end
 # Users — Sandalwood Management (PM isolation test)
 # ==========================================================================
 
-users[:bob] = User.find_or_create_by!(organization: sandalwood, email_address: "bob@sandalwood.com") do |u|
+users[:bob] = User.find_or_create_by!(organization: sandalwood, email_address: "bob@sandalwood.example") do |u|
   u.first_name = "Bob"
   u.last_name = "Johnson"
   u.user_type = "property_manager"
@@ -812,6 +812,129 @@ if Incident.count.zero?
     { user: :jane, body: "Residents in 806 are asking about their car in the garage — it won't start. Can your team help coordinate a tow? Also, any update on when Protean will have the protocol for 704 and 804?", at: now - 12.hours }
   ].each do |msg|
     Message.create!(incident: incident4, user: users[msg[:user]], body: msg[:body], created_at: msg[:at])
+  end
+
+  # External guests
+  guest_tommy = User.find_or_create_by!(email_address: "tthacker@proteanservices.example") do |u|
+    u.organization = external_org
+    u.user_type = "guest"
+    u.first_name = "Tommy"
+    u.last_name = "Thacker"
+    u.title = "Environmental Consultant — Protean Services"
+    u.phone = "832-555-0422"
+    u.password = "password"
+  end
+  IncidentAssignment.create!(incident: incident4, user: guest_tommy, assigned_by_user: users[:gordon])
+
+  guest_linda = User.find_or_create_by!(email_address: "lpark@nationalinsurance.example") do |u|
+    u.organization = external_org
+    u.user_type = "guest"
+    u.first_name = "Linda"
+    u.last_name = "Park"
+    u.title = "Insurance Adjuster — National Insurance"
+    u.phone = "713-555-0877"
+    u.password = "password"
+  end
+  IncidentAssignment.create!(incident: incident4, user: guest_linda, assigned_by_user: users[:gordon])
+
+  # ---------------------------------------------------------------
+  # Moisture measurement points + readings (3 days of data)
+  # ---------------------------------------------------------------
+  moisture_points = [
+    { unit: "704", room: "Kitchen",    item: "Shared wall",   material: "Drywall",  goal: 15, measurement_unit: "%", position: 1 },
+    { unit: "704", room: "Hallway",    item: "North wall",    material: "Drywall",  goal: 15, measurement_unit: "%", position: 2 },
+    { unit: "704", room: "Bedroom",    item: "Baseboard area", material: "Drywall", goal: 15, measurement_unit: "%", position: 3 },
+    { unit: "804", room: "Kitchen",    item: "Subfloor",      material: "Plywood",  goal: 18, measurement_unit: "%", position: 4 },
+    { unit: "804", room: "Hallway",    item: "East wall",     material: "Drywall",  goal: 15, measurement_unit: "%", position: 5 },
+    { unit: "804", room: "Bedroom",    item: "Carpet area",   material: "Drywall",  goal: 15, measurement_unit: "%", position: 6 },
+    { unit: "805", room: "Bathroom",   item: "Floor",         material: "Tile/sub", goal: 18, measurement_unit: "%", position: 7 },
+    { unit: "805", room: "Bedroom",    item: "West wall",     material: "Drywall",  goal: 15, measurement_unit: "%", position: 8 },
+    { unit: "806", room: "Kitchen",    item: "Cabinet toe kick", material: "MDF",   goal: 18, measurement_unit: "%", position: 9 },
+    { unit: "806", room: "Hallway",    item: "Ceiling",       material: "Drywall",  goal: 15, measurement_unit: "%", position: 10 },
+    { unit: "1502", room: "Kitchen",   item: "South wall",    material: "Drywall",  goal: 15, measurement_unit: "%", position: 11 },
+    { unit: "1502", room: "Living Room", item: "Floor",       material: "Plywood",  goal: 18, measurement_unit: "%", position: 12 },
+    { unit: "2601", room: "Kitchen",   item: "Subfloor",      material: "Plywood",  goal: 18, measurement_unit: "%", position: 13 },
+    { unit: "2601", room: "Living Room", item: "East wall",   material: "Drywall",  goal: 15, measurement_unit: "%", position: 14 },
+    { unit: "2601", room: "Bedroom 1", item: "North wall",    material: "Drywall",  goal: 15, measurement_unit: "%", position: 15 },
+    { unit: "2601", room: "Bedroom 2", item: "Closet wall",   material: "Drywall",  goal: 15, measurement_unit: "%", position: 16 }
+  ]
+
+  # Day 1 → Day 3 readings showing drying progress (some units improving, 2601 stubbornly high)
+  reading_values = {
+    #                   Day 1   Day 2   Day 3
+    "704-Kitchen"    => [ 42,     38,     35  ],
+    "704-Hallway"    => [ 32,     28,     24  ],
+    "704-Bedroom"    => [ 28,     22,     18  ],
+    "804-Kitchen"    => [ 45,     40,     36  ],
+    "804-Hallway"    => [ 34,     28,     22  ],
+    "804-Bedroom"    => [ 26,     20,     16  ],
+    "805-Bathroom"   => [ 38,     30,     22  ],
+    "805-Bedroom"    => [ 24,     18,     14  ],
+    "806-Kitchen"    => [ nil,    nil,    40  ],  # just gained access day 3
+    "806-Hallway"    => [ nil,    nil,    36  ],
+    "1502-Kitchen"   => [ 28,     20,     15  ],
+    "1502-Living Room" => [ 32,   24,     18  ],
+    "2601-Kitchen"   => [ 52,     48,     46  ],  # reflooding keeps it high
+    "2601-Living Room" => [ 44,   40,     38  ],
+    "2601-Bedroom 1" => [ 38,     36,     34  ],
+    "2601-Bedroom 2" => [ 36,     34,     32  ]
+  }
+
+  moisture_points.each do |mp_attrs|
+    mp = MoistureMeasurementPoint.create!(incident: incident4, **mp_attrs)
+    key = "#{mp_attrs[:unit]}-#{mp_attrs[:room]}"
+    values = reading_values[key]
+    3.times do |i|
+      next if values[i].nil?
+      MoistureReading.create!(
+        moisture_measurement_point: mp,
+        log_date: (now - (3 - i).days).to_date,
+        value: values[i],
+        recorded_by_user: users[:salvador]
+      )
+    end
+  end
+
+  # ---------------------------------------------------------------
+  # Psychrometric points + readings (temperature/humidity per unit)
+  # ---------------------------------------------------------------
+  psychro_points = [
+    { unit: "704", room: "Kitchen",      dehumidifier_label: "DH-704-1",  position: 1 },
+    { unit: "804", room: "Kitchen",      dehumidifier_label: "DH-804-1",  position: 2 },
+    { unit: "805", room: "Bathroom",     dehumidifier_label: "DH-805-1",  position: 3 },
+    { unit: "806", room: "Kitchen",      dehumidifier_label: "DH-806-1",  position: 4 },
+    { unit: "1502", room: "Living Room", dehumidifier_label: "DH-1502-1", position: 5 },
+    { unit: "1502", room: "Kitchen",     dehumidifier_label: "DH-1502-2", position: 6 },
+    { unit: "2601", room: "Living Room", dehumidifier_label: "DH-2601-1", position: 7 },
+    { unit: "2601", room: "Bedroom 1",   dehumidifier_label: "DH-2601-2", position: 8 }
+  ]
+
+  # Temperature (°F) / Relative Humidity (%) — Day 1, Day 2, Day 3
+  psychro_values = {
+    "704-Kitchen"       => [ [ 74, 68 ], [ 73, 62 ], [ 72, 55 ] ],
+    "804-Kitchen"       => [ [ 75, 72 ], [ 74, 65 ], [ 73, 58 ] ],
+    "805-Bathroom"      => [ [ 76, 70 ], [ 74, 60 ], [ 73, 52 ] ],
+    "806-Kitchen"       => [ nil,         nil,         [ 75, 74 ] ],
+    "1502-Living Room"  => [ [ 73, 65 ], [ 72, 55 ], [ 71, 48 ] ],
+    "1502-Kitchen"      => [ [ 74, 67 ], [ 73, 58 ], [ 72, 50 ] ],
+    "2601-Living Room"  => [ [ 76, 78 ], [ 75, 74 ], [ 75, 72 ] ],
+    "2601-Bedroom 1"    => [ [ 75, 75 ], [ 74, 72 ], [ 74, 70 ] ]
+  }
+
+  psychro_points.each do |pp_attrs|
+    pp = PsychrometricPoint.create!(incident: incident4, **pp_attrs)
+    key = "#{pp_attrs[:unit]}-#{pp_attrs[:room]}"
+    values = psychro_values[key]
+    3.times do |i|
+      next if values[i].nil?
+      PsychrometricReading.create!(
+        psychrometric_point: pp,
+        log_date: (now - (3 - i).days).to_date,
+        temperature: values[i][0],
+        relative_humidity: values[i][1],
+        recorded_by_user: users[:salvador]
+      )
+    end
   end
 
   puts "  Incident 4 (DFR-scale Flood — 8 Units — Active): created"
