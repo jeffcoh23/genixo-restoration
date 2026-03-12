@@ -543,7 +543,7 @@ class IncidentsController < ApplicationController
     end
 
     scope.order(:last_name, :first_name)
-      .map { |u| { id: u.id, full_name: u.full_name, role_label: User::ROLE_LABELS[u.user_type] } }
+      .map { |u| { id: u.id, full_name: u.full_name, role_label: User::ROLE_LABELS[u.user_type], display_role: u.display_role } }
   end
 
   TEAM_SORT_ORDER = [ User::MANAGER, User::TECHNICIAN, User::OTHER, User::AREA_MANAGER, User::PROPERTY_MANAGER ].freeze

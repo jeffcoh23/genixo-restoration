@@ -31,6 +31,7 @@ export interface AssignableUser {
   id: number;
   full_name: string;
   role_label: string;
+  display_role: string;
 }
 
 export interface Contact {
