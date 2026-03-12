@@ -515,6 +515,7 @@ class IncidentsController < ApplicationController
           id: u.id,
           full_name: u.full_name,
           role_label: User::ROLE_LABELS[u.user_type],
+          display_role: u.display_role,
           organization_name: u.organization.name,
           org_type: u.mitigation_user? ? "mitigation" : "pm",
           auto_assign: auto,
@@ -555,6 +556,7 @@ class IncidentsController < ApplicationController
         full_name: a.user.full_name,
         initials: a.user.initials,
         role_label: User::ROLE_LABELS[a.user.user_type],
+        display_role: a.user.display_role,
         email: a.user.email_address,
         phone: format_phone(a.user.phone),
         phone_raw: a.user.phone,
@@ -939,7 +941,7 @@ class IncidentsController < ApplicationController
       occurred_at: event.created_at,
       actor_name: actor.full_name,
       actor_initials: actor.initials,
-      actor_role_label: User::ROLE_LABELS[actor.user_type],
+      actor_role_label: actor.display_role,
       actor_org_name: actor.organization.name,
       category: category,
       title: title,
@@ -1061,6 +1063,7 @@ class IncidentsController < ApplicationController
         full_name: user.full_name,
         initials: user.initials,
         role_label: User::ROLE_LABELS[user.user_type],
+        display_role: user.display_role,
         org_name: user.organization.name
       },
       attachments: attachments

@@ -95,13 +95,15 @@ class IncidentCreationService
   end
 
   def selectable_user_ids_for_creator
-    org_ids = if @user.pm_user?
-      [ @property.property_management_org_id ]
+    if @user.pm_user?
+      # PM users can only select users assigned to this property
+      User.where(active: true, organization_id: @property.property_management_org_id)
+        .joins(:property_assignments).where(property_assignments: { property_id: @property.id })
+        .pluck(:id)
     else
-      [ @property.mitigation_org_id, @property.property_management_org_id ]
+      User.where(active: true, organization_id: [ @property.mitigation_org_id, @property.property_management_org_id ])
+        .pluck(:id)
     end
-
-    User.where(active: true, organization_id: org_ids).pluck(:id)
   end
 
   def invite_guests

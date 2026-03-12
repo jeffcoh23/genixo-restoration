@@ -48,16 +48,17 @@ class SecurityAdditionalTest < ApplicationSystemTestCase
     assert_equal "DH-999", other_item.reload.identifier
   end
 
-  test "technician cannot create incident" do
+  test "technician can access create incident page" do
     login_as @tech
     visit new_incident_path
-    assert_not_found_rendered
+    assert_text "Create"
   end
 
-  test "pm manager cannot create incident" do
+  test "pm other user can access create incident page" do
+    PropertyAssignment.create!(user: @pm_manager, property: @property)
     login_as @pm_manager
     visit new_incident_path
-    assert_not_found_rendered
+    assert_text "Create"
   end
 
   test "non manager blocked from on call settings" do

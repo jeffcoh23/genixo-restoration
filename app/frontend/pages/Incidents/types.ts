@@ -4,6 +4,7 @@ export interface TeamUser {
   full_name: string;
   initials: string;
   role_label: string;
+  display_role: string;
   email: string;
   phone: string | null;
   phone_raw: string | null;
@@ -320,6 +321,7 @@ export interface Message {
     full_name: string;
     initials: string;
     role_label: string;
+    display_role: string;
     org_name: string;
   };
   attachments?: MessageAttachment[];
@@ -344,6 +346,7 @@ export interface NewIncidentAssignableUser {
   id: number;
   full_name: string;
   role_label: string;
+  display_role: string;
   organization_name: string;
   org_type: "mitigation" | "pm";
   auto_assign: boolean;

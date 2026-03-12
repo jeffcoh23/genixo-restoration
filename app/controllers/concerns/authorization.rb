@@ -38,7 +38,7 @@ module Authorization
   # --- Permission checks (backed by Permissions model) ---
 
   def can_create_incident?
-    current_user.can?(Permissions::CREATE_INCIDENT)
+    !current_user.guest?
   end
 
   def can_edit_incident?

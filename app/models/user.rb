@@ -73,6 +73,14 @@ class User < ApplicationRecord
     "#{first_name[0]}#{last_name[0]}".upcase
   end
 
+  def role_label
+    ROLE_LABELS[user_type]
+  end
+
+  def display_role
+    title.presence || role_label
+  end
+
   def manager?
     user_type == MANAGER
   end

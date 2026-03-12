@@ -137,8 +137,9 @@ class IncidentAssignmentsController < ApplicationController
         .where(organization_id: [ @incident.property.mitigation_org_id, @incident.property.property_management_org_id ])
         .where.not(id: @incident.assigned_user_ids)
     else
-      # PM users can only assign their own org's users
+      # PM users can only assign their own org's users who are assigned to this property
       User.where(active: true, organization_id: current_user.organization_id)
+        .joins(:property_assignments).where(property_assignments: { property_id: @incident.property_id })
         .where.not(id: @incident.assigned_user_ids)
     end
   end

@@ -28,6 +28,7 @@ class ApplicationController < ActionController::Base
         initials: current_user.initials,
         user_type: current_user.user_type,
         role_label: User::ROLE_LABELS[current_user.user_type],
+        display_role: current_user.display_role,
         title: current_user.title,
         organization_type: current_user.organization.organization_type,
         organization_name: current_user.guest? ? nil : current_user.organization.name,

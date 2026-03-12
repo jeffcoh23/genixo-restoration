@@ -55,7 +55,7 @@ class PropertiesController < ApplicationController
         assigned_users: @property.property_assignments.includes(:user)
           .joins(:user).where(users: { active: true }).order("users.last_name, users.first_name").map { |a|
           { id: a.user.id, assignment_id: a.id, full_name: a.user.full_name, email: a.user.email_address,
-            role_label: User::ROLE_LABELS[a.user.user_type], path: user_path(a.user),
+            role_label: User::ROLE_LABELS[a.user.user_type], display_role: a.user.display_role, path: user_path(a.user),
             remove_path: property_assignment_path(@property, a) }
         },
         incidents: @property.incidents.order(created_at: :desc).limit(20).map { |i|

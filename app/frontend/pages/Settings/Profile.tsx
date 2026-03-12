@@ -23,6 +23,7 @@ interface UserProfile {
   timezone: string;
   title: string | null;
   role_label: string;
+  display_role: string;
   organization_name: string;
   notification_preferences: NotificationPreferences;
 }
@@ -204,7 +205,7 @@ export default function SettingsProfile() {
         {/* Read-only info */}
         <div className="rounded-lg border border-border bg-card shadow-sm px-5 py-3">
           <p className="text-sm text-muted-foreground">
-            {user.title ? `${user.title} — ` : ""}{user.role_label} at {user.organization_name}
+            {user.display_role} at {user.organization_name}
           </p>
         </div>
 

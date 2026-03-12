@@ -163,7 +163,7 @@ function AssignSelect({ users, onAssign, disabled = false }: {
       <SelectContent>
         {users.map((u) => (
           <SelectItem key={u.id} value={String(u.id)}>
-            {u.full_name} ({u.role_label})
+            {u.full_name} ({u.display_role})
           </SelectItem>
         ))}
       </SelectContent>
