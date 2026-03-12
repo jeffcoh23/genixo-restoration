@@ -82,6 +82,7 @@ export default function OverviewPanel({ incident, can_assign, assignable_mitigat
               users={incident.pm_team}
               onRemove={(name, path) => setConfirmRemoveUser({ name, path })}
               actionsDisabled={teamAction.processing}
+              groupBy="display_role"
             />
           )}
         </section>
@@ -256,30 +257,32 @@ function NotificationOverridesDialog({ user, onClose }: { user: TeamUser; onClos
   );
 }
 
-function UserList({ users, onRemove, actionsDisabled = false }: {
+function UserList({ users, onRemove, actionsDisabled = false, groupBy = "role_label" }: {
   users: TeamUser[];
   onRemove: (name: string, path: string) => void;
   actionsDisabled?: boolean;
+  groupBy?: "role_label" | "display_role";
 }) {
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [notifUser, setNotifUser] = useState<TeamUser | null>(null);
 
-  // Group users by role, preserving backend sort order
-  const groups: { role: string; users: TeamUser[] }[] = [];
+  // Group users by the specified field, preserving backend sort order
+  const groups: { label: string; users: TeamUser[] }[] = [];
   for (const u of users) {
+    const key = groupBy === "display_role" ? u.display_role : u.role_label;
     const last = groups[groups.length - 1];
-    if (last && last.role === u.role_label) {
+    if (last && last.label === key) {
       last.users.push(u);
     } else {
-      groups.push({ role: u.role_label, users: [u] });
+      groups.push({ label: key, users: [u] });
     }
   }
 
   return (
     <div className="space-y-2">
       {groups.map((group) => (
-        <div key={group.role}>
-          <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">{group.role}</div>
+        <div key={group.label}>
+          <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">{group.label}</div>
           <div className="space-y-1">
             {group.users.map((u) => {
               const isExpanded = expandedId === u.id;
@@ -326,19 +329,24 @@ function UserList({ users, onRemove, actionsDisabled = false }: {
                   </div>
 
                   {isExpanded && hasContact && (
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-2 pb-2 ml-8 text-xs text-muted-foreground">
-                      {u.email && (
-                        <a href={`mailto:${u.email}`} className="flex items-center gap-1.5 hover:text-foreground transition-colors">
-                          <Mail className="h-3 w-3" />
-                          {u.email}
-                        </a>
+                    <div className="px-2 pb-2 ml-8 text-xs text-muted-foreground space-y-1">
+                      {groupBy === "role_label" && u.display_role !== u.role_label && (
+                        <div>{u.display_role}</div>
                       )}
-                      {u.phone && (
-                        <a href={`tel:${u.phone_raw}`} className="flex items-center gap-1.5 hover:text-foreground transition-colors">
-                          <Phone className="h-3 w-3" />
-                          {u.phone}
-                        </a>
-                      )}
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                        {u.email && (
+                          <a href={`mailto:${u.email}`} className="flex items-center gap-1.5 hover:text-foreground transition-colors">
+                            <Mail className="h-3 w-3" />
+                            {u.email}
+                          </a>
+                        )}
+                        {u.phone && (
+                          <a href={`tel:${u.phone_raw}`} className="flex items-center gap-1.5 hover:text-foreground transition-colors">
+                            <Phone className="h-3 w-3" />
+                            {u.phone}
+                          </a>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
