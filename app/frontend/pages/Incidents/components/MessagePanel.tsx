@@ -255,7 +255,7 @@ function OtherMessage({ message, grouped }: { message: Message; grouped: boolean
               </span>
             </div>
             <span className="text-xs text-muted-foreground leading-none">
-              {message.sender.role_label} · {message.sender.org_name}
+              {message.sender.display_role} · {message.sender.org_name}
             </span>
           </div>
         )}

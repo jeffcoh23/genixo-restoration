@@ -214,10 +214,12 @@ puts "  Properties: #{Property.count}"
 # ==========================================================================
 
 {
-  jane: [ park_river_oaks ],
-  tom:  [ park_river_oaks, greystar_heights ],
-  amy:  [ park_river_oaks, greystar_heights ],
-  bob:  [ sandalwood_apts ]
+  jane:   [ park_river_oaks ],
+  tom:    [ park_river_oaks, greystar_heights ],
+  amy:    [ park_river_oaks, greystar_heights ],
+  carlos: [ park_river_oaks, greystar_heights ],
+  diana:  [ park_river_oaks, greystar_heights ],
+  bob:    [ sandalwood_apts ]
 }.each do |user_key, properties|
   properties.each do |property|
     PropertyAssignment.find_or_create_by!(user: users[user_key], property: property)
@@ -276,11 +278,6 @@ if Incident.count.zero?
     # PM users assigned to this property
     property.assigned_users.where(active: true).find_each do |u|
       assigned << u
-    end
-
-    # others in the PM org (auto-assigned to all incidents in their org)
-    User.where(organization: property.property_management_org, user_type: "other", active: true).find_each do |u|
-      assigned << u unless assigned.include?(u)
     end
 
     assigned.uniq.each do |u|
@@ -648,6 +645,8 @@ if Incident.count.zero?
 
   PropertyAssignment.find_or_create_by!(user: users[:jane], property: double_creek)
   PropertyAssignment.find_or_create_by!(user: users[:tom], property: double_creek)
+  PropertyAssignment.find_or_create_by!(user: users[:carlos], property: double_creek)
+  PropertyAssignment.find_or_create_by!(user: users[:diana], property: double_creek)
 
   incident4 = Incident.create!(
     property: double_creek,

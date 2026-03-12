@@ -56,6 +56,7 @@ interface UserDetail {
   phone: string | null;
   title: string | null;
   role_label: string;
+  display_role: string;
   organization_name: string;
   timezone: string;
   permissions: string[];
@@ -146,7 +147,7 @@ export default function UserShow() {
               <Badge variant="destructive">Deactivated</Badge>
             )}
           </div>
-          <p className="text-muted-foreground mt-1">{user.title ? `${user.title} — ` : ""}{user.role_label} at {user.organization_name}</p>
+          <p className="text-muted-foreground mt-1">{user.display_role} at {user.organization_name}</p>
           <div className="flex gap-4 text-sm text-muted-foreground mt-1">
             <span>{user.email}</span>
             {user.phone && <span>{user.phone}</span>}

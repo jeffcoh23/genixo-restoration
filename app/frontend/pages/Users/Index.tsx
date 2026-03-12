@@ -20,6 +20,7 @@ interface UserRow {
   phone: string | null;
   title: string | null;
   role_label: string;
+  display_role: string;
   organization_name: string;
 }
 
@@ -124,7 +125,7 @@ export default function UsersIndex() {
       render: (u) => <LinkCell href={u.path}>{u.full_name}</LinkCell>,
     },
     { header: "Email", render: (u) => <MutedCell>{u.email}</MutedCell> },
-    { header: "Role", render: (u) => <MutedCell>{u.title ? `${u.title} (${u.role_label})` : u.role_label}</MutedCell> },
+    { header: "Role", render: (u) => <MutedCell>{u.display_role}</MutedCell> },
     { header: "Phone", render: (u) => <MutedCell>{u.phone || "—"}</MutedCell> },
   ];
 

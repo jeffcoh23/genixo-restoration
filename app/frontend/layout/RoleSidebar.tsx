@@ -90,7 +90,7 @@ export default function RoleSidebar({ onNavigate }: { onNavigate: () => void }) 
           </div>
         )}
         <div className="text-xs text-sidebar-muted-foreground">
-          {user.title || user.role_label}
+          {user.display_role}
         </div>
         {emergency_phone && (
           <a

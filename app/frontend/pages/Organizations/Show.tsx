@@ -17,6 +17,7 @@ interface OrgUser {
   full_name: string;
   email: string;
   role_label: string;
+  display_role: string;
   path: string;
 }
 
@@ -74,7 +75,7 @@ export default function OrganizationShow() {
                 <Link href={u.path} className="font-medium text-primary hover:underline">{u.full_name}</Link>
                 <span className="text-sm text-muted-foreground ml-2">{u.email}</span>
               </div>
-              <span className="text-sm text-muted-foreground">{u.role_label}</span>
+              <span className="text-sm text-muted-foreground">{u.display_role}</span>
             </DetailRow>
           ))}
         </DetailList>

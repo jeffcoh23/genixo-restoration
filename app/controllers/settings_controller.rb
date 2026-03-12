@@ -250,6 +250,7 @@ class SettingsController < ApplicationController
       timezone: current_user.timezone,
       title: current_user.title,
       role_label: User::ROLE_LABELS[current_user.user_type],
+      display_role: current_user.display_role,
       organization_name: current_user.organization.name,
       notification_preferences: {
         status_change: current_user.notification_preference("status_change"),

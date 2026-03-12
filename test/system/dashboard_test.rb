@@ -63,7 +63,7 @@ class DashboardTest < ApplicationSystemTestCase
     visit dashboard_path
 
     assert_text "Dashboard"
-    assert_no_link "Create Request"
+    assert_link "Create Request"
     assert_text "Mold remediation underway"
     assert_no_text "Burst pipe in unit 305"
     assert_no_text "Visible to mitigation manager only"
@@ -101,8 +101,8 @@ class DashboardTest < ApplicationSystemTestCase
     login_as empty_tech
     visit dashboard_path
     assert_text "No incidents to show."
-    assert_no_link "Create your first incident"
-    assert_no_link "Create Request"
+    assert_link "Create your first incident"
+    assert_link "Create Request"
   end
 
   test "dashboard unread badges reflect message and activity events" do

@@ -17,6 +17,7 @@ interface AssignedUser {
   full_name: string;
   email: string;
   role_label: string;
+  display_role: string;
   path: string;
   remove_path: string;
 }
@@ -142,7 +143,7 @@ export default function PropertyShow() {
                   <span className="text-sm text-muted-foreground ml-2">{user.email}</span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-sm text-muted-foreground">{user.role_label}</span>
+                  <span className="text-sm text-muted-foreground">{user.display_role}</span>
                   {can_assign && (
                     <Button
                       variant="ghost"

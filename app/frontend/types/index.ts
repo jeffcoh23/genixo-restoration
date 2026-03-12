@@ -7,6 +7,7 @@ export interface AuthUser {
   initials: string;
   user_type: string;
   role_label: string;
+  display_role: string;
   title: string | null;
   organization_type: string;
   organization_name: string | null;

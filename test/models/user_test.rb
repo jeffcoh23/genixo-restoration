@@ -163,6 +163,23 @@ class UserTest < ActiveSupport::TestCase
     assert_not user.can?(:manage_daily_logs)
   end
 
+  # --- display_role ---
+
+  test "display_role returns title when present" do
+    user = build_user(title: "Senior Manager of Construction")
+    assert_equal "Senior Manager of Construction", user.display_role
+  end
+
+  test "display_role returns role_label when title is nil" do
+    user = build_user(title: nil)
+    assert_equal "Manager", user.display_role
+  end
+
+  test "display_role returns role_label when title is blank" do
+    user = build_user(title: "")
+    assert_equal "Manager", user.display_role
+  end
+
   # --- Active scope ---
 
   test "active scope excludes deactivated users" do

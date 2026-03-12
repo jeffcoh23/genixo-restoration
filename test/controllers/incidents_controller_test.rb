@@ -186,16 +186,16 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
-  test "technician gets 404 on new incident page" do
+  test "technician can access new incident page" do
     login_as @tech
     get new_incident_path
-    assert_response :not_found
+    assert_response :success
   end
 
-  test "other user gets 404 on new incident page" do
+  test "other user can access new incident page" do
     login_as @pm_mgr
     get new_incident_path
-    assert_response :not_found
+    assert_response :success
   end
 
   # --- New incident: property_users scoping ---
@@ -827,6 +827,16 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
 
     login_as guest
     get incident_path(incident)
+    assert_response :not_found
+  end
+
+  test "guest cannot access new incident page" do
+    external = Organization.create!(name: "External", organization_type: "external")
+    guest = User.create!(organization: external, user_type: "guest",
+      email_address: "guest-create@example.com", first_name: "Guest", last_name: "Blocked", password: "password123")
+
+    login_as guest
+    get new_incident_path
     assert_response :not_found
   end
 

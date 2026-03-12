@@ -49,16 +49,16 @@ Biggest workflow change — how incidents get created and who gets auto-assigned
 
 ---
 
-## Phase 4: Guest Incident Submission
+## Phase 4: Public Incident Report (completed)
 
-Unauthenticated emergency requests from property managers without accounts.
+Unauthenticated incident reporting from the login screen.
 
-- [ ] "Don't have an account?" link on login page
-- [ ] Guest incident form — name, email, phone, property, description, emergency toggle
-- [ ] Email domain allowlist (hardcode `@greystar.com` + others)
-- [ ] Auto-recognize existing properties
-- [ ] Create incident + send invitation
-- [ ] Confirmation: "you will receive a call within 5-10 minutes"
+- [x] "Report an Incident" link + emergency phone on login page
+- [x] Public form — name, email, phone, property (free text), project type, damage type, description, emergency toggle
+- [x] Email notification to auto-assign + on-call users
+- [x] Emergency flag triggers SMS escalation chain
+- [x] No incident record created — team reviews and creates manually
+- [x] Notification fixes — respect user preferences on auto-assign, skip new/acknowledged status emails
 
 ---
 
@@ -91,11 +91,49 @@ Read-only incident viewing for external people (insurance adjusters, building ow
 
 ---
 
+## Phase 7: Mobile App — App Store Ready
+
+Capacitor shell exists in `mobile/` — loads the hosted Rails app in a native WebView. iOS project, branded assets, camera permissions, and TestFlight docs are already in place. See `mobile/README.md` and `mobile/TESTFLIGHT.md`.
+
+### Already done
+- [x] Capacitor initialized with iOS + Android projects
+- [x] Remote WebView loading hosted Heroku app
+- [x] Branded app icon + splash screen assets
+- [x] Camera + photo library permission strings in Info.plist
+- [x] QA checklist and TestFlight deployment docs
+
+### App Store approval prep
+Apple rejects apps that are just "repackaged websites" (Guideline 4.2). Need genuine native features beyond the WebView wrapper.
+
+- [ ] **Push notifications** — Firebase Cloud Messaging (FCM) via `@capacitor/push-notifications`. Rails backend sends push from notification jobs. Deep link tap → specific incident. See [PUSH_NOTIFICATIONS.md](PUSH_NOTIFICATIONS.md) for full implementation plan.
+- [ ] **Device token API** — Rails endpoint to register/unregister FCM tokens per user/device
+- [ ] **Biometric auth** — Face ID / Touch ID for quick re-login (avoids re-entering password)
+- [ ] **Badge count** — unread incident count on app icon via push payload
+- [ ] **Offline fallback screen** — branded "no connection" page instead of blank WebView error
+
+### App Store submission
+- [ ] **Apple Developer account** — $99/year, configure signing + provisioning
+- [ ] **App Store Connect record** — app name, bundle ID, SKU, primary language
+- [ ] **Screenshots** — 6.7" + 5.5" iPhone sizes (minimum)
+- [ ] **Privacy policy URL** — required by both Apple and Google
+- [ ] **App description + keywords** — App Store metadata
+- [ ] **TestFlight beta** — internal testers first, then external with public link
+- [ ] **App Store review submission** — age rating, privacy questionnaire, review notes explaining the native features
+
+### Android (after iOS)
+- [ ] **Google Play Developer account** — $25 one-time
+- [ ] **Android build + signing** — generate signed APK/AAB
+- [ ] **Play Store listing** — screenshots, description, privacy policy
+- [ ] **Internal testing track** — staged rollout before production
+
+---
+
 ## Still Considering
 
 Features that may or may not be needed. Revisit later.
 
 - [ ] **Client-facing moisture view** — PM sees only initial (wet) + most recent (dry) readings; "Dry" indicator when fully dry; full daily readings for Genixo team only
+- [ ] **Assignment email response time note** — incident assignment notification email should include: "If this is an emergency, you'll receive a call within 5-10 minutes. Otherwise, expect a response within 1 business day."
 
 ---
 
@@ -120,7 +158,7 @@ Deferred features. Infrastructure is in place for all of these.
 | Dark mode | Design tokens are semantic — theming straightforward. |
 | OAuth / SSO | Email/password for MVP. Add if PM orgs require. |
 | Analytics / reporting | Add dashboards for volume, response times, costs. |
-| Mobile app (PWA or React Native) | Persistent login, push notifications, tablet support for moisture mapping. Top priority per Greystar. |
+| Mobile app enhancements | Offline photo queue, native camera plugin, home screen quick actions, haptic feedback. Core shell done in Phase 7. |
 | DFR formatting | Dress up daily field report PDF — reference Cotton's format for a more professional look |
 
 ---

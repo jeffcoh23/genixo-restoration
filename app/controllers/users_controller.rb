@@ -92,6 +92,7 @@ class UsersController < ApplicationController
       phone_raw: user.phone,
       title: user.title,
       role_label: User::ROLE_LABELS[user.user_type],
+      display_role: user.display_role,
       organization_name: user.organization.name,
       active: user.active
     }

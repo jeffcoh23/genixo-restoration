@@ -506,7 +506,7 @@ function UserChecklistSection({
                 aria-label={`Assign ${u.full_name}`}
               />
               <span className="text-foreground">{u.full_name}</span>
-              <span className="text-muted-foreground text-sm ml-auto">{u.role_label}</span>
+              <span className="text-muted-foreground text-sm ml-auto">{u.display_role}</span>
             </label>
           );
         })}

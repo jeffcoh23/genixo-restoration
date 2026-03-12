@@ -47,7 +47,7 @@ class OrganizationsController < ApplicationController
         },
         users: @organization.users.where(active: true).order(:last_name, :first_name).map { |u|
           { id: u.id, full_name: u.full_name, email: u.email_address,
-            role_label: User::ROLE_LABELS[u.user_type], path: user_path(u) }
+            role_label: User::ROLE_LABELS[u.user_type], display_role: u.display_role, path: user_path(u) }
         }
       }
     }
