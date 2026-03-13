@@ -51,7 +51,7 @@ class EquipmentItemsController < ApplicationController
   end
 
   def item_params
-    params.require(:equipment_item).permit(:equipment_type_id, :equipment_model, :identifier, :active)
+    params.require(:equipment_item).permit(:equipment_type_id, :equipment_model, :identifier, :tag_number, :active)
   end
 
   def serialize_item(item)
@@ -61,6 +61,7 @@ class EquipmentItemsController < ApplicationController
     {
       id: item.id,
       identifier: item.identifier,
+      tag_number: item.tag_number,
       equipment_model: item.equipment_model,
       type_name: item.equipment_type.name,
       equipment_type_id: item.equipment_type_id,

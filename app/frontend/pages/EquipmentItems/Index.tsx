@@ -38,6 +38,7 @@ interface Placement {
 interface EquipmentItemRow {
   id: number;
   identifier: string;
+  tag_number: string | null;
   equipment_model: string | null;
   type_name: string;
   equipment_type_id: number;
@@ -70,7 +71,7 @@ interface Props {
   create_type_path: string;
 }
 
-const EMPTY_FORM = { equipment_type_id: "", identifier: "", equipment_model: "" };
+const EMPTY_FORM = { equipment_type_id: "", identifier: "", tag_number: "", equipment_model: "" };
 
 export default function EquipmentIndex() {
   const { items, equipment_types, all_types, create_item_path, create_type_path } =
@@ -132,6 +133,7 @@ export default function EquipmentIndex() {
     setEditForm({
       equipment_type_id: String(item.equipment_type_id),
       identifier: item.identifier,
+      tag_number: item.tag_number || "",
       equipment_model: item.equipment_model || "",
     });
   };
@@ -202,7 +204,7 @@ export default function EquipmentIndex() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Types</SelectItem>
+            <SelectItem value="all">All Categories</SelectItem>
             {equipment_types.map((t) => (
               <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>
             ))}
@@ -335,10 +337,10 @@ function AddItemDialog({
         </DialogHeader>
         <form onSubmit={onSubmit} className="space-y-4 mt-2">
           <div>
-            <label className="text-sm font-medium">Type *</label>
+            <label className="text-sm font-medium">Category *</label>
             <Select value={form.equipment_type_id} onValueChange={(v) => setForm({ ...form, equipment_type_id: v })}>
               <SelectTrigger className="mt-1">
-                <SelectValue placeholder="Select type..." />
+                <SelectValue placeholder="Select category..." />
               </SelectTrigger>
               <SelectContent>
                 {equipment_types.map((t) => (
@@ -348,20 +350,29 @@ function AddItemDialog({
             </Select>
           </div>
           <div>
-            <label className="text-sm font-medium">Identifier *</label>
+            <label className="text-sm font-medium">Serial Number *</label>
             <Input
               value={form.identifier}
               onChange={(e) => setForm({ ...form, identifier: e.target.value })}
-              placeholder="e.g. DH-042"
+              placeholder="e.g. 108447"
               className="mt-1"
             />
           </div>
           <div>
-            <label className="text-sm font-medium">Model</label>
+            <label className="text-sm font-medium">Tag Number</label>
+            <Input
+              value={form.tag_number}
+              onChange={(e) => setForm({ ...form, tag_number: e.target.value })}
+              placeholder="e.g. 1010"
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium">Make / Model</label>
             <Input
               value={form.equipment_model}
               onChange={(e) => setForm({ ...form, equipment_model: e.target.value })}
-              placeholder="e.g. LGR 7000XLi"
+              placeholder="e.g. Drieaz LGR 5000 LI-127690"
               className="mt-1"
             />
           </div>
@@ -542,9 +553,10 @@ function InventoryTable({
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b bg-muted">
-            <th className="px-4 py-3 font-medium text-left">Identifier</th>
-            <th className="px-4 py-3 font-medium text-left">Type</th>
-            <th className="px-4 py-3 font-medium text-left">Model</th>
+            <th className="px-4 py-3 font-medium text-left">Serial #</th>
+            <th className="px-4 py-3 font-medium text-left">Tag #</th>
+            <th className="px-4 py-3 font-medium text-left">Category</th>
+            <th className="px-4 py-3 font-medium text-left">Make / Model</th>
             <th className="px-4 py-3 font-medium text-left">Status</th>
             <th className="px-4 py-3 font-medium text-right">Actions</th>
           </tr>
@@ -561,6 +573,13 @@ function InventoryTable({
                         value={editForm.identifier}
                         onChange={(e) => setEditForm({ ...editForm, identifier: e.target.value })}
                         className="h-8 text-sm w-28"
+                      />
+                    </td>
+                    <td className="px-4 py-2">
+                      <Input
+                        value={editForm.tag_number}
+                        onChange={(e) => setEditForm({ ...editForm, tag_number: e.target.value })}
+                        className="h-8 text-sm w-20"
                       />
                     </td>
                     <td className="px-4 py-2">
@@ -606,6 +625,7 @@ function InventoryTable({
                         {item.identifier}
                       </Button>
                     </td>
+                    <td className="px-4 py-3 text-muted-foreground">{item.tag_number || "—"}</td>
                     <td className="px-4 py-3 text-muted-foreground">{item.type_name}</td>
                     <td className="px-4 py-3 text-muted-foreground">{item.equipment_model || "—"}</td>
                     <td className="px-4 py-3">
