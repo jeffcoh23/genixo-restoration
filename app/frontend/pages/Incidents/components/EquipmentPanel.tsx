@@ -15,7 +15,7 @@ interface EquipmentPanelProps {
   can_manage_equipment: boolean;
   equipment_entries_path: string;
   equipment_types: EquipmentType[];
-  equipment_items_by_type?: Record<string, { id: number; identifier: string; model_name: string | null }[]>;
+  equipment_items_by_type?: Record<string, { id: number; identifier: string; tag_number: string | null; model_name: string | null }[]>;
 }
 
 export default function EquipmentPanel({ equipment_log = [], can_manage_equipment, equipment_entries_path, equipment_types, equipment_items_by_type }: EquipmentPanelProps) {
@@ -105,9 +105,9 @@ export default function EquipmentPanel({ equipment_log = [], can_manage_equipmen
             <table className="w-full text-sm">
               <thead className="bg-muted border-b border-border sticky top-0">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Type</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Model</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground whitespace-nowrap">ID #</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Category</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Make / Model</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground whitespace-nowrap">Serial #</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Location</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Placed</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Removed</th>

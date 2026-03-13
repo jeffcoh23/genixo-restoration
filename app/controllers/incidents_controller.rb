@@ -1199,7 +1199,7 @@ class IncidentsController < ApplicationController
       .active.includes(:equipment_type).order(:identifier)
 
     items.group_by(&:equipment_type_id).transform_values do |type_items|
-      type_items.map { |i| { id: i.id, identifier: i.identifier, model_name: i.equipment_model } }
+      type_items.map { |i| { id: i.id, identifier: i.identifier, tag_number: i.tag_number, model_name: i.equipment_model } }
     end
   end
 

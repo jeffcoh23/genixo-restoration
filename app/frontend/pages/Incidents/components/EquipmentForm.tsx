@@ -10,6 +10,7 @@ import type { EquipmentType, EquipmentEntry } from "../types";
 interface EquipmentItemOption {
   id: number;
   identifier: string;
+  tag_number: string | null;
   model_name: string | null;
 }
 
@@ -85,7 +86,7 @@ export default function EquipmentForm({ path, equipment_types, equipment_items_b
 
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="text-xs font-medium text-muted-foreground">Equipment Type</label>
+            <label className="text-xs font-medium text-muted-foreground">Category</label>
             <Select value={useOther ? "__other__" : data.equipment_type_id || undefined} onValueChange={handleTypeChange}>
               <SelectTrigger className="mt-1">
                 <SelectValue placeholder="Select type..." />
@@ -126,7 +127,7 @@ export default function EquipmentForm({ path, equipment_types, equipment_items_b
                   <SelectItem value="__manual__">Enter manually</SelectItem>
                   {typeItems.map((item) => (
                     <SelectItem key={item.id} value={String(item.id)}>
-                      {item.identifier}{item.model_name ? ` — ${item.model_name}` : ""}
+                      {item.tag_number ? `#${item.tag_number} — ` : ""}{item.identifier}{item.model_name ? ` — ${item.model_name}` : ""}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -135,11 +136,11 @@ export default function EquipmentForm({ path, equipment_types, equipment_items_b
           )}
 
           <div>
-            <label className="text-xs font-medium text-muted-foreground">Model</label>
+            <label className="text-xs font-medium text-muted-foreground">Make / Model</label>
             <Input
               value={data.equipment_model}
               onChange={(e) => setData("equipment_model", e.target.value)}
-              placeholder="e.g. LGR 7000XLi"
+              placeholder="e.g. Drieaz LGR 5000 LI-127690"
               className="mt-1"
               readOnly={isItemSelected}
             />
@@ -147,11 +148,11 @@ export default function EquipmentForm({ path, equipment_types, equipment_items_b
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-medium text-muted-foreground">Identifier / Serial</label>
+              <label className="text-xs font-medium text-muted-foreground">Serial Number</label>
               <Input
                 value={data.equipment_identifier}
                 onChange={(e) => setData("equipment_identifier", e.target.value)}
-                placeholder="e.g. DH-042"
+                placeholder="e.g. 108447"
                 className="mt-1"
                 readOnly={isItemSelected}
               />
