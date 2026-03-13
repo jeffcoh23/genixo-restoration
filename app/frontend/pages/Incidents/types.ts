@@ -75,8 +75,10 @@ export interface LaborEntry {
 export interface EquipmentEntry {
   id: number;
   type_name: string;
+  equipment_make: string | null;
   equipment_model: string | null;
   equipment_identifier: string | null;
+  tag_number: string | null;
   placed_at_label: string;
   removed_at_label: string | null;
   active: boolean;
@@ -381,8 +383,10 @@ export interface NewIncidentProps {
 export interface EquipmentLogItem {
   id: number;
   type_name: string;
+  equipment_make: string | null;
   equipment_model: string | null;
   equipment_identifier: string | null;
+  tag_number: string | null;
   location_notes: string | null;
   placed_at_label: string;
   removed_at_label: string | null;
@@ -481,7 +485,7 @@ export interface ShowProps {
   assignable_pm_users: AssignableUser[];
   assignable_labor_users: AssignableUser[];
   equipment_types: EquipmentType[];
-  equipment_items_by_type: Record<string, { id: number; identifier: string; model_name: string | null }[]>;
+  equipment_items_by_type: Record<string, { id: number; identifier: string; tag_number: string | null; make: string | null; model_name: string | null }[]>;
   attachable_equipment_entries: AttachableEquipmentEntry[];
   back_path: string;
 }

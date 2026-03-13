@@ -286,8 +286,9 @@ class DailyOperationsAdditionalTest < ApplicationSystemTestCase
 
     within("[role='dialog']") do
       fill_in "e.g. Industrial Blower", with: "Air Scrubber"
-      fill_in "e.g. LGR 7000XLi", with: "HEPA 500"
-      fill_in "e.g. DH-042", with: "AS-12"
+      fill_in "e.g. Drieaz", with: "Drieaz"
+      fill_in "e.g. LGR 5000 LI-127690", with: "HEPA 500"
+      fill_in "e.g. 108447", with: "AS-12"
       fill_in "e.g. Unit 238, bedroom", with: "Hallway"
       click_button "Place Equipment"
     end

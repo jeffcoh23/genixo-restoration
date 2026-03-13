@@ -95,7 +95,7 @@ class EquipmentEntriesController < ApplicationController
   def equipment_entry_params
     params.require(:equipment_entry).permit(
       :equipment_type_id, :equipment_type_other, :equipment_item_id, :equipment_identifier,
-      :equipment_model, :placed_at, :removed_at, :location_notes
+      :equipment_make, :equipment_model, :tag_number, :placed_at, :removed_at, :location_notes
     )
   end
 end

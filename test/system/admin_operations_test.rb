@@ -264,8 +264,9 @@ class AdminOperationsTest < ApplicationSystemTestCase
     find("[role='option']", text: type.name).click
 
     within("[role='dialog']") do
-      fill_in "e.g. DH-042", with: "DH-042"
-      fill_in "e.g. LGR 7000XLi", with: "LGR 7000XLi"
+      fill_in "e.g. 108447", with: "DH-042"
+      fill_in "e.g. Drieaz", with: "Drieaz"
+      fill_in "e.g. LGR 5000 LI-127690", with: "LGR 7000XLi"
       click_button "Add Item"
     end
 
@@ -273,35 +274,37 @@ class AdminOperationsTest < ApplicationSystemTestCase
     assert_text "DH-042"
     item = EquipmentItem.find_by!(identifier: "DH-042")
     assert_equal type.id, item.equipment_type_id
+    assert_equal "Drieaz", item.equipment_make
     assert_equal "LGR 7000XLi", item.equipment_model
   end
 
   test "edit equipment item inline" do
     type = EquipmentType.create!(organization: @mitigation, name: "Dehumidifier")
     other_type = EquipmentType.create!(organization: @mitigation, name: "Air Mover")
-    item = EquipmentItem.create!(organization: @mitigation, equipment_type: type, identifier: "DH-001", equipment_model: "Old Model")
+    item = EquipmentItem.create!(organization: @mitigation, equipment_type: type, identifier: "DH-001", equipment_make: "OldMake", equipment_model: "Old Model")
 
     login_as @manager
     visit equipment_items_path
 
     find("[data-testid='equipment-item-edit-#{item.id}']").click
-    row = find("[data-testid='equipment-item-row-#{item.id}']")
-    within(row) do
-      all("input")[0].set("AM-001")
-      all("[role='combobox']").first.click
+
+    within("[role='dialog']") do
+      find("[role='combobox']").click
     end
     find("[role='option']", text: other_type.name).click
-    row = find("[data-testid='equipment-item-row-#{item.id}']")
-    within(row) do
-      inputs = all("input")
-      inputs.last.set("Axial 2000")
-      click_button "Save"
+
+    within("[role='dialog']") do
+      fill_in "e.g. 108447", with: "AM-001", fill_options: { clear: :backspace }
+      fill_in "e.g. Drieaz", with: "NewMake", fill_options: { clear: :backspace }
+      fill_in "e.g. LGR 5000 LI-127690", with: "Axial 2000", fill_options: { clear: :backspace }
+      click_button "Save Changes"
     end
 
     assert_text "AM-001 updated."
     item.reload
     assert_equal "AM-001", item.identifier
     assert_equal other_type.id, item.equipment_type_id
+    assert_equal "NewMake", item.equipment_make
     assert_equal "Axial 2000", item.equipment_model
   end
 

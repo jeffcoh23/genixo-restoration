@@ -11,6 +11,7 @@ interface EquipmentItemOption {
   id: number;
   identifier: string;
   tag_number: string | null;
+  make: string | null;
   model_name: string | null;
 }
 
@@ -32,8 +33,10 @@ export default function EquipmentForm({ path, equipment_types, equipment_items_b
     equipment_type_id: entry?.equipment_type_id ? String(entry.equipment_type_id) : "",
     equipment_type_other: entry?.equipment_type_other ?? "",
     equipment_item_id: "",
+    equipment_make: entry?.equipment_make ?? "",
     equipment_model: entry?.equipment_model ?? "",
     equipment_identifier: entry?.equipment_identifier ?? "",
+    tag_number: entry?.tag_number ?? "",
     placed_at: entry?.placed_at ?? today,
     removed_at: entry?.removed_at ?? "",
     location_notes: entry?.location_notes ?? "",
@@ -45,16 +48,16 @@ export default function EquipmentForm({ path, equipment_types, equipment_items_b
   const handleTypeChange = (value: string) => {
     if (value === "__other__") {
       setUseOther(true);
-      setData((prev) => ({ ...prev, equipment_type_id: "", equipment_type_other: "", equipment_item_id: "", equipment_model: "", equipment_identifier: "" }));
+      setData((prev) => ({ ...prev, equipment_type_id: "", equipment_type_other: "", equipment_item_id: "", equipment_make: "", equipment_model: "", equipment_identifier: "", tag_number: "" }));
     } else {
       setUseOther(false);
-      setData((prev) => ({ ...prev, equipment_type_id: value, equipment_type_other: "", equipment_item_id: "", equipment_model: "", equipment_identifier: "" }));
+      setData((prev) => ({ ...prev, equipment_type_id: value, equipment_type_other: "", equipment_item_id: "", equipment_make: "", equipment_model: "", equipment_identifier: "", tag_number: "" }));
     }
   };
 
   const handleItemChange = (value: string) => {
     if (value === "__manual__" || value === "") {
-      setData((prev) => ({ ...prev, equipment_item_id: "", equipment_model: "", equipment_identifier: "" }));
+      setData((prev) => ({ ...prev, equipment_item_id: "", equipment_make: "", equipment_model: "", equipment_identifier: "", tag_number: "" }));
       return;
     }
     const item = typeItems.find((i) => String(i.id) === value);
@@ -62,8 +65,10 @@ export default function EquipmentForm({ path, equipment_types, equipment_items_b
       setData((prev) => ({
         ...prev,
         equipment_item_id: value,
+        equipment_make: item.make || "",
         equipment_model: item.model_name || "",
         equipment_identifier: item.identifier,
+        tag_number: item.tag_number || "",
       }));
     }
   };
@@ -135,15 +140,27 @@ export default function EquipmentForm({ path, equipment_types, equipment_items_b
             </div>
           )}
 
-          <div>
-            <label className="text-xs font-medium text-muted-foreground">Make / Model</label>
-            <Input
-              value={data.equipment_model}
-              onChange={(e) => setData("equipment_model", e.target.value)}
-              placeholder="e.g. Drieaz LGR 5000 LI-127690"
-              className="mt-1"
-              readOnly={isItemSelected}
-            />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Make</label>
+              <Input
+                value={data.equipment_make}
+                onChange={(e) => setData("equipment_make", e.target.value)}
+                placeholder="e.g. Drieaz"
+                className="mt-1"
+                readOnly={isItemSelected}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Model</label>
+              <Input
+                value={data.equipment_model}
+                onChange={(e) => setData("equipment_model", e.target.value)}
+                placeholder="e.g. LGR 5000 LI-127690"
+                className="mt-1"
+                readOnly={isItemSelected}
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -158,17 +175,18 @@ export default function EquipmentForm({ path, equipment_types, equipment_items_b
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-muted-foreground">Location</label>
+              <label className="text-xs font-medium text-muted-foreground">Tag Number</label>
               <Input
-                value={data.location_notes}
-                onChange={(e) => setData("location_notes", e.target.value)}
-                placeholder="e.g. Unit 238, bedroom"
+                value={data.tag_number}
+                onChange={(e) => setData("tag_number", e.target.value)}
+                placeholder="e.g. 1010"
                 className="mt-1"
+                readOnly={isItemSelected}
               />
             </div>
           </div>
 
-          <div className={editing ? "grid grid-cols-2 gap-3" : ""}>
+          <div className={editing ? "grid grid-cols-3 gap-3" : "grid grid-cols-2 gap-3"}>
             <div>
               <label className="text-xs font-medium text-muted-foreground">Placed On</label>
               <Input
@@ -213,6 +231,15 @@ export default function EquipmentForm({ path, equipment_types, equipment_items_b
                 />
               </div>
             )}
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Location</label>
+              <Input
+                value={data.location_notes}
+                onChange={(e) => setData("location_notes", e.target.value)}
+                placeholder="e.g. Unit 238, bedroom"
+                className="mt-1"
+              />
+            </div>
           </div>
 
           <div className="flex justify-end gap-2 pt-2">

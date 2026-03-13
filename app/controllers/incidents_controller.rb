@@ -1199,7 +1199,7 @@ class IncidentsController < ApplicationController
       .active.includes(:equipment_type).order(:identifier)
 
     items.group_by(&:equipment_type_id).transform_values do |type_items|
-      type_items.map { |i| { id: i.id, identifier: i.identifier, tag_number: i.tag_number, model_name: i.equipment_model } }
+      type_items.map { |i| { id: i.id, identifier: i.identifier, tag_number: i.tag_number, make: i.equipment_make, model_name: i.equipment_model } }
     end
   end
 
@@ -1228,8 +1228,10 @@ class IncidentsController < ApplicationController
       data = {
         id: entry.id,
         type_name: entry.type_name,
+        equipment_make: entry.equipment_make,
         equipment_model: entry.equipment_model,
         equipment_identifier: entry.equipment_identifier,
+        tag_number: entry.tag_number,
         location_notes: entry.location_notes,
         placed_at_label: format_date(entry.placed_at),
         removed_at_label: entry.removed_at ? format_date(entry.removed_at) : nil,
