@@ -114,8 +114,8 @@ class DashboardTest < ApplicationSystemTestCase
 
     card = find("[data-testid='dashboard-incident-card-#{@active.id}']")
     within(card) do
-      assert_text "Msgs 1"
-      assert_text "Activity 1"
+      within(find("[data-testid='badge-messages']")) { assert_text "1" }
+      within(find("[data-testid='badge-activity']")) { assert_text "1" }
     end
   end
 

@@ -16,6 +16,7 @@ export default function IncidentNotificationBadge({ kind, count, className }: In
 
   return (
     <span
+      data-testid={`badge-${kind}`}
       className={cn(
         "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
         isMessages
@@ -25,7 +26,7 @@ export default function IncidentNotificationBadge({ kind, count, className }: In
       )}
     >
       {isMessages ? <MessageSquare className="h-3 w-3" /> : <Activity className="h-3 w-3" />}
-      {isMessages ? `Msgs ${count}` : `Activity ${count}`}
+      {count}
     </span>
   );
 }
