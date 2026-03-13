@@ -313,7 +313,7 @@ EQUIPMENT_INVENTORY = [
   { category: "Air Scrubber", make_model: "Drieaz HEPA 700-125105", serial: "40807", tag: "1065" },
 
   # Extractor — Kleenrite Mega3 Model 36303
-  { category: "Extractor", make_model: "Kleenrite Mega3 Model 36303", serial: "13899", tag: "1066" },
+  { category: "Extractor", make_model: "Kleenrite Mega3 Model 36303", serial: "13899", tag: "1066" }
 ].freeze
 
 EQUIPMENT_INVENTORY.each do |item|
