@@ -21,7 +21,7 @@ fi
 TSX_FILES=$(echo "$FILES" | grep '\.tsx$' || true)
 TS_FILES=$(echo "$FILES" | grep '\.ts$' || true)
 ALL_TS=$(echo -e "${TSX_FILES}\n${TS_FILES}" | sed '/^$/d' || true)
-RB_FILES=$(echo "$FILES" | grep '\.rb$' || true)
+RB_FILES=$(echo "$FILES" | grep -E '\.(rb|rake)$' || true)
 
 FAILURES=0
 PASSES=0

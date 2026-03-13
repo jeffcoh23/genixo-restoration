@@ -4,7 +4,7 @@ namespace :equipment do
     org = Organization.find_by!(organization_type: "mitigation")
 
     # Ensure equipment types exist (deactivate old ones no longer in use)
-    current_type_names = ["Dehumidifier", "Air Mover", "Air Scrubber", "Extractor"]
+    current_type_names = [ "Dehumidifier", "Air Mover", "Air Scrubber", "Extractor" ]
     types = {}
     current_type_names.each do |name|
       types[name] = EquipmentType.find_or_create_by!(organization: org, name: name) do |et|
@@ -97,7 +97,7 @@ namespace :equipment do
       { category: "Air Scrubber", make_model: "Drieaz HEPA 700-125105", serial: "40807", tag: "1065" },
 
       # Extractor
-      { category: "Extractor", make_model: "Kleenrite Mega3 Model 36303", serial: "13899", tag: "1066" },
+      { category: "Extractor", make_model: "Kleenrite Mega3 Model 36303", serial: "13899", tag: "1066" }
     ]
 
     created = 0
