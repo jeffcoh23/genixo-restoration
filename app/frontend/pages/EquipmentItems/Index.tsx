@@ -182,7 +182,7 @@ export default function EquipmentIndex() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search identifier or model..."
-            className="h-8 pl-8 pr-8 w-64 text-sm"
+            className="h-8 pl-8 pr-8 w-64 text-sm bg-card"
           />
           {search && (
             <Button
@@ -198,7 +198,7 @@ export default function EquipmentIndex() {
         </div>
 
         <Select value={typeFilter || "all"} onValueChange={(v) => setTypeFilter(v === "all" ? "" : v)}>
-          <SelectTrigger className="h-8 w-[160px] text-sm">
+          <SelectTrigger className="h-8 w-[160px] text-sm bg-card">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -210,7 +210,7 @@ export default function EquipmentIndex() {
         </Select>
 
         <Select value={statusFilter || "all"} onValueChange={(v) => setStatusFilter(v === "all" ? "" : v)}>
-          <SelectTrigger className="h-8 w-[140px] text-sm">
+          <SelectTrigger className="h-8 w-[140px] text-sm bg-card">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
