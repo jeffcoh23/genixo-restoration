@@ -152,6 +152,50 @@ class EquipmentEntriesControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Tech updated", entry.reload.location_notes
   end
 
+  test "updating linked equipment entry preserves inventory link and new schema fields" do
+    item = EquipmentItem.create!(
+      organization: @genixo,
+      equipment_type: @dehumidifier,
+      identifier: "DH-INV-01",
+      tag_number: "1010",
+      equipment_make: "Drieaz",
+      equipment_model: "LGR 7000XLi"
+    )
+    entry = @incident.equipment_entries.create!(
+      equipment_type: @dehumidifier,
+      equipment_item: item,
+      equipment_identifier: item.identifier,
+      tag_number: item.tag_number,
+      equipment_make: item.equipment_make,
+      equipment_model: item.equipment_model,
+      placed_at: Time.current,
+      location_notes: "Bedroom",
+      logged_by_user: @manager
+    )
+
+    login_as @manager
+    patch incident_equipment_entry_path(@incident, entry), params: {
+      equipment_entry: {
+        equipment_item_id: item.id,
+        equipment_type_id: @dehumidifier.id,
+        equipment_identifier: item.identifier,
+        tag_number: item.tag_number,
+        equipment_make: item.equipment_make,
+        equipment_model: item.equipment_model,
+        placed_at: entry.placed_at.to_date.iso8601,
+        location_notes: "Living room"
+      }
+    }
+
+    assert_redirected_to incident_path(@incident)
+    entry.reload
+    assert_equal item.id, entry.equipment_item_id
+    assert_equal "1010", entry.tag_number
+    assert_equal "Drieaz", entry.equipment_make
+    assert_equal "LGR 7000XLi", entry.equipment_model
+    assert_equal "Living room", entry.location_notes
+  end
+
   test "tech cannot update another users entry" do
     login_as @tech
     entry = create_entry(logged_by: @other_tech)

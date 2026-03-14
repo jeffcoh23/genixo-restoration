@@ -25,6 +25,8 @@ class DailyOperationsAdditionalTest < ApplicationSystemTestCase
       organization: @mitigation,
       equipment_type: @equipment_type,
       identifier: "DH-INV-01",
+      tag_number: "1010",
+      equipment_make: "Drieaz",
       equipment_model: "LGR 7000XLi"
     )
   end
@@ -258,8 +260,11 @@ class DailyOperationsAdditionalTest < ApplicationSystemTestCase
     end
     find("[role='option']", text: /DH-INV-01/).click
 
+    assert_text "Using inventory item details"
+    assert_text "Switch the unit dropdown to Enter manually to edit them."
+
     within("[role='dialog']") do
-      fill_in "e.g. Unit 238, bedroom", with: "Unit 101 bedroom"
+      fill_in "Unit 806, kitchen", with: "Unit 101 bedroom"
       click_button "Place Equipment"
     end
 
@@ -269,6 +274,8 @@ class DailyOperationsAdditionalTest < ApplicationSystemTestCase
     entry = @incident.equipment_entries.order(:id).last
     assert_equal @equipment_item.id, entry.equipment_item_id
     assert_equal "DH-INV-01", entry.equipment_identifier
+    assert_equal "1010", entry.tag_number
+    assert_equal "Drieaz", entry.equipment_make
     assert_equal "LGR 7000XLi", entry.equipment_model
     assert_equal "Unit 101 bedroom", entry.location_notes
   end
@@ -289,7 +296,7 @@ class DailyOperationsAdditionalTest < ApplicationSystemTestCase
       fill_in "e.g. Drieaz", with: "Drieaz"
       fill_in "e.g. LGR 5000 LI-127690", with: "HEPA 500"
       fill_in "e.g. 108447", with: "AS-12"
-      fill_in "e.g. Unit 238, bedroom", with: "Hallway"
+      fill_in "Unit 806, kitchen", with: "Hallway"
       click_button "Place Equipment"
     end
 
@@ -322,12 +329,13 @@ class DailyOperationsAdditionalTest < ApplicationSystemTestCase
     within(row) { find("button[title='Edit']").click }
 
     within("[role='dialog']") do
-      fill_in "e.g. Unit 238, bedroom", with: "Unit 101 living room"
+      fill_in "Unit 806, kitchen", with: "Unit 101 living room"
       click_button "Update"
     end
 
     assert_text "Equipment entry updated."
     assert_equal "Unit 101 living room", entry.reload.location_notes
+    assert_equal @equipment_item.id, entry.equipment_item_id
     assert_equal "equipment_updated", @incident.activity_events.order(:id).last.event_type
   end
 

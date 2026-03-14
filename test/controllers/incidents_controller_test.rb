@@ -566,6 +566,42 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     assert_equal [ newer.id, older.id ], ids
   end
 
+  test "equipment log includes inventory-linked schema fields for editable entries" do
+    incident = create_test_incident(status: "active")
+    eq_type = EquipmentType.create!(name: "Dehumidifier", organization: @genixo)
+    item = EquipmentItem.create!(
+      organization: @genixo,
+      equipment_type: eq_type,
+      identifier: "DH-INV-01",
+      tag_number: "1010",
+      equipment_make: "Drieaz",
+      equipment_model: "LGR 7000XLi"
+    )
+    incident.equipment_entries.create!(
+      equipment_type: eq_type,
+      equipment_item: item,
+      equipment_identifier: item.identifier,
+      tag_number: item.tag_number,
+      equipment_make: item.equipment_make,
+      equipment_model: item.equipment_model,
+      placed_at: 1.day.ago,
+      location_notes: "Bedroom",
+      logged_by_user: @manager
+    )
+
+    login_as @manager
+    get incident_path(incident)
+    assert_response :success
+
+    deferred = inertia_deferred_props(incident_path(incident), "equipment_log")
+    serialized = deferred.fetch("equipment_log").first
+
+    assert_equal item.id, serialized.fetch("equipment_item_id")
+    assert_equal "1010", serialized.fetch("tag_number")
+    assert_equal "Drieaz", serialized.fetch("equipment_make")
+    assert_equal "LGR 7000XLi", serialized.fetch("equipment_model")
+  end
+
   # --- Labor log column order ---
 
   test "labor log dates are sorted newest first" do

@@ -265,6 +265,7 @@ class AdminOperationsTest < ApplicationSystemTestCase
 
     within("[role='dialog']") do
       fill_in "e.g. 108447", with: "DH-042"
+      fill_in "e.g. 1010", with: "1011"
       fill_in "e.g. Drieaz", with: "Drieaz"
       fill_in "e.g. LGR 5000 LI-127690", with: "LGR 7000XLi"
       click_button "Add Item"
@@ -274,6 +275,7 @@ class AdminOperationsTest < ApplicationSystemTestCase
     assert_text "DH-042"
     item = EquipmentItem.find_by!(identifier: "DH-042")
     assert_equal type.id, item.equipment_type_id
+    assert_equal "1011", item.tag_number
     assert_equal "Drieaz", item.equipment_make
     assert_equal "LGR 7000XLi", item.equipment_model
   end
@@ -295,6 +297,7 @@ class AdminOperationsTest < ApplicationSystemTestCase
 
     within("[role='dialog']") do
       fill_in "e.g. 108447", with: "AM-001", fill_options: { clear: :backspace }
+      fill_in "e.g. 1010", with: "2020", fill_options: { clear: :backspace }
       fill_in "e.g. Drieaz", with: "NewMake", fill_options: { clear: :backspace }
       fill_in "e.g. LGR 5000 LI-127690", with: "Axial 2000", fill_options: { clear: :backspace }
       click_button "Save Changes"
@@ -304,6 +307,7 @@ class AdminOperationsTest < ApplicationSystemTestCase
     item.reload
     assert_equal "AM-001", item.identifier
     assert_equal other_type.id, item.equipment_type_id
+    assert_equal "2020", item.tag_number
     assert_equal "NewMake", item.equipment_make
     assert_equal "Axial 2000", item.equipment_model
   end

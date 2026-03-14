@@ -1240,6 +1240,7 @@ class IncidentsController < ApplicationController
         remove_path: editable && entry.removed_at.nil? ? remove_incident_equipment_entry_path(incident, entry) : nil
       }
       if editable
+        data[:equipment_item_id] = entry.equipment_item_id
         data[:equipment_type_id] = entry.equipment_type_id
         data[:equipment_type_other] = entry.equipment_type_other
         data[:placed_at] = entry.placed_at.to_date.iso8601

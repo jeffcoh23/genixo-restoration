@@ -87,6 +87,7 @@ export interface EquipmentEntry {
   edit_path: string | null;
   remove_path: string | null;
   // Raw values for edit form (only present when editable)
+  equipment_item_id?: number | null;
   equipment_type_id?: number | null;
   equipment_type_other?: string | null;
   placed_at?: string;
@@ -394,6 +395,7 @@ export interface EquipmentLogItem {
   edit_path: string | null;
   remove_path: string | null;
   // Raw values for edit form (only present when editable)
+  equipment_item_id?: number | null;
   equipment_type_id?: number | null;
   equipment_type_other?: string | null;
   placed_at?: string;
