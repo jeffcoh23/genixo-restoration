@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useForm, usePage } from "@inertiajs/react";
+import { Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -10,6 +11,8 @@ import type { EquipmentType, EquipmentEntry } from "../types";
 interface EquipmentItemOption {
   id: number;
   identifier: string;
+  tag_number: string | null;
+  make: string | null;
   model_name: string | null;
 }
 
@@ -30,9 +33,11 @@ export default function EquipmentForm({ path, equipment_types, equipment_items_b
   const { data, setData, post, patch, processing, errors } = useForm({
     equipment_type_id: entry?.equipment_type_id ? String(entry.equipment_type_id) : "",
     equipment_type_other: entry?.equipment_type_other ?? "",
-    equipment_item_id: "",
+    equipment_item_id: entry?.equipment_item_id ? String(entry.equipment_item_id) : "",
+    equipment_make: entry?.equipment_make ?? "",
     equipment_model: entry?.equipment_model ?? "",
     equipment_identifier: entry?.equipment_identifier ?? "",
+    tag_number: entry?.tag_number ?? "",
     placed_at: entry?.placed_at ?? today,
     removed_at: entry?.removed_at ?? "",
     location_notes: entry?.location_notes ?? "",
@@ -44,16 +49,16 @@ export default function EquipmentForm({ path, equipment_types, equipment_items_b
   const handleTypeChange = (value: string) => {
     if (value === "__other__") {
       setUseOther(true);
-      setData((prev) => ({ ...prev, equipment_type_id: "", equipment_type_other: "", equipment_item_id: "", equipment_model: "", equipment_identifier: "" }));
+      setData((prev) => ({ ...prev, equipment_type_id: "", equipment_type_other: "", equipment_item_id: "", equipment_make: "", equipment_model: "", equipment_identifier: "", tag_number: "" }));
     } else {
       setUseOther(false);
-      setData((prev) => ({ ...prev, equipment_type_id: value, equipment_type_other: "", equipment_item_id: "", equipment_model: "", equipment_identifier: "" }));
+      setData((prev) => ({ ...prev, equipment_type_id: value, equipment_type_other: "", equipment_item_id: "", equipment_make: "", equipment_model: "", equipment_identifier: "", tag_number: "" }));
     }
   };
 
   const handleItemChange = (value: string) => {
     if (value === "__manual__" || value === "") {
-      setData((prev) => ({ ...prev, equipment_item_id: "", equipment_model: "", equipment_identifier: "" }));
+      setData((prev) => ({ ...prev, equipment_item_id: "", equipment_make: "", equipment_model: "", equipment_identifier: "", tag_number: "" }));
       return;
     }
     const item = typeItems.find((i) => String(i.id) === value);
@@ -61,8 +66,10 @@ export default function EquipmentForm({ path, equipment_types, equipment_items_b
       setData((prev) => ({
         ...prev,
         equipment_item_id: value,
+        equipment_make: item.make || "",
         equipment_model: item.model_name || "",
         equipment_identifier: item.identifier,
+        tag_number: item.tag_number || "",
       }));
     }
   };
@@ -75,6 +82,12 @@ export default function EquipmentForm({ path, equipment_types, equipment_items_b
   };
 
   const isItemSelected = data.equipment_item_id !== "";
+  const inventoryDetails = [
+    { label: "Make", value: data.equipment_make || "—" },
+    { label: "Model", value: data.equipment_model || "—" },
+    { label: "Serial Number", value: data.equipment_identifier || "—" },
+    { label: "Tag Number", value: data.tag_number || "—" },
+  ];
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
@@ -85,7 +98,7 @@ export default function EquipmentForm({ path, equipment_types, equipment_items_b
 
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="text-xs font-medium text-muted-foreground">Equipment Type</label>
+            <label className="text-xs font-medium text-muted-foreground">Category</label>
             <Select value={useOther ? "__other__" : data.equipment_type_id || undefined} onValueChange={handleTypeChange}>
               <SelectTrigger className="mt-1">
                 <SelectValue placeholder="Select type..." />
@@ -126,7 +139,7 @@ export default function EquipmentForm({ path, equipment_types, equipment_items_b
                   <SelectItem value="__manual__">Enter manually</SelectItem>
                   {typeItems.map((item) => (
                     <SelectItem key={item.id} value={String(item.id)}>
-                      {item.identifier}{item.model_name ? ` — ${item.model_name}` : ""}
+                      {item.tag_number ? `#${item.tag_number} — ` : ""}{item.identifier}{item.model_name ? ` — ${item.model_name}` : ""}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -134,40 +147,76 @@ export default function EquipmentForm({ path, equipment_types, equipment_items_b
             </div>
           )}
 
-          <div>
-            <label className="text-xs font-medium text-muted-foreground">Model</label>
-            <Input
-              value={data.equipment_model}
-              onChange={(e) => setData("equipment_model", e.target.value)}
-              placeholder="e.g. LGR 7000XLi"
-              className="mt-1"
-              readOnly={isItemSelected}
-            />
-          </div>
+          {isItemSelected ? (
+            <div className="rounded-xl border border-border bg-muted/30 p-3">
+              <div className="flex items-start gap-2">
+                <div className="mt-0.5 rounded-full bg-background p-1 text-muted-foreground">
+                  <Lock className="h-3.5 w-3.5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-foreground">Using inventory item details</p>
+                  <p className="text-xs text-muted-foreground">
+                    These values come from the selected unit and are locked here. Switch the unit dropdown to
+                    <span className="font-medium text-foreground"> Enter manually</span> to edit them.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                {inventoryDetails.map((detail) => (
+                  <div key={detail.label} className="rounded-lg border border-border bg-background px-3 py-2">
+                    <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{detail.label}</div>
+                    <div className="mt-1 text-sm font-medium text-foreground break-words">{detail.value}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Make</label>
+                  <Input
+                    value={data.equipment_make}
+                    onChange={(e) => setData("equipment_make", e.target.value)}
+                    placeholder="e.g. Drieaz"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Model</label>
+                  <Input
+                    value={data.equipment_model}
+                    onChange={(e) => setData("equipment_model", e.target.value)}
+                    placeholder="e.g. LGR 5000 LI-127690"
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Serial Number</label>
+                  <Input
+                    value={data.equipment_identifier}
+                    onChange={(e) => setData("equipment_identifier", e.target.value)}
+                    placeholder="e.g. 108447"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Tag Number</label>
+                  <Input
+                    value={data.tag_number}
+                    onChange={(e) => setData("tag_number", e.target.value)}
+                    placeholder="e.g. 1010"
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+            </>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">Identifier / Serial</label>
-              <Input
-                value={data.equipment_identifier}
-                onChange={(e) => setData("equipment_identifier", e.target.value)}
-                placeholder="e.g. DH-042"
-                className="mt-1"
-                readOnly={isItemSelected}
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">Location</label>
-              <Input
-                value={data.location_notes}
-                onChange={(e) => setData("location_notes", e.target.value)}
-                placeholder="e.g. Unit 238, bedroom"
-                className="mt-1"
-              />
-            </div>
-          </div>
-
-          <div className={editing ? "grid grid-cols-2 gap-3" : ""}>
             <div>
               <label className="text-xs font-medium text-muted-foreground">Placed On</label>
               <Input
@@ -180,8 +229,14 @@ export default function EquipmentForm({ path, equipment_types, equipment_items_b
             </div>
             {editing && (
               <div>
-                <div className="flex items-baseline justify-between">
-                  <label className="text-xs font-medium text-muted-foreground">Removed On</label>
+                <label className="text-xs font-medium text-muted-foreground">Removed On</label>
+                <Input
+                  type="date"
+                  value={data.removed_at || ""}
+                  onChange={(e) => setData("removed_at", e.target.value)}
+                  className="mt-1"
+                />
+                <div className="mt-1 flex justify-end">
                   {!data.removed_at ? (
                     <Button
                       type="button"
@@ -204,14 +259,18 @@ export default function EquipmentForm({ path, equipment_types, equipment_items_b
                     </Button>
                   )}
                 </div>
-                <Input
-                  type="date"
-                  value={data.removed_at || ""}
-                  onChange={(e) => setData("removed_at", e.target.value)}
-                  className="mt-1"
-                />
               </div>
             )}
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">Location</label>
+            <Input
+              value={data.location_notes}
+              onChange={(e) => setData("location_notes", e.target.value)}
+              placeholder="Unit 806, kitchen"
+              className="mt-1"
+            />
           </div>
 
           <div className="flex justify-end gap-2 pt-2">

@@ -15,7 +15,7 @@ interface EquipmentPanelProps {
   can_manage_equipment: boolean;
   equipment_entries_path: string;
   equipment_types: EquipmentType[];
-  equipment_items_by_type?: Record<string, { id: number; identifier: string; model_name: string | null }[]>;
+  equipment_items_by_type?: Record<string, { id: number; identifier: string; tag_number: string | null; make: string | null; model_name: string | null }[]>;
 }
 
 export default function EquipmentPanel({ equipment_log = [], can_manage_equipment, equipment_entries_path, equipment_types, equipment_items_by_type }: EquipmentPanelProps) {
@@ -105,9 +105,11 @@ export default function EquipmentPanel({ equipment_log = [], can_manage_equipmen
             <table className="w-full text-sm">
               <thead className="bg-muted border-b border-border sticky top-0">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Type</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Category</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Make</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Model</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground whitespace-nowrap">ID #</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground whitespace-nowrap">Serial #</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground whitespace-nowrap">Tag #</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Location</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Placed</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Removed</th>
@@ -121,8 +123,10 @@ export default function EquipmentPanel({ equipment_log = [], can_manage_equipmen
                 {filtered.map((item) => (
                   <tr key={item.id} className="border-b border-border last:border-b-0 group hover:bg-muted/30 transition-colors">
                     <td className="px-4 py-3 text-sm font-medium text-foreground whitespace-nowrap">{item.type_name}</td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground">{item.equipment_make || "—"}</td>
                     <td className="px-4 py-3 text-sm text-muted-foreground">{item.equipment_model || "—"}</td>
                     <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">{item.equipment_identifier || "—"}</td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">{item.tag_number || "—"}</td>
                     <td className="px-4 py-3 text-sm text-muted-foreground">{item.location_notes || "—"}</td>
                     <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">{item.placed_at_label}</td>
                     <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">{item.removed_at_label || "—"}</td>
@@ -182,8 +186,10 @@ export default function EquipmentPanel({ equipment_log = [], can_manage_equipmen
           entry={{
             id: editingEntry.id,
             type_name: editingEntry.type_name,
+            equipment_make: editingEntry.equipment_make,
             equipment_model: editingEntry.equipment_model,
             equipment_identifier: editingEntry.equipment_identifier,
+            tag_number: editingEntry.tag_number,
             placed_at_label: editingEntry.placed_at_label,
             removed_at_label: editingEntry.removed_at_label,
             active: !editingEntry.removed_at_label,
@@ -191,6 +197,7 @@ export default function EquipmentPanel({ equipment_log = [], can_manage_equipmen
             logged_by_name: "",
             edit_path: editingEntry.edit_path,
             remove_path: editingEntry.remove_path,
+            equipment_item_id: editingEntry.equipment_item_id ?? null,
             equipment_type_id: editingEntry.equipment_type_id ?? null,
             equipment_type_other: editingEntry.equipment_type_other ?? null,
             placed_at: editingEntry.placed_at,

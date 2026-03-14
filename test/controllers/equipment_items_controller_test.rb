@@ -20,7 +20,7 @@ class EquipmentItemsControllerTest < ActionDispatch::IntegrationTest
 
     @item = EquipmentItem.create!(
       equipment_type: @type, organization: @org,
-      identifier: "DH-001", equipment_model: "LGR 7000"
+      identifier: "DH-001", tag_number: "1010", equipment_make: "Drieaz", equipment_model: "LGR 7000"
     )
   end
 
@@ -44,10 +44,20 @@ class EquipmentItemsControllerTest < ActionDispatch::IntegrationTest
     login_as @manager
     assert_difference "EquipmentItem.count", 1 do
       post equipment_items_path, params: {
-        equipment_item: { equipment_type_id: @type.id, identifier: "DH-002", equipment_model: "LGR 8000" }
+        equipment_item: {
+          equipment_type_id: @type.id,
+          identifier: "DH-002",
+          tag_number: "1011",
+          equipment_make: "Drieaz",
+          equipment_model: "LGR 8000"
+        }
       }
     end
     assert_redirected_to equipment_items_path
+    item = EquipmentItem.order(:id).last
+    assert_equal "1011", item.tag_number
+    assert_equal "Drieaz", item.equipment_make
+    assert_equal "LGR 8000", item.equipment_model
   end
 
   test "create rejects missing identifier" do
@@ -65,9 +75,11 @@ class EquipmentItemsControllerTest < ActionDispatch::IntegrationTest
   test "update changes equipment item" do
     login_as @manager
     patch equipment_item_path(@item), params: {
-      equipment_item: { equipment_model: "LGR 9000" }
+      equipment_item: { tag_number: "1012", equipment_make: "Phoenix", equipment_model: "LGR 9000" }
     }
     assert_redirected_to equipment_items_path
+    assert_equal "1012", @item.reload.tag_number
+    assert_equal "Phoenix", @item.reload.equipment_make
     assert_equal "LGR 9000", @item.reload.equipment_model
   end
 

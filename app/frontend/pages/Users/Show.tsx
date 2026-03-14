@@ -371,7 +371,7 @@ export default function UserShow() {
       {notification_options.length > 0 && (
         <section className="mb-8">
           <h2 className="text-lg font-semibold text-foreground mb-3">Notification Preferences</h2>
-          <div className="rounded-md border border-border divide-y divide-border">
+          <div className="rounded-md border border-border bg-card divide-y divide-border">
             {notification_options.map((n) => (
               <div key={n.key} className="flex items-center justify-between px-3 py-2.5">
                 <div>
