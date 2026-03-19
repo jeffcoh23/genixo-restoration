@@ -8,6 +8,9 @@ Rails.application.routes.draw do
   post "login", to: "sessions#create"
   delete "logout", to: "sessions#destroy", as: :logout
 
+  # Public pages (no auth required)
+  get "privacy", to: "privacy#show", as: :privacy
+
   # Public incident report (no auth required)
   get "report-incident", to: "public_incident_reports#new", as: :new_public_incident_report
   post "report-incident", to: "public_incident_reports#create", as: :public_incident_reports
