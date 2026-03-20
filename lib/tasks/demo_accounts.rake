@@ -102,8 +102,8 @@ namespace :demo do
     )
 
     # Property assignments
-    [pm1, pm2].each do |pm_user|
-      [lakewood, cedar_ridge, magnolia].each do |prop|
+    [ pm1, pm2 ].each do |pm_user|
+      [ lakewood, cedar_ridge, magnolia ].each do |prop|
         PropertyAssignment.create!(user: pm_user, property: prop)
       end
     end
@@ -129,7 +129,7 @@ namespace :demo do
       created_at: now - 2.days
     )
 
-    [reviewer, tech1, tech2].each do |u|
+    [ reviewer, tech1, tech2 ].each do |u|
       IncidentAssignment.create!(incident: i1, user: u, assigned_by_user: reviewer)
     end
     IncidentAssignment.create!(incident: i1, user: pm1, assigned_by_user: pm1)
@@ -145,7 +145,7 @@ namespace :demo do
       { user: tech1,   body: "On site now. Started water extraction in hallway. Standing water is about half an inch deep. Moving into unit 305 next.", at: now - 2.days + 1.hour },
       { user: tech1,   body: "Extraction complete in all three units. Set up 6 air movers and 2 dehumidifiers. Will check moisture readings tomorrow morning.", at: now - 2.days + 5.hours },
       { user: pm1,     body: "Residents in 304 and 306 are asking about timeline. When can they return?", at: now - 1.day },
-      { user: reviewer, body: "Based on initial readings, we're looking at 3-4 days of drying minimum. I'll have a better estimate after tomorrow's moisture check.", at: now - 1.day + 2.hours },
+      { user: reviewer, body: "Based on initial readings, we're looking at 3-4 days of drying minimum. I'll have a better estimate after tomorrow's moisture check.", at: now - 1.day + 2.hours }
     ].each { |msg| Message.create!(incident: i1, user: msg[:user], body: msg[:body], created_at: msg[:at]) }
 
     day1 = (now - 2.days).to_date
@@ -165,7 +165,7 @@ namespace :demo do
       notes: "Morning moisture readings, adjusted equipment positioning")
 
     6.times do |i|
-      loc = ["Unit 304, living room", "Unit 304, bedroom", "Unit 305, kitchen", "Unit 305, hallway", "Unit 306, bedroom", "Unit 306, living room"][i]
+      loc = [ "Unit 304, living room", "Unit 304, bedroom", "Unit 305, kitchen", "Unit 305, hallway", "Unit 306, bedroom", "Unit 306, living room" ][i]
       EquipmentEntry.create!(incident: i1, equipment_type: eq_air_mover,
         equipment_identifier: "AM-#{100 + i}", placed_at: now - 2.days + 4.hours,
         location_notes: loc, logged_by_user: tech1)
@@ -195,7 +195,7 @@ namespace :demo do
       created_at: now - 5.days
     )
 
-    [reviewer, office].each do |u|
+    [ reviewer, office ].each do |u|
       IncidentAssignment.create!(incident: i2, user: u, assigned_by_user: reviewer)
     end
     IncidentAssignment.create!(incident: i2, user: pm2, assigned_by_user: pm2)
@@ -208,7 +208,7 @@ namespace :demo do
     [
       { user: pm2,     body: "Found visible mold during HVAC inspection in two units. Residents have been complaining about musty smell. Need an estimate ASAP.", at: now - 5.days },
       { user: reviewer, body: "I'll send Jordan out tomorrow to assess the scope. We'll have a proposal to you within 48 hours.", at: now - 5.days + 3.hours },
-      { user: office,  body: "Completed the site assessment. Both units need full mold remediation — affected drywall removal, HEPA treatment, and reconstruction. Proposal sent to your email.", at: now - 3.days },
+      { user: office,  body: "Completed the site assessment. Both units need full mold remediation — affected drywall removal, HEPA treatment, and reconstruction. Proposal sent to your email.", at: now - 3.days }
     ].each { |msg| Message.create!(incident: i2, user: msg[:user], body: msg[:body], created_at: msg[:at]) }
 
     # ========================================================================
@@ -229,7 +229,7 @@ namespace :demo do
       created_at: now - 14.days
     )
 
-    [reviewer, tech1].each do |u|
+    [ reviewer, tech1 ].each do |u|
       IncidentAssignment.create!(incident: i3, user: u, assigned_by_user: reviewer)
     end
     IncidentAssignment.create!(incident: i3, user: pm1, assigned_by_user: pm1)
@@ -245,7 +245,7 @@ namespace :demo do
       { user: pm1,     body: "Fire department just left unit 201. Kitchen is destroyed — grease fire that spread to the cabinets and ceiling. Heavy smoke throughout.", at: now - 14.days },
       { user: reviewer, body: "Marcus is heading over now to board up and do the initial assessment. We'll have a full scope by end of day tomorrow.", at: now - 14.days + 1.hour },
       { user: tech1,   body: "Unit boarded up and secured. Smoke damage is extensive — every room has soot on the walls and ceiling. Kitchen will need full demo. Starting HEPA filtration.", at: now - 14.days + 4.hours },
-      { user: tech1,   body: "Smoke cleanup complete. Kitchen demo done, air scrubbers ran for 3 days. Air quality tests came back clean. Ready for reconstruction.", at: now - 8.days },
+      { user: tech1,   body: "Smoke cleanup complete. Kitchen demo done, air scrubbers ran for 3 days. Air quality tests came back clean. Ready for reconstruction.", at: now - 8.days }
     ].each { |msg| Message.create!(incident: i3, user: msg[:user], body: msg[:body], created_at: msg[:at]) }
 
     LaborEntry.create!(incident: i3, user: tech1, created_by_user: tech1,
@@ -303,7 +303,7 @@ namespace :demo do
       created_at: now - 3.days
     )
 
-    [reviewer, tech2].each do |u|
+    [ reviewer, tech2 ].each do |u|
       IncidentAssignment.create!(incident: i5, user: u, assigned_by_user: reviewer)
     end
     IncidentAssignment.create!(incident: i5, user: pm2, assigned_by_user: pm2)
@@ -317,7 +317,7 @@ namespace :demo do
       { user: pm2,    body: "Last night's storm caused major roof leak in building C. Three units on the third floor have water coming through the ceiling. Maintenance put tarps up but it's still dripping.", at: now - 3.days },
       { user: reviewer, body: "Sarah is heading out now. We'll get extraction started and assess the ceiling damage once things dry out.", at: now - 3.days + 1.hour },
       { user: tech2,  body: "On site. Extracted standing water from all three units. Ceiling drywall is sagging in 301 and 302 — will need replacement. Set up drying equipment.", at: now - 3.days + 5.hours },
-      { user: tech2,  body: "Day 2 readings: moisture levels dropping but 301 ceiling is still saturated. Removed damaged drywall section to help with airflow. Added another air mover.", at: now - 1.day },
+      { user: tech2,  body: "Day 2 readings: moisture levels dropping but 301 ceiling is still saturated. Removed damaged drywall section to help with airflow. Added another air mover.", at: now - 1.day }
     ].each { |msg| Message.create!(incident: i5, user: msg[:user], body: msg[:body], created_at: msg[:at]) }
 
     LaborEntry.create!(incident: i5, user: tech2, created_by_user: tech2,
@@ -326,7 +326,7 @@ namespace :demo do
       notes: "Water extraction, ceiling assessment, drying equipment setup")
 
     4.times do |i|
-      loc = ["Unit 301, living room", "Unit 301, bedroom", "Unit 302, living room", "Unit 303, living room"][i]
+      loc = [ "Unit 301, living room", "Unit 301, bedroom", "Unit 302, living room", "Unit 303, living room" ][i]
       EquipmentEntry.create!(incident: i5, equipment_type: eq_air_mover,
         equipment_identifier: "AM-#{110 + i}", placed_at: now - 3.days + 5.hours,
         location_notes: loc, logged_by_user: tech2)
