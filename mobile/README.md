@@ -10,7 +10,7 @@ This folder contains an iOS/Android Capacitor shell that loads the existing host
 
 Default remote URL:
 
-- `https://genixo-restoration-eff44db79cc1.herokuapp.com`
+- `https://genixorestoration.com`
 
 Override it for local runs:
 

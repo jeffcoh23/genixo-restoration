@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Genixo Restoration — Offline</title>
+    <style>
+      :root { color-scheme: light; }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+        background: hsl(220 14% 96%);
+        color: hsl(224 10% 14%);
+      }
+
+      main {
+        width: min(88vw, 24rem);
+        text-align: center;
+        padding: 2rem 1.5rem;
+      }
+
+      .logo {
+        width: 180px;
+        height: auto;
+        margin-bottom: 2rem;
+      }
+
+      .icon {
+        width: 48px;
+        height: 48px;
+        margin: 0 auto 1rem;
+        color: hsl(220 6% 44%);
+      }
+
+      h1 {
+        margin: 0 0 0.5rem;
+        font-size: 1.25rem;
+        font-weight: 600;
+      }
+
+      p {
+        margin: 0 0 1.5rem;
+        font-size: 0.875rem;
+        line-height: 1.5;
+        color: hsl(220 6% 44%);
+      }
+
+      button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1.25rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #fff;
+        background: hsl(187 65% 32%);
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        min-height: 44px;
+        transition: background 150ms;
+      }
+
+      button:hover { background: hsl(187 65% 26%); }
+      button:active { background: hsl(187 65% 22%); }
+
+      .spinner {
+        display: none;
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(255,255,255,0.3);
+        border-top-color: #fff;
+        border-radius: 50%;
+        animation: spin 0.6s linear infinite;
+      }
+
+      button.loading .spinner { display: inline-block; }
+      button.loading .label { display: none; }
+
+      @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M8.288 15.038a5.25 5.25 0 0 1 7.424 0M5.106 11.856c3.807-3.808 9.98-3.808 13.788 0M1.924 8.674c5.565-5.565 14.587-5.565 20.152 0M12 18.75h.008v.008H12v-.008Z" />
+        <line x1="3" y1="3" x2="21" y2="21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+      </svg>
+
+      <h1>No Internet Connection</h1>
+      <p>Genixo Restoration needs an internet connection to work. Check your Wi-Fi or cellular data and try again.</p>
+
+      <button id="retry-btn" onclick="retryConnection()">
+        <span class="label">Try Again</span>
+        <span class="spinner"></span>
+      </button>
+    </main>
+
+    <script>
+      function retryConnection() {
+        var btn = document.getElementById('retry-btn');
+        btn.classList.add('loading');
+        setTimeout(function() {
+          window.location.reload();
+        }, 600);
+      }
+    </script>
+  </body>
+</html>

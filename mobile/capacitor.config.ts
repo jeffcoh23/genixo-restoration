@@ -2,7 +2,7 @@ import type { CapacitorConfig } from "@capacitor/cli";
 
 const remoteUrl =
   process.env.GENIXO_MOBILE_WEB_URL ||
-  "https://genixo-restoration-eff44db79cc1.herokuapp.com";
+  "https://genixorestoration.com";
 
 // This wrapper intentionally loads the existing hosted Rails/Inertia app.
 // We keep a local webDir placeholder (`www`) so native projects can be generated
@@ -14,7 +14,8 @@ const config: CapacitorConfig = {
   loggingBehavior: "debug",
   backgroundColor: "#eef2f5",
   server: {
-    url: remoteUrl
+    url: remoteUrl,
+    errorPath: "/offline.html"
   },
   ios: {
     contentInset: "automatic",
