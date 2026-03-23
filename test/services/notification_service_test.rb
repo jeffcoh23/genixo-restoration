@@ -72,6 +72,30 @@ class NotificationServiceTest < ActiveSupport::TestCase
     assert_equal "+15551234567", NotificationService.send(:normalize_phone, "+1 555 123 4567")
   end
 
+  test "send_voice does not call Twilio in non-production environments" do
+    # Even with TwilioClient defined and env vars set, dev/test should just log
+    mock_calls = Object.new
+    mock_calls.define_singleton_method(:create) { |**_| raise "Should not be called!" }
+
+    mock_client = Object.new
+    mock_client.define_singleton_method(:calls) { mock_calls }
+
+    was_defined = Object.const_defined?(:TwilioClient)
+    old_value = Object.const_get(:TwilioClient) if was_defined
+    Object.send(:remove_const, :TwilioClient) if was_defined
+    Object.const_set(:TwilioClient, mock_client)
+
+    with_env("TWILIO_PHONE_NUMBER" => "+15075433639") do
+      # Rails.env is "test" — should NOT call Twilio
+      assert_nothing_raised do
+        NotificationService.send_voice(to: "555-0001", message: "Should only log")
+      end
+    end
+  ensure
+    Object.send(:remove_const, :TwilioClient) if Object.const_defined?(:TwilioClient)
+    Object.const_set(:TwilioClient, old_value) if was_defined
+  end
+
   test "send_sms logs message without error" do
     assert_nothing_raised do
       NotificationService.send_sms(to: "555-0001", message: "Test SMS")
@@ -93,7 +117,11 @@ class NotificationServiceTest < ActiveSupport::TestCase
     old_value = Object.const_get(:TwilioClient) if was_defined
     Object.send(:remove_const, :TwilioClient) if was_defined
     Object.const_set(:TwilioClient, mock_client)
-    yield
+
+    # Simulate production so twilio_configured? returns true
+    Rails.env.stub(:production?, true) do
+      yield
+    end
   ensure
     Object.send(:remove_const, :TwilioClient) if Object.const_defined?(:TwilioClient)
     Object.const_set(:TwilioClient, old_value) if was_defined

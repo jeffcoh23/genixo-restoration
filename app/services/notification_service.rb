@@ -26,7 +26,7 @@ class NotificationService
   end
 
   def self.twilio_configured?
-    defined?(TwilioClient) && ENV["TWILIO_PHONE_NUMBER"].present?
+    Rails.env.production? && defined?(TwilioClient) && ENV["TWILIO_PHONE_NUMBER"].present?
   end
 
   def self.normalize_phone(phone)
