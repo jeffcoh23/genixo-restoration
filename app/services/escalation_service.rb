@@ -35,7 +35,10 @@ class EscalationService
 
   def notify_user(user)
     IncidentMailer.escalation_alert(@incident, user).deliver_later
-    NotificationService.send_sms(to: user.phone, message: escalation_message) if user.phone.present?
+    if user.phone.present?
+      NotificationService.send_voice(to: user.phone, message: voice_message)
+      NotificationService.send_sms(to: user.phone, message: escalation_message)
+    end
   end
 
   def create_escalation_event(user)
@@ -61,6 +64,13 @@ class EscalationService
       user: @incident.created_by_user,
       metadata: { contacts_tried: @index }
     )
+  end
+
+  def voice_message
+    property = @incident.property
+    "Emergency alert from Genixo Restoration. " \
+    "There is a #{Incident::DAMAGE_LABELS[@incident.damage_type]} incident at #{property.name}. " \
+    "Please check the app immediately."
   end
 
   def escalation_message
