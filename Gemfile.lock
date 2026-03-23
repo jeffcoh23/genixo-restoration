@@ -132,6 +132,12 @@ GEM
     erubi (1.13.1)
     et-orbi (1.4.0)
       tzinfo
+    faraday (2.14.1)
+      faraday-net_http (>= 2.0, < 3.5)
+      json
+      logger
+    faraday-net_http (3.4.2)
+      net-http (~> 0.5)
     fugit (1.12.1)
       et-orbi (~> 1.4)
       raabro (~> 1.4)
@@ -152,6 +158,8 @@ GEM
       reline (>= 0.4.2)
     jmespath (1.6.2)
     json (2.18.1)
+    jwt (3.1.2)
+      base64
     language_server-protocol (3.17.0.5)
     launchy (3.1.1)
       addressable (~> 2.8)
@@ -185,6 +193,8 @@ GEM
     minitest (5.27.0)
     msgpack (1.8.0)
     mutex_m (0.3.0)
+    net-http (0.9.1)
+      uri (>= 0.11.1)
     net-imap (0.6.3)
       date
       net-protocol
@@ -352,6 +362,10 @@ GEM
     timeout (0.6.0)
     tsort (0.2.0)
     ttfunk (1.7.0)
+    twilio-ruby (7.10.3)
+      faraday (>= 0.9, < 3.0)
+      jwt (>= 1.5, < 4.0)
+      nokogiri (>= 1.6, < 2.0)
     tzinfo (2.0.6)
       concurrent-ruby (~> 1.0)
     unicode-display_width (3.2.0)
@@ -417,6 +431,7 @@ DEPENDENCIES
   solid_cable
   solid_cache
   solid_queue
+  twilio-ruby
   tzinfo-data
   vite_rails
   web-console

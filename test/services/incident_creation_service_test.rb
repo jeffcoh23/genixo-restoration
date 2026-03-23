@@ -256,6 +256,34 @@ class IncidentCreationServiceTest < ActiveSupport::TestCase
     end
   end
 
+  # --- Emergency escalation ---
+
+  test "enqueues EscalationJob for emergency incidents" do
+    OnCallConfiguration.create!(organization: @genixo, primary_user: @manager, escalation_timeout_minutes: 10)
+
+    with_test_queue_adapter do
+      create_incident(project_type: "emergency_response")
+
+      escalation_jobs = ActiveJob::Base.queue_adapter.enqueued_jobs
+        .select { |j| j["job_class"] == "EscalationJob" }
+
+      assert_equal 1, escalation_jobs.size
+    end
+  end
+
+  test "does not enqueue EscalationJob for non-emergency incidents" do
+    OnCallConfiguration.create!(organization: @genixo, primary_user: @manager, escalation_timeout_minutes: 10)
+
+    with_test_queue_adapter do
+      create_incident(project_type: "other")
+
+      escalation_jobs = ActiveJob::Base.queue_adapter.enqueued_jobs
+        .select { |j| j["job_class"] == "EscalationJob" }
+
+      assert_equal 0, escalation_jobs.size
+    end
+  end
+
   # --- Core attributes ---
 
   test "stores optional fields" do

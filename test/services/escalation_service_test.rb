@@ -89,15 +89,142 @@ class EscalationServiceTest < ActiveSupport::TestCase
     assert_equal 1, event.metadata["contacts_tried"]
   end
 
-  test "sends SMS when user has phone number" do
+  test "sends voice call and SMS when user has phone number" do
     create_on_call_config
 
-    # NotificationService.send_sms is a log-only stub — just ensure no errors
-    assert_nothing_raised do
-      perform_enqueued_jobs do
-        EscalationService.new(incident: @incident, escalation_contact_index: 0).call
-      end
+    voice_args = nil
+    sms_args = nil
+
+    original_voice = NotificationService.method(:send_voice)
+    original_sms = NotificationService.method(:send_sms)
+
+    NotificationService.define_singleton_method(:send_voice) { |**kwargs| voice_args = kwargs }
+    NotificationService.define_singleton_method(:send_sms) { |**kwargs| sms_args = kwargs }
+
+    perform_enqueued_jobs do
+      EscalationService.new(incident: @incident, escalation_contact_index: 0).call
     end
+
+    assert_not_nil voice_args, "Expected voice call to be initiated"
+    assert_equal "5550001", voice_args[:to]
+    assert_includes voice_args[:message], "Emergency alert from Genixo"
+    assert_includes voice_args[:message], "Sunset Apts"
+
+    assert_not_nil sms_args, "Expected SMS to be sent"
+    assert_equal "5550001", sms_args[:to]
+    assert_includes sms_args[:message], "EMERGENCY"
+  ensure
+    NotificationService.define_singleton_method(:send_voice, original_voice)
+    NotificationService.define_singleton_method(:send_sms, original_sms)
+  end
+
+  test "does not send voice call or SMS when user has no phone" do
+    @manager.update!(phone: nil)
+    create_on_call_config
+
+    voice_called = false
+    sms_called = false
+
+    original_voice = NotificationService.method(:send_voice)
+    original_sms = NotificationService.method(:send_sms)
+
+    NotificationService.define_singleton_method(:send_voice) { |**_| voice_called = true }
+    NotificationService.define_singleton_method(:send_sms) { |**_| sms_called = true }
+
+    perform_enqueued_jobs do
+      EscalationService.new(incident: @incident, escalation_contact_index: 0).call
+    end
+
+    refute voice_called, "Expected no voice call without phone number"
+    refute sms_called, "Expected no SMS without phone number"
+
+    # Escalation event still created (email still sent)
+    assert_equal 1, EscalationEvent.count
+  ensure
+    NotificationService.define_singleton_method(:send_voice, original_voice)
+    NotificationService.define_singleton_method(:send_sms, original_sms)
+  end
+
+  # --- Voice call bypasses notification preferences ---
+
+  test "voice call fires even when user has all notifications disabled" do
+    @manager.update!(notification_preferences: {
+      "status_change" => false,
+      "new_message" => false,
+      "incident_user_assignment" => false
+    })
+    create_on_call_config
+
+    voice_called = false
+    original_voice = NotificationService.method(:send_voice)
+    NotificationService.define_singleton_method(:send_voice) { |**_| voice_called = true }
+
+    perform_enqueued_jobs do
+      EscalationService.new(incident: @incident, escalation_contact_index: 0).call
+    end
+
+    assert voice_called, "Emergency voice call must fire regardless of notification preferences"
+  ensure
+    NotificationService.define_singleton_method(:send_voice, original_voice)
+  end
+
+  # --- Full chain: creation → job → service → voice ---
+
+  test "full chain: emergency incident creation triggers voice call via escalation" do
+    config = create_on_call_config
+    EscalationContact.create!(on_call_configuration: config, user: @backup, position: 1)
+
+    voice_phones = []
+    original_voice = NotificationService.method(:send_voice)
+    NotificationService.define_singleton_method(:send_voice) { |**kwargs| voice_phones << kwargs[:to] }
+
+    perform_enqueued_jobs do
+      EscalationJob.perform_now(@incident.id)
+    end
+
+    assert_includes voice_phones, @manager.phone, "Primary on-call should receive voice call"
+  ensure
+    NotificationService.define_singleton_method(:send_voice, original_voice)
+  end
+
+  # --- Timeout chain ---
+
+  test "timeout escalation calls next contact in chain" do
+    config = create_on_call_config
+    EscalationContact.create!(on_call_configuration: config, user: @backup, position: 1)
+
+    voice_phones = []
+    original_voice = NotificationService.method(:send_voice)
+    NotificationService.define_singleton_method(:send_voice) { |**kwargs| voice_phones << kwargs[:to] }
+
+    # Simulate timeout: primary was called (index 0), now index 1 fires
+    perform_enqueued_jobs do
+      EscalationService.new(incident: @incident, escalation_contact_index: 1).call
+    end
+
+    assert_includes voice_phones, @backup.phone, "Backup contact should receive voice call on timeout"
+  ensure
+    NotificationService.define_singleton_method(:send_voice, original_voice)
+  end
+
+  # --- Voice message content ---
+
+  test "voice message includes damage type label and property name" do
+    create_on_call_config
+
+    voice_args = nil
+    original_voice = NotificationService.method(:send_voice)
+    NotificationService.define_singleton_method(:send_voice) { |**kwargs| voice_args = kwargs }
+
+    perform_enqueued_jobs do
+      EscalationService.new(incident: @incident, escalation_contact_index: 0).call
+    end
+
+    assert_includes voice_args[:message], "Flood", "Voice message should include damage type label"
+    assert_includes voice_args[:message], "Sunset Apts", "Voice message should include property name"
+    assert_includes voice_args[:message], "Please check the app", "Voice message should include call to action"
+  ensure
+    NotificationService.define_singleton_method(:send_voice, original_voice)
   end
 
   private
