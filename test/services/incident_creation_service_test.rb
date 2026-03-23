@@ -258,11 +258,11 @@ class IncidentCreationServiceTest < ActiveSupport::TestCase
 
   # --- Emergency escalation ---
 
-  test "enqueues EscalationJob for emergency incidents" do
+  test "enqueues EscalationJob when PM user creates emergency incident" do
     OnCallConfiguration.create!(organization: @genixo, primary_user: @manager, escalation_timeout_minutes: 10)
 
     with_test_queue_adapter do
-      create_incident(project_type: "emergency_response")
+      create_incident_as(@pm_user, project_type: "emergency_response")
 
       escalation_jobs = ActiveJob::Base.queue_adapter.enqueued_jobs
         .select { |j| j["job_class"] == "EscalationJob" }
@@ -271,11 +271,24 @@ class IncidentCreationServiceTest < ActiveSupport::TestCase
     end
   end
 
+  test "does not enqueue EscalationJob when mitigation user creates emergency incident" do
+    OnCallConfiguration.create!(organization: @genixo, primary_user: @manager, escalation_timeout_minutes: 10)
+
+    with_test_queue_adapter do
+      create_incident(project_type: "emergency_response")
+
+      escalation_jobs = ActiveJob::Base.queue_adapter.enqueued_jobs
+        .select { |j| j["job_class"] == "EscalationJob" }
+
+      assert_equal 0, escalation_jobs.size
+    end
+  end
+
   test "does not enqueue EscalationJob for non-emergency incidents" do
     OnCallConfiguration.create!(organization: @genixo, primary_user: @manager, escalation_timeout_minutes: 10)
 
     with_test_queue_adapter do
-      create_incident(project_type: "other")
+      create_incident_as(@pm_user, project_type: "other")
 
       escalation_jobs = ActiveJob::Base.queue_adapter.enqueued_jobs
         .select { |j| j["job_class"] == "EscalationJob" }
@@ -310,13 +323,17 @@ class IncidentCreationServiceTest < ActiveSupport::TestCase
     ActiveJob::Base.queue_adapter = original_adapter
   end
 
-  def create_incident(overrides = {})
+  def create_incident_as(user, overrides = {})
     params = {
       project_type: "emergency_response",
       damage_type: "flood",
       description: "Water damage in unit 100"
     }.merge(overrides)
 
-    IncidentCreationService.new(property: @property, user: @manager, params: params).call
+    IncidentCreationService.new(property: @property, user: user, params: params).call
+  end
+
+  def create_incident(overrides = {})
+    create_incident_as(@manager, overrides)
   end
 end

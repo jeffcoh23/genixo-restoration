@@ -198,6 +198,6 @@ class IncidentCreationService
       AssignmentNotificationJob.perform_later(assignment.id)
     end
 
-    EscalationJob.perform_later(@incident.id) if @incident.emergency?
+    EscalationJob.perform_later(@incident.id) if @incident.emergency? && @user.organization.property_management?
   end
 end
