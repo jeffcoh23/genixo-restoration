@@ -11,6 +11,11 @@ class NotificationService
       return
     end
 
+    if ENV["TWILIO_OVERRIDE_NUMBER"].present?
+      Rails.logger.info("[NotificationService] Voice call redirected from #{phone} to #{ENV['TWILIO_OVERRIDE_NUMBER']}")
+      phone = normalize_phone(ENV["TWILIO_OVERRIDE_NUMBER"])
+    end
+
     twiml = "<Response><Say voice=\"Polly.Joanna\">#{message}</Say><Pause length=\"1\"/><Say voice=\"Polly.Joanna\">#{message}</Say></Response>"
 
     TwilioClient.calls.create(
