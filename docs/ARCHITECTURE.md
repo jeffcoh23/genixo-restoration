@@ -887,9 +887,15 @@ Dashboard sorting by "most recent activity" is the primary query. Computing this
 
 Incidents and messages both need file attachments with the same metadata (category, uploader, file). One table with `attachable_type`/`attachable_id` avoids duplication and keeps attachment logic in one place.
 
-### Why provider-agnostic notifications?
+### Notification provider
 
-The notification provider (Twilio, Vonage, etc.) hasn't been chosen yet. The service interface (`send_sms`, `send_voice`) is the same regardless of provider. Swapping providers means writing one new class, not refactoring the entire notification flow.
+Voice calls use Twilio (`twilio-ruby` gem) with inline TwiML — no webhooks needed. SMS is still a logging stub pending A2P 10DLC carrier registration. The `NotificationService` interface (`send_sms`, `send_voice`) is provider-agnostic — swapping Twilio for another provider means changing one class.
+
+**Production guard:** Voice calls only fire in `Rails.env.production?`. Dev/test always log.
+
+**Testing override:** Set `TWILIO_OVERRIDE_NUMBER` on Heroku to redirect all calls to a single number. Unset it to go live.
+
+**Escalation trigger:** Only PM-created emergencies trigger the escalation chain. Mitigation-created emergencies skip escalation (the team already knows).
 
 ### Why no ActionCable/WebSocket for MVP?
 

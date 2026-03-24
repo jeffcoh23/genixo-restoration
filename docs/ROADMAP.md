@@ -150,7 +150,7 @@ Deferred features. Infrastructure is in place for all of these.
 | Gantt chart / project timeline | Interactive incident timeline view using [SVAR React Gantt](https://svar.dev/react/gantt/) (MIT). Visualize incident phases, equipment deployments, and labor across a drag-and-drop timeline. |
 | Visual moisture mapping | Color-coded unit floor plans with grid drawing tool. Reference Cotton's approach. |
 | Real-time updates | ActionCable / Solid Cable tables created. Add live updates. |
-| SMS/voice notifications | Plug provider into `NotificationDispatchService`. Required for emergency auto-reply SMS. |
+| SMS notifications | ~~Voice calls done (Twilio).~~ SMS deferred pending A2P 10DLC carrier registration. |
 | Equipment barcode scanning | `equipment_identifier` field exists. Add camera scan. |
 | Invoicing/billing | Status fields exist. Add invoice generation. |
 | Signature capture | File uploads for MVP. In-app signature pad post-MVP. |
@@ -395,6 +395,7 @@ Deferred features. Infrastructure is in place for all of these.
 ### Notification Services
 
 - [x] `NotificationService` SMS/voice stub for MVP (log-only)
+- [x] Emergency voice calls via Twilio — escalation chain calls on-call contacts with TTS message (PM-created emergencies only, production-only guard, `TWILIO_OVERRIDE_NUMBER` for safe testing)
 
 ### Transactional Emails
 
