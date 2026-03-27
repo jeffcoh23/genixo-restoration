@@ -1,6 +1,6 @@
 class IncidentsController < ApplicationController
   before_action :authorize_creation!, only: %i[new create]
-  before_action :set_incident, only: %i[show update transition mark_read dfr attachments_page]
+  before_action :set_incident, only: %i[show update transition mark_read dfr attachments_page timeline]
   before_action :authorize_edit!, only: %i[update]
   before_action :authorize_transition!, only: %i[transition]
 
@@ -231,6 +231,7 @@ class IncidentsController < ApplicationController
         upload_photo_path: upload_photo_incident_attachments_path(@incident),
         dfr_path: dfr_incident_path(@incident),
         attachments_page_path: attachments_page_incident_path(@incident),
+        timeline_path: timeline_incident_path(@incident),
         mark_read_path: mark_read_incident_path(@incident),
         unread_messages: unread[:messages],
         unread_activity: unread[:activity],
@@ -309,6 +310,50 @@ class IncidentsController < ApplicationController
   def attachments_page
     page = [ params.fetch(:page, 1).to_i, 1 ].max
     render json: serialize_attachments_page(@incident, page: page)
+  end
+
+  def timeline
+    units = @incident.incident_units.includes(:incident_tasks)
+    can_manage = can_manage_timeline?
+
+    render inertia: "Incidents/Timeline", props: {
+      incident: {
+        id: @incident.id,
+        path: incident_path(@incident),
+        description: @incident.description,
+        status_label: @incident.display_status_label,
+        display_status: @incident.display_status,
+        property: {
+          name: @incident.property.name,
+          organization_name: @incident.property.property_management_org.name
+        }
+      },
+      units: units.map { |u|
+        {
+          id: u.id,
+          unit_number: u.unit_number,
+          needs_vacant: u.needs_vacant,
+          position: u.position,
+          update_path: can_manage ? incident_incident_unit_path(@incident, u) : nil,
+          destroy_path: can_manage ? incident_incident_unit_path(@incident, u) : nil,
+          create_task_path: can_manage ? incident_incident_unit_incident_tasks_path(@incident, u) : nil,
+          tasks: u.incident_tasks.map { |t|
+            {
+              id: t.id,
+              activity: t.activity,
+              start_date: t.start_date.iso8601,
+              end_date: t.end_date.iso8601,
+              position: t.position,
+              update_path: can_manage ? incident_incident_unit_incident_task_path(@incident, u, t) : nil,
+              destroy_path: can_manage ? incident_incident_unit_incident_task_path(@incident, u, t) : nil
+            }
+          }
+        }
+      },
+      can_manage: can_manage,
+      create_unit_path: can_manage ? incident_incident_units_path(@incident) : nil,
+      back_path: incident_path(@incident)
+    }
   end
 
   private

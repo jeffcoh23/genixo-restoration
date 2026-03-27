@@ -249,6 +249,7 @@ export interface IncidentDetail {
   attachments_path: string;
   upload_photo_path: string;
   dfr_path: string;
+  timeline_path: string;
   mark_read_path: string;
   unread_messages: number;
   unread_activity: number;

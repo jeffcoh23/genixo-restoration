@@ -93,6 +93,10 @@ module Authorization
     current_user.can?(Permissions::MANAGE_ATTACHMENTS)
   end
 
+  def can_manage_timeline?
+    current_user.can?(Permissions::MANAGE_TIMELINE)
+  end
+
   def can_manage_psychrometric_readings?
     current_user.can?(Permissions::MANAGE_READINGS)
   end

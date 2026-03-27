@@ -1,6 +1,6 @@
 import { Deferred, Link, router, usePage } from "@inertiajs/react";
 import { useState, useCallback } from "react";
-import { ChevronDown, ChevronRight, Mail, Pencil, Phone } from "lucide-react";
+import { CalendarRange, ChevronDown, ChevronRight, Mail, Pencil, Phone } from "lucide-react";
 import AppLayout from "@/layout/AppLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -161,6 +161,17 @@ export default function IncidentShow() {
                 </>
               )}
             </div>
+
+            <Link href={incident.timeline_path}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-10 sm:h-8 text-sm sm:text-xs gap-1.5"
+              >
+                <CalendarRange className="h-3.5 w-3.5" />
+                Timeline
+              </Button>
+            </Link>
 
             {can_edit && incident.edit_path && (
               <Button
