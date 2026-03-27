@@ -253,7 +253,7 @@ export default function IncidentShow() {
       </div>
 
       {/* Tabbed content card */}
-      <div className="bg-card rounded-lg border border-border shadow-sm overflow-hidden min-h-[560px] lg:min-h-[640px] lg:h-[calc(100vh-360px)]">
+      <div className="bg-card rounded-lg border border-border shadow-sm overflow-hidden min-h-[560px] lg:min-h-[640px] max-h-[2000px]">
         <RightPanelShell activeTab={activeTab} onTabChange={handleTabChange} unreadMessages={displayUnreadMessages} unreadActivity={displayUnreadActivity}>
           {activeTab === "daily_log" && (
             <DailyLogPanel

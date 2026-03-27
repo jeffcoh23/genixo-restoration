@@ -70,7 +70,7 @@ export default function MessagePanel({ messages, messages_path }: MessagePanelPr
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-[70vh] lg:h-[55vh]">
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-4 pb-8 bg-muted/10">
         {messages.length === 0 ? (
           <EmptyState />
