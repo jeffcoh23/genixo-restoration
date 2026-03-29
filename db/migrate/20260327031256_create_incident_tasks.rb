@@ -11,6 +11,6 @@ class CreateIncidentTasks < ActiveRecord::Migration[8.0]
       t.timestamps
     end
 
-    add_index :incident_tasks, [:incident_unit_id, :position]
+    add_index :incident_tasks, [ :incident_unit_id, :position ]
   end
 end

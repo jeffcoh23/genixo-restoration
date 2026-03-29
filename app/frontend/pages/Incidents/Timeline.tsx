@@ -192,8 +192,8 @@ function UnitSection({ unit, canManage, onEditUnit, onDeleteUnit, onAddTask, onE
       {unit.tasks.map((task) => (
         <tr key={task.id} className="border-b border-border last:border-b-0">
           <td className="px-4 py-2 pl-8 text-foreground">{task.activity}</td>
-          <td className="px-4 py-2 text-muted-foreground">{formatDate(task.start_date)}</td>
-          <td className="px-4 py-2 text-muted-foreground">{formatDate(task.end_date)}</td>
+          <td className="px-4 py-2 text-muted-foreground">{task.start_date_label}</td>
+          <td className="px-4 py-2 text-muted-foreground">{task.end_date_label}</td>
           <td className="px-4 py-2" />
           {canManage && (
             <td className="px-4 py-2 text-right">
@@ -216,18 +216,13 @@ function UnitSection({ unit, canManage, onEditUnit, onDeleteUnit, onAddTask, onE
           <td colSpan={canManage ? 5 : 4} className="px-4 py-3 pl-8 text-sm text-muted-foreground italic">
             No tasks yet.{" "}
             {canManage && (
-              <button onClick={onAddTask} className="text-primary hover:underline not-italic">
+              <Button variant="link" size="sm" className="h-auto p-0 not-italic" onClick={onAddTask}>
                 Add one
-              </button>
+              </Button>
             )}
           </td>
         </tr>
       )}
     </>
   );
-}
-
-function formatDate(iso: string): string {
-  const d = new Date(iso + "T00:00:00");
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }

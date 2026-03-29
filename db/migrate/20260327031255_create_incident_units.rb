@@ -10,6 +10,6 @@ class CreateIncidentUnits < ActiveRecord::Migration[8.0]
       t.timestamps
     end
 
-    add_index :incident_units, [:incident_id, :position]
+    add_index :incident_units, [ :incident_id, :position ]
   end
 end

@@ -343,6 +343,8 @@ class IncidentsController < ApplicationController
               activity: t.activity,
               start_date: t.start_date.iso8601,
               end_date: t.end_date.iso8601,
+              start_date_label: format_date(t.start_date),
+              end_date_label: format_date(t.end_date),
               position: t.position,
               update_path: can_manage ? incident_incident_unit_incident_task_path(@incident, u, t) : nil,
               destroy_path: can_manage ? incident_incident_unit_incident_task_path(@incident, u, t) : nil

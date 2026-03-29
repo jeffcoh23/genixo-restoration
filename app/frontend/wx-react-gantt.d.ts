@@ -12,7 +12,7 @@ declare module "wx-react-gantt" {
     parent?: string | number;
     open?: boolean;
     lazy?: boolean;
-    [key: string]: any;
+    [key: string]: unknown;
   }
 
   interface GanttLink {
@@ -36,6 +36,13 @@ declare module "wx-react-gantt" {
     align?: "left" | "center" | "right";
   }
 
+  interface GanttApi {
+    on: (event: string, callback: (ev: Record<string, unknown>) => void) => void;
+    getTask: (id: string | number) => GanttTask | null;
+    getState: () => { tasks: GanttTask[] };
+    exec: (action: string, params: Record<string, unknown>) => void;
+  }
+
   interface GanttProps {
     tasks?: GanttTask[];
     links?: GanttLink[];
@@ -45,12 +52,13 @@ declare module "wx-react-gantt" {
     cellHeight?: number;
     scaleHeight?: number;
     readonly?: boolean;
-    apiRef?: RefObject<any>;
-    ref?: RefObject<any>;
-    [key: string]: any;
+    apiRef?: RefObject<GanttApi | null>;
+    ref?: RefObject<GanttApi | null>;
+    [key: string]: unknown;
   }
 
   export const Gantt: ComponentType<GanttProps>;
+  export type { GanttTask, GanttLink, GanttScale, GanttColumn, GanttApi, GanttProps };
 }
 
 declare module "wx-react-gantt/dist/gantt.css" {}

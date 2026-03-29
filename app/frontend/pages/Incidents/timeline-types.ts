@@ -3,6 +3,8 @@ export interface TimelineTask {
   activity: string;
   start_date: string;
   end_date: string;
+  start_date_label: string;
+  end_date_label: string;
   position: number;
   update_path: string | null;
   destroy_path: string | null;

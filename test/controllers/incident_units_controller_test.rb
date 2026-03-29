@@ -144,7 +144,7 @@ class IncidentUnitsControllerTest < ActionDispatch::IntegrationTest
       activity: "Remediation", start_date: Date.current, end_date: Date.current + 3,
       created_by_user: @manager
     )
-    assert_difference ["IncidentUnit.count", "IncidentTask.count"], -1 do
+    assert_difference [ "IncidentUnit.count", "IncidentTask.count" ], -1 do
       delete incident_incident_unit_path(@incident, unit)
     end
   end

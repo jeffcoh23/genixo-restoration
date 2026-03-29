@@ -1,6 +1,6 @@
 import { useMemo, useRef, useEffect } from "react";
 import { router } from "@inertiajs/react";
-import { Gantt } from "wx-react-gantt";
+import { Gantt, type GanttTask, type GanttApi } from "wx-react-gantt";
 import "wx-react-gantt/dist/gantt.css";
 import type { TimelineUnit } from "../timeline-types";
 
@@ -21,12 +21,26 @@ const UNIT_COLORS = [
   "#f97316", // orange
 ];
 
+// Parse ISO date string to Date (noon UTC to avoid timezone edge cases)
+function parseDate(iso: string): Date {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+// Format Date back to ISO date string for server
+function toISO(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
 export default function GanttChart({ units, canManage }: GanttChartProps) {
-  const apiRef = useRef<any>(null);
+  const apiRef = useRef<GanttApi>(null);
 
   // Map backend data to SVAR Gantt task format
   const tasks = useMemo(() => {
-    const ganttTasks: any[] = [];
+    const ganttTasks: GanttTask[] = [];
 
     units.forEach((unit, unitIndex) => {
       const color = UNIT_COLORS[unitIndex % UNIT_COLORS.length];
@@ -38,20 +52,16 @@ export default function GanttChart({ units, canManage }: GanttChartProps) {
         open: true,
         type: "summary",
         start: unit.tasks.length > 0
-          ? new Date(Math.min(...unit.tasks.map(t => new Date(t.start_date).getTime())))
+          ? parseDate(unit.tasks.reduce((min, t) => t.start_date < min ? t.start_date : min, unit.tasks[0].start_date))
           : new Date(),
         duration: 1,
-        // Custom fields for display
-        _unitId: unit.id,
-        _isUnit: true,
-        _needsVacant: unit.needs_vacant,
         _color: color,
       });
 
       // Child rows (tasks)
       unit.tasks.forEach((task) => {
-        const start = new Date(task.start_date);
-        const end = new Date(task.end_date);
+        const start = parseDate(task.start_date);
+        const end = parseDate(task.end_date);
         const diffDays = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1);
 
         ganttTasks.push({
@@ -62,11 +72,6 @@ export default function GanttChart({ units, canManage }: GanttChartProps) {
           duration: diffDays,
           type: "task",
           progress: 0,
-          // Custom fields
-          _taskId: task.id,
-          _unitId: unit.id,
-          _startDate: task.start_date,
-          _endDate: task.end_date,
           _updatePath: task.update_path,
           _color: color,
         });
@@ -103,30 +108,32 @@ export default function GanttChart({ units, canManage }: GanttChartProps) {
 
     const api = apiRef.current;
 
-    api.on("update-task", (ev: any) => {
+    api.on("update-task", (ev) => {
       if (ev.inProgress) return;
 
-      const taskData = ev.task;
-      const taskId = ev.id;
+      const taskData = ev.task as GanttTask | undefined;
+      const taskId = ev.id as string | number;
 
       // Only handle actual task updates (not summary rows)
       if (typeof taskId === "string" && taskId.startsWith("task-")) {
         const ganttTask = api.getTask(taskId);
-        if (!ganttTask?._updatePath) return;
+        if (!ganttTask) return;
+        const updatePath = ganttTask._updatePath as string | null | undefined;
+        if (!updatePath) return;
 
         // Calculate new dates from the updated task
-        const startDate = ganttTask.start || taskData.start;
-        const duration = taskData.duration || ganttTask.duration;
+        const startDate = ganttTask.start || taskData?.start;
+        const duration = (taskData?.duration as number) || (ganttTask.duration as number);
 
         if (startDate && duration) {
           const start = new Date(startDate);
           const end = new Date(start);
           end.setDate(end.getDate() + duration - 1);
 
-          router.patch(ganttTask._updatePath, {
+          router.patch(updatePath, {
             incident_task: {
-              start_date: start.toISOString().split("T")[0],
-              end_date: end.toISOString().split("T")[0],
+              start_date: toISO(start),
+              end_date: toISO(end),
             },
           }, {
             preserveScroll: true,
