@@ -336,6 +336,7 @@ class IncidentsController < ApplicationController
           position: u.position,
           update_path: can_manage ? incident_incident_unit_path(@incident, u) : nil,
           destroy_path: can_manage ? incident_incident_unit_path(@incident, u) : nil,
+          min_start_date: u.incident_tasks.minimum(:start_date)&.iso8601,
           create_task_path: can_manage ? incident_incident_unit_incident_tasks_path(@incident, u) : nil,
           tasks: u.incident_tasks.map { |t|
             {

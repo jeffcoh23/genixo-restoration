@@ -21,19 +21,22 @@ const UNIT_COLORS = [
   "#f97316", // orange
 ];
 
-// Parse ISO date string to Date (noon UTC to avoid timezone edge cases)
+// SVAR Gantt requires JS Date objects — these helpers convert between
+// server-provided ISO strings and Date instances for the library API.
+// This is not display formatting (which belongs on the server).
 function parseDate(iso: string): Date {
   const [y, m, d] = iso.split("-").map(Number);
-  return new Date(y, m - 1, d);
+  return new Date(y, m - 1, d); // eslint-disable-line no-restricted-syntax -- SVAR Gantt requires Date objects
 }
 
-// Format Date back to ISO date string for server
 function toISO(date: Date): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");
   const d = String(date.getDate()).padStart(2, "0");
   return `${y}-${m}-${d}`;
 }
+
+const FALLBACK_DATE = new Date(); // eslint-disable-line no-restricted-syntax -- SVAR Gantt requires Date objects
 
 export default function GanttChart({ units, canManage }: GanttChartProps) {
   const apiRef = useRef<GanttApi>(null);
@@ -45,15 +48,13 @@ export default function GanttChart({ units, canManage }: GanttChartProps) {
     units.forEach((unit, unitIndex) => {
       const color = UNIT_COLORS[unitIndex % UNIT_COLORS.length];
 
-      // Parent row (summary) for the unit
+      // Parent row (summary) — min_start_date is computed on the server
       ganttTasks.push({
         id: `unit-${unit.id}`,
         text: unit.unit_number,
         open: true,
         type: "summary",
-        start: unit.tasks.length > 0
-          ? parseDate(unit.tasks.reduce((min, t) => t.start_date < min ? t.start_date : min, unit.tasks[0].start_date))
-          : new Date(),
+        start: unit.min_start_date ? parseDate(unit.min_start_date) : FALLBACK_DATE,
         duration: 1,
         _color: color,
       });
@@ -102,7 +103,8 @@ export default function GanttChart({ units, canManage }: GanttChartProps) {
     },
   ], []);
 
-  // Handle drag-to-resize/move task updates
+  // Handle drag-to-resize/move task updates — SVAR provides updated Date objects
+  // which we convert back to ISO strings before sending to the server
   useEffect(() => {
     if (!apiRef.current || !canManage) return;
 
@@ -121,13 +123,13 @@ export default function GanttChart({ units, canManage }: GanttChartProps) {
         const updatePath = ganttTask._updatePath as string | null | undefined;
         if (!updatePath) return;
 
-        // Calculate new dates from the updated task
         const startDate = ganttTask.start || taskData?.start;
         const duration = (taskData?.duration as number) || (ganttTask.duration as number);
 
         if (startDate && duration) {
-          const start = new Date(startDate);
-          const end = new Date(start);
+          // SVAR provides Date objects after drag — convert back to ISO for the server
+          const start = new Date(startDate); // eslint-disable-line no-restricted-syntax -- cloning SVAR Date
+          const end = new Date(start); // eslint-disable-line no-restricted-syntax -- cloning SVAR Date
           end.setDate(end.getDate() + duration - 1);
 
           router.patch(updatePath, {

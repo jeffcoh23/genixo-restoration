@@ -15,6 +15,7 @@ export interface TimelineUnit {
   unit_number: string;
   needs_vacant: boolean;
   position: number;
+  min_start_date: string | null;
   update_path: string | null;
   destroy_path: string | null;
   create_task_path: string | null;
