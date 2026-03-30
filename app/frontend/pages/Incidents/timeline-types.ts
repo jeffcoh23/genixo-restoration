@@ -41,3 +41,21 @@ export interface TimelineProps {
   create_unit_path: string | null;
   back_path: string;
 }
+
+// SVAR Gantt requires JS Date objects. These helpers convert between
+// server-provided ISO date strings and Date instances for the library API.
+// This is data conversion for a third-party library, not display formatting.
+
+export function parseISODate(iso: string): Date {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+export function dateToISO(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+export const GANTT_FALLBACK_DATE = new Date();

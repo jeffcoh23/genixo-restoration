@@ -2,7 +2,7 @@ import { useMemo, useRef, useEffect } from "react";
 import { router } from "@inertiajs/react";
 import { Gantt, type GanttTask, type GanttApi } from "wx-react-gantt";
 import "wx-react-gantt/dist/gantt.css";
-import type { TimelineUnit } from "../timeline-types";
+import { parseISODate, dateToISO, GANTT_FALLBACK_DATE, type TimelineUnit } from "../timeline-types";
 
 interface GanttChartProps {
   units: TimelineUnit[];
@@ -21,23 +21,6 @@ const UNIT_COLORS = [
   "#f97316", // orange
 ];
 
-// SVAR Gantt requires JS Date objects — these helpers convert between
-// server-provided ISO strings and Date instances for the library API.
-// This is not display formatting (which belongs on the server).
-function parseDate(iso: string): Date {
-  const [y, m, d] = iso.split("-").map(Number);
-  return new Date(y, m - 1, d); // eslint-disable-line no-restricted-syntax -- SVAR Gantt requires Date objects
-}
-
-function toISO(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
-
-const FALLBACK_DATE = new Date(); // eslint-disable-line no-restricted-syntax -- SVAR Gantt requires Date objects
-
 export default function GanttChart({ units, canManage }: GanttChartProps) {
   const apiRef = useRef<GanttApi>(null);
 
@@ -54,15 +37,15 @@ export default function GanttChart({ units, canManage }: GanttChartProps) {
         text: unit.unit_number,
         open: true,
         type: "summary",
-        start: unit.min_start_date ? parseDate(unit.min_start_date) : FALLBACK_DATE,
+        start: unit.min_start_date ? parseISODate(unit.min_start_date) : GANTT_FALLBACK_DATE,
         duration: 1,
         _color: color,
       });
 
       // Child rows (tasks)
       unit.tasks.forEach((task) => {
-        const start = parseDate(task.start_date);
-        const end = parseDate(task.end_date);
+        const start = parseISODate(task.start_date);
+        const end = parseISODate(task.end_date);
         const diffDays = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1);
 
         ganttTasks.push({
@@ -127,15 +110,15 @@ export default function GanttChart({ units, canManage }: GanttChartProps) {
         const duration = (taskData?.duration as number) || (ganttTask.duration as number);
 
         if (startDate && duration) {
-          // SVAR provides Date objects after drag — convert back to ISO for the server
-          const start = new Date(startDate); // eslint-disable-line no-restricted-syntax -- cloning SVAR Date
-          const end = new Date(start); // eslint-disable-line no-restricted-syntax -- cloning SVAR Date
+          // Clone SVAR's Date objects and compute end date from duration
+          const start = parseISODate(dateToISO(startDate as Date));
+          const end = parseISODate(dateToISO(startDate as Date));
           end.setDate(end.getDate() + duration - 1);
 
           router.patch(updatePath, {
             incident_task: {
-              start_date: toISO(start),
-              end_date: toISO(end),
+              start_date: dateToISO(start),
+              end_date: dateToISO(end),
             },
           }, {
             preserveScroll: true,
