@@ -41,6 +41,8 @@ export default function GanttChart({ units, canManage }: GanttChartProps) {
           type: "task",
           progress: 0,
           _endDate: end,
+          _startLabel: task.start_date_label,
+          _endLabel: task.end_date_label,
           _needsVacant: unit.needs_vacant,
           _updatePath: task.update_path,
         });
@@ -61,20 +63,16 @@ export default function GanttChart({ units, canManage }: GanttChartProps) {
       id: "start",
       header: "Start Date",
       width: 90,
-      template: (task: Record<string, unknown>) => {
-        const d = task.start as Date | undefined;
-        return d ? formatDate(d) : "";
-      },
+      template: (task: Record<string, unknown>) =>
+        (task._startLabel as string) ?? "",
     },
     {
       id: "end_date",
       header: "End Date",
       width: 90,
       getter: (task: Record<string, unknown>) => task._endDate,
-      template: (task: Record<string, unknown>) => {
-        const d = task._endDate as Date | undefined;
-        return d ? formatDate(d) : "";
-      },
+      template: (task: Record<string, unknown>) =>
+        (task._endLabel as string) ?? "",
     },
     {
       id: "needs_vacant",
@@ -140,10 +138,6 @@ export default function GanttChart({ units, canManage }: GanttChartProps) {
       </div>
     </Material>
   );
-}
-
-function formatDate(date: Date): string {
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 function parseDate(iso: string): Date {
