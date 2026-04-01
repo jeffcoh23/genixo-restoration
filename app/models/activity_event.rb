@@ -14,6 +14,8 @@ class ActivityEvent < ApplicationRecord
     moisture_supervisor_updated
     psychrometric_point_created psychrometric_point_deleted
     psychrometric_readings_recorded psychrometric_reading_updated psychrometric_reading_deleted
+    timeline_unit_created timeline_unit_updated timeline_unit_deleted
+    timeline_task_created timeline_task_updated timeline_task_deleted
   ].freeze
   DAILY_LOG_NOTIFICATION_EVENT_TYPES = %w[activity_logged].freeze
 

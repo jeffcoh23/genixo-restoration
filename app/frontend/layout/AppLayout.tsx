@@ -7,7 +7,7 @@ import RoleSidebar from "./RoleSidebar";
 import FlashMessages from "./FlashMessages";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
-export default function AppLayout({ children, wide }: { children: React.ReactNode; wide?: boolean }) {
+export default function AppLayout({ children, wide, full }: { children: React.ReactNode; wide?: boolean; full?: boolean }) {
   const { flash } = usePage<SharedProps>().props;
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [progress, setProgress] = useState<number | null>(null);
@@ -96,7 +96,7 @@ export default function AppLayout({ children, wide }: { children: React.ReactNod
           <img src="/brand/genixio-horizontal-white-caps.png" alt="Genixo Restoration" className="h-6" />
         </div>
 
-        <div className={`mx-auto ${wide ? "max-w-7xl" : "max-w-5xl"} px-4 py-6 sm:px-6`}>
+        <div className={`mx-auto ${full ? "" : wide ? "max-w-7xl" : "max-w-5xl"} px-4 py-6 sm:px-6`}>
           <FlashMessages flash={flash} />
           <ErrorBoundary>
             {children}

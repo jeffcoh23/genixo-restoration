@@ -46,6 +46,7 @@ class Incident < ApplicationRecord
   has_many :psychrometric_points, dependent: :destroy
   has_many :escalation_events, dependent: :destroy
   has_many :incident_read_states, dependent: :destroy
+  has_many :incident_units, dependent: :destroy
 
   scope :visible_to, ->(user) {
     case user.user_type

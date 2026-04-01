@@ -31,6 +31,10 @@ Rails.application.routes.draw do
       patch :mark_read
       post :dfr
       get :attachments_page
+      get :timeline
+    end
+    resources :incident_units, only: %i[create update destroy] do
+      resources :incident_tasks, only: %i[create update destroy]
     end
     resources :assignments, controller: "incident_assignments", only: %i[create destroy] do
       collection do
