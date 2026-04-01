@@ -67,6 +67,6 @@ class IncidentTasksController < ApplicationController
   end
 
   def task_params
-    params.require(:incident_task).permit(:activity, :start_date, :end_date)
+    params.require(:incident_task).permit(:activity, :start_date, :end_date, :duration_days)
   end
 end

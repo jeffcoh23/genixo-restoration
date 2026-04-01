@@ -11,6 +11,12 @@ class IncidentTask < ApplicationRecord
 
   delegate :incident, to: :incident_unit
 
+  # Gantt drag-and-drop sends duration in days; compute end_date server-side.
+  def duration_days=(days)
+    return unless start_date && days.to_i > 0
+    self.end_date = start_date + (days.to_i - 1).days
+  end
+
   private
 
   def end_date_not_before_start_date

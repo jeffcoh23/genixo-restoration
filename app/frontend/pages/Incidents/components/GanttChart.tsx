@@ -22,8 +22,6 @@ export default function GanttChart({ units, canManage }: GanttChartProps) {
         text: unit.unit_number,
         open: true,
         type: "summary",
-        start: unit.min_start_date ? parseDate(unit.min_start_date) : new Date(),
-        duration: 1,
         _needsVacant: unit.needs_vacant,
       });
 
@@ -109,14 +107,10 @@ export default function GanttChart({ units, canManage }: GanttChartProps) {
       const duration = ((taskData?.duration || ganttTask.duration) as number) || 0;
 
       if (startDate && duration) {
-        const start = new Date(startDate);
-        const end = new Date(start);
-        end.setDate(end.getDate() + duration - 1);
-
         router.patch(updatePath, {
           incident_task: {
-            start_date: toISO(start),
-            end_date: toISO(end),
+            start_date: toISO(startDate),
+            duration_days: duration,
           },
         }, { preserveScroll: true });
       }
