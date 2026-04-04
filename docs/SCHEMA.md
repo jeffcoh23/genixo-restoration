@@ -266,7 +266,8 @@ Links users to incidents. **Auto-assigned at creation:** mitigation users with `
 
 **Auto-assignment at incident creation:**
 - **Mitigation-side:** All users with `auto_assign = true` in the servicing mitigation org
-- **Mitigation-side (emergency only):** The on-call primary user is also auto-assigned
+- **Mitigation-side:** On-call primary user is always auto-assigned (emergency or not)
+- **Mitigation-side fallback:** If no auto-assign users and no on-call configured, all active mitigation managers are assigned
 - **PM-side:** Nobody — the creator manually selects PM users during incident creation
 - **NOT** technicians — they are assigned later by managers, typically when the incident is made active
 - `assigned_by_user_id` = the incident creator for auto-assignments
@@ -370,6 +371,8 @@ Append-only audit log. Generated for every meaningful action on an incident.
 - `attachment_uploaded` — metadata: `{ attachment_id, category, filename }`
 - `operational_note_added` — metadata: `{ operational_note_id }`
 - `escalation_attempted` — metadata: `{ user_id, method, result }`
+- `escalation_skipped` — metadata: `{ reason }` — logged when escalation is skipped (e.g., no on-call config)
+- `escalation_exhausted` — logged when all escalation contacts have been tried with no response
 - `contact_added` — metadata: `{ incident_contact_id, name }`
 - `contact_removed` — metadata: `{ incident_contact_id, name }`
 
@@ -496,7 +499,8 @@ Individual pieces of equipment in the company's inventory. Each item belongs to 
 | equipment_type_id | bigint | NOT NULL, FK → equipment_types | Category (e.g., "Dehumidifier") |
 | organization_id | bigint | NOT NULL, FK → organizations | Owning mitigation org |
 | equipment_model | string | | Model name (e.g., "LGR 7000XLi") |
-| identifier | string | NOT NULL | Short code (e.g., "DH-042") |
+| identifier | string | NOT NULL | Short code or serial number (e.g., "DH-042", "108447") |
+| tag_number | string | | Physical tag affixed to the equipment (e.g., "1042") |
 | active | boolean | NOT NULL, default true | Soft-delete flag |
 | created_at | datetime | NOT NULL | |
 | updated_at | datetime | NOT NULL | |

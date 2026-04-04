@@ -98,7 +98,8 @@ class Permissions
   # Permissions shown as toggleable checkboxes in the user edit modal (mitigation users only)
   MITIGATION_VISIBLE_PERMISSIONS = [
     CREATE_INCIDENT, EDIT_INCIDENT, TRANSITION_STATUS,
-    MANAGE_DAILY_LOGS, MANAGE_READINGS, MANAGE_USERS
+    MANAGE_DAILY_LOGS, MANAGE_READINGS, MANAGE_ATTACHMENTS,
+    CREATE_PROPERTY, MANAGE_ORGANIZATIONS, MANAGE_USERS
   ].freeze
 
   def self.has?(user_type, permission) ... end
@@ -178,7 +179,8 @@ Mitigation manager enters call-in
 │ 4. Create activity_event│
 │    (status_changed)     │
 │                         │
-│ 5. If emergency:        │
+│ 5. If emergency AND     │
+│    creator is PM user:  │
 │    Enqueue escalation   │
 │    job                  │
 │                         │
@@ -218,8 +220,9 @@ class IncidentCreationService
       # Activity events
       log_event("incident_created")
 
-      # Escalation
-      if @incident.emergency?
+      # Escalation — only when a PM user creates the emergency.
+      # Mitigation-created emergencies skip escalation (the team already knows).
+      if @incident.emergency? && @user.organization.property_management?
         EscalationJob.perform_later(@incident.id)
       end
 
@@ -271,10 +274,13 @@ class IncidentCreationService
     # Mitigation-side: users with auto_assign flag
     @property.mitigation_org.users.active.auto_assigned.find_each { |u| users << u }
 
-    # Mitigation-side (emergency only): add on-call primary user
-    if @incident.emergency?
-      config = @property.mitigation_org.on_call_configuration
-      users << config.primary_user if config&.primary_user
+    # Mitigation-side: always include on-call primary user (emergency or not)
+    config = @property.mitigation_org.on_call_configuration
+    users << config.primary_user if config&.primary_user&.active?
+
+    # Fallback: if no auto-assign users and no on-call configured, assign all active mitigation managers
+    if users.empty?
+      @property.mitigation_org.users.active.where(user_type: User::MANAGER).find_each { |u| users << u }
     end
 
     # PM-side: nobody — PM creator picks manually
@@ -609,7 +615,7 @@ end
 | Trigger | Recipients | Method | Timing |
 |---------|-----------|--------|--------|
 | Incident created | Creator | Email | Immediate |
-| Incident created (emergency) | On-call manager → escalation chain | SMS/Voice/Email | Immediate + timeout escalation |
+| Emergency incident created by PM user | On-call manager → escalation chain | SMS/Voice/Email | Immediate + timeout escalation |
 | Any status change | All assigned users (with `status_change_notifications` enabled) | Email | Immediate |
 | User assigned to incident | The assigned user | Email | Immediate |
 | New message | Incident participants (with `message_notifications` enabled) | Email | Immediate |

@@ -73,7 +73,7 @@ Email is globally unique across all organizations. One email address = one user 
 - Guests see only incidents they are assigned to (same scoping as technicians).
 - Guest sidebar shows only "My Incidents" and "Settings" links. Org name is hidden.
 - The `title` field on the user record describes their role (e.g., "Insurance Adjuster"), displayed in the sidebar and team lists.
-- Guests are invited per-incident from the Manage tab's "External" section.
+- Guests can be invited during incident creation or afterward from the Manage tab's "External" section.
 - Inviting a guest to a second incident reuses the existing user account (no duplicate).
 
 ### Invitations
@@ -189,7 +189,7 @@ QUOTE / PROPOSAL (RFQ):
 ### Emergency Flag
 
 - Set at creation time. Can be changed by managers afterward.
-- If `emergency = true` at creation, triggers the escalation chain immediately.
+- If `emergency = true` at creation **and the creator is a PM user**, triggers the escalation chain immediately. Mitigation-created emergencies skip escalation — the team already knows.
 - The emergency flag is independent of status — an incident can be emergency + any status.
 
 ---
@@ -214,7 +214,8 @@ When an incident is created, the system auto-assigns users based on the `auto_as
 
 **Mitigation-side:**
 - All users with `auto_assign = true` in the servicing mitigation org
-- For **emergency** incidents only: the on-call primary user is also auto-assigned
+- The on-call primary user is always auto-assigned (emergency or not)
+- **Fallback:** if no auto-assign users exist and no on-call is configured, all active mitigation managers are assigned
 - **NOT** technicians — they are assigned later by managers, typically when the incident is made active
 
 **PM-side:**
@@ -249,7 +250,7 @@ When an incident is created, the system auto-assigns users based on the `auto_as
 
 ### Escalation Flow
 
-1. Emergency incident created → `EscalationJob` fires immediately.
+1. Emergency incident created **by a PM user** → `EscalationJob` fires immediately. (Mitigation-created emergencies skip escalation — the team already knows.)
 2. Contact the primary on-call manager via SMS/voice/email.
 3. Create `escalation_event` record + `activity_event`.
 4. Schedule `EscalationTimeoutJob` to fire after `escalation_timeout_minutes`.
@@ -296,7 +297,7 @@ When an incident is created, the system auto-assigns users based on the `auto_as
 | Event | Who Gets Notified | How |
 |-------|------------------|-----|
 | Incident created | Creator | Email confirmation |
-| Emergency incident | On-call manager → escalation chain | SMS/Voice/Email |
+| Emergency incident (PM-created) | On-call manager → escalation chain | SMS/Voice/Email |
 | Any status change | All users assigned to the incident (with `status_change_notifications` enabled) | Email |
 | User assigned to incident | The assigned user | Email |
 | New message | Users who can see the incident (with `message_notifications` enabled) | Email |
