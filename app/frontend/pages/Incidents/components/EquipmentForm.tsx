@@ -165,11 +165,12 @@ export default function EquipmentForm({ path, equipment_types, equipment_items_b
                 <div className="mt-1 rounded-md border border-border bg-popover shadow-md overflow-hidden">
                   {searchResults.length > 0 ? (
                     searchResults.map((item) => (
-                      <button
+                      <Button
                         key={item.id}
                         type="button"
+                        variant="ghost"
                         onMouseDown={() => handleQuickSelect(item)}
-                        className="w-full text-left px-3 py-2 hover:bg-accent flex items-center gap-3 text-sm"
+                        className="w-full justify-start px-3 py-2 h-auto gap-3 text-sm font-normal"
                       >
                         {item.tag_number && (
                           <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-xs font-mono font-medium text-foreground">
@@ -181,7 +182,7 @@ export default function EquipmentForm({ path, equipment_types, equipment_items_b
                           <span className="text-muted-foreground"> · {item.type_name}</span>
                           {item.make && <span className="text-muted-foreground"> · {item.make}{item.model_name ? ` ${item.model_name}` : ""}</span>}
                         </span>
-                      </button>
+                      </Button>
                     ))
                   ) : (
                     searchQuery.trim().length >= 2 && (
@@ -260,7 +261,7 @@ export default function EquipmentForm({ path, equipment_types, equipment_items_b
               <div className="mt-3 grid grid-cols-2 gap-3">
                 {inventoryDetails.map((detail) => (
                   <div key={detail.label} className="rounded-lg border border-border bg-background px-3 py-2">
-                    <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{detail.label}</div>
+                    <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{detail.label}</div>
                     <div className="mt-1 text-sm font-medium text-foreground break-words">{detail.value}</div>
                   </div>
                 ))}
