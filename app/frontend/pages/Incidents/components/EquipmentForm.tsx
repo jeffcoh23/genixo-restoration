@@ -144,8 +144,8 @@ export default function EquipmentForm({ path, equipment_types, equipment_items_b
         <form onSubmit={handleSubmit} className="space-y-3">
           {/* Quick search — add mode only, only shown when inventory exists */}
           {!editing && allItems.length > 0 && (
-            <div ref={searchRef}>
-              <label className="text-xs font-medium text-foreground">Quick Find</label>
+            <div ref={searchRef} className="space-y-3">
+              <label className="text-xs font-medium text-foreground">Find Equipment</label>
               <div className="relative mt-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
                 <Input
@@ -191,6 +191,11 @@ export default function EquipmentForm({ path, equipment_types, equipment_items_b
                   )}
                 </div>
               )}
+              <div className="flex items-center gap-3 pt-1">
+                <div className="h-px flex-1 bg-border" />
+                <span className="text-xs text-muted-foreground">or</span>
+                <div className="h-px flex-1 bg-border" />
+              </div>
             </div>
           )}
 
