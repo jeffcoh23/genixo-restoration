@@ -104,7 +104,7 @@ jobs:
           echo "PLAYWRIGHT_VERSION=$VERSION" >> "$GITHUB_ENV"
 
       - name: Install Playwright browsers
-        run: npx -y playwright@${PLAYWRIGHT_VERSION} install --with-deps chromium chromium_headless_shell
+        run: npx -y playwright@${PLAYWRIGHT_VERSION} install --with-deps chromium chromium-headless-shell
 
       - name: Pre-build Vite assets
         env:
