@@ -58,6 +58,7 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     services:
       postgres:
@@ -108,14 +109,20 @@ jobs:
           RAILS_ENV: test
         run: bin/vite build --clear --mode=test
 
-      - name: Run tests
+      - name: Run unit tests
         env:
           RAILS_ENV: test
           DATABASE_URL: postgres://postgres:postgres@localhost:5432
           VITE_RUBY_AUTO_BUILD: false
-          PLAYWRIGHT_CLI_EXECUTABLE_PATH: npx -y playwright@${{ env.PLAYWRIGHT_VERSION }}
-          # REDIS_URL: redis://localhost:6379/0
-        run: bin/rails db:test:prepare test test:system
+        run: bin/rails db:test:prepare test
+
+      - name: Run system tests
+        env:
+          RAILS_ENV: test
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432
+          VITE_RUBY_AUTO_BUILD: false
+          PLAYWRIGHT_CLI_EXECUTABLE_PATH: ./node_modules/.bin/playwright
+        run: bin/rails test:system
 
       - name: Keep screenshots from failed system tests
         uses: actions/upload-artifact@v4
