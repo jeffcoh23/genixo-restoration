@@ -34,7 +34,7 @@ export default function EquipmentForm({ path, equipment_types, equipment_items_b
   const hasOtherType = editing && !entry.equipment_type_id && !!entry.equipment_type_other;
   const [useOther, setUseOther] = useState(hasOtherType);
   const [searchQuery, setSearchQuery] = useState("");
-  const blurTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const blurTimerRef = useRef<number | undefined>(undefined);
   useEffect(() => () => clearTimeout(blurTimerRef.current), []);
 
   const { today } = usePage<SharedProps>().props;
