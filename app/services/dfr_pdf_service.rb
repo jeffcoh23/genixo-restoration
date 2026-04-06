@@ -29,6 +29,7 @@ class DfrPdfService
     render_notes(pdf)
     render_summary_fields(pdf)
     render_labor_section(pdf)
+    render_equipment_section(pdf)
     render_photos(pdf) if @include_photos
 
     pdf.render
@@ -170,6 +171,27 @@ class DfrPdfService
     pdf.move_down 10
   end
 
+  def render_equipment_section(pdf)
+    entries = equipment_entries_for_date
+    return if entries.empty?
+
+    pdf.stroke_horizontal_rule
+    pdf.move_down 8
+
+    pdf.font_size(10) { pdf.text "Equipment:", style: :bold }
+    pdf.move_down 3
+
+    by_type = entries.group_by { |e| e.type_name.to_s.strip }.sort_by { |name, _| name.downcase }
+    by_type.each do |type_name, type_entries|
+      total_hours = type_entries.sum { |e| equipment_hours_for_date(e) }
+      pdf.font_size(10) do
+        pdf.text "• #{type_entries.size} #{type_name}  #{total_hours} hrs"
+      end
+    end
+
+    pdf.move_down 10
+  end
+
   def render_photos(pdf)
     photos = photos_for_date
     return if photos.empty?
@@ -211,6 +233,20 @@ class DfrPdfService
       .includes(:performed_by_user, equipment_actions: :equipment_type)
       .where(occurred_at: date_range)
       .order(occurred_at: :asc)
+  end
+
+  def equipment_entries_for_date
+    @equipment_entries_for_date ||= @incident.equipment_entries
+      .includes(:equipment_type)
+      .where("placed_at <= ? AND (removed_at IS NULL OR removed_at >= ?)",
+        date_range.last, date_range.first)
+      .order(:placed_at)
+  end
+
+  def equipment_hours_for_date(entry)
+    day_start = [ entry.placed_at, date_range.first ].max
+    day_end = [ entry.removed_at || Time.current, date_range.last ].min
+    ((day_end - day_start) / 1.hour).round(1)
   end
 
   def labor_entries_for_date

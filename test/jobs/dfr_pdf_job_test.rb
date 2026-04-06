@@ -60,4 +60,82 @@ class DfrPdfJobTest < ActiveSupport::TestCase
       DfrPdfJob.perform_now(@incident.id, date, "America/Chicago", @manager.id)
     end
   end
+
+  test "PDF includes equipment summary with counts and hours for on-site equipment" do
+    require "pdf/inspector"
+
+    dehu = EquipmentType.create!(name: "Dehumidifier", organization: @genixo)
+    air_mover = EquipmentType.create!(name: "Air Mover", organization: @genixo)
+
+    # 2 dehumidifiers placed yesterday, still on-site
+    EquipmentEntry.create!(incident: @incident, equipment_type: dehu,
+      placed_at: 1.day.ago, logged_by_user: @manager)
+    EquipmentEntry.create!(incident: @incident, equipment_type: dehu,
+      placed_at: 1.day.ago, logged_by_user: @manager)
+
+    # 1 air mover placed yesterday, still on-site
+    EquipmentEntry.create!(incident: @incident, equipment_type: air_mover,
+      placed_at: 1.day.ago, logged_by_user: @manager)
+
+    pdf_data = DfrPdfService.new(
+      incident: @incident, date: Date.current, timezone: "America/Chicago", include_photos: false
+    ).generate
+
+    text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
+    assert_includes text, "Equipment:"
+    assert_includes text, "2 Dehumidifier"
+    assert_includes text, "1 Air Mover"
+    assert_match(/\d+\.\d+ hrs/, text, "Should include hours for equipment")
+  end
+
+  test "PDF excludes equipment removed before the report date" do
+    require "pdf/inspector"
+
+    dehu = EquipmentType.create!(name: "Dehumidifier", organization: @genixo)
+    air_mover = EquipmentType.create!(name: "Air Mover", organization: @genixo)
+
+    # Dehumidifier still on-site
+    EquipmentEntry.create!(incident: @incident, equipment_type: dehu,
+      placed_at: 2.days.ago, logged_by_user: @manager)
+
+    # Air mover removed yesterday — should NOT appear on today's DFR
+    EquipmentEntry.create!(incident: @incident, equipment_type: air_mover,
+      placed_at: 3.days.ago, removed_at: 1.day.ago, logged_by_user: @manager)
+
+    pdf_data = DfrPdfService.new(
+      incident: @incident, date: Date.current, timezone: "America/Chicago", include_photos: false
+    ).generate
+
+    text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
+    assert_includes text, "1 Dehumidifier"
+    refute_includes text, "Air Mover", "Removed equipment should not appear"
+  end
+
+  test "PDF excludes equipment placed after the report date" do
+    require "pdf/inspector"
+
+    dehu = EquipmentType.create!(name: "Dehumidifier", organization: @genixo)
+
+    # Placed tomorrow — should NOT appear on today's DFR
+    EquipmentEntry.create!(incident: @incident, equipment_type: dehu,
+      placed_at: 1.day.from_now, logged_by_user: @manager)
+
+    pdf_data = DfrPdfService.new(
+      incident: @incident, date: Date.current, timezone: "America/Chicago", include_photos: false
+    ).generate
+
+    text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
+    refute_includes text, "Equipment:", "No equipment section when nothing on-site"
+  end
+
+  test "PDF omits equipment section when no equipment exists" do
+    require "pdf/inspector"
+
+    pdf_data = DfrPdfService.new(
+      incident: @incident, date: Date.current, timezone: "America/Chicago", include_photos: false
+    ).generate
+
+    text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
+    refute_includes text, "Equipment:"
+  end
 end
