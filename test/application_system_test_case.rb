@@ -5,7 +5,7 @@ Capybara.register_driver(:playwright) do |app|
     app,
     browser_type: :chromium,
     headless: true,
-    default_navigation_timeout: 60
+    default_navigation_timeout: 15_000
   )
 end
 
