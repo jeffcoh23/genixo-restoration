@@ -123,7 +123,7 @@ jobs:
           RAILS_ENV: test
           DATABASE_URL: postgres://postgres:postgres@localhost:5432
           VITE_RUBY_AUTO_BUILD: false
-          PLAYWRIGHT_CLI_EXECUTABLE_PATH: ./node_modules/.bin/playwright
+          PLAYWRIGHT_CLI_EXECUTABLE_PATH: npx playwright@${PLAYWRIGHT_VERSION}
         run: bin/rails test:system
 
       - name: Keep screenshots from failed system tests
