@@ -55,4 +55,4 @@ group :test do
   gem "capybara-playwright-driver"
 end
 
-gem "pdf-inspector", "~> 1.3", :group => :test
+gem "pdf-inspector", "~> 1.3", group: :test
