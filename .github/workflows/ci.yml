@@ -99,7 +99,9 @@ jobs:
         run: npm ci
 
       - name: Resolve Playwright CLI version
-        run: echo "PLAYWRIGHT_VERSION=$(bundle exec ruby -e 'require \"playwright\"; puts Playwright::COMPATIBLE_PLAYWRIGHT_VERSION.strip')" >> "$GITHUB_ENV"
+        run: |
+          VERSION=$(bundle exec ruby -r playwright -e 'print Playwright::COMPATIBLE_PLAYWRIGHT_VERSION.strip')
+          echo "PLAYWRIGHT_VERSION=$VERSION" >> "$GITHUB_ENV"
 
       - name: Install Playwright browsers
         run: npx -y playwright@${PLAYWRIGHT_VERSION} install --with-deps chromium
