@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm, usePage } from "@inertiajs/react";
 import { Lock, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -34,8 +34,8 @@ export default function EquipmentForm({ path, equipment_types, equipment_items_b
   const hasOtherType = editing && !entry.equipment_type_id && !!entry.equipment_type_other;
   const [useOther, setUseOther] = useState(hasOtherType);
   const [searchQuery, setSearchQuery] = useState("");
-  const [showResults, setShowResults] = useState(false);
-  const searchRef = useRef<HTMLDivElement>(null);
+  const blurTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  useEffect(() => () => clearTimeout(blurTimerRef.current), []);
 
   const { today } = usePage<SharedProps>().props;
   const { data, setData, post, patch, processing, errors } = useForm({
@@ -51,13 +51,16 @@ export default function EquipmentForm({ path, equipment_types, equipment_items_b
     location_notes: entry?.location_notes ?? "",
   });
 
-  // Flat searchable list of all inventory items across all types
+  const typeNameMap = useMemo(() =>
+    new Map(equipment_types.map((t) => [String(t.id), t.name])),
+    [equipment_types]
+  );
+
   const allItems = useMemo<SearchableItem[]>(() =>
-    Object.entries(equipment_items_by_type).flatMap(([typeId, items]) => {
-      const type = equipment_types.find((t) => String(t.id) === typeId);
-      return items.map((item) => ({ ...item, type_id: typeId, type_name: type?.name ?? "" }));
-    }),
-    [equipment_items_by_type, equipment_types]
+    Object.entries(equipment_items_by_type).flatMap(([typeId, items]) =>
+      items.map((item) => ({ ...item, type_id: typeId, type_name: typeNameMap.get(typeId) ?? "" }))
+    ),
+    [equipment_items_by_type, typeNameMap]
   );
 
   const searchResults = useMemo<SearchableItem[]>(() => {
@@ -106,7 +109,6 @@ export default function EquipmentForm({ path, equipment_types, equipment_items_b
   const handleQuickSelect = (item: SearchableItem) => {
     setUseOther(false);
     setSearchQuery("");
-    setShowResults(false);
     setData((prev) => ({
       ...prev,
       equipment_type_id: item.type_id,
@@ -142,26 +144,21 @@ export default function EquipmentForm({ path, equipment_types, equipment_items_b
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-3">
-          {/* Quick search — add mode only, only shown when inventory exists */}
           {!editing && allItems.length > 0 && (
-            <div ref={searchRef} className="space-y-3">
+            <div className="space-y-3">
               <label className="text-xs font-medium text-foreground">Find Equipment</label>
               <div className="relative mt-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
                 <Input
                   value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    setShowResults(true);
-                  }}
-                  onFocus={() => setShowResults(true)}
-                  onBlur={() => setTimeout(() => setShowResults(false), 150)}
-                  onKeyDown={(e) => e.key === "Escape" && (setSearchQuery(""), setShowResults(false))}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onBlur={() => { blurTimerRef.current = setTimeout(() => setSearchQuery(""), 150); }}
+                  onKeyDown={(e) => e.key === "Escape" && setSearchQuery("")}
                   placeholder="Type tag #, serial, or name..."
                   className="pl-8"
                 />
               </div>
-              {showResults && searchQuery.trim().length > 0 && (
+              {searchQuery.trim().length > 0 && (
                 <div className="mt-1 rounded-md border border-border bg-popover shadow-md overflow-hidden">
                   {searchResults.length > 0 ? (
                     searchResults.map((item) => (
@@ -229,7 +226,6 @@ export default function EquipmentForm({ path, equipment_types, equipment_items_b
             </div>
           )}
 
-          {/* Item picker — only shown when a known type is selected and items exist */}
           {!useOther && typeItems.length > 0 && (
             <div>
               <label className="text-xs font-medium text-foreground">Select Unit</label>
