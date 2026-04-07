@@ -1,11 +1,12 @@
 class DfrPdfService
   include ActionView::Helpers::NumberHelper
 
-  def initialize(incident:, date:, timezone: "America/Chicago", include_photos: true)
+  def initialize(incident:, date:, timezone: "America/Chicago", include_photos: true, photo_attachment_ids: nil)
     @incident = incident
     @date = date.is_a?(String) ? Date.parse(date) : date
     @timezone = timezone
     @include_photos = include_photos
+    @photo_attachment_ids = photo_attachment_ids
   end
 
   def generate
@@ -264,10 +265,13 @@ class DfrPdfService
   end
 
   def photos_for_date
-    @photos_for_date ||= @incident.attachments
-      .includes(file_attachment: :blob)
-      .where(category: "photo", log_date: @date)
-      .order(:created_at)
+    @photos_for_date ||= begin
+      scope = @incident.attachments
+        .includes(file_attachment: :blob)
+        .where(category: "photo", log_date: @date)
+      scope = scope.where(id: @photo_attachment_ids) if @photo_attachment_ids
+      scope.order(:created_at)
+    end
   end
 
   def assigned_by_role(role_key)

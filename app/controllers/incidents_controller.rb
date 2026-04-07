@@ -1,6 +1,6 @@
 class IncidentsController < ApplicationController
   before_action :authorize_creation!, only: %i[new create]
-  before_action :set_incident, only: %i[show update transition mark_read dfr attachments_page]
+  before_action :set_incident, only: %i[show update transition mark_read dfr dfr_photos attachments_page]
   before_action :authorize_edit!, only: %i[update]
   before_action :authorize_transition!, only: %i[transition]
 
@@ -230,6 +230,7 @@ class IncidentsController < ApplicationController
         attachments_path: incident_attachments_path(@incident),
         upload_photo_path: upload_photo_incident_attachments_path(@incident),
         dfr_path: dfr_incident_path(@incident),
+        dfr_photos_path: dfr_photos_incident_path(@incident),
         attachments_page_path: attachments_page_incident_path(@incident),
         mark_read_path: mark_read_incident_path(@incident),
         unread_messages: unread[:messages],
@@ -302,8 +303,19 @@ class IncidentsController < ApplicationController
 
   def dfr
     date = params[:date].presence || Date.current.to_s
-    DfrPdfJob.perform_later(@incident.id, date, current_user.timezone, current_user.id)
+    photo_ids = Array(params[:photo_ids]).flatten.map(&:to_i).uniq.presence
+    DfrPdfJob.perform_later(@incident.id, date, current_user.timezone, current_user.id, photo_ids)
     redirect_to incident_path(@incident), notice: "DFR PDF is being generated. It will appear in the daily log shortly."
+  end
+
+  def dfr_photos
+    date = params[:date].presence || Date.current.to_s
+    photos = @incident.attachments
+      .includes(:uploaded_by_user, file_attachment: :blob)
+      .where(category: "photo", log_date: date)
+      .order(:created_at)
+      .map { |att| serialize_single_attachment(att) }
+    render json: photos
   end
 
   def attachments_page
@@ -805,6 +817,11 @@ class IncidentsController < ApplicationController
     dfr_by_date = @incident ? @incident.attachments.where(category: "dfr")
       .index_by { |a| a.log_date&.iso8601 } : {}
 
+    # Count photos per date for DFR photo selection
+    photo_counts_by_date = @incident ? @incident.attachments.where(category: "photo")
+      .where.not(log_date: nil).group(:log_date).count
+      .transform_keys { |d| d.iso8601 } : {}
+
     groups.keys.sort.reverse.map do |date_key|
       rows = groups[date_key].sort_by do |row|
         parsed = parse_metadata_time(row[:occurred_at]) || Time.zone.parse("#{date_key}T00:00:00")
@@ -821,6 +838,7 @@ class IncidentsController < ApplicationController
         equipment_summary: date_equip,
         total_labor_hours: labor_hours_by_date[date_key].round(1),
         total_equip_count: date_equip.sum { |e| e[:count] },
+        photo_count: photo_counts_by_date[date_key] || 0,
         dfr: dfr_att ? {
           url: rails_blob_path(dfr_att.file, disposition: "inline"),
           filename: dfr_att.file.filename.to_s

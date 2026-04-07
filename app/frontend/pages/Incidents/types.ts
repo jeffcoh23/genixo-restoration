@@ -224,6 +224,7 @@ export interface DailyLogTableGroup {
   equipment_summary: DailyLogEquipmentSummary[];
   total_labor_hours: number;
   total_equip_count: number;
+  photo_count: number;
   dfr?: { url: string; filename: string } | null;
 }
 
@@ -249,6 +250,7 @@ export interface IncidentDetail {
   attachments_path: string;
   upload_photo_path: string;
   dfr_path: string;
+  dfr_photos_path: string;
   mark_read_path: string;
   unread_messages: number;
   unread_activity: number;

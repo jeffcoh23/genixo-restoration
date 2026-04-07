@@ -7,9 +7,11 @@ import type {
   DailyLogDate,
   DailyLogTableGroup,
   DailyLogTableRow,
+  IncidentAttachment,
   LaborEntry,
 } from "../types";
 import ActivityForm from "./ActivityForm";
+import DfrPhotoSelectionModal from "./DfrPhotoSelectionModal";
 import IncidentPanelAddButton from "./IncidentPanelAddButton";
 
 interface DailyLogPanelProps {
@@ -20,6 +22,7 @@ interface DailyLogPanelProps {
   can_manage_activities: boolean;
   activity_entries_path: string;
   dfr_path: string;
+  dfr_photos_path: string;
 }
 
 export default function DailyLogPanel({
@@ -30,6 +33,7 @@ export default function DailyLogPanel({
   can_manage_activities,
   activity_entries_path,
   dfr_path,
+  dfr_photos_path,
 }: DailyLogPanelProps) {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [activityForm, setActivityForm] = useState<{ open: boolean; entry?: DailyActivity }>({ open: false });
@@ -66,14 +70,49 @@ export default function DailyLogPanel({
     }
   }, [pendingDfr.size, requestedDfrs.size]);
 
-  const handleGenerateDfr = useCallback((dateKey: string) => {
-    // Capture current DFR URL (null if generating for first time)
+  // DFR photo selection modal state
+  const [photoModal, setPhotoModal] = useState<{ open: boolean; dateKey: string; dateLabel: string }>({ open: false, dateKey: "", dateLabel: "" });
+  const [photoModalPhotos, setPhotoModalPhotos] = useState<IncidentAttachment[]>([]);
+  const [photoModalLoading, setPhotoModalLoading] = useState(false);
+
+  const submitDfr = useCallback((dateKey: string, photoIds?: number[]) => {
     const currentGroup = daily_log_table_groups.find((g) => g.date_key === dateKey);
     const currentUrl = currentGroup?.dfr?.url ?? null;
-    router.post(dfr_path, { date: dateKey }, { preserveScroll: true });
+    const data = photoIds
+      ? { date: dateKey, photo_ids: photoIds }
+      : { date: dateKey };
+    router.post(dfr_path, data as Record<string, string | number[]>, { preserveScroll: true });
     setRequestedDfrs((prev) => new Map(prev).set(dateKey, currentUrl));
     startPolling();
   }, [dfr_path, startPolling, daily_log_table_groups]);
+
+  const handleGenerateDfr = useCallback((dateKey: string) => {
+    const group = daily_log_table_groups.find((g) => g.date_key === dateKey);
+    if (!group) return;
+
+    // No photos for this date — generate immediately without photos
+    if (group.photo_count === 0) {
+      submitDfr(dateKey);
+      return;
+    }
+
+    // Photos exist — fetch them and show the selection modal
+    setPhotoModal({ open: true, dateKey, dateLabel: group.date_label });
+    setPhotoModalPhotos([]);
+    setPhotoModalLoading(true);
+
+    fetch(`${dfr_photos_path}?date=${dateKey}`, {
+      headers: { "Accept": "application/json" },
+    })
+      .then((res) => res.json())
+      .then((photos: IncidentAttachment[]) => setPhotoModalPhotos(photos))
+      .finally(() => setPhotoModalLoading(false));
+  }, [daily_log_table_groups, dfr_photos_path, submitDfr]);
+
+  const handlePhotoSelectionSubmit = useCallback((photoIds: number[]) => {
+    setPhotoModal({ open: false, dateKey: "", dateLabel: "" });
+    submitDfr(photoModal.dateKey, photoIds);
+  }, [photoModal.dateKey, submitDfr]);
 
   // When a specific date is selected, all rows are expanded by default (user collapses them).
   // When "All Dates" is selected, all rows are collapsed by default (user expands them).
@@ -400,6 +439,15 @@ export default function DailyLogPanel({
           onClose={() => setActivityForm({ open: false })}
         />
       )}
+
+      <DfrPhotoSelectionModal
+        isOpen={photoModal.open}
+        onClose={() => setPhotoModal({ open: false, dateKey: "", dateLabel: "" })}
+        onSubmit={handlePhotoSelectionSubmit}
+        dateLabel={photoModal.dateLabel}
+        photos={photoModalPhotos}
+        isLoading={photoModalLoading}
+      />
     </div>
   );
 }

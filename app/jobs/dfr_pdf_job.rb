@@ -1,13 +1,14 @@
 class DfrPdfJob < ApplicationJob
   queue_as :default
 
-  def perform(incident_id, date, user_timezone, user_id)
+  def perform(incident_id, date, user_timezone, user_id, photo_attachment_ids = nil)
     incident = Incident.find(incident_id)
     user = User.find(user_id)
     parsed_date = Date.parse(date)
 
     pdf_data = DfrPdfService.new(
-      incident: incident, date: date, timezone: user_timezone, include_photos: true
+      incident: incident, date: date, timezone: user_timezone,
+      include_photos: true, photo_attachment_ids: photo_attachment_ids
     ).generate
 
     filename = "DFR-#{incident.job_id || incident.id}-#{date}.pdf"
