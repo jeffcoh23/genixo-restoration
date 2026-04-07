@@ -918,6 +918,129 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     post login_path, params: { email_address: user.email_address, password: "password123" }
   end
 
+  # --- DFR photo selection ---
+
+  test "dfr action accepts photo_ids param and redirects" do
+    incident = create_test_incident(status: "active")
+    login_as @manager
+
+    post dfr_incident_path(incident), params: { date: Date.current.to_s, photo_ids: [ 1, 2, 3 ] }
+    assert_redirected_to incident_path(incident)
+  end
+
+  test "dfr action works without photo_ids param" do
+    incident = create_test_incident(status: "active")
+    login_as @manager
+
+    post dfr_incident_path(incident), params: { date: Date.current.to_s }
+    assert_redirected_to incident_path(incident)
+  end
+
+  test "dfr action passes empty array when user skips photos" do
+    incident = create_test_incident(status: "active")
+    photo = incident.attachments.create!(category: "photo", log_date: Date.current, uploaded_by_user: @manager)
+    photo.file.attach(
+      io: File.open(Rails.root.join("test/fixtures/files/test_photo.jpg")),
+      filename: "skip_test.jpg", content_type: "image/jpeg"
+    )
+    login_as @manager
+
+    # Submitting empty photo_ids (user clicked "Skip photos") should generate DFR without photos
+    post dfr_incident_path(incident), params: { date: Date.current.to_s, photo_ids: [] }
+    assert_redirected_to incident_path(incident)
+
+    # Process the job inline and verify no photos in PDF
+    require "pdf/inspector"
+    DfrPdfJob.perform_now(incident.id, Date.current.to_s, "America/Chicago", @manager.id, [])
+    attachment = incident.attachments.where(category: "dfr").last
+    text = PDF::Inspector::Text.analyze(attachment.file.download).strings.join(" ")
+    refute_includes text, "Photos", "Skip photos should produce DFR without photos section"
+  end
+
+  test "dfr_photos returns photos for the given date as JSON" do
+    incident = create_test_incident(status: "active")
+    photo = incident.attachments.create!(
+      category: "photo", log_date: Date.current, uploaded_by_user: @manager
+    )
+    photo.file.attach(
+      io: File.open(Rails.root.join("test/fixtures/files/test_photo.jpg")),
+      filename: "test.jpg", content_type: "image/jpeg"
+    )
+
+    # Photo on different date — should not be returned
+    other = incident.attachments.create!(
+      category: "photo", log_date: Date.current - 1.day, uploaded_by_user: @manager
+    )
+    other.file.attach(
+      io: File.open(Rails.root.join("test/fixtures/files/test_photo.jpg")),
+      filename: "other.jpg", content_type: "image/jpeg"
+    )
+
+    login_as @manager
+    get dfr_photos_incident_path(incident), params: { date: Date.current.to_s }
+
+    assert_response :success
+    photos = JSON.parse(response.body)
+    assert_equal 1, photos.length
+    assert_equal photo.id, photos.first["id"]
+    assert_equal "test.jpg", photos.first["filename"]
+  end
+
+  test "dfr_photos returns empty array when no photos for date" do
+    incident = create_test_incident(status: "active")
+    login_as @manager
+
+    get dfr_photos_incident_path(incident), params: { date: Date.current.to_s }
+
+    assert_response :success
+    photos = JSON.parse(response.body)
+    assert_equal 0, photos.length
+  end
+
+  test "dfr_photos is scoped through visible_incidents" do
+    incident = create_test_incident(status: "active")
+    # PM user from a different org with no property assignments can't see this incident
+    other_pm_org = Organization.create!(name: "Unrelated PM Co", organization_type: "property_management")
+    other_pm = User.create!(organization: other_pm_org, user_type: "property_manager",
+      email_address: "other-pm-dfr@other.com", first_name: "Other", last_name: "PM", password: "password123")
+    login_as other_pm
+
+    get dfr_photos_incident_path(incident), params: { date: Date.current.to_s }
+    assert_response :not_found
+  end
+
+  test "daily_log_table_groups includes photo_count per date" do
+    incident = create_test_incident(status: "active")
+    target_date = Date.new(2026, 3, 15)
+
+    # Create an activity on a specific date so the date shows up in daily log
+    ActivityEntry.create!(
+      incident: incident, performed_by_user: @manager,
+      title: "Test activity", occurred_at: Time.zone.local(2026, 3, 15, 12, 0, 0)
+    )
+
+    # Create 3 photos for that same date
+    3.times do |i|
+      att = incident.attachments.create!(category: "photo", log_date: target_date, uploaded_by_user: @manager)
+      att.file.attach(io: File.open(Rails.root.join("test/fixtures/files/test_photo.jpg")),
+        filename: "photo#{i}.jpg", content_type: "image/jpeg")
+    end
+
+    login_as @manager
+    get incident_path(incident), headers: {
+      "X-Inertia" => "true",
+      "X-Inertia-Partial-Component" => "Incidents/Show",
+      "X-Inertia-Partial-Data" => "daily_log_table_groups"
+    }
+    assert_response :success
+    props = JSON.parse(response.body)["props"]
+    groups = props["daily_log_table_groups"]
+
+    target_group = groups.find { |g| g["date_key"] == target_date.iso8601 }
+    assert_not_nil target_group, "Expected group for #{target_date.iso8601}, got: #{groups.map { |g| g['date_key'] }}"
+    assert_equal 3, target_group["photo_count"]
+  end
+
   def create_test_incident(status:, property: nil, description: "Test incident")
     Incident.create!(
       property: property || @property, created_by_user: @manager,

@@ -138,4 +138,41 @@ class DfrPdfJobTest < ActiveSupport::TestCase
     text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
     refute_includes text, "Equipment:"
   end
+
+  test "passes photo_attachment_ids to service when provided" do
+    date = Date.current.to_s
+
+    # Create photos for today
+    photo1 = @incident.attachments.create!(category: "photo", log_date: date, uploaded_by_user: @manager)
+    photo1.file.attach(io: StringIO.new("fake"), filename: "photo1.jpg", content_type: "image/jpeg")
+    photo2 = @incident.attachments.create!(category: "photo", log_date: date, uploaded_by_user: @manager)
+    photo2.file.attach(io: StringIO.new("fake"), filename: "photo2.jpg", content_type: "image/jpeg")
+
+    # Pass only photo1's ID
+    DfrPdfJob.perform_now(@incident.id, date, "America/Chicago", @manager.id, [ photo1.id ])
+
+    attachment = @incident.attachments.where(category: "dfr").last
+    assert attachment.file.attached?
+  end
+
+  test "generates DFR without photos when empty array passed" do
+    date = Date.current.to_s
+
+    photo = @incident.attachments.create!(category: "photo", log_date: date, uploaded_by_user: @manager)
+    photo.file.attach(io: StringIO.new("fake"), filename: "photo.jpg", content_type: "image/jpeg")
+
+    DfrPdfJob.perform_now(@incident.id, date, "America/Chicago", @manager.id, [])
+
+    attachment = @incident.attachments.where(category: "dfr").last
+    assert attachment.file.attached?
+  end
+
+  test "generates DFR with all photos when nil passed (backwards compatible)" do
+    date = Date.current.to_s
+
+    DfrPdfJob.perform_now(@incident.id, date, "America/Chicago", @manager.id, nil)
+
+    attachment = @incident.attachments.where(category: "dfr").last
+    assert attachment.file.attached?
+  end
 end
