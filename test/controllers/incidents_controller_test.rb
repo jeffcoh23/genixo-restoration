@@ -936,6 +936,27 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to incident_path(incident)
   end
 
+  test "dfr action passes empty array when user skips photos" do
+    incident = create_test_incident(status: "active")
+    photo = incident.attachments.create!(category: "photo", log_date: Date.current, uploaded_by_user: @manager)
+    photo.file.attach(
+      io: File.open(Rails.root.join("test/fixtures/files/test_photo.jpg")),
+      filename: "skip_test.jpg", content_type: "image/jpeg"
+    )
+    login_as @manager
+
+    # Submitting empty photo_ids (user clicked "Skip photos") should generate DFR without photos
+    post dfr_incident_path(incident), params: { date: Date.current.to_s, photo_ids: [] }
+    assert_redirected_to incident_path(incident)
+
+    # Process the job inline and verify no photos in PDF
+    require "pdf/inspector"
+    DfrPdfJob.perform_now(incident.id, Date.current.to_s, "America/Chicago", @manager.id, [])
+    attachment = incident.attachments.where(category: "dfr").last
+    text = PDF::Inspector::Text.analyze(attachment.file.download).strings.join(" ")
+    refute_includes text, "Photos", "Skip photos should produce DFR without photos section"
+  end
+
   test "dfr_photos returns photos for the given date as JSON" do
     incident = create_test_incident(status: "active")
     photo = incident.attachments.create!(

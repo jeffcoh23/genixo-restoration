@@ -303,7 +303,7 @@ class IncidentsController < ApplicationController
 
   def dfr
     date = params[:date].presence || Date.current.to_s
-    photo_ids = Array(params[:photo_ids]).flatten.map(&:to_i).uniq.presence
+    photo_ids = params.key?(:photo_ids) ? Array(params[:photo_ids]).flatten.map(&:to_i).uniq : nil
     DfrPdfJob.perform_later(@incident.id, date, current_user.timezone, current_user.id, photo_ids)
     redirect_to incident_path(@incident), notice: "DFR PDF is being generated. It will appear in the daily log shortly."
   end
