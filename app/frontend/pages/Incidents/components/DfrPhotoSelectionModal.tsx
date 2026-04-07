@@ -83,10 +83,11 @@ export default function DfrPhotoSelectionModal({
         ) : (
           <>
             <div className="flex items-center justify-between border-b border-border pb-3">
-              <button
-                type="button"
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={toggleAll}
-                className="flex items-center gap-2 text-sm text-foreground hover:text-primary transition-colors"
+                className="flex items-center gap-2 text-sm text-foreground hover:text-primary px-0"
               >
                 <span
                   className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border ${
@@ -98,7 +99,7 @@ export default function DfrPhotoSelectionModal({
                   {allSelected && <Check className="h-3 w-3" />}
                 </span>
                 Select all
-              </button>
+              </Button>
               <span className="text-sm text-muted-foreground">
                 {selectedIds.size} of {photos.length} selected
               </span>
@@ -109,11 +110,11 @@ export default function DfrPhotoSelectionModal({
                 {photos.map((photo) => {
                   const isSelected = selectedIds.has(photo.id);
                   return (
-                    <button
+                    <Button
                       key={photo.id}
-                      type="button"
+                      variant="ghost"
                       onClick={() => togglePhoto(photo.id)}
-                      className={`relative aspect-square rounded-md overflow-hidden border-2 transition-all ${
+                      className={`relative aspect-square rounded-md overflow-hidden border-2 transition-all h-auto p-0 ${
                         isSelected
                           ? "border-primary ring-1 ring-primary/30"
                           : "border-transparent hover:border-muted-foreground/30"
@@ -135,11 +136,11 @@ export default function DfrPhotoSelectionModal({
                         {isSelected && <Check className="h-3.5 w-3.5" />}
                       </span>
                       {photo.description && (
-                        <span className="absolute bottom-0 inset-x-0 bg-black/50 text-white text-[10px] px-1.5 py-0.5 truncate">
+                        <span className="absolute bottom-0 inset-x-0 bg-black/50 text-white text-xs px-1.5 py-0.5 truncate">
                           {photo.description}
                         </span>
                       )}
-                    </button>
+                    </Button>
                   );
                 })}
               </div>

@@ -47,11 +47,11 @@ class DfrPdfServiceTest < ActiveSupport::TestCase
     # Only include photo1 and photo3
     service = DfrPdfService.new(
       incident: @incident, date: @date, include_photos: true,
-      photo_attachment_ids: [photo1.id, photo3.id]
+      photo_attachment_ids: [ photo1.id, photo3.id ]
     )
 
     # Service should filter — verify by checking the query directly
-    photos = @incident.attachments.where(category: "photo", log_date: @date, id: [photo1.id, photo3.id])
+    photos = @incident.attachments.where(category: "photo", log_date: @date, id: [ photo1.id, photo3.id ])
     assert_equal 2, photos.count
     assert_includes photos.pluck(:id), photo1.id
     assert_includes photos.pluck(:id), photo3.id
@@ -76,7 +76,7 @@ class DfrPdfServiceTest < ActiveSupport::TestCase
 
     service = DfrPdfService.new(
       incident: @incident, date: @date, include_photos: true,
-      photo_attachment_ids: [photo.id, 999999]
+      photo_attachment_ids: [ photo.id, 999999 ]
     )
     pdf_data = service.generate
 
@@ -89,7 +89,7 @@ class DfrPdfServiceTest < ActiveSupport::TestCase
 
     service = DfrPdfService.new(
       incident: @incident, date: @date, include_photos: true,
-      photo_attachment_ids: [other_date_photo.id]
+      photo_attachment_ids: [ other_date_photo.id ]
     )
     pdf_data = service.generate
     text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")

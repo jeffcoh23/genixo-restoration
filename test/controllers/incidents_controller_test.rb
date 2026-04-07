@@ -924,7 +924,7 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     incident = create_test_incident(status: "active")
     login_as @manager
 
-    post dfr_incident_path(incident), params: { date: Date.current.to_s, photo_ids: [1, 2, 3] }
+    post dfr_incident_path(incident), params: { date: Date.current.to_s, photo_ids: [ 1, 2, 3 ] }
     assert_redirected_to incident_path(incident)
   end
 

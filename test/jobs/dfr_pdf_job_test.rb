@@ -149,7 +149,7 @@ class DfrPdfJobTest < ActiveSupport::TestCase
     photo2.file.attach(io: StringIO.new("fake"), filename: "photo2.jpg", content_type: "image/jpeg")
 
     # Pass only photo1's ID
-    DfrPdfJob.perform_now(@incident.id, date, "America/Chicago", @manager.id, [photo1.id])
+    DfrPdfJob.perform_now(@incident.id, date, "America/Chicago", @manager.id, [ photo1.id ])
 
     attachment = @incident.attachments.where(category: "dfr").last
     assert attachment.file.attached?
