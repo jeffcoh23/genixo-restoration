@@ -148,11 +148,11 @@ export default function DfrPhotoSelectionModal({
           </>
         )}
 
-        <div className="flex items-center justify-between border-t border-border pt-3">
+        <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2 border-t border-border pt-3">
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center justify-end gap-3">
             {photos.length > 0 && (
               <Button
                 variant="ghost"
