@@ -116,9 +116,9 @@ class DfrPdfJobTest < ActiveSupport::TestCase
 
     dehu = EquipmentType.create!(name: "Dehumidifier", organization: @genixo)
 
-    # Placed tomorrow — should NOT appear on today's DFR
+    # Placed 2 days from now — should NOT appear on today's DFR
     EquipmentEntry.create!(incident: @incident, equipment_type: dehu,
-      placed_at: 1.day.from_now, logged_by_user: @manager)
+      placed_at: 2.days.from_now, logged_by_user: @manager)
 
     pdf_data = DfrPdfService.new(
       incident: @incident, date: Date.current, timezone: "America/Chicago", include_photos: false
