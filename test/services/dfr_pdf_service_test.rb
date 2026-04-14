@@ -71,6 +71,22 @@ class DfrPdfServiceTest < ActiveSupport::TestCase
     refute_includes text, "Photos"
   end
 
+  test "photo image data is actually embedded in PDF when photo included" do
+    photo = create_photo("photo1.jpg")
+
+    service = DfrPdfService.new(
+      incident: @incident, date: @date, include_photos: true,
+      photo_attachment_ids: [ photo.id ]
+    )
+    pdf_data = service.generate
+
+    # Verify JPEG binary data is embedded — not just the "Photos" heading.
+    # The broken implementation (pdf.image called after blob.open closed the
+    # tempfile) would silently skip the image; no JPEG marker would appear.
+    jpeg_signature = "\xFF\xD8\xFF".b
+    assert pdf_data.b.include?(jpeg_signature), "Expected JPEG image data to be embedded in the PDF"
+  end
+
   test "ignores invalid photo_attachment_ids gracefully" do
     photo = create_photo("photo1.jpg")
 

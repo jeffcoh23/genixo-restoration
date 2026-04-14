@@ -201,29 +201,26 @@ class DfrPdfService
     pdf.font_size(12) { pdf.text "Photos", style: :bold }
     pdf.move_down 10
 
-    photos.each_slice(4) do |batch|
-      images_in_row = batch.map do |attachment|
-        blob = attachment.file.blob
-        next nil unless blob.content_type.start_with?("image/")
-        next nil unless blob.service.exist?(blob.key)
+    photos.each_slice(2) do |pair|
+      row_y = pdf.cursor
+      width = (pdf.bounds.width / 2) - 10
+      rendered = 0
 
+      pair.each_with_index do |attachment, i|
+        blob = attachment.file.blob
+        next unless blob.content_type.start_with?("image/")
+        next unless blob.service.exist?(blob.key)
+
+        x = i.zero? ? 0 : (pdf.bounds.width / 2) + 10
         blob.open do |tempfile|
-          { file: tempfile.path, width: (pdf.bounds.width / 2) - 10 }
+          pdf.image tempfile.path, at: [ x, row_y ], width: width
+          rendered += 1
         end
       rescue StandardError
         nil
-      end.compact
-
-      images_in_row.each_with_index do |img, i|
-        x = i.even? ? 0 : (pdf.bounds.width / 2) + 10
-        begin
-          pdf.image img[:file], at: [ x, pdf.cursor ], width: img[:width]
-        rescue StandardError
-          # Skip unreadable images
-        end
       end
 
-      pdf.move_down((pdf.bounds.width / 2) + 20) if images_in_row.any?
+      pdf.move_down((pdf.bounds.width / 2) + 20) if rendered > 0
     end
   end
 
