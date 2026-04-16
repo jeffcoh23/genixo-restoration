@@ -44,9 +44,9 @@ class IncidentReportService
     address = [ property.street_address, [ property.city, property.state ].filter_map(&:presence).join(", ") ].filter_map(&:presence).join(", ")
 
     data = [
-      [ bold_cell("Property:"), property.name, bold_cell("Job #:"), @incident.job_id || "—" ],
-      [ bold_cell("Address:"), address.presence || "—", bold_cell("Damage:"), Incident::DAMAGE_LABELS[@incident.damage_type] || @incident.damage_type ],
-      [ bold_cell("Status:"), @incident.display_status_label, bold_cell("Project Type:"), Incident::PROJECT_TYPE_LABELS[@incident.project_type] || @incident.project_type ]
+      [ "Property:", property.name, "Job #:", @incident.job_id || "—" ],
+      [ "Address:", address.presence || "—", "Damage:", Incident::DAMAGE_LABELS[@incident.damage_type] || @incident.damage_type ],
+      [ "Status:", @incident.display_status_label, "Project Type:", Incident::PROJECT_TYPE_LABELS[@incident.project_type] || @incident.project_type ]
     ]
 
     pdf.table(data, width: pdf.bounds.width) do |t|
@@ -179,7 +179,4 @@ class IncidentReportService
     pdf.move_down 6
   end
 
-  def bold_cell(text)
-    text
-  end
 end

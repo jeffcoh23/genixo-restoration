@@ -1138,6 +1138,26 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
+  test "technician can download report for assigned incident" do
+    incident = create_test_incident(status: "active")
+    IncidentAssignment.create!(incident: incident, user: @tech, assigned_by_user: @manager)
+    login_as @tech
+
+    get report_incident_path(incident)
+
+    assert_response :success
+    assert_equal "application/pdf", response.content_type
+  end
+
+  test "technician cannot download report for unassigned incident" do
+    incident = create_test_incident(status: "active")
+    login_as @tech
+
+    get report_incident_path(incident)
+
+    assert_response :not_found
+  end
+
   def create_test_incident(status:, property: nil, description: "Test incident")
     Incident.create!(
       property: property || @property, created_by_user: @manager,
