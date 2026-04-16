@@ -53,7 +53,7 @@ class DailyOperationsTest < ApplicationSystemTestCase
     visit incident_path(@incident)
 
     # Switch to Labor tab
-    click_button "Labor"
+    find("[data-testid='incident-tab-labor']").click
     assert_text "No labor hours recorded yet."
 
     # Open the labor form modal
@@ -79,7 +79,7 @@ class DailyOperationsTest < ApplicationSystemTestCase
     visit incident_path(@incident)
 
     # Switch to Equipment tab
-    click_button "Equipment"
+    find("[data-testid='incident-tab-equipment']").click
     assert_text "No equipment recorded yet."
 
     # Open the equipment form modal
