@@ -1073,6 +1073,19 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     refute_includes assignable_ids, @pm_user.id, "Already-assigned PM user should not appear in assignable list"
   end
 
+  test "assignable_pm_users is empty when all property PM users are already assigned" do
+    incident = create_test_incident(status: "active")
+    # Both @pm_user and @area_mgr have property assignments — assign both to the incident
+    IncidentAssignment.create!(incident: incident, user: @pm_user, assigned_by_user: @manager)
+    IncidentAssignment.create!(incident: incident, user: @area_mgr, assigned_by_user: @manager)
+    login_as @manager
+
+    deferred = inertia_deferred_props(incident_path(incident), "assignable_pm_users", "assignable_mitigation_users")
+    assignable_pm_users = deferred.fetch("assignable_pm_users")
+
+    assert_empty assignable_pm_users, "Should return empty list when all property PM users are already assigned"
+  end
+
   # --- Equipment placed_at serialization format ---
 
   test "equipment log serializes placed_at without minutes (HH:00 format)" do
