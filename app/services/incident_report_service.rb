@@ -178,5 +178,4 @@ class IncidentReportService
     pdf.font_size(12) { pdf.text title, style: :bold }
     pdf.move_down 6
   end
-
 end
