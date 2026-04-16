@@ -69,8 +69,10 @@ export default function OverviewPanel({ incident, can_assign, assignable_mitigat
             <h3 className="text-sm font-semibold text-foreground flex-1 whitespace-nowrap">
               Property Management
             </h3>
-            {can_assign && assignable_pm_users.length > 0 && (
-              <AssignSelect users={assignable_pm_users} onAssign={handleAssign} disabled={teamAction.processing} />
+            {can_assign && (
+              assignable_pm_users.length > 0
+                ? <AssignSelect users={assignable_pm_users} onAssign={handleAssign} disabled={teamAction.processing} />
+                : <span className="text-xs text-muted-foreground italic">No users available</span>
             )}
           </div>
           <InlineActionFeedback error={teamAction.error} onDismiss={teamAction.clearFeedback} />

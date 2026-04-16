@@ -129,6 +129,12 @@ class StatusTransitionServiceTest < ActiveSupport::TestCase
     assert_equal "closed", incident.reload.status
   end
 
+  test "completed to closed (skip billing flow)" do
+    incident = create_incident(status: "completed")
+    transition(incident, "closed")
+    assert_equal "closed", incident.reload.status
+  end
+
   # --- Transitions from new ---
 
   test "new to acknowledged" do
