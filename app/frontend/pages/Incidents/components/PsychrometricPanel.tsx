@@ -1,5 +1,5 @@
 import { Fragment, useState, useRef, useCallback, useMemo } from "react";
-import { Check, Trash2, X } from "lucide-react";
+import { Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import useInertiaAction from "@/hooks/useInertiaAction";
@@ -290,7 +290,7 @@ export default function PsychrometricPanel({ psychrometric_data, can_manage_psyc
           <table className="w-full text-sm">
             <thead className="bg-muted border-b border-border sticky top-0">
               <tr>
-                <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground sticky left-0 bg-muted z-10 min-w-[80px]">Unit</th>
+                <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-[80px]">Unit</th>
                 <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-[90px]">Room</th>
                 <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-[80px]">Dehu</th>
                 {orderedDateLabels.map((label, i) => (
@@ -303,7 +303,7 @@ export default function PsychrometricPanel({ psychrometric_data, can_manage_psyc
                 )}
               </tr>
               <tr className="border-b border-border">
-                <th className="sticky left-0 bg-muted z-10" />
+                <th />
                 <th />
                 <th />
                 {orderedDates.map((date) => (
@@ -320,7 +320,7 @@ export default function PsychrometricPanel({ psychrometric_data, can_manage_psyc
             <tbody>
               {allPoints.map((point) => (
                 <tr key={point.id} className="border-b border-border last:border-b-0 hover:bg-muted/30 transition-colors">
-                  <td className="px-3 py-2.5 text-sm font-medium text-foreground sticky left-0 bg-background z-10">{point.unit}</td>
+                  <td className="px-3 py-2.5 text-sm font-medium text-foreground">{point.unit}</td>
                   <td className="px-3 py-2.5 text-sm text-muted-foreground">{point.room}</td>
                   <td className="px-3 py-2.5 text-sm text-muted-foreground">{point.dehumidifier_label || "\u2014"}</td>
                   {orderedDates.map((date) => {
@@ -434,7 +434,7 @@ export default function PsychrometricPanel({ psychrometric_data, can_manage_psyc
               {/* Inline new row */}
               {can_manage_psychrometric && (
                 <tr ref={newRowRef} className="border-b border-border bg-muted/10">
-                  <td className="px-1.5 py-1.5 sticky left-0 bg-muted/10 z-10">
+                  <td className="px-1.5 py-1.5">
                     <Input
                       value={newRow.unit}
                       onChange={(e) => setNewRowField("unit", e.target.value)}
@@ -474,14 +474,13 @@ export default function PsychrometricPanel({ psychrometric_data, can_manage_psyc
                   ))}
                   <td className="px-1.5 py-1.5 text-center">
                     <Button
-                      variant="ghost"
                       size="sm"
-                      className="h-6 w-6 p-0 text-muted-foreground hover:text-primary disabled:opacity-30"
+                      className="h-7 w-7 p-0 bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-40 rounded"
                       onClick={saveNewRow}
                       disabled={!canSaveNewRow}
                       title="Save"
                     >
-                      <Check className="h-3.5 w-3.5" />
+                      <Plus className="h-4 w-4" />
                     </Button>
                   </td>
                 </tr>
