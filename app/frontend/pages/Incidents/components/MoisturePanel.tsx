@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useMemo } from "react";
-import { Trash2, X } from "lucide-react";
+import { Check, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import useInertiaAction from "@/hooks/useInertiaAction";
@@ -498,7 +498,18 @@ export default function MoisturePanel({ moisture_data, can_manage_moisture }: Mo
                       <span className="text-muted-foreground/30">&mdash;</span>
                     </td>
                   ))}
-                  <td />
+                  <td className="px-1.5 py-1.5 text-center">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 text-muted-foreground hover:text-primary disabled:opacity-30"
+                      onClick={saveNewRow}
+                      disabled={!canSaveNewRow}
+                      title="Save"
+                    >
+                      <Check className="h-3.5 w-3.5" />
+                    </Button>
+                  </td>
                 </tr>
               )}
             </tbody>
