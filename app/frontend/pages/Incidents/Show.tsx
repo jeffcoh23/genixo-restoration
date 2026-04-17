@@ -17,6 +17,7 @@ import DocumentPanel from "./components/DocumentPanel";
 import ReadingsPanel from "./components/ReadingsPanel";
 import type { ReadingsView } from "./components/ReadingsPanel";
 import OverviewPanel from "./components/OverviewPanel";
+import ReportPanel from "./components/ReportPanel";
 import IncidentEditForm from "./components/IncidentEditForm";
 import PanelSkeleton from "@/components/PanelSkeleton";
 import type { ShowProps } from "./types";
@@ -227,27 +228,33 @@ export default function IncidentShow() {
           )}
         </div>
 
-        {/* Description / Cause / Next Steps */}
+        {/* Description / Cause / Next Steps / Report */}
         <div className="border-t border-border px-5 py-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
-            <div className="rounded-lg border border-border bg-muted/20 px-3 py-2.5">
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Description</h3>
-              <p className="text-sm text-foreground whitespace-pre-wrap">{incident.description}</p>
+            {/* Left column */}
+            <div className="space-y-3">
+              <div className="rounded-lg border border-border bg-muted/20 px-3 py-2.5">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Description</h3>
+                <p className="text-sm text-foreground whitespace-pre-wrap">{incident.description}</p>
+              </div>
+              {incident.requested_next_steps && (
+                <div className="rounded-lg border border-border bg-muted/20 px-3 py-2.5">
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Requested Next Steps</h3>
+                  <p className="text-sm text-foreground whitespace-pre-wrap">{incident.requested_next_steps}</p>
+                </div>
+              )}
             </div>
 
-            {incident.cause && (
-              <div className="rounded-lg border border-border bg-muted/20 px-3 py-2.5">
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Cause</h3>
-                <p className="text-sm text-foreground whitespace-pre-wrap">{incident.cause}</p>
-              </div>
-            )}
-
-            {incident.requested_next_steps && (
-              <div className="rounded-lg border border-border bg-muted/20 px-3 py-2.5">
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Requested Next Steps</h3>
-                <p className="text-sm text-foreground whitespace-pre-wrap">{incident.requested_next_steps}</p>
-              </div>
-            )}
+            {/* Right column */}
+            <div className="space-y-3">
+              {incident.cause && (
+                <div className="rounded-lg border border-border bg-muted/20 px-3 py-2.5">
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Cause</h3>
+                  <p className="text-sm text-foreground whitespace-pre-wrap">{incident.cause}</p>
+                </div>
+              )}
+              <ReportPanel reportPath={incident.report_path} />
+            </div>
           </div>
         </div>
       </div>

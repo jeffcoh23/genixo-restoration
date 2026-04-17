@@ -69,6 +69,14 @@ class StatusChangeNotificationJobTest < ActiveSupport::TestCase
     assert_equal 1, ActionMailer::Base.deliveries.size
   end
 
+  test "sends notification for completed to closed transition" do
+    @incident.update_column(:status, "completed")
+    perform_enqueued_jobs do
+      StatusChangeNotificationJob.perform_now(@incident.id, "completed", "closed")
+    end
+    assert ActionMailer::Base.deliveries.size > 0, "Expected notification email for completed→closed transition"
+  end
+
   test "skips non-notifiable status transitions like new and acknowledged" do
     perform_enqueued_jobs do
       StatusChangeNotificationJob.perform_now(@incident.id, "new", "acknowledged")

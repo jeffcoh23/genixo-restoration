@@ -32,6 +32,7 @@ Rails.application.routes.draw do
       post :dfr
       get :dfr_photos
       get :attachments_page
+      get :report
     end
     resources :assignments, controller: "incident_assignments", only: %i[create destroy] do
       collection do

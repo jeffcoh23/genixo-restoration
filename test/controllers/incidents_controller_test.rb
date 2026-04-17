@@ -1041,6 +1041,123 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 3, target_group["photo_count"]
   end
 
+  # --- PM assignable users filter ---
+
+  test "assignable_pm_users only includes PM users with property_assignment for this property" do
+    incident = create_test_incident(status: "active")
+    login_as @manager
+
+    # @pm_user has property_assignment for @property (set up in setup block)
+    # Create another PM user with NO property_assignment for this property
+    unassigned_pm = User.create!(
+      organization: @greystar, user_type: "property_manager",
+      email_address: "unassigned-pm@greystar.com",
+      first_name: "Unassigned", last_name: "PM", password: "password123"
+    )
+
+    deferred = inertia_deferred_props(incident_path(incident), "assignable_pm_users", "assignable_mitigation_users")
+    assignable_ids = deferred.fetch("assignable_pm_users").map { |u| u.fetch("id") }
+
+    assert_includes assignable_ids, @pm_user.id, "PM user with property assignment should be assignable"
+    refute_includes assignable_ids, unassigned_pm.id, "PM user without property assignment should not be assignable"
+  end
+
+  test "assignable_pm_users excludes PM users already assigned to incident" do
+    incident = create_test_incident(status: "active")
+    IncidentAssignment.create!(incident: incident, user: @pm_user, assigned_by_user: @manager)
+    login_as @manager
+
+    deferred = inertia_deferred_props(incident_path(incident), "assignable_pm_users", "assignable_mitigation_users")
+    assignable_ids = deferred.fetch("assignable_pm_users").map { |u| u.fetch("id") }
+
+    refute_includes assignable_ids, @pm_user.id, "Already-assigned PM user should not appear in assignable list"
+  end
+
+  test "assignable_pm_users is empty when all property PM users are already assigned" do
+    incident = create_test_incident(status: "active")
+    # Both @pm_user and @area_mgr have property assignments — assign both to the incident
+    IncidentAssignment.create!(incident: incident, user: @pm_user, assigned_by_user: @manager)
+    IncidentAssignment.create!(incident: incident, user: @area_mgr, assigned_by_user: @manager)
+    login_as @manager
+
+    deferred = inertia_deferred_props(incident_path(incident), "assignable_pm_users", "assignable_mitigation_users")
+    assignable_pm_users = deferred.fetch("assignable_pm_users")
+
+    assert_empty assignable_pm_users, "Should return empty list when all property PM users are already assigned"
+  end
+
+  # --- Equipment placed_at serialization format ---
+
+  test "equipment log serializes placed_at without minutes (HH:00 format)" do
+    incident = create_test_incident(status: "active")
+    eq_type = EquipmentType.create!(name: "Dehumidifier", organization: @genixo)
+    # Use a time with non-zero minutes to confirm truncation occurs
+    incident.equipment_entries.create!(
+      equipment_type: eq_type,
+      placed_at: 1.day.ago.change(min: 37, sec: 0),
+      logged_by_user: @manager
+    )
+
+    login_as @manager
+    deferred = inertia_deferred_props(incident_path(incident), "equipment_log")
+    placed_at = deferred.fetch("equipment_log").first.fetch("placed_at")
+
+    assert placed_at.end_with?(":00"), "placed_at should have no minutes — got: #{placed_at}"
+    assert_match(/\A\d{4}-\d{2}-\d{2}T\d{2}:00\z/, placed_at)
+  end
+
+  # --- Report PDF action ---
+
+  test "manager can download incident report PDF" do
+    incident = create_test_incident(status: "active")
+    login_as @manager
+
+    get report_incident_path(incident), params: { sections: [ "labor", "equipment" ] }
+
+    assert_response :success
+    assert_equal "application/pdf", response.content_type
+    assert response.body.start_with?("%PDF"), "Response should be a PDF"
+  end
+
+  test "pm_user can download report for their property" do
+    incident = create_test_incident(status: "active")
+    login_as @pm_user
+
+    get report_incident_path(incident)
+
+    assert_response :success
+    assert_equal "application/pdf", response.content_type
+  end
+
+  test "pm_user cannot download report for unassigned property" do
+    incident = create_test_incident(status: "active", property: @other_property)
+    login_as @pm_user
+
+    get report_incident_path(incident)
+
+    assert_response :not_found
+  end
+
+  test "technician can download report for assigned incident" do
+    incident = create_test_incident(status: "active")
+    IncidentAssignment.create!(incident: incident, user: @tech, assigned_by_user: @manager)
+    login_as @tech
+
+    get report_incident_path(incident)
+
+    assert_response :success
+    assert_equal "application/pdf", response.content_type
+  end
+
+  test "technician cannot download report for unassigned incident" do
+    incident = create_test_incident(status: "active")
+    login_as @tech
+
+    get report_incident_path(incident)
+
+    assert_response :not_found
+  end
+
   def create_test_incident(status:, property: nil, description: "Test incident")
     Incident.create!(
       property: property || @property, created_by_user: @manager,

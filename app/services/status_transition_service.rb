@@ -15,7 +15,7 @@ class StatusTransitionService
     "active" => %w[job_started on_hold],
     "job_started" => %w[completed on_hold],
     "on_hold" => %w[active job_started completed],
-    "completed" => %w[completed_billed active],
+    "completed" => %w[completed_billed active closed],
     "completed_billed" => %w[paid active],
     "paid" => %w[closed]
   }.freeze

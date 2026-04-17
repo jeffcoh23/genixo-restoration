@@ -37,7 +37,9 @@ export default function EquipmentForm({ path, equipment_types, equipment_items_b
   const blurTimerRef = useRef<number | undefined>(undefined);
   useEffect(() => () => clearTimeout(blurTimerRef.current), []);
 
-  const { today } = usePage<SharedProps>().props;
+  const { now_datetime } = usePage<SharedProps>().props;
+  const nowHour = now_datetime.slice(0, 13) + ":00";
+  const toHour = (dt: string | undefined) => dt ? dt.slice(0, 13) + ":00" : "";
   const { data, setData, post, patch, processing, errors } = useForm({
     equipment_type_id: entry?.equipment_type_id ? String(entry.equipment_type_id) : "",
     equipment_type_other: entry?.equipment_type_other ?? "",
@@ -46,8 +48,8 @@ export default function EquipmentForm({ path, equipment_types, equipment_items_b
     equipment_model: entry?.equipment_model ?? "",
     equipment_identifier: entry?.equipment_identifier ?? "",
     tag_number: entry?.tag_number ?? "",
-    placed_at: entry?.placed_at ?? today,
-    removed_at: entry?.removed_at ?? "",
+    placed_at: entry?.placed_at ? toHour(entry.placed_at) : nowHour,
+    removed_at: entry?.removed_at ? toHour(entry.removed_at) : "",
     location_notes: entry?.location_notes ?? "",
   });
 
@@ -318,7 +320,8 @@ export default function EquipmentForm({ path, equipment_types, equipment_items_b
             <div>
               <label className="text-xs font-medium text-foreground">Placed On</label>
               <Input
-                type="date"
+                type="datetime-local"
+                step={3600}
                 value={data.placed_at || ""}
                 onChange={(e) => setData("placed_at", e.target.value)}
                 className="mt-1"
@@ -329,7 +332,8 @@ export default function EquipmentForm({ path, equipment_types, equipment_items_b
               <div>
                 <label className="text-xs font-medium text-foreground">Removed On</label>
                 <Input
-                  type="date"
+                  type="datetime-local"
+                  step={3600}
                   value={data.removed_at || ""}
                   onChange={(e) => setData("removed_at", e.target.value)}
                   className="mt-1"
@@ -341,9 +345,9 @@ export default function EquipmentForm({ path, equipment_types, equipment_items_b
                       variant="link"
                       size="sm"
                       className="h-auto p-0 text-xs"
-                      onClick={() => setData("removed_at", today)}
+                      onClick={() => setData("removed_at", nowHour)}
                     >
-                      Today
+                      Now
                     </Button>
                   ) : (
                     <Button

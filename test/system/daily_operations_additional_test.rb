@@ -48,7 +48,7 @@ class DailyOperationsAdditionalTest < ApplicationSystemTestCase
   test "manager logs labor for another user" do
     login_as @manager
     visit incident_path(@incident)
-    click_button "Labor"
+    find("[data-testid='incident-tab-labor']").click
     click_button "Add Labor", match: :first
 
     within("[role='dialog']") do
@@ -83,7 +83,7 @@ class DailyOperationsAdditionalTest < ApplicationSystemTestCase
 
     login_as @manager
     visit incident_path(@incident)
-    click_button "Equipment"
+    find("[data-testid='incident-tab-equipment']").click
 
     find("button[title='Mark as removed']").click
 
@@ -172,7 +172,7 @@ class DailyOperationsAdditionalTest < ApplicationSystemTestCase
 
     login_as @tech
     visit incident_path(@incident)
-    click_button "Labor"
+    find("[data-testid='incident-tab-labor']").click
 
     submit_labor_entry_patch(
       entry,
@@ -204,7 +204,7 @@ class DailyOperationsAdditionalTest < ApplicationSystemTestCase
 
     login_as @manager
     visit incident_path(@incident)
-    click_button "Labor"
+    find("[data-testid='incident-tab-labor']").click
 
     submit_labor_entry_delete(entry)
 
@@ -228,7 +228,7 @@ class DailyOperationsAdditionalTest < ApplicationSystemTestCase
 
     login_as @tech
     visit incident_path(@incident)
-    click_button "Labor"
+    find("[data-testid='incident-tab-labor']").click
 
     submit_labor_entry_patch(
       entry,
@@ -247,7 +247,7 @@ class DailyOperationsAdditionalTest < ApplicationSystemTestCase
   test "equipment placement uses inventory picker" do
     login_as @manager
     visit incident_path(@incident)
-    click_button "Equipment"
+    find("[data-testid='incident-tab-equipment']").click
     click_button "Add Equipment"
 
     within("[role='dialog']") do
@@ -283,7 +283,7 @@ class DailyOperationsAdditionalTest < ApplicationSystemTestCase
   test "equipment placement supports other custom type" do
     login_as @manager
     visit incident_path(@incident)
-    click_button "Equipment"
+    find("[data-testid='incident-tab-equipment']").click
     click_button "Add Equipment"
 
     within("[role='dialog']") do
@@ -323,7 +323,7 @@ class DailyOperationsAdditionalTest < ApplicationSystemTestCase
 
     login_as @manager
     visit incident_path(@incident)
-    click_button "Equipment"
+    find("[data-testid='incident-tab-equipment']").click
 
     row = find("tr", text: entry.equipment_identifier)
     within(row) { find("button[title='Edit']").click }
@@ -352,7 +352,7 @@ class DailyOperationsAdditionalTest < ApplicationSystemTestCase
 
     login_as @tech
     visit incident_path(@incident)
-    click_button "Equipment"
+    find("[data-testid='incident-tab-equipment']").click
 
     submit_equipment_entry_patch(entry, location_notes: "Unauthorized location")
 

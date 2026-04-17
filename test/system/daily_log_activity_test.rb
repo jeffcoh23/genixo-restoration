@@ -159,7 +159,7 @@ class DailyLogActivityTest < ApplicationSystemTestCase
     login_as @manager
     visit incident_path(@incident)
 
-    click_button "Labor"
+    find("[data-testid='incident-tab-labor']").click
     click_button "Add Labor", match: :first
 
     assert_text "Add Labor Entry"
@@ -183,7 +183,7 @@ class DailyLogActivityTest < ApplicationSystemTestCase
 
     login_as @manager
     visit incident_path(@incident)
-    click_button "Equipment"
+    find("[data-testid='incident-tab-equipment']").click
 
     assert_text "Dehumidifier"
     assert_text "Air Mover"
@@ -209,7 +209,7 @@ class DailyLogActivityTest < ApplicationSystemTestCase
 
     login_as @manager
     visit incident_path(@incident)
-    click_button "Equipment"
+    find("[data-testid='incident-tab-equipment']").click
 
     assert_text "Dehumidifier"
     assert_text "Air Mover"

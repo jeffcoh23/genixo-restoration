@@ -1,6 +1,6 @@
 class IncidentsController < ApplicationController
   before_action :authorize_creation!, only: %i[new create]
-  before_action :set_incident, only: %i[show update transition mark_read dfr dfr_photos attachments_page]
+  before_action :set_incident, only: %i[show update transition mark_read dfr dfr_photos attachments_page report]
   before_action :authorize_edit!, only: %i[update]
   before_action :authorize_transition!, only: %i[transition]
 
@@ -231,6 +231,7 @@ class IncidentsController < ApplicationController
         upload_photo_path: upload_photo_incident_attachments_path(@incident),
         dfr_path: dfr_incident_path(@incident),
         dfr_photos_path: dfr_photos_incident_path(@incident),
+        report_path: report_incident_path(@incident),
         attachments_page_path: attachments_page_incident_path(@incident),
         mark_read_path: mark_read_incident_path(@incident),
         unread_messages: unread[:messages],
@@ -321,6 +322,20 @@ class IncidentsController < ApplicationController
   def attachments_page
     page = [ params.fetch(:page, 1).to_i, 1 ].max
     render json: serialize_attachments_page(@incident, page: page)
+  end
+
+  def report
+    sections = Array(params[:sections]).map(&:to_s).select { |s| IncidentReportService::VALID_SECTIONS.include?(s) }
+    sections = IncidentReportService::VALID_SECTIONS if sections.empty?
+
+    pdf_data = IncidentReportService.new(
+      incident: @incident,
+      sections: sections,
+      timezone: current_user.timezone
+    ).generate
+
+    filename = "#{@incident.job_id || @incident.id}-report-#{Date.current}.pdf"
+    send_data pdf_data, filename: filename, type: "application/pdf", disposition: "attachment"
   end
 
   private
@@ -1261,8 +1276,8 @@ class IncidentsController < ApplicationController
         data[:equipment_item_id] = entry.equipment_item_id
         data[:equipment_type_id] = entry.equipment_type_id
         data[:equipment_type_other] = entry.equipment_type_other
-        data[:placed_at] = entry.placed_at.to_date.iso8601
-        data[:removed_at] = entry.removed_at&.to_date&.iso8601
+        data[:placed_at] = entry.placed_at.strftime("%Y-%m-%dT%H:00")
+        data[:removed_at] = entry.removed_at&.strftime("%Y-%m-%dT%H:00")
       end
       data
     end
