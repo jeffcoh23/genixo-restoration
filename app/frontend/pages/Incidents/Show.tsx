@@ -269,6 +269,7 @@ export default function IncidentShow() {
               daily_log_table_groups={daily_log_table_groups}
               labor_entries={labor_entries}
               can_manage_activities={can_manage_activities}
+              can_generate_dfr={can_manage_activities}
               activity_entries_path={incident.activity_entries_path}
               dfr_path={incident.dfr_path}
               dfr_photos_path={incident.dfr_photos_path}
