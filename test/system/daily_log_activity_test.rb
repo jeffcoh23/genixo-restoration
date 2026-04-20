@@ -154,6 +154,42 @@ class DailyLogActivityTest < ApplicationSystemTestCase
     assert_selector "[data-testid='dfr-generate-2026-01-15']"
   end
 
+  # D7: DFR generate button is hidden for users without manage_daily_logs
+  test "daily log hides DFR generate button when user lacks manage_daily_logs" do
+    ActivityEntry.create!(
+      incident: @incident, performed_by_user: @manager,
+      title: "Field work done", occurred_at: Time.zone.local(2026, 1, 15, 12, 0, 0)
+    )
+
+    @manager.update!(permissions: @manager.permissions - [ Permissions::MANAGE_DAILY_LOGS.to_s ])
+    login_as @manager
+    visit incident_path(@incident)
+
+    assert_no_selector "[data-testid='dfr-generate-2026-01-15']"
+    assert_no_selector "[data-testid='dfr-refresh-2026-01-15']"
+  end
+
+  # D8: DFR generate button is visible for a PM user explicitly granted manage_daily_logs
+  test "daily log shows DFR generate button for PM user granted manage_daily_logs" do
+    pm_user = User.create!(
+      organization: @pm, user_type: User::PROPERTY_MANAGER,
+      email_address: "pm@greystar.com",
+      first_name: "Pat", last_name: "PM", password: "password123",
+      permissions: Permissions.defaults_for(User::PROPERTY_MANAGER) + [ Permissions::MANAGE_DAILY_LOGS.to_s ]
+    )
+    PropertyAssignment.create!(user: pm_user, property: @property)
+
+    ActivityEntry.create!(
+      incident: @incident, performed_by_user: @manager,
+      title: "Field work done", occurred_at: Time.zone.local(2026, 1, 15, 12, 0, 0)
+    )
+
+    login_as pm_user
+    visit incident_path(@incident)
+
+    assert_selector "[data-testid='dfr-generate-2026-01-15']"
+  end
+
   # L1: Labor form does NOT have a Notes field
   test "labor form has no notes textarea" do
     login_as @manager

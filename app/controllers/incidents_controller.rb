@@ -2,6 +2,7 @@ class IncidentsController < ApplicationController
   before_action :authorize_creation!, only: %i[new create]
   before_action :set_incident, only: %i[show update transition mark_read dfr dfr_photos attachments_page report]
   before_action :authorize_edit!, only: %i[update]
+  before_action :authorize_dfr!, only: %i[dfr]
   before_action :authorize_transition!, only: %i[transition]
 
   def index
@@ -366,6 +367,10 @@ class IncidentsController < ApplicationController
 
   def authorize_edit!
     raise ActiveRecord::RecordNotFound unless can_edit_incident?
+  end
+
+  def authorize_dfr!
+    raise ActiveRecord::RecordNotFound unless can_manage_activities?
   end
 
   def authorize_transition!

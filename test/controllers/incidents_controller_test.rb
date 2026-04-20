@@ -1009,6 +1009,56 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
+  # --- DFR generate permission ---
+
+  test "user with manage_daily_logs permission can generate a DFR" do
+    incident = create_test_incident(status: "active")
+    login_as @manager
+    assert @manager.can?(Permissions::MANAGE_DAILY_LOGS)
+    post dfr_incident_path(incident), params: { date: Date.current.to_s }
+    assert_redirected_to incident_path(incident)
+  end
+
+  test "user without manage_daily_logs permission cannot generate a DFR" do
+    incident = create_test_incident(status: "active")
+    @manager.update!(permissions: @manager.permissions - [ Permissions::MANAGE_DAILY_LOGS.to_s ])
+    login_as @manager
+    post dfr_incident_path(incident), params: { date: Date.current.to_s }
+    assert_response :not_found
+  end
+
+  test "PM user granted manage_daily_logs can generate a DFR" do
+    incident = create_test_incident(status: "active")
+    @pm_user.update!(permissions: @pm_user.permissions + [ Permissions::MANAGE_DAILY_LOGS.to_s ])
+    login_as @pm_user
+    post dfr_incident_path(incident), params: { date: Date.current.to_s }
+    assert_redirected_to incident_path(incident)
+  end
+
+  test "show passes can_manage_activities true when user has manage_daily_logs" do
+    incident = create_test_incident(status: "active")
+    login_as @manager
+    assert @manager.can?(Permissions::MANAGE_DAILY_LOGS)
+    get incident_path(incident)
+    assert_equal true, inertia_props["can_manage_activities"]
+  end
+
+  test "show passes can_manage_activities false when user lacks manage_daily_logs" do
+    incident = create_test_incident(status: "active")
+    @manager.update!(permissions: @manager.permissions - [ Permissions::MANAGE_DAILY_LOGS.to_s ])
+    login_as @manager
+    get incident_path(incident)
+    assert_equal false, inertia_props["can_manage_activities"]
+  end
+
+  test "show passes can_manage_activities true for PM user granted manage_daily_logs" do
+    incident = create_test_incident(status: "active")
+    @pm_user.update!(permissions: @pm_user.permissions + [ Permissions::MANAGE_DAILY_LOGS.to_s ])
+    login_as @pm_user
+    get incident_path(incident)
+    assert_equal true, inertia_props["can_manage_activities"]
+  end
+
   test "daily_log_table_groups includes photo_count per date" do
     incident = create_test_incident(status: "active")
     target_date = Date.new(2026, 3, 15)

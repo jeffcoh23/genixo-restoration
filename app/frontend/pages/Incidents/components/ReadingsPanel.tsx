@@ -34,17 +34,18 @@ export default function ReadingsPanel({
       </div>
 
       <div className="flex-1 overflow-hidden">
-        {view === "moisture" ? (
+        <div className={view === "moisture" ? "h-full" : "hidden"}>
           <MoisturePanel
             moisture_data={moisture_data}
             can_manage_moisture={can_manage_moisture}
           />
-        ) : (
+        </div>
+        <div className={view === "psychrometric" ? "h-full" : "hidden"}>
           <PsychrometricPanel
             psychrometric_data={psychrometric_data}
             can_manage_psychrometric={can_manage_psychrometric}
           />
-        )}
+        </div>
       </div>
     </div>
   );

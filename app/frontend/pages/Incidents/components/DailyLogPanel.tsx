@@ -20,6 +20,7 @@ interface DailyLogPanelProps {
   daily_log_table_groups: DailyLogTableGroup[];
   labor_entries: LaborEntry[];
   can_manage_activities: boolean;
+  can_generate_dfr: boolean;
   activity_entries_path: string;
   dfr_path: string;
   dfr_photos_path: string;
@@ -31,6 +32,7 @@ export default function DailyLogPanel({
   daily_log_table_groups = [],
   labor_entries = [],
   can_manage_activities,
+  can_generate_dfr,
   activity_entries_path,
   dfr_path,
   dfr_photos_path,
@@ -272,25 +274,27 @@ export default function DailyLogPanel({
                         <FileText className="h-3 w-3" />
                         DFR
                       </a>
-                      {pendingDfr.has(group.date_key) ? (
-                        <Loader2
-                          className="h-3 w-3 animate-spin text-muted-foreground"
-                          data-testid={`dfr-refreshing-${group.date_key}`}
-                        />
-                      ) : (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleGenerateDfr(group.date_key)}
-                          data-testid={`dfr-refresh-${group.date_key}`}
-                          className="h-auto p-0.5 text-muted-foreground hover:text-foreground"
-                          title="Regenerate DFR"
-                        >
-                          <RefreshCw className="h-3 w-3" />
-                        </Button>
+                      {can_generate_dfr && (
+                        pendingDfr.has(group.date_key) ? (
+                          <Loader2
+                            className="h-3 w-3 animate-spin text-muted-foreground"
+                            data-testid={`dfr-refreshing-${group.date_key}`}
+                          />
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleGenerateDfr(group.date_key)}
+                            data-testid={`dfr-refresh-${group.date_key}`}
+                            className="h-auto p-0.5 text-muted-foreground hover:text-foreground"
+                            title="Regenerate DFR"
+                          >
+                            <RefreshCw className="h-3 w-3" />
+                          </Button>
+                        )
                       )}
                     </span>
-                  ) : pendingDfr.has(group.date_key) ? (
+                  ) : can_generate_dfr && pendingDfr.has(group.date_key) ? (
                     <span
                       data-testid={`dfr-processing-${group.date_key}`}
                       className="inline-flex items-center gap-1 h-auto py-0.5 px-1.5 text-sm text-muted-foreground"
@@ -298,7 +302,7 @@ export default function DailyLogPanel({
                       <Loader2 className="h-3 w-3 animate-spin" />
                       Processing...
                     </span>
-                  ) : (
+                  ) : can_generate_dfr ? (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -310,7 +314,7 @@ export default function DailyLogPanel({
                       <FileText className="h-3 w-3" />
                       DFR
                     </Button>
-                  )}
+                  ) : null}
                 </div>
 
                 {/* Timeline rows (activities, notes, documents, etc.) */}
