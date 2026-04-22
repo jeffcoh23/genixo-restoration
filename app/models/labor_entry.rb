@@ -8,4 +8,12 @@ class LaborEntry < ApplicationRecord
   validates :started_at, presence: true
   validates :ended_at, presence: true
   validates :hours, presence: true, numericality: { greater_than: 0 }
+  validate :end_after_start
+
+  private
+
+  def end_after_start
+    return unless started_at && ended_at
+    errors.add(:ended_at, "must be after start time") if ended_at <= started_at
+  end
 end

@@ -1,4 +1,5 @@
 import { useForm, usePage } from "@inertiajs/react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -26,6 +27,12 @@ export default function LaborForm({ path, users, onClose, entry }: LaborFormProp
     ended_at: entry?.ended_at ?? "",
     log_date: entry?.log_date ?? today,
   });
+  const [timeError, setTimeError] = useState<string | null>(null);
+
+  const setTime = (field: "started_at" | "ended_at", value: string) => {
+    setData(field, value);
+    if (timeError) setTimeError(null);
+  };
 
   const handleUserChange = (userId: string) => {
     const selected = users.find((u) => String(u.id) === userId);
@@ -38,6 +45,10 @@ export default function LaborForm({ path, users, onClose, entry }: LaborFormProp
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (data.started_at && data.ended_at && data.ended_at <= data.started_at) {
+      setTimeError("End time must be after start time");
+      return;
+    }
     const submit = editing ? patch : post;
     const url = editing ? entry!.edit_path! : path;
     submit(url, { onSuccess: () => onClose() });
@@ -103,7 +114,7 @@ export default function LaborForm({ path, users, onClose, entry }: LaborFormProp
               <Input
                 type="time"
                 value={data.started_at}
-                onChange={(e) => setData("started_at", e.target.value)}
+                onChange={(e) => setTime("started_at", e.target.value)}
                 className="mt-1"
                 required
               />
@@ -115,10 +126,13 @@ export default function LaborForm({ path, users, onClose, entry }: LaborFormProp
               <Input
                 type="time"
                 value={data.ended_at}
-                onChange={(e) => setData("ended_at", e.target.value)}
+                onChange={(e) => setTime("ended_at", e.target.value)}
                 className="mt-1"
                 required
               />
+              {(timeError || errors.ended_at) && (
+                <p className="text-xs text-destructive mt-1">{timeError || errors.ended_at}</p>
+              )}
             </div>
           </div>
 
