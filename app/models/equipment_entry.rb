@@ -8,6 +8,7 @@ class EquipmentEntry < ApplicationRecord
 
   validates :placed_at, presence: true
   validate :equipment_type_xor
+  validate :removed_after_placed
 
   def type_name
     equipment_type&.name || equipment_type_other
@@ -25,5 +26,10 @@ class EquipmentEntry < ApplicationRecord
     elsif equipment_type_id.blank? && equipment_type_other.blank?
       errors.add(:base, "Must specify either equipment type or other")
     end
+  end
+
+  def removed_after_placed
+    return unless placed_at && removed_at
+    errors.add(:removed_at, "must be after placed time") if removed_at <= placed_at
   end
 end

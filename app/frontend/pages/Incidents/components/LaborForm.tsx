@@ -29,11 +29,6 @@ export default function LaborForm({ path, users, onClose, entry }: LaborFormProp
   });
   const [timeError, setTimeError] = useState<string | null>(null);
 
-  const setTime = (field: "started_at" | "ended_at", value: string) => {
-    setData(field, value);
-    if (timeError) setTimeError(null);
-  };
-
   const handleUserChange = (userId: string) => {
     const selected = users.find((u) => String(u.id) === userId);
     setData((prev) => ({
@@ -45,6 +40,7 @@ export default function LaborForm({ path, users, onClose, entry }: LaborFormProp
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setTimeError(null);
     if (data.started_at && data.ended_at && data.ended_at <= data.started_at) {
       setTimeError("End time must be after start time");
       return;
@@ -114,7 +110,7 @@ export default function LaborForm({ path, users, onClose, entry }: LaborFormProp
               <Input
                 type="time"
                 value={data.started_at}
-                onChange={(e) => setTime("started_at", e.target.value)}
+                onChange={(e) => setData("started_at", e.target.value)}
                 className="mt-1"
                 required
               />
@@ -126,7 +122,7 @@ export default function LaborForm({ path, users, onClose, entry }: LaborFormProp
               <Input
                 type="time"
                 value={data.ended_at}
-                onChange={(e) => setTime("ended_at", e.target.value)}
+                onChange={(e) => setData("ended_at", e.target.value)}
                 className="mt-1"
                 required
               />
