@@ -1,5 +1,5 @@
 import { Deferred, Link, router, usePage } from "@inertiajs/react";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { ChevronDown, ChevronRight, Mail, Pencil, Phone } from "lucide-react";
 import AppLayout from "@/layout/AppLayout";
 import { Badge } from "@/components/ui/badge";
@@ -56,6 +56,18 @@ export default function IncidentShow() {
   } = usePage<SharedProps & ShowProps>().props;
 
   const VALID_TABS = ["daily_log", "labor", "equipment", "photos", "documents", "messages", "readings", "manage"];
+  // Server-side props are all `InertiaRails.optional` — each tab fetches its
+  // keys via `router.reload` on activation. Mirrors incidents_controller.rb.
+  // daily_log is absent: all its data is eager (daily_activities, daily_log_dates, etc.).
+  const TAB_PROP_KEYS: Record<string, string[] | undefined> = {
+    labor: ["labor_log", "assignable_labor_users"],
+    equipment: ["equipment_log", "equipment_types", "equipment_items_by_type", "attachable_equipment_entries"],
+    documents: ["attachments", "operational_notes"],
+    messages: ["messages"],
+    readings: ["moisture_data", "psychrometric_data"],
+    manage: ["assignable_mitigation_users", "assignable_pm_users"],
+    photos: ["attachments", "messages"],
+  };
   const initialTab = (() => {
     const param = new URLSearchParams(window.location.search).get("tab");
     return param && VALID_TABS.includes(param) ? param : "daily_log";
@@ -79,6 +91,11 @@ export default function IncidentShow() {
     else url.searchParams.set("tab", tab);
     window.history.replaceState({}, "", url.toString());
 
+    const keys = TAB_PROP_KEYS[tab];
+    if (keys) {
+      router.reload({ only: keys });
+    }
+
     const tabToType: Record<string, string> = { messages: "messages", daily_log: "activity" };
     const readType = tabToType[tab];
     if (!readType || markedTabs.has(readType)) return;
@@ -94,6 +111,14 @@ export default function IncidentShow() {
       preserveScroll: true,
     });
   }, [incident.mark_read_path, incident.unread_messages, incident.unread_activity, markedTabs]);
+
+  useEffect(() => {
+    const keys = TAB_PROP_KEYS[initialTab];
+    if (keys) {
+      router.reload({ only: keys });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleTransition = (newStatus: string) => {
     setStatusOpen(false);
