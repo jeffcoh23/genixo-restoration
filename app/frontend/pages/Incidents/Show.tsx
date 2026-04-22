@@ -23,6 +23,19 @@ import PanelSkeleton from "@/components/PanelSkeleton";
 import type { ShowProps } from "./types";
 import { statusColor } from "@/lib/statusColor";
 
+// Server-side props are all `InertiaRails.optional` — each tab fetches its
+// keys via `router.reload` on activation. Mirrors incidents_controller.rb.
+// daily_log is absent: all its data is eager (daily_activities, daily_log_dates, etc.).
+const TAB_PROP_KEYS: Record<string, string[] | undefined> = {
+  labor: ["labor_log", "assignable_labor_users"],
+  equipment: ["equipment_log", "equipment_types", "equipment_items_by_type", "attachable_equipment_entries"],
+  documents: ["attachments", "operational_notes"],
+  messages: ["messages"],
+  readings: ["moisture_data", "psychrometric_data"],
+  manage: ["assignable_mitigation_users", "assignable_pm_users"],
+  photos: ["attachments", "messages"],
+};
+
 export default function IncidentShow() {
   const {
     incident,
@@ -56,18 +69,6 @@ export default function IncidentShow() {
   } = usePage<SharedProps & ShowProps>().props;
 
   const VALID_TABS = ["daily_log", "labor", "equipment", "photos", "documents", "messages", "readings", "manage"];
-  // Server-side props are all `InertiaRails.optional` — each tab fetches its
-  // keys via `router.reload` on activation. Mirrors incidents_controller.rb.
-  // daily_log is absent: all its data is eager (daily_activities, daily_log_dates, etc.).
-  const TAB_PROP_KEYS: Record<string, string[] | undefined> = {
-    labor: ["labor_log", "assignable_labor_users"],
-    equipment: ["equipment_log", "equipment_types", "equipment_items_by_type", "attachable_equipment_entries"],
-    documents: ["attachments", "operational_notes"],
-    messages: ["messages"],
-    readings: ["moisture_data", "psychrometric_data"],
-    manage: ["assignable_mitigation_users", "assignable_pm_users"],
-    photos: ["attachments", "messages"],
-  };
   const initialTab = (() => {
     const param = new URLSearchParams(window.location.search).get("tab");
     return param && VALID_TABS.includes(param) ? param : "daily_log";
