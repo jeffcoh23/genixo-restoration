@@ -77,7 +77,7 @@ class DailyOperationsAdditionalTest < ApplicationSystemTestCase
       equipment_type: @equipment_type,
       equipment_model: "LGR 7000XLi",
       equipment_identifier: "DH-042",
-      placed_at: Date.current,
+      placed_at: 1.day.ago,
       location_notes: "Unit 101 bedroom"
     )
 
@@ -317,7 +317,7 @@ class DailyOperationsAdditionalTest < ApplicationSystemTestCase
       equipment_item: @equipment_item,
       equipment_model: "LGR 7000XLi",
       equipment_identifier: "DH-INV-01",
-      placed_at: Date.current,
+      placed_at: 1.day.ago,
       location_notes: "Unit 101 bedroom"
     )
 
@@ -346,7 +346,7 @@ class DailyOperationsAdditionalTest < ApplicationSystemTestCase
       equipment_type: @equipment_type,
       equipment_model: "LGR 7000XLi",
       equipment_identifier: "DH-999",
-      placed_at: Date.current,
+      placed_at: 1.day.ago,
       location_notes: "Unit 202"
     )
 

@@ -1,5 +1,5 @@
 import { Deferred, Link, router, usePage } from "@inertiajs/react";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { ChevronDown, ChevronRight, Mail, Pencil, Phone } from "lucide-react";
 import AppLayout from "@/layout/AppLayout";
 import { Badge } from "@/components/ui/badge";
@@ -112,14 +112,6 @@ export default function IncidentShow() {
       preserveScroll: true,
     });
   }, [incident.mark_read_path, incident.unread_messages, incident.unread_activity, markedTabs]);
-
-  useEffect(() => {
-    const keys = TAB_PROP_KEYS[initialTab];
-    if (keys) {
-      router.reload({ only: keys });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const handleTransition = (newStatus: string) => {
     setStatusOpen(false);
