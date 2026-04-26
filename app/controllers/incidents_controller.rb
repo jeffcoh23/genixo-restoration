@@ -302,7 +302,7 @@ class IncidentsController < ApplicationController
     end
 
     read_state.save!
-    redirect_back fallback_location: incident_path(@incident)
+    head :no_content
   end
 
   def dfr

@@ -37,8 +37,7 @@ class DailyOperationsAdditionalTest < ApplicationSystemTestCase
     click_button "Messages"
 
     post_message_via_fetch(body: "See attached file", filename: "note.txt", content_type: "text/plain")
-    assert_text "No entries for this date."
-    click_button "Messages"
+    # window.location.reload() preserves ?tab=messages, so Messages stays active after reload.
     assert_text "See attached file"
     assert_text "note.txt"
     message = @incident.messages.order(:id).last
