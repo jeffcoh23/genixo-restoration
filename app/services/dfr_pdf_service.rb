@@ -201,26 +201,18 @@ class DfrPdfService
     pdf.font_size(12) { pdf.text "Photos", style: :bold }
     pdf.move_down 10
 
-    photos.each_slice(2) do |pair|
-      row_y = pdf.cursor
-      width = (pdf.bounds.width / 2) - 10
-      rendered = 0
+    # Flow mode (no `at:`) so Prawn auto-paginates when content overflows.
+    photos.each do |attachment|
+      blob = attachment.file.blob
+      next unless blob.content_type.start_with?("image/")
+      next unless blob.service.exist?(blob.key)
 
-      pair.each_with_index do |attachment, i|
-        blob = attachment.file.blob
-        next unless blob.content_type.start_with?("image/")
-        next unless blob.service.exist?(blob.key)
-
-        x = i.zero? ? 0 : (pdf.bounds.width / 2) + 10
-        blob.open do |tempfile|
-          pdf.image tempfile.path, at: [ x, row_y ], width: width
-          rendered += 1
-        end
-      rescue StandardError
-        nil
+      blob.open do |tempfile|
+        pdf.image tempfile.path, width: pdf.bounds.width, position: :center
+        pdf.move_down 10
       end
-
-      pdf.move_down((pdf.bounds.width / 2) + 20) if rendered > 0
+    rescue StandardError
+      nil
     end
   end
 

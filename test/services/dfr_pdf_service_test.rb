@@ -100,6 +100,19 @@ class DfrPdfServiceTest < ActiveSupport::TestCase
     assert pdf_data.present?
   end
 
+  test "auto-paginates when many photos exceed a single page" do
+    8.times { |i| create_photo("photo#{i}.jpg") }
+
+    service = DfrPdfService.new(incident: @incident, date: @date, include_photos: true)
+    pdf_data = service.generate
+
+    # Regression: previous absolute-positioned (`pdf.image at: [...]`) layout
+    # disabled Prawn auto-pagination, so photos beyond ~4 rendered off-page.
+    # Flow mode auto-paginates, so a many-photo PDF spans multiple pages.
+    pages = PDF::Inspector::Page.analyze(pdf_data).pages
+    assert_operator pages.size, :>, 1, "Expected multi-page PDF when 8 photos are included; got #{pages.size}"
+  end
+
   test "does not include photos from other dates even if IDs match" do
     other_date_photo = create_photo("other.jpg", log_date: @date - 1.day)
 
