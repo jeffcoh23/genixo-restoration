@@ -170,7 +170,7 @@ export default function PhotosPanel({ attachments, messages, upload_photo_path, 
   };
 
   return (
-    <div className="flex flex-col h-[70vh] lg:h-[55vh]">
+    <div className="flex flex-col h-[80vh] lg:h-[70vh]">
       <div className="p-3 border-b border-border bg-muted/15 shrink-0">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="text-xs text-muted-foreground">
