@@ -423,7 +423,7 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     assert_difference "IncidentReadState.count", 1 do
       patch mark_read_incident_path(incident), params: { tab: "messages" }
     end
-    assert_response :no_content
+    assert_response :redirect
     rs = IncidentReadState.last
     assert_not_nil rs.last_message_read_at
     assert_nil rs.last_activity_read_at
@@ -433,7 +433,7 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     incident = create_test_incident(status: "active")
     login_as @manager
     patch mark_read_incident_path(incident), params: { tab: "activity" }
-    assert_response :no_content
+    assert_response :redirect
     rs = IncidentReadState.last
     assert_nil rs.last_message_read_at
     assert_not_nil rs.last_activity_read_at
@@ -446,7 +446,7 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     assert_no_difference "IncidentReadState.count" do
       patch mark_read_incident_path(incident), params: { tab: "messages" }
     end
-    assert_response :no_content
+    assert_response :redirect
     rs = IncidentReadState.find_by(incident: incident, user: @manager)
     assert rs.last_message_read_at > 1.minute.ago
   end
