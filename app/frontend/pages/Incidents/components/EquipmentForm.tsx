@@ -52,6 +52,7 @@ export default function EquipmentForm({ path, equipment_types, equipment_items_b
     removed_at: entry?.removed_at ? toHour(entry.removed_at) : "",
     location_notes: entry?.location_notes ?? "",
   });
+  const [timeError, setTimeError] = useState<string | null>(null);
 
   const typeNameMap = useMemo(() =>
     new Map(equipment_types.map((t) => [String(t.id), t.name])),
@@ -125,6 +126,11 @@ export default function EquipmentForm({ path, equipment_types, equipment_items_b
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setTimeError(null);
+    if (data.placed_at && data.removed_at && data.removed_at <= data.placed_at) {
+      setTimeError("Removed time must be after placed time");
+      return;
+    }
     const submit = editing ? patch : post;
     const url = editing ? entry!.edit_path! : path;
     submit(url, { onSuccess: () => onClose() });
@@ -338,6 +344,9 @@ export default function EquipmentForm({ path, equipment_types, equipment_items_b
                   onChange={(e) => setData("removed_at", e.target.value)}
                   className="mt-1"
                 />
+                {(timeError || errors.removed_at) && (
+                  <p className="text-xs text-destructive mt-1">{timeError || errors.removed_at}</p>
+                )}
                 <div className="mt-1 flex justify-end">
                   {!data.removed_at ? (
                     <Button

@@ -382,7 +382,7 @@ class AdminOperationsTest < ApplicationSystemTestCase
       equipment_type: type,
       equipment_identifier: item.identifier,
       equipment_model: item.equipment_model,
-      placed_at: Date.current,
+      placed_at: 1.day.ago,
       location_notes: "Unit 201 bedroom"
     )
 

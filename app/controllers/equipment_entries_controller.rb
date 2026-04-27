@@ -72,6 +72,10 @@ class EquipmentEntriesController < ApplicationController
     )
 
     redirect_to incident_path(@incident), notice: "Equipment removed."
+  rescue ActiveRecord::RecordInvalid => e
+    redirect_to incident_path(@incident),
+      inertia: { errors: e.record.errors.to_hash },
+      alert: "Could not remove equipment."
   end
 
   private

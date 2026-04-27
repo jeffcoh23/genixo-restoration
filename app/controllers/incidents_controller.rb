@@ -259,7 +259,9 @@ class IncidentsController < ApplicationController
       project_types: Incident::PROJECT_TYPES.map { |t| { value: t, label: Incident::PROJECT_TYPE_LABELS[t] } },
       damage_types: Incident::DAMAGE_TYPES.map { |t| { value: t, label: Incident::DAMAGE_LABELS[t] } },
       back_path: incidents_path,
-      # Deferred — fetched on first tab click, then cached by Inertia
+      # Deferred — auto-fetched in a follow-up request after initial render
+      # (so post-save `redirect_to` refreshes them too). Tab-switch freshness
+      # is handled by `router.reload({ only: [...] })` in Show.tsx's handleTabChange.
       labor_log: InertiaRails.defer(group: "labor") { serialize_labor_log(@incident) },
       assignable_labor_users: InertiaRails.defer(group: "labor") { can_manage_labor? ? assignable_labor_users(@incident) : [] },
       equipment_log: InertiaRails.defer(group: "equipment") { serialize_equipment_log(@incident) },

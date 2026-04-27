@@ -170,7 +170,7 @@ export default function PhotosPanel({ attachments, messages, upload_photo_path, 
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col">
       <div className="p-3 border-b border-border bg-muted/15 shrink-0">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="text-xs text-muted-foreground">
@@ -283,7 +283,7 @@ export default function PhotosPanel({ attachments, messages, upload_photo_path, 
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 pb-10">
+      <div className="p-4 pb-10">
         {filteredPhotos.length === 0 ? (
           <div className="rounded-lg border border-dashed border-border bg-muted/10 p-6 text-center text-sm text-muted-foreground">
             No photos match the current filters.

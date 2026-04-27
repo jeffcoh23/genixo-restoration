@@ -23,6 +23,19 @@ import PanelSkeleton from "@/components/PanelSkeleton";
 import type { ShowProps } from "./types";
 import { statusColor } from "@/lib/statusColor";
 
+// Server-side props are all `InertiaRails.optional` — each tab fetches its
+// keys via `router.reload` on activation. Mirrors incidents_controller.rb.
+// daily_log is absent: all its data is eager (daily_activities, daily_log_dates, etc.).
+const TAB_PROP_KEYS: Record<string, string[] | undefined> = {
+  labor: ["labor_log", "assignable_labor_users"],
+  equipment: ["equipment_log", "equipment_types", "equipment_items_by_type", "attachable_equipment_entries"],
+  documents: ["attachments", "operational_notes"],
+  messages: ["messages"],
+  readings: ["moisture_data", "psychrometric_data"],
+  manage: ["assignable_mitigation_users", "assignable_pm_users"],
+  photos: ["attachments", "messages"],
+};
+
 export default function IncidentShow() {
   const {
     incident,
@@ -77,7 +90,19 @@ export default function IncidentShow() {
     const url = new URL(window.location.href);
     if (tab === "daily_log") url.searchParams.delete("tab");
     else url.searchParams.set("tab", tab);
-    window.history.replaceState({}, "", url.toString());
+
+    // Use router.get (not replaceState + router.reload) so Inertia's
+    // internal page.url stays in sync with the browser URL. Otherwise any
+    // background Inertia request — including the deferred-prop auto-fetch
+    // on mount — completes with the OLD url and pushes/replaces history,
+    // racing the tab switch and intermittently stripping ?tab=…
+    const keys = TAB_PROP_KEYS[tab] ?? [ "incident" ];
+    router.get(url.toString(), {}, {
+      only: keys,
+      preserveState: true,
+      preserveScroll: true,
+      replace: true,
+    });
 
     const tabToType: Record<string, string> = { messages: "messages", daily_log: "activity" };
     const readType = tabToType[tab];
@@ -260,7 +285,7 @@ export default function IncidentShow() {
       </div>
 
       {/* Tabbed content card */}
-      <div className="bg-card rounded-lg border border-border shadow-sm overflow-hidden min-h-[560px] lg:min-h-[640px] max-h-[2000px]">
+      <div className="bg-card rounded-lg border border-border shadow-sm overflow-hidden min-h-[560px] lg:min-h-[640px]">
         <RightPanelShell activeTab={activeTab} onTabChange={handleTabChange} unreadMessages={displayUnreadMessages} unreadActivity={displayUnreadActivity}>
           {activeTab === "daily_log" && (
             <DailyLogPanel
