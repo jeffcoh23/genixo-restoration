@@ -25,11 +25,11 @@ class MessagesController < ApplicationController
 
     MessageNotificationJob.perform_later(message.id)
 
-    redirect_to incident_path(@incident), notice: "Message sent."
+    redirect_to incident_path(@incident, tab: "messages"), notice: "Message sent."
   rescue ActionController::ParameterMissing
-    redirect_to incident_path(@incident), alert: "Message or attachment required."
+    redirect_to incident_path(@incident, tab: "messages"), alert: "Message or attachment required."
   rescue ActiveRecord::RecordInvalid => e
-    redirect_to incident_path(@incident), alert: e.record.errors.full_messages.join(", ")
+    redirect_to incident_path(@incident, tab: "messages"), alert: e.record.errors.full_messages.join(", ")
   end
 
   private

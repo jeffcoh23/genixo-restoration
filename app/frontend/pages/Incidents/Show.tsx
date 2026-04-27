@@ -90,12 +90,19 @@ export default function IncidentShow() {
     const url = new URL(window.location.href);
     if (tab === "daily_log") url.searchParams.delete("tab");
     else url.searchParams.set("tab", tab);
-    window.history.replaceState({}, "", url.toString());
 
-    const keys = TAB_PROP_KEYS[tab];
-    if (keys) {
-      router.reload({ only: keys });
-    }
+    // Use router.get (not replaceState + router.reload) so Inertia's
+    // internal page.url stays in sync with the browser URL. Otherwise any
+    // background Inertia request — including the deferred-prop auto-fetch
+    // on mount — completes with the OLD url and pushes/replaces history,
+    // racing the tab switch and intermittently stripping ?tab=…
+    const keys = TAB_PROP_KEYS[tab] ?? [ "incident" ];
+    router.get(url.toString(), {}, {
+      only: keys,
+      preserveState: true,
+      preserveScroll: true,
+      replace: true,
+    });
 
     const tabToType: Record<string, string> = { messages: "messages", daily_log: "activity" };
     const readType = tabToType[tab];

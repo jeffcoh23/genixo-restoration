@@ -31,17 +31,16 @@ class DailyOperationsAdditionalTest < ApplicationSystemTestCase
     )
   end
 
-  test "send message with attachment" do
+  test "send message" do
     login_as @manager
-    visit incident_path(@incident)
-    click_button "Messages"
+    visit incident_path(@incident, tab: "messages")
 
-    post_message_via_fetch(body: "See attached file", filename: "note.txt", content_type: "text/plain")
-    # window.location.reload() preserves ?tab=messages, so Messages stays active after reload.
-    assert_text "See attached file"
-    assert_text "note.txt"
+    fill_in "Type a message...", with: "Hello team"
+    find("[data-testid='message-send']").click
+
+    assert_text "Hello team"
     message = @incident.messages.order(:id).last
-    assert_equal 1, message.attachments.count
+    assert_equal "Hello team", message.body
   end
 
   test "manager logs labor for another user" do
@@ -381,22 +380,6 @@ class DailyOperationsAdditionalTest < ApplicationSystemTestCase
 
   def fixture_photo_path
     Rails.root.join("test/fixtures/files/test_photo.jpg")
-  end
-
-  def post_message_via_fetch(body:, filename:, content_type:)
-    js = <<~JS
-      const [path, body, filename, contentType] = arguments;
-      const token = document.querySelector('meta[name=\"csrf-token\"]')?.content;
-      const fd = new FormData();
-      fd.append('message[body]', body);
-      fd.append('message[files][]', new File(['hello from e2e'], filename, { type: contentType }));
-      fetch(path, {
-        method: 'POST',
-        headers: token ? { 'X-CSRF-Token': token, 'X-Requested-With': 'XMLHttpRequest' } : { 'X-Requested-With': 'XMLHttpRequest' },
-        body: fd
-      }).then(() => window.location.reload());
-    JS
-    page.execute_script(js, incident_messages_path(@incident), body, filename, content_type)
   end
 
 

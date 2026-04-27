@@ -39,7 +39,7 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
     assert_difference "Message.count", 1 do
       post incident_messages_path(@incident), params: { message: { body: "Starting work today." } }
     end
-    assert_redirected_to incident_path(@incident)
+    assert_redirected_to incident_path(@incident, tab: "messages")
     assert_equal "Starting work today.", Message.last.body
     assert_equal @manager.id, Message.last.user_id
   end
@@ -49,7 +49,7 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
     assert_difference "Message.count", 1 do
       post incident_messages_path(@incident), params: { message: { body: "Quote attached." } }
     end
-    assert_redirected_to incident_path(@incident)
+    assert_redirected_to incident_path(@incident, tab: "messages")
   end
 
   test "assigned tech can send a message" do
@@ -57,7 +57,7 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
     assert_difference "Message.count", 1 do
       post incident_messages_path(@incident), params: { message: { body: "On site now." } }
     end
-    assert_redirected_to incident_path(@incident)
+    assert_redirected_to incident_path(@incident, tab: "messages")
   end
 
   test "pm user can send a message" do
@@ -65,7 +65,7 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
     assert_difference "Message.count", 1 do
       post incident_messages_path(@incident), params: { message: { body: "Any update?" } }
     end
-    assert_redirected_to incident_path(@incident)
+    assert_redirected_to incident_path(@incident, tab: "messages")
   end
 
   test "pm user from different org cannot send a message" do
@@ -89,7 +89,7 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
     assert_no_difference "Message.count" do
       post incident_messages_path(@incident), params: { message: { body: "" } }
     end
-    assert_redirected_to incident_path(@incident)
+    assert_redirected_to incident_path(@incident, tab: "messages")
   end
 
   test "sending a message touches last_activity_at but creates no activity event" do
@@ -107,7 +107,7 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
     assert_difference "Message.count", 1 do
       post incident_messages_path(@incident), params: { message: { body: "Final notes." } }
     end
-    assert_redirected_to incident_path(@incident)
+    assert_redirected_to incident_path(@incident, tab: "messages")
   end
 
   test "manager can send attachment-only message" do
@@ -124,7 +124,7 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_redirected_to incident_path(@incident)
+    assert_redirected_to incident_path(@incident, tab: "messages")
 
     message = Message.last
     attachment = message.attachments.last
@@ -140,7 +140,7 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
     assert_no_difference "Message.count" do
       post incident_messages_path(@incident)
     end
-    assert_redirected_to incident_path(@incident)
+    assert_redirected_to incident_path(@incident, tab: "messages")
     assert_equal "Message or attachment required.", flash[:alert]
   end
 
@@ -155,7 +155,7 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
       }
     }
 
-    assert_redirected_to incident_path(@incident)
+    assert_redirected_to incident_path(@incident, tab: "messages")
     assert @incident.reload.last_activity_at > 1.minute.ago
   end
 
