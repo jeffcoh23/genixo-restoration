@@ -1009,6 +1009,91 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
+  # --- photos_zip ---
+
+  test "photos_zip streams a zip with all incident photos when no filter" do
+    incident = create_test_incident(status: "active")
+    create_photo_attachment(incident, "first.jpg")
+    create_photo_attachment(incident, "second.jpg")
+
+    login_as @manager
+    get photos_zip_incident_path(incident)
+
+    assert_response :success
+    assert_equal "application/zip", response.media_type
+    assert_match(/attachment.*photos\.zip/, response.headers["Content-Disposition"])
+    assert response.body.start_with?("PK\x03\x04".b), "Expected ZIP magic bytes"
+  end
+
+  test "photos_zip filters to provided photo_ids" do
+    incident = create_test_incident(status: "active")
+    keep1 = create_photo_attachment(incident, "keep1.jpg")
+    keep2 = create_photo_attachment(incident, "keep2.jpg")
+    drop = create_photo_attachment(incident, "drop.jpg")
+
+    login_as @manager
+    get photos_zip_incident_path(incident), params: { photo_ids: [ keep1.id, keep2.id ] }
+
+    assert_response :success
+    assert_equal "application/zip", response.media_type
+
+    entries = read_zip_entry_names(response.body)
+    assert_includes entries.join(" "), "keep1.jpg"
+    assert_includes entries.join(" "), "keep2.jpg"
+    refute_includes entries.join(" "), "drop.jpg"
+    assert_not_nil drop  # silence unused-var lint
+  end
+
+  test "photos_zip is scoped through visible_incidents" do
+    incident = create_test_incident(status: "active")
+    other_pm_org = Organization.create!(name: "Unrelated Zip Co", organization_type: "property_management")
+    other_pm = User.create!(organization: other_pm_org, user_type: "property_manager",
+      email_address: "other-pm-zip@other.com", first_name: "Other", last_name: "PM", password: "password123")
+    login_as other_pm
+
+    get photos_zip_incident_path(incident)
+    assert_response :not_found
+  end
+
+  test "photos_zip returns an empty-but-valid zip when incident has no photos" do
+    incident = create_test_incident(status: "active")
+
+    login_as @manager
+    get photos_zip_incident_path(incident)
+
+    assert_response :success
+    assert_equal "application/zip", response.media_type
+    assert_equal [], read_zip_entry_names(response.body)
+  end
+
+  test "photos_zip skips photo attachments that have no file attached" do
+    incident = create_test_incident(status: "active")
+    real = create_photo_attachment(incident, "real.jpg")
+    # Attachment record without a blob — guards against the Honeybadger nil-blob bug class
+    incident.attachments.create!(category: "photo", log_date: Date.current, uploaded_by_user: @manager)
+
+    login_as @manager
+    get photos_zip_incident_path(incident)
+
+    assert_response :success
+    entries = read_zip_entry_names(response.body)
+    assert_equal 1, entries.size
+    assert_includes entries.first, "real.jpg"
+    assert_not_nil real
+  end
+
+  test "photos_zip preserves photo bytes intact in archive entries" do
+    incident = create_test_incident(status: "active")
+    create_photo_attachment(incident, "fixture.jpg")
+
+    login_as @manager
+    get photos_zip_incident_path(incident)
+
+    expected_bytes = File.binread(Rails.root.join("test/fixtures/files/test_photo.jpg"))
+    actual_bytes = read_zip_entry_bytes(response.body).values.first
+    assert_equal expected_bytes, actual_bytes, "Zip entry should round-trip photo bytes verbatim"
+  end
+
   # --- DFR generate permission ---
 
   test "user with manage_daily_logs permission can generate a DFR" do
@@ -1214,5 +1299,38 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
       status: status, project_type: "emergency_response",
       damage_type: "flood", description: description, emergency: true
     )
+  end
+
+  def create_photo_attachment(incident, filename, log_date: Date.current)
+    attachment = incident.attachments.create!(
+      category: "photo", log_date: log_date, uploaded_by_user: @manager
+    )
+    attachment.file.attach(
+      io: File.open(Rails.root.join("test/fixtures/files/test_photo.jpg")),
+      filename: filename, content_type: "image/jpeg"
+    )
+    attachment
+  end
+
+  def read_zip_entry_names(body)
+    require "zip"
+    names = []
+    Zip::InputStream.open(StringIO.new(body)) do |io|
+      while (entry = io.get_next_entry)
+        names << entry.name
+      end
+    end
+    names
+  end
+
+  def read_zip_entry_bytes(body)
+    require "zip"
+    out = {}
+    Zip::InputStream.open(StringIO.new(body)) do |io|
+      while (entry = io.get_next_entry)
+        out[entry.name] = io.read
+      end
+    end
+    out
   end
 end

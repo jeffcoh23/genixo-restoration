@@ -249,6 +249,7 @@ export interface IncidentDetail {
   operational_notes_path: string;
   attachments_path: string;
   upload_photo_path: string;
+  photos_zip_path: string;
   dfr_path: string;
   dfr_photos_path: string;
   report_path: string;

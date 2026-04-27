@@ -11,7 +11,7 @@ class DfrPdfJob < ApplicationJob
       include_photos: true, photo_attachment_ids: photo_attachment_ids
     ).generate
 
-    filename = "DFR-#{incident.job_id || incident.id}-#{date}.pdf"
+    filename = build_filename(incident, date)
 
     existing = incident.attachments.find_by(category: "dfr", log_date: parsed_date)
     if existing
@@ -36,5 +36,15 @@ class DfrPdfJob < ApplicationJob
       )
       attachment.save!
     end
+  end
+
+  private
+
+  def build_filename(incident, date)
+    property_name = incident.property.name.to_s.gsub(/[\/\\:*?"<>|]/, " ").squeeze(" ").strip
+    parts = [ "DFR", property_name.presence || "Report" ]
+    parts << incident.job_id if incident.job_id.present?
+    parts << date
+    "#{parts.join(' - ')}.pdf"
   end
 end

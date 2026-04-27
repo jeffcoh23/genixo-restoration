@@ -113,6 +113,19 @@ class DfrPdfServiceTest < ActiveSupport::TestCase
     assert_operator pages.size, :>, 1, "Expected multi-page PDF when 8 photos are included; got #{pages.size}"
   end
 
+  test "stacks two photos per page rather than one-per-page" do
+    # Daniel's complaint: every photo was on its own page with a big gap.
+    # With the half-page height cap, 4 photos must fit in <= 2 photo pages
+    # (i.e. <= 3 pages total including the leading content page).
+    4.times { |i| create_photo("photo#{i}.jpg") }
+
+    service = DfrPdfService.new(incident: @incident, date: @date, include_photos: true)
+    pdf_data = service.generate
+
+    pages = PDF::Inspector::Page.analyze(pdf_data).pages
+    assert_operator pages.size, :<=, 3, "Expected 4 photos to pack into <= 2 photo pages; got #{pages.size} total pages"
+  end
+
   test "does not include photos from other dates even if IDs match" do
     other_date_photo = create_photo("other.jpg", log_date: @date - 1.day)
 

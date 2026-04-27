@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import { router, usePage } from "@inertiajs/react";
-import { Camera, Pencil, Trash2, Upload } from "lucide-react";
+import { Camera, Download, Pencil, Trash2, Upload } from "lucide-react";
 import InlineActionFeedback from "@/components/InlineActionFeedback";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -15,6 +15,7 @@ interface PhotosPanelProps {
   attachments: IncidentAttachment[];
   messages: Message[];
   upload_photo_path: string;
+  photos_zip_path: string;
   can_manage_attachments: boolean;
 }
 
@@ -36,7 +37,7 @@ interface PhotoItem {
   log_date: string | null;
 }
 
-export default function PhotosPanel({ attachments, messages, upload_photo_path, can_manage_attachments }: PhotosPanelProps) {
+export default function PhotosPanel({ attachments, messages, upload_photo_path, photos_zip_path, can_manage_attachments }: PhotosPanelProps) {
   const { today } = usePage<SharedProps>().props;
   const uploadInputRef = useRef<HTMLInputElement>(null);
   const [showPhotoDialog, setShowPhotoDialog] = useState(false);
@@ -115,6 +116,17 @@ export default function PhotosPanel({ attachments, messages, upload_photo_path, 
   const visiblePhotos = filteredPhotos.slice(0, visibleCount);
   const hasMore = visibleCount < filteredPhotos.length;
 
+  const filtersActive = search !== "" || uploader !== "all" || fromDate !== "" || toDate !== "";
+  const zipUrl = useMemo(() => {
+    const incidentPhotoIds = filteredPhotos
+      .filter((p) => p.attachment_id !== null)
+      .map((p) => p.attachment_id as number);
+    if (incidentPhotoIds.length === 0) return null;
+    if (!filtersActive) return photos_zip_path;
+    const qs = incidentPhotoIds.map((id) => `photo_ids[]=${id}`).join("&");
+    return `${photos_zip_path}?${qs}`;
+  }, [photos_zip_path, filtersActive, filteredPhotos]);
+
   const handleUploadPhotos = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files ? Array.from(e.target.files) : [];
     e.target.value = "";
@@ -176,41 +188,68 @@ export default function PhotosPanel({ attachments, messages, upload_photo_path, 
           <p className="text-xs text-muted-foreground">
             {filteredPhotos.length} of {allPhotos.length} photos
           </p>
-          {can_manage_attachments && (
-            <div className="flex items-center gap-2">
-              <Input
-                ref={uploadInputRef}
-                type="file"
-                accept="image/*"
-                multiple
-                className="hidden"
-                onChange={handleUploadPhotos}
-                data-testid="photos-panel-upload-input"
-              />
+          <div className="flex items-center gap-2">
+            {zipUrl ? (
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+                className="h-10 sm:h-8 text-sm sm:text-xs gap-1"
+                data-testid="photos-panel-download-zip"
+              >
+                <a href={zipUrl} download>
+                  <Download className="h-3 w-3" />
+                  Download ZIP
+                </a>
+              </Button>
+            ) : (
               <Button
                 variant="outline"
                 size="sm"
                 className="h-10 sm:h-8 text-sm sm:text-xs gap-1"
-                onClick={() => uploadInputRef.current?.click()}
-                disabled={bulkUploading}
-                data-testid="photos-panel-upload-button"
+                disabled
+                data-testid="photos-panel-download-zip"
               >
-                <Upload className="h-3 w-3" />
-                {bulkUploading ? "Uploading..." : "Upload Photos"}
+                <Download className="h-3 w-3" />
+                Download ZIP
               </Button>
-              <Button
-                variant="default"
-                size="sm"
-                className="h-10 sm:h-8 text-sm sm:text-xs gap-1"
-                onClick={() => setShowPhotoDialog(true)}
-                disabled={bulkUploading}
-                data-testid="photos-panel-take-photos-button"
-              >
-                <Camera className="h-3 w-3" />
-                Take Photos
-              </Button>
-            </div>
-          )}
+            )}
+            {can_manage_attachments && (
+              <>
+                <Input
+                  ref={uploadInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={handleUploadPhotos}
+                  data-testid="photos-panel-upload-input"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-10 sm:h-8 text-sm sm:text-xs gap-1"
+                  onClick={() => uploadInputRef.current?.click()}
+                  disabled={bulkUploading}
+                  data-testid="photos-panel-upload-button"
+                >
+                  <Upload className="h-3 w-3" />
+                  {bulkUploading ? "Uploading..." : "Upload Photos"}
+                </Button>
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="h-10 sm:h-8 text-sm sm:text-xs gap-1"
+                  onClick={() => setShowPhotoDialog(true)}
+                  disabled={bulkUploading}
+                  data-testid="photos-panel-take-photos-button"
+                >
+                  <Camera className="h-3 w-3" />
+                  Take Photos
+                </Button>
+              </>
+            )}
+          </div>
         </div>
         <InlineActionFeedback error={uploadError} onDismiss={() => setUploadError(null)} className="mt-2" />
       </div>

@@ -25,19 +25,38 @@ class DfrPdfJobTest < ActiveSupport::TestCase
     attachment = @incident.attachments.last
     assert_equal "dfr", attachment.category
     assert attachment.file.attached?
-    assert_includes attachment.file.filename.to_s, "DFR-"
     assert_equal "application/pdf", attachment.file.content_type
     assert_equal date, attachment.log_date.to_s
   end
 
-  test "uses incident job_id in filename when available" do
+  test "filename uses 'DFR - Property - JobNumber - Date' format when job_id is present" do
     @incident.update!(job_id: "JOB-123")
     date = Date.current.to_s
 
     DfrPdfJob.perform_now(@incident.id, date, "America/Chicago", @manager.id)
 
     attachment = @incident.attachments.last
-    assert_includes attachment.file.filename.to_s, "DFR-JOB-123"
+    assert_equal "DFR - Sunset Apts - JOB-123 - #{date}.pdf", attachment.file.filename.to_s
+  end
+
+  test "filename omits job number segment when incident has no job_id" do
+    date = Date.current.to_s
+
+    DfrPdfJob.perform_now(@incident.id, date, "America/Chicago", @manager.id)
+
+    attachment = @incident.attachments.last
+    assert_equal "DFR - Sunset Apts - #{date}.pdf", attachment.file.filename.to_s
+  end
+
+  test "filename sanitizes property names with filesystem-unfriendly characters" do
+    @property.update!(name: "Bldg A/B: Phase 1")
+    date = Date.current.to_s
+
+    DfrPdfJob.perform_now(@incident.id, date, "America/Chicago", @manager.id)
+
+    attachment = @incident.attachments.last
+    refute_match(/[\/\\:*?"<>|]/, attachment.file.filename.to_s)
+    assert_includes attachment.file.filename.to_s, "Bldg A B Phase 1"
   end
 
   test "sets description with date" do

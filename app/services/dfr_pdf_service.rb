@@ -201,15 +201,19 @@ class DfrPdfService
     pdf.font_size(12) { pdf.text "Photos", style: :bold }
     pdf.move_down 10
 
-    # Flow mode (no `at:`) so Prawn auto-paginates when content overflows.
+    # Cap each photo at half-page height so two stack per page. Without a
+    # height cap, full-width portrait photos dominate a page each and Prawn
+    # paginates fresh between them, leaving large blank gaps.
+    max_height = (pdf.bounds.height - 30) / 2 - 15
+
     photos.each do |attachment|
       blob = attachment.file.blob
       next unless blob.content_type.start_with?("image/")
       next unless blob.service.exist?(blob.key)
 
       blob.open do |tempfile|
-        pdf.image tempfile.path, width: pdf.bounds.width, position: :center
-        pdf.move_down 10
+        pdf.image tempfile.path, fit: [ pdf.bounds.width, max_height ], position: :center
+        pdf.move_down 15
       end
     rescue StandardError
       nil

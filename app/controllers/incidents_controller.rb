@@ -1,6 +1,6 @@
 class IncidentsController < ApplicationController
   before_action :authorize_creation!, only: %i[new create]
-  before_action :set_incident, only: %i[show update transition mark_read dfr dfr_photos attachments_page report]
+  before_action :set_incident, only: %i[show update transition mark_read dfr dfr_photos photos_zip attachments_page report]
   before_action :authorize_edit!, only: %i[update]
   before_action :authorize_dfr!, only: %i[dfr]
   before_action :authorize_transition!, only: %i[transition]
@@ -230,6 +230,7 @@ class IncidentsController < ApplicationController
         operational_notes_path: incident_operational_notes_path(@incident),
         attachments_path: incident_attachments_path(@incident),
         upload_photo_path: upload_photo_incident_attachments_path(@incident),
+        photos_zip_path: photos_zip_incident_path(@incident),
         dfr_path: dfr_incident_path(@incident),
         dfr_photos_path: dfr_photos_incident_path(@incident),
         report_path: report_incident_path(@incident),
@@ -320,6 +321,28 @@ class IncidentsController < ApplicationController
       .order(:created_at)
       .map { |att| serialize_single_attachment(att) }
     render json: photos
+  end
+
+  def photos_zip
+    require "zip"
+
+    photo_ids = params[:photo_ids].present? ? Array(params[:photo_ids]).map(&:to_i).uniq : nil
+    photos = @incident.attachments
+      .includes(file_attachment: :blob)
+      .where(category: "photo")
+    photos = photos.where(id: photo_ids) if photo_ids
+    photos = photos.order(:created_at)
+
+    buffer = Zip::OutputStream.write_buffer do |zos|
+      photos.each_with_index do |att, idx|
+        next unless att.file.attached?
+        zos.put_next_entry("#{idx + 1}-#{att.file.filename}")
+        zos.write(att.file.blob.download)
+      end
+    end
+
+    filename = "#{@incident.job_id.presence || @incident.id}-photos.zip"
+    send_data buffer.string, filename: filename, type: "application/zip", disposition: "attachment"
   end
 
   def attachments_page
