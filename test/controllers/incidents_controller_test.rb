@@ -1055,6 +1055,45 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
+  test "photos_zip returns an empty-but-valid zip when incident has no photos" do
+    incident = create_test_incident(status: "active")
+
+    login_as @manager
+    get photos_zip_incident_path(incident)
+
+    assert_response :success
+    assert_equal "application/zip", response.media_type
+    assert_equal [], read_zip_entry_names(response.body)
+  end
+
+  test "photos_zip skips photo attachments that have no file attached" do
+    incident = create_test_incident(status: "active")
+    real = create_photo_attachment(incident, "real.jpg")
+    # Attachment record without a blob — guards against the Honeybadger nil-blob bug class
+    incident.attachments.create!(category: "photo", log_date: Date.current, uploaded_by_user: @manager)
+
+    login_as @manager
+    get photos_zip_incident_path(incident)
+
+    assert_response :success
+    entries = read_zip_entry_names(response.body)
+    assert_equal 1, entries.size
+    assert_includes entries.first, "real.jpg"
+    assert_not_nil real
+  end
+
+  test "photos_zip preserves photo bytes intact in archive entries" do
+    incident = create_test_incident(status: "active")
+    create_photo_attachment(incident, "fixture.jpg")
+
+    login_as @manager
+    get photos_zip_incident_path(incident)
+
+    expected_bytes = File.binread(Rails.root.join("test/fixtures/files/test_photo.jpg"))
+    actual_bytes = read_zip_entry_bytes(response.body).values.first
+    assert_equal expected_bytes, actual_bytes, "Zip entry should round-trip photo bytes verbatim"
+  end
+
   # --- DFR generate permission ---
 
   test "user with manage_daily_logs permission can generate a DFR" do
@@ -1282,5 +1321,16 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
       end
     end
     names
+  end
+
+  def read_zip_entry_bytes(body)
+    require "zip"
+    out = {}
+    Zip::InputStream.open(StringIO.new(body)) do |io|
+      while (entry = io.get_next_entry)
+        out[entry.name] = io.read
+      end
+    end
+    out
   end
 end
