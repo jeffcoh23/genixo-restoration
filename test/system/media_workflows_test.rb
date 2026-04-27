@@ -36,6 +36,48 @@ class MediaWorkflowsTest < ApplicationSystemTestCase
     assert_text "MSG"
   end
 
+  test "download zip link points to photos_zip when no filters are active" do
+    create_incident_photo(@incident, @manager, "first.jpg")
+    create_incident_photo(@incident, @manager, "second.jpg")
+
+    login_as @manager
+    visit incident_path(@incident)
+    click_button "Photos"
+
+    link = find("a[data-testid='photos-panel-download-zip']")
+    assert_match %r{/incidents/#{@incident.id}/photos_zip\z}, link[:href]
+  end
+
+  test "download zip button is disabled when no photos match the filter" do
+    create_incident_photo(@incident, @manager, "first.jpg")
+
+    login_as @manager
+    visit incident_path(@incident)
+    click_button "Photos"
+
+    fill_in "Filename or note...", with: "nomatch-xyz"
+    assert_text "0 of 1 photos"
+
+    assert_no_selector "a[data-testid='photos-panel-download-zip']"
+    assert_selector "button[data-testid='photos-panel-download-zip']:disabled"
+  end
+
+  test "download zip url includes only filtered photo ids when search filter is active" do
+    keep = create_incident_photo(@incident, @manager, "keep-me.jpg")
+    skip_photo = create_incident_photo(@incident, @manager, "skip-me.jpg")
+
+    login_as @manager
+    visit incident_path(@incident)
+    click_button "Photos"
+
+    fill_in "Filename or note...", with: "keep-me"
+    assert_text "1 of 2 photos"
+
+    href = find("a[data-testid='photos-panel-download-zip']")[:href]
+    assert_match(/photo_ids(?:%5B%5D|\[\])=#{keep.id}/, href)
+    refute_match(/photo_ids(?:%5B%5D|\[\])=#{skip_photo.id}/, href)
+  end
+
   test "photos filters work at scale with deterministic pagination" do
     45.times do |i|
       uploader = i.even? ? @manager : @tech

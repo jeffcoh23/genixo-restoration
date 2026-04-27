@@ -356,6 +356,7 @@ export default function IncidentShow() {
               attachments={attachments}
               messages={messages}
               upload_photo_path={incident.upload_photo_path}
+              photos_zip_path={incident.photos_zip_path}
               can_manage_attachments={can_manage_attachments}
             />
           )}
