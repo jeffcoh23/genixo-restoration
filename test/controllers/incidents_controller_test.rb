@@ -1082,6 +1082,27 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     assert_not_nil real
   end
 
+  test "photos_zip appends an extension when the stored filename has none" do
+    incident = create_test_incident(status: "active")
+    # Camera-uploaded photos historically land with filename "blob" (no extension),
+    # which makes extracted files appear as opaque "FILE" to the OS. The zip
+    # entry name should fall back to a content-type-derived extension.
+    attachment = incident.attachments.create!(category: "photo", log_date: Date.current, uploaded_by_user: @manager)
+    attachment.file.attach(
+      io: File.open(Rails.root.join("test/fixtures/files/test_photo.jpg")),
+      filename: "blob",
+      content_type: "image/jpeg"
+    )
+
+    login_as @manager
+    get photos_zip_incident_path(incident)
+
+    assert_response :success
+    entries = read_zip_entry_names(response.body)
+    assert_equal 1, entries.size
+    assert_match(/blob\.jpe?g\z/, entries.first)
+  end
+
   test "photos_zip preserves photo bytes intact in archive entries" do
     incident = create_test_incident(status: "active")
     create_photo_attachment(incident, "fixture.jpg")

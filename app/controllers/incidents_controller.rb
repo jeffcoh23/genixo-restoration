@@ -336,7 +336,7 @@ class IncidentsController < ApplicationController
     buffer = Zip::OutputStream.write_buffer do |zos|
       photos.each_with_index do |att, idx|
         next unless att.file.attached?
-        zos.put_next_entry("#{idx + 1}-#{att.file.filename}")
+        zos.put_next_entry("#{idx + 1}-#{zip_entry_filename(att.file)}")
         zos.write(att.file.blob.download)
       end
     end
@@ -365,6 +365,18 @@ class IncidentsController < ApplicationController
   end
 
   private
+
+  # Some legacy uploads (camera capture path that ran the file through
+  # browser-image-compression) landed in storage with filename "blob" — no
+  # extension — so the OS treats them as opaque "FILE" when extracted from a zip.
+  # Append an extension derived from the blob's content_type when missing.
+  def zip_entry_filename(file)
+    name = file.filename.to_s
+    return name unless File.extname(name).empty?
+
+    ext = Mime::Type.lookup(file.blob.content_type)&.symbol
+    ext ? "#{name}.#{ext}" : name
+  end
 
   def authorize_creation!
     raise ActiveRecord::RecordNotFound unless can_create_incident?
