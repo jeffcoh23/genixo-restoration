@@ -897,7 +897,10 @@ class IncidentsController < ApplicationController
         total_equip_count: date_equip.sum { |e| e[:count] },
         photo_count: photo_counts_by_date[date_key] || 0,
         dfr: dfr_att ? {
-          url: rails_blob_path(dfr_att.file, disposition: "inline"),
+          # disposition: "attachment" — clicking the DFR link downloads the file
+          # with its proper filename. Inline preview shows the S3 object key in
+          # Chrome's PDF viewer, which looks like a long random hash to the user.
+          url: rails_blob_path(dfr_att.file, disposition: "attachment"),
           filename: dfr_att.file.filename.to_s
         } : nil
       }

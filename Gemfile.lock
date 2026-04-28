@@ -192,6 +192,8 @@ GEM
       logger
       mime-types-data (~> 3.2025, >= 3.2025.0507)
     mime-types-data (3.2026.0203)
+    mini_magick (5.3.1)
+      logger
     mini_mime (1.1.5)
     minitest (5.27.0)
     msgpack (1.8.0)
@@ -432,6 +434,7 @@ DEPENDENCIES
   inertia_rails
   letter_opener_web
   matrix
+  mini_magick
   minitest (~> 5.25)
   newrelic_rpm
   pdf-inspector (~> 1.3)

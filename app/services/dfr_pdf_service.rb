@@ -12,6 +12,7 @@ class DfrPdfService
   def generate
     require "prawn"
     require "prawn/table"
+    require "mini_magick"
 
     Time.use_zone(@timezone) do
       build_pdf
@@ -212,6 +213,13 @@ class DfrPdfService
       next unless blob.service.exist?(blob.key)
 
       blob.open do |tempfile|
+        # Phone photos store the sensor's native (landscape) pixels and an EXIF
+        # orientation tag; Prawn ignores EXIF, so portraits would render sideways.
+        # auto_orient bakes the rotation into the pixels and strips the tag.
+        image = MiniMagick::Image.open(tempfile.path)
+        image.auto_orient
+        image.write(tempfile.path)
+
         pdf.image tempfile.path, fit: [ pdf.bounds.width, max_height ], position: :center
         pdf.move_down 15
       end
