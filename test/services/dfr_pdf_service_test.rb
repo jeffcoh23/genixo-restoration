@@ -126,6 +126,38 @@ class DfrPdfServiceTest < ActiveSupport::TestCase
     assert_operator pages.size, :<=, 3, "Expected 4 photos to pack into <= 2 photo pages; got #{pages.size} total pages"
   end
 
+  test "applies EXIF orientation before embedding so phone portraits are upright" do
+    # Fixture: 200x100 raw pixels, EXIF orientation = 6 (rotate 90° CW for display).
+    # Without auto_orient, Prawn embeds the raw 200x100 sideways pixels.
+    # With auto_orient, the rotation is baked in and the embed is 100x200 upright.
+    require "pdf-reader"
+
+    attachment = @incident.attachments.create!(
+      category: "photo", log_date: @date, uploaded_by_user: @manager
+    )
+    attachment.file.attach(
+      io: File.open(Rails.root.join("test/fixtures/files/exif_portrait_phone.jpg")),
+      filename: "phone_portrait.jpg",
+      content_type: "image/jpeg"
+    )
+
+    service = DfrPdfService.new(incident: @incident, date: @date, include_photos: true)
+    pdf_data = service.generate
+
+    image_dims = []
+    PDF::Reader.new(StringIO.new(pdf_data)).pages.each do |page|
+      page.xobjects.each do |_, xobj|
+        next unless xobj.hash[:Subtype] == :Image
+        image_dims << [ xobj.hash[:Width], xobj.hash[:Height] ]
+      end
+    end
+
+    assert_equal 1, image_dims.size, "Expected one embedded image"
+    width, height = image_dims.first
+    assert_equal 100, width, "Width should be 100 after EXIF rotation (was 200 sideways)"
+    assert_equal 200, height, "Height should be 200 after EXIF rotation (was 100 sideways)"
+  end
+
   test "does not include photos from other dates even if IDs match" do
     other_date_photo = create_photo("other.jpg", log_date: @date - 1.day)
 

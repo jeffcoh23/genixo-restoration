@@ -28,6 +28,9 @@ gem "matrix"  # Required by Prawn, removed from Ruby stdlib in 3.1+
 # ZIP archives (bulk photo download)
 gem "rubyzip", require: false
 
+# Image processing (EXIF auto-orientation before Prawn embed)
+gem "mini_magick", require: false
+
 # Voice calls (emergency escalation)
 gem "twilio-ruby"
 

@@ -667,6 +667,28 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes row_types, "document", "Attachment rows should not appear in daily log timeline"
   end
 
+  test "daily log groups expose DFR url as a download (disposition=attachment)" do
+    # Inline disposition makes Chrome's PDF viewer show the S3 object key
+    # instead of the proper filename. Attachment disposition triggers a direct
+    # download and the browser uses Content-Disposition's filename verbatim.
+    incident = create_test_incident(status: "active")
+    activity_entry = incident.activity_entries.create!(
+      title: "Test", details: "Test", performed_by_user: @manager,
+      occurred_at: Date.current.beginning_of_day + 9.hours
+    )
+    DfrPdfJob.perform_now(incident.id, Date.current.to_s, "America/Chicago", @manager.id)
+
+    login_as @manager
+    get incident_path(incident)
+    assert_response :success
+
+    groups = inertia_props.fetch("daily_log_table_groups")
+    dfr_url = groups.flat_map { |g| g["dfr"] ? [ g["dfr"]["url"] ] : [] }.first
+    assert_not_nil dfr_url, "Expected a DFR url on the daily log group"
+    assert_includes dfr_url, "disposition=attachment"
+    assert_not_nil activity_entry  # silence unused-var lint
+  end
+
   test "mark_read with unknown tab leaves read timestamps nil" do
     incident = create_test_incident(status: "active")
     login_as @manager
