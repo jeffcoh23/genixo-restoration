@@ -163,7 +163,9 @@ class DfrPdfServiceTest < ActiveSupport::TestCase
     require "mini_magick"
 
     big_path = Rails.root.join("tmp", "big_landscape_test.jpg")
-    system("magick", "-size", "4032x3024", "gradient:red-blue", "-quality", "90", big_path.to_s)
+    # `convert` works on both ImageMagick 6 (Ubuntu apt) and 7 (macOS brew).
+    system("convert", "-size", "4032x3024", "gradient:red-blue", "-quality", "90", big_path.to_s) ||
+      raise("ImageMagick convert command failed — is `imagemagick` installed?")
     attachment = @incident.attachments.create!(category: "photo", log_date: @date, uploaded_by_user: @manager)
     attachment.file.attach(io: File.open(big_path), filename: "big.jpg", content_type: "image/jpeg")
 
