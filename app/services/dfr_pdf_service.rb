@@ -216,8 +216,14 @@ class DfrPdfService
         # Phone photos store the sensor's native (landscape) pixels and an EXIF
         # orientation tag; Prawn ignores EXIF, so portraits would render sideways.
         # auto_orient bakes the rotation into the pixels and strips the tag.
+        # Resize: source images are full sensor resolution (often 24MP), but the
+        # PDF only renders them at ~4in wide. Cap longest side at 1600px so the
+        # embedded copy is roughly print-resolution, keeping the PDF small and
+        # cutting peak memory during generation.
         image = MiniMagick::Image.open(tempfile.path)
         image.auto_orient
+        image.resize "1600x1600>"
+        image.quality 85
         image.write(tempfile.path)
 
         pdf.image tempfile.path, fit: [ pdf.bounds.width, max_height ], position: :center
