@@ -158,6 +158,54 @@ class DfrPdfServiceTest < ActiveSupport::TestCase
     assert_equal 200, height, "Height should be 200 after EXIF rotation (was 100 sideways)"
   end
 
+  test "resizes large photos to <= 1600px before embedding to keep PDF small" do
+    require "pdf-reader"
+    require "mini_magick"
+
+    big_path = Rails.root.join("tmp", "big_landscape_test.jpg")
+    system("magick", "-size", "4032x3024", "gradient:red-blue", "-quality", "90", big_path.to_s)
+    attachment = @incident.attachments.create!(category: "photo", log_date: @date, uploaded_by_user: @manager)
+    attachment.file.attach(io: File.open(big_path), filename: "big.jpg", content_type: "image/jpeg")
+
+    pdf_data = DfrPdfService.new(incident: @incident, date: @date, include_photos: true).generate
+
+    image_dims = []
+    PDF::Reader.new(StringIO.new(pdf_data)).pages.each do |page|
+      page.xobjects.each do |_, xobj|
+        next unless xobj.hash[:Subtype] == :Image
+        image_dims << [ xobj.hash[:Width], xobj.hash[:Height] ]
+      end
+    end
+
+    assert_equal 1, image_dims.size
+    width, height = image_dims.first
+    assert_operator [ width, height ].max, :<=, 1600, "Longest side should be <= 1600 after resize"
+    aspect_ratio = width.to_f / height
+    assert_in_delta 4032.0 / 3024, aspect_ratio, 0.01, "Aspect ratio (4:3 landscape) should be preserved"
+  ensure
+    File.delete(big_path) if big_path && File.exist?(big_path)
+  end
+
+  test "does not enlarge photos already smaller than 1600px" do
+    require "pdf-reader"
+
+    # The existing 1x1 fixture is far smaller than 1600 — should pass through untouched.
+    create_photo("small.jpg")
+
+    pdf_data = DfrPdfService.new(incident: @incident, date: @date, include_photos: true).generate
+
+    image_dims = []
+    PDF::Reader.new(StringIO.new(pdf_data)).pages.each do |page|
+      page.xobjects.each do |_, xobj|
+        next unless xobj.hash[:Subtype] == :Image
+        image_dims << [ xobj.hash[:Width], xobj.hash[:Height] ]
+      end
+    end
+
+    width, height = image_dims.first
+    assert_operator [ width, height ].max, :<, 1600, "Small photos should not be enlarged"
+  end
+
   test "does not include photos from other dates even if IDs match" do
     other_date_photo = create_photo("other.jpg", log_date: @date - 1.day)
 
