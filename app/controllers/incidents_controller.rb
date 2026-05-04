@@ -1381,7 +1381,7 @@ class IncidentsController < ApplicationController
           dehumidifier_label: p.dehumidifier_label, position: p.position,
           readings: dates.each_with_object({}) { |d, h|
             r = readings_by_point[p.id]&.[](d.iso8601)
-            h[d.iso8601] = r ? { id: r.id, temperature: r.temperature&.to_f, relative_humidity: r.relative_humidity&.to_f, gpp: r.gpp&.to_f, update_path: incident_psychrometric_reading_path(incident, r) } : nil
+            h[d.iso8601] = r ? { id: r.id, temperature: r.temperature&.to_f, relative_humidity: r.relative_humidity&.to_f, gpp: r.gpp&.to_f, g_dep: r.g_dep&.to_f, update_path: incident_psychrometric_reading_path(incident, r) } : nil
           },
           destroy_path: incident_psychrometric_point_path(incident, p)
         }

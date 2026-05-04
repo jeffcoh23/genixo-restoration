@@ -448,7 +448,7 @@ export interface PsychrometricPoint {
   room: string;
   dehumidifier_label: string | null;
   position: number;
-  readings: Record<string, { id: number; temperature: number | null; relative_humidity: number | null; gpp: number | null; update_path: string } | null>;
+  readings: Record<string, { id: number; temperature: number | null; relative_humidity: number | null; gpp: number | null; g_dep: number | null; update_path: string } | null>;
   destroy_path: string;
 }
 

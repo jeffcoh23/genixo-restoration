@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_03_13_221944) do
+ActiveRecord::Schema[8.0].define(version: 2026_05_04_034717) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -428,6 +428,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_13_221944) do
     t.decimal "temperature", precision: 5, scale: 1
     t.decimal "relative_humidity", precision: 5, scale: 1
     t.decimal "gpp", precision: 7, scale: 1
+    t.decimal "g_dep", precision: 5, scale: 1
     t.bigint "recorded_by_user_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false

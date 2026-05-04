@@ -41,11 +41,12 @@ export default function PsychrometricBatchForm({ points, dates, batchSavePath, i
         point_id: p.id,
         temperature: existing?.temperature != null ? String(existing.temperature) : "",
         relative_humidity: existing?.relative_humidity != null ? String(existing.relative_humidity) : "",
+        g_dep: existing?.g_dep != null ? String(existing.g_dep) : "",
       };
     }),
   });
 
-  const setReadingField = (index: number, field: "temperature" | "relative_humidity", value: string) => {
+  const setReadingField = (index: number, field: "temperature" | "relative_humidity" | "g_dep", value: string) => {
     const updated = [...data.readings];
     updated[index] = { ...updated[index], [field]: value };
     setData("readings", updated);
@@ -61,6 +62,7 @@ export default function PsychrometricBatchForm({ points, dates, batchSavePath, i
         ...r,
         temperature: existingReading?.temperature != null ? String(existingReading.temperature) : "",
         relative_humidity: existingReading?.relative_humidity != null ? String(existingReading.relative_humidity) : "",
+        g_dep: existingReading?.g_dep != null ? String(existingReading.g_dep) : "",
       };
     });
     setData("readings", updated);
@@ -74,6 +76,7 @@ export default function PsychrometricBatchForm({ points, dates, batchSavePath, i
         ...r,
         temperature: r.temperature || (prev?.temperature != null ? String(prev.temperature) : ""),
         relative_humidity: r.relative_humidity || (prev?.relative_humidity != null ? String(prev.relative_humidity) : ""),
+        g_dep: r.g_dep || (prev?.g_dep != null ? String(prev.g_dep) : ""),
       };
     });
     setData("readings", updated);
@@ -81,7 +84,7 @@ export default function PsychrometricBatchForm({ points, dates, batchSavePath, i
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const filtered = data.readings.filter((r) => r.temperature !== "" || r.relative_humidity !== "");
+    const filtered = data.readings.filter((r) => r.temperature !== "" || r.relative_humidity !== "" || r.g_dep !== "");
     if (filtered.length === 0) return;
     runPost(batchSavePath, {
       log_date: data.log_date,
@@ -129,6 +132,7 @@ export default function PsychrometricBatchForm({ points, dates, batchSavePath, i
                   <th className="px-3 py-2 text-center text-xs font-semibold uppercase text-muted-foreground">Rh%</th>
                   <th className="px-3 py-2 text-center text-xs font-semibold uppercase text-muted-foreground">F&deg;</th>
                   <th className="px-3 py-2 text-center text-xs font-semibold uppercase text-muted-foreground">GPP</th>
+                  <th className="px-3 py-2 text-center text-xs font-semibold uppercase text-muted-foreground">G-Dep</th>
                 </tr>
               </thead>
               <tbody>
@@ -162,6 +166,15 @@ export default function PsychrometricBatchForm({ points, dates, batchSavePath, i
                       <td className="px-3 py-2 text-center text-sm text-muted-foreground">
                         {gpp || "—"}
                       </td>
+                      <td className="px-3 py-2">
+                        <Input
+                          type="number"
+                          step="0.1"
+                          value={data.readings[i].g_dep}
+                          onChange={(e) => setReadingField(i, "g_dep", e.target.value)}
+                          className="h-8 w-20 text-center mx-auto"
+                        />
+                      </td>
                     </tr>
                   );
                 })}
@@ -183,7 +196,7 @@ export default function PsychrometricBatchForm({ points, dates, batchSavePath, i
                       <div className="text-xs text-muted-foreground">{point.dehumidifier_label}</div>
                     )}
                   </div>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-4 gap-2">
                     <div>
                       <label className="text-xs text-muted-foreground">Rh%</label>
                       <Input
@@ -209,6 +222,16 @@ export default function PsychrometricBatchForm({ points, dates, batchSavePath, i
                     <div>
                       <label className="text-xs text-muted-foreground">GPP</label>
                       <div className="h-9 flex items-center text-sm text-muted-foreground">{gpp || "—"}</div>
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">G-Dep</label>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        value={data.readings[i].g_dep}
+                        onChange={(e) => setReadingField(i, "g_dep", e.target.value)}
+                        className="h-9"
+                      />
                     </div>
                   </div>
                 </div>

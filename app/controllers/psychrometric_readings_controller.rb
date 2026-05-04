@@ -68,6 +68,7 @@ class PsychrometricReadingsController < ApplicationController
       reading = point.psychrometric_readings.find_or_initialize_by(log_date: date)
       reading.temperature = reading_data[:temperature]
       reading.relative_humidity = reading_data[:relative_humidity]
+      reading.g_dep = reading_data[:g_dep]
       reading.recorded_by_user = current_user
       reading.save!
     end
@@ -138,6 +139,6 @@ class PsychrometricReadingsController < ApplicationController
   end
 
   def reading_update_params
-    params.permit(:temperature, :relative_humidity)
+    params.permit(:temperature, :relative_humidity, :g_dep)
   end
 end
