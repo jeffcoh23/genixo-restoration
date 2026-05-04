@@ -6,6 +6,7 @@ class PsychrometricReading < ApplicationRecord
   validates :psychrometric_point_id, uniqueness: { scope: :log_date }
   validates :temperature, numericality: true, allow_nil: true
   validates :relative_humidity, numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 100 }, allow_nil: true
+  validates :g_dep, numericality: true, allow_nil: true
 
   before_save :calculate_gpp
 

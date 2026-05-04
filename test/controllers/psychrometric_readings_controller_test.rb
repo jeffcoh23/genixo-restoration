@@ -168,6 +168,30 @@ class PsychrometricReadingsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 50.0, reading.relative_humidity.to_f
   end
 
+  test "manager can update g_dep on a reading" do
+    login_as @manager
+    point = create_point!
+    reading = point.psychrometric_readings.create!(log_date: Date.current, temperature: 78, relative_humidity: 65, recorded_by_user: @tech)
+
+    patch incident_psychrometric_reading_path(@incident, reading), params: { g_dep: "22.5" }
+    assert_redirected_to incident_path(@incident)
+    reading.reload
+    assert_equal 22.5, reading.g_dep.to_f
+  end
+
+  test "batch save stores g_dep" do
+    login_as @manager
+    point = create_point!
+
+    post batch_save_incident_psychrometric_readings_path(@incident), params: {
+      log_date: Date.current.iso8601,
+      readings: [ { point_id: point.id, temperature: "78", relative_humidity: "65", g_dep: "18.3" } ]
+    }
+    assert_redirected_to incident_path(@incident)
+    reading = point.psychrometric_readings.find_by(log_date: Date.current)
+    assert_equal 18.3, reading.g_dep.to_f
+  end
+
   test "technician can edit reading created by different technician" do
     login_as @other_tech
     point = create_point!

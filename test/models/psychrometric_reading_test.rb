@@ -67,6 +67,38 @@ class PsychrometricReadingTest < ActiveSupport::TestCase
     assert reading.valid?
   end
 
+  # --- G-Dep ---
+
+  test "g_dep can be nil" do
+    reading = PsychrometricReading.new(psychrometric_point: @point,
+      log_date: Date.current, temperature: 78, relative_humidity: 65, recorded_by_user: @user)
+    assert reading.valid?
+    assert_nil reading.g_dep
+  end
+
+  test "g_dep is stored as provided and not recalculated" do
+    reading = PsychrometricReading.create!(psychrometric_point: @point,
+      log_date: Date.current, temperature: 78, relative_humidity: 65, g_dep: 22.5, recorded_by_user: @user)
+    reading.reload
+    assert_equal 22.5, reading.g_dep.to_f
+  end
+
+  test "g_dep must be a number" do
+    reading = PsychrometricReading.new(psychrometric_point: @point,
+      log_date: Date.current, temperature: 78, relative_humidity: 65, g_dep: "abc", recorded_by_user: @user)
+    assert_not reading.valid?
+    assert reading.errors[:g_dep].any?
+  end
+
+  test "g_dep can be updated independently of rh and temperature" do
+    reading = PsychrometricReading.create!(psychrometric_point: @point,
+      log_date: Date.current, temperature: 78, relative_humidity: 65, recorded_by_user: @user)
+    reading.update!(g_dep: 18.3)
+    reading.reload
+    assert_equal 18.3, reading.g_dep.to_f
+    assert_not_nil reading.gpp
+  end
+
   # --- GPP auto-calculation ---
 
   test "calculates GPP on save when both temperature and relative_humidity present" do

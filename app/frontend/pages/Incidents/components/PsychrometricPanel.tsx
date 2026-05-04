@@ -19,7 +19,7 @@ function rhColor(rh: number | null): string {
   return "bg-red-100 text-red-800";
 }
 
-type PsychField = "relative_humidity" | "temperature";
+type PsychField = "relative_humidity" | "temperature" | "g_dep";
 
 function calculateGpp(rh: number | null, temp: number | null): number | null {
   if (rh === null || temp === null) return null;
@@ -49,17 +49,6 @@ export default function PsychrometricPanel({ psychrometric_data, can_manage_psyc
   const [localPoints, setLocalPoints] = useState<PsychrometricPoint[]>([]);
   const allPoints = useMemo(() => [...psychrometric_data.points, ...localPoints.filter(lp => !psychrometric_data.points.some(sp => sp.id === lp.id))], [psychrometric_data.points, localPoints]);
 
-  // G-Dep: for room points, GPP minus the dehumidifier GPP in the same unit
-  const getDehuGpp = useCallback((unit: string, date: string): number | null => {
-    const dehuPoint = allPoints.find(p => p.unit === unit && p.dehumidifier_label);
-    if (!dehuPoint) return null;
-    const rhKey = `${dehuPoint.id}:${date}:relative_humidity`;
-    const tempKey = `${dehuPoint.id}:${date}:temperature`;
-    const dehuRh = rhKey in pendingSaves ? pendingSaves[rhKey] : (dehuPoint.readings[date]?.relative_humidity ?? null);
-    const dehuTemp = tempKey in pendingSaves ? pendingSaves[tempKey] : (dehuPoint.readings[date]?.temperature ?? null);
-    if (rhKey in pendingSaves || tempKey in pendingSaves) return calculateGpp(dehuRh, dehuTemp);
-    return dehuPoint.readings[date]?.gpp ?? null;
-  }, [allPoints, pendingSaves]);
 
   const orderedDates = psychrometric_data.dates;
   const orderedDateLabels = psychrometric_data.date_labels;
@@ -146,8 +135,10 @@ export default function PsychrometricPanel({ psychrometric_data, can_manage_psyc
         const reading = point.readings[d];
         const rhKey = `${point.id}:${d}:relative_humidity`;
         const tempKey = `${point.id}:${d}:temperature`;
+        const gDepKey = `${point.id}:${d}:g_dep`;
         cells.push({ pointId: point.id, date: d, field: "relative_humidity", value: rhKey in pendingSaves ? pendingSaves[rhKey] : (reading?.relative_humidity ?? null) });
         cells.push({ pointId: point.id, date: d, field: "temperature", value: tempKey in pendingSaves ? pendingSaves[tempKey] : (reading?.temperature ?? null) });
+        cells.push({ pointId: point.id, date: d, field: "g_dep", value: gDepKey in pendingSaves ? pendingSaves[gDepKey] : (reading?.g_dep ?? null) });
       }
     }
 
@@ -327,8 +318,10 @@ export default function PsychrometricPanel({ psychrometric_data, can_manage_psyc
                     const reading = point.readings[date];
                     const rhKey = `${point.id}:${date}:relative_humidity`;
                     const tempKey = `${point.id}:${date}:temperature`;
+                    const gDepKey = `${point.id}:${date}:g_dep`;
                     const rh = rhKey in pendingSaves ? pendingSaves[rhKey] : (reading?.relative_humidity ?? null);
                     const temp = tempKey in pendingSaves ? pendingSaves[tempKey] : (reading?.temperature ?? null);
+                    const gDep = gDepKey in pendingSaves ? pendingSaves[gDepKey] : (reading?.g_dep ?? null);
                     // Recalculate GPP client-side if we have local edits, otherwise use server value
                     const gpp = (rhKey in pendingSaves || tempKey in pendingSaves)
                       ? calculateGpp(rh, temp)
@@ -336,6 +329,7 @@ export default function PsychrometricPanel({ psychrometric_data, can_manage_psyc
 
                     const isEditingRh = editingCell?.pointId === point.id && editingCell?.date === date && editingCell?.field === "relative_humidity";
                     const isEditingTemp = editingCell?.pointId === point.id && editingCell?.date === date && editingCell?.field === "temperature";
+                    const isEditingGDep = editingCell?.pointId === point.id && editingCell?.date === date && editingCell?.field === "g_dep";
 
                     return (
                       <Fragment key={date}>
@@ -399,18 +393,32 @@ export default function PsychrometricPanel({ psychrometric_data, can_manage_psyc
                             {gpp !== null ? gpp : <span className="text-muted-foreground/40">&mdash;</span>}
                           </span>
                         </td>
-                        {/* G-Dep cell (read-only, calculated) */}
-                        <td className="px-1 py-1.5 text-sm text-center">
-                          <span className="text-xs text-muted-foreground">
-                            {point.dehumidifier_label ? (
-                              <span className="text-muted-foreground/40">&mdash;</span>
-                            ) : (() => {
-                              if (gpp === null) return <span className="text-muted-foreground/40">&mdash;</span>;
-                              const dehuGpp = getDehuGpp(point.unit, date);
-                              if (dehuGpp === null) return <span className="text-muted-foreground/40">&mdash;</span>;
-                              return Math.round((gpp - dehuGpp) * 10) / 10;
-                            })()}
-                          </span>
+                        {/* G-Dep cell (editable) */}
+                        <td className={`px-1 py-1 text-sm text-center ${can_manage_psychrometric ? "cursor-pointer hover:bg-muted/50" : ""}`}>
+                          {isEditingGDep ? (
+                            <Input
+                              type="text"
+                              inputMode="decimal"
+                              value={editValue}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                if (v === "" || v === "-" || /^-?\d*\.?\d*$/.test(v)) setEditValue(v);
+                              }}
+                              onKeyDown={handleCellKeyDown}
+                              onBlur={handleCellBlur}
+                              className="h-6 w-12 text-center text-xs border-0 border-b-2 border-primary rounded-none shadow-none focus-visible:ring-0 mx-auto font-medium"
+                              autoFocus
+                            />
+                          ) : (
+                            <span
+                              className="text-xs text-muted-foreground"
+                              onClick={() => {
+                                if (can_manage_psychrometric) startEdit(point.id, date, "g_dep", gDep);
+                              }}
+                            >
+                              {gDep !== null ? gDep : <span className="text-muted-foreground/40">&mdash;</span>}
+                            </span>
+                          )}
                         </td>
                       </Fragment>
                     );
