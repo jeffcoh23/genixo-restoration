@@ -262,6 +262,15 @@ class EquipmentEntriesControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
+  test "office_sales cannot destroy equipment entry" do
+    login_as @office_sales
+    entry = create_entry(logged_by: @tech)
+    assert_no_difference "EquipmentEntry.count" do
+      delete incident_equipment_entry_path(@incident, entry)
+    end
+    assert_response :not_found
+  end
+
   test "destroying entry referenced by activity_equipment_action nullifies the link" do
     login_as @manager
     entry = create_entry(logged_by: @tech)
