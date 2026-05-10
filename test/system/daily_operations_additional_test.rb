@@ -83,7 +83,7 @@ class DailyOperationsAdditionalTest < ApplicationSystemTestCase
     visit incident_path(@incident)
     find("[data-testid='incident-tab-equipment']").click
 
-    find("button[title='Mark as removed']").click
+    find("button[title='Pull equipment (sets removal time to now)']").click
 
     assert_text "Equipment removed."
     assert entry.reload.removed_at.present?
