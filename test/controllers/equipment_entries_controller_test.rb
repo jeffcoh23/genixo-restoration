@@ -308,7 +308,7 @@ class EquipmentEntriesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "tech with MANAGE_DAILY_LOGS revoked cannot destroy own entry" do
-    @tech.update!(permissions: @tech.permissions - [Permissions::MANAGE_DAILY_LOGS.to_s])
+    @tech.update!(permissions: @tech.permissions - [ Permissions::MANAGE_DAILY_LOGS.to_s ])
     login_as @tech
     entry = create_entry(logged_by: @tech)
     assert_no_difference "EquipmentEntry.count" do
