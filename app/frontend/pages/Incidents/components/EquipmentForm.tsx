@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useForm, usePage } from "@inertiajs/react";
+import { router, useForm, usePage } from "@inertiajs/react";
 import { Lock, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,6 +53,8 @@ export default function EquipmentForm({ path, equipment_types, equipment_items_b
     location_notes: entry?.location_notes ?? "",
   });
   const [timeError, setTimeError] = useState<string | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const typeNameMap = useMemo(() =>
     new Map(equipment_types.map((t) => [String(t.id), t.name])),
@@ -134,6 +136,16 @@ export default function EquipmentForm({ path, equipment_types, equipment_items_b
     const submit = editing ? patch : post;
     const url = editing ? entry!.edit_path! : path;
     submit(url, { onSuccess: () => onClose() });
+  };
+
+  const handleDelete = () => {
+    if (!entry?.edit_path) return;
+    setDeleting(true);
+    router.delete(entry.edit_path, {
+      preserveScroll: true,
+      onSuccess: () => onClose(),
+      onFinish: () => setDeleting(false),
+    });
   };
 
   const isItemSelected = data.equipment_item_id !== "";
@@ -384,12 +396,41 @@ export default function EquipmentForm({ path, equipment_types, equipment_items_b
             />
           </div>
 
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
-            <Button type="submit" size="sm" disabled={processing}>
-              {processing ? "Saving..." : editing ? "Update" : "Place Equipment"}
-            </Button>
-          </div>
+          {confirmingDelete ? (
+            <div className="rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 space-y-2">
+              <p className="text-xs text-foreground">
+                Delete this equipment entry? The equipment record is removed from this incident. This can't be undone.
+              </p>
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="ghost" size="sm" onClick={() => setConfirmingDelete(false)} disabled={deleting}>
+                  Cancel
+                </Button>
+                <Button type="button" variant="destructive" size="sm" onClick={handleDelete} disabled={deleting}>
+                  {deleting ? "Deleting..." : "Delete entry"}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between gap-2 pt-2">
+              {editing && entry?.edit_path ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                  onClick={() => setConfirmingDelete(true)}
+                >
+                  Delete
+                </Button>
+              ) : <span />}
+              <div className="flex items-center gap-2">
+                <Button type="button" variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
+                <Button type="submit" size="sm" disabled={processing}>
+                  {processing ? "Saving..." : editing ? "Update" : "Place Equipment"}
+                </Button>
+              </div>
+            </div>
+          )}
         </form>
       </DialogContent>
     </Dialog>

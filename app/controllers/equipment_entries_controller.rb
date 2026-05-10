@@ -78,6 +78,28 @@ class EquipmentEntriesController < ApplicationController
       alert: "Could not remove equipment."
   end
 
+  def destroy
+    entry = find_editable_entry!
+
+    metadata = {
+      equipment_entry_id: entry.id,
+      type_name: entry.type_name,
+      equipment_identifier: entry.equipment_identifier,
+      location_notes: entry.location_notes
+    }
+
+    entry.destroy!
+
+    ActivityLogger.log(
+      incident: @incident,
+      event_type: "equipment_deleted",
+      user: current_user,
+      metadata: metadata
+    )
+
+    redirect_to incident_path(@incident), notice: "Equipment entry deleted."
+  end
+
   private
 
   def set_incident

@@ -233,6 +233,65 @@ class EquipmentEntriesControllerTest < ActionDispatch::IntegrationTest
     assert_nil entry.reload.removed_at
   end
 
+  # --- Destroy tests ---
+
+  test "manager can destroy equipment entry" do
+    login_as @manager
+    entry = create_entry(logged_by: @tech)
+    assert_difference "EquipmentEntry.count", -1 do
+      delete incident_equipment_entry_path(@incident, entry)
+    end
+    assert_redirected_to incident_path(@incident)
+  end
+
+  test "tech can destroy own equipment entry" do
+    login_as @tech
+    entry = create_entry(logged_by: @tech)
+    assert_difference "EquipmentEntry.count", -1 do
+      delete incident_equipment_entry_path(@incident, entry)
+    end
+    assert_redirected_to incident_path(@incident)
+  end
+
+  test "tech cannot destroy another users equipment entry" do
+    login_as @tech
+    entry = create_entry(logged_by: @other_tech)
+    assert_no_difference "EquipmentEntry.count" do
+      delete incident_equipment_entry_path(@incident, entry)
+    end
+    assert_response :not_found
+  end
+
+  test "destroying entry referenced by activity_equipment_action nullifies the link" do
+    login_as @manager
+    entry = create_entry(logged_by: @tech)
+    activity = @incident.activity_entries.create!(
+      performed_by_user: @tech, title: "set up", occurred_at: Time.current
+    )
+    action = activity.equipment_actions.create!(
+      action_type: "add", equipment_entry: entry, equipment_type: @dehumidifier, quantity: 1
+    )
+
+    assert_difference "EquipmentEntry.count", -1 do
+      delete incident_equipment_entry_path(@incident, entry)
+    end
+    assert_redirected_to incident_path(@incident)
+    assert_nil action.reload.equipment_entry_id
+  end
+
+  test "creates activity event on destroy" do
+    login_as @manager
+    entry = create_entry(logged_by: @tech)
+    assert_difference "ActivityEvent.count", 1 do
+      delete incident_equipment_entry_path(@incident, entry)
+    end
+    event = ActivityEvent.last
+    assert_equal "equipment_deleted", event.event_type
+    assert_equal @manager.id, event.performed_by_user_id
+    assert_equal "Dehumidifier", event.metadata["type_name"]
+    assert_equal entry.id, event.metadata["equipment_entry_id"]
+  end
+
   # --- Activity event tests ---
 
   test "creates activity event on place" do

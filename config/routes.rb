@@ -47,7 +47,7 @@ Rails.application.routes.draw do
     resources :messages, only: %i[create]
     resources :activity_entries, only: %i[create update]
     resources :labor_entries, only: %i[create update destroy]
-    resources :equipment_entries, only: %i[create update] do
+    resources :equipment_entries, only: %i[create update destroy] do
       member do
         patch :remove
       end

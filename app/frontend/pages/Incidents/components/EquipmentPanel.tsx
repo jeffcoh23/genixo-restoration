@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { usePage } from "@inertiajs/react";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, PackageMinus } from "lucide-react";
 import InlineActionFeedback from "@/components/InlineActionFeedback";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -149,12 +149,12 @@ export default function EquipmentPanel({ equipment_log = [], can_manage_equipmen
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                              className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
                               onClick={() => handleRemove(item)}
                               disabled={removeAction.processing}
-                              title="Mark as removed"
+                              title="Pull equipment (sets removal time to now)"
                             >
-                              <Trash2 className="h-3 w-3" />
+                              <PackageMinus className="h-3 w-3" />
                             </Button>
                           )}
                         </div>
