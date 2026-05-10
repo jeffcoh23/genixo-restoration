@@ -206,6 +206,16 @@ class EquipmentEntriesControllerTest < ActionDispatch::IntegrationTest
     assert_not_equal "Should not work", entry.reload.location_notes
   end
 
+  test "PM user cannot update equipment entry" do
+    login_as @pm_user
+    entry = create_entry(logged_by: @tech)
+    patch incident_equipment_entry_path(@incident, entry), params: {
+      equipment_entry: { location_notes: "Should not work" }
+    }
+    assert_response :not_found
+    assert_not_equal "Should not work", entry.reload.location_notes
+  end
+
   # --- Remove tests ---
 
   test "manager can remove equipment" do
@@ -228,6 +238,14 @@ class EquipmentEntriesControllerTest < ActionDispatch::IntegrationTest
   test "tech cannot remove another users equipment" do
     login_as @tech
     entry = create_entry(logged_by: @other_tech)
+    patch remove_incident_equipment_entry_path(@incident, entry)
+    assert_response :not_found
+    assert_nil entry.reload.removed_at
+  end
+
+  test "PM user cannot remove equipment entry" do
+    login_as @pm_user
+    entry = create_entry(logged_by: @tech)
     patch remove_incident_equipment_entry_path(@incident, entry)
     assert_response :not_found
     assert_nil entry.reload.removed_at
@@ -264,6 +282,34 @@ class EquipmentEntriesControllerTest < ActionDispatch::IntegrationTest
 
   test "office_sales cannot destroy equipment entry" do
     login_as @office_sales
+    entry = create_entry(logged_by: @tech)
+    assert_no_difference "EquipmentEntry.count" do
+      delete incident_equipment_entry_path(@incident, entry)
+    end
+    assert_response :not_found
+  end
+
+  test "PM user cannot destroy equipment entry" do
+    login_as @pm_user
+    entry = create_entry(logged_by: @tech)
+    assert_no_difference "EquipmentEntry.count" do
+      delete incident_equipment_entry_path(@incident, entry)
+    end
+    assert_response :not_found
+  end
+
+  test "cross-org PM user cannot destroy equipment entry" do
+    login_as @cross_org_pm
+    entry = create_entry(logged_by: @tech)
+    assert_no_difference "EquipmentEntry.count" do
+      delete incident_equipment_entry_path(@incident, entry)
+    end
+    assert_response :not_found
+  end
+
+  test "tech with MANAGE_DAILY_LOGS revoked cannot destroy own entry" do
+    @tech.update!(permissions: @tech.permissions - [Permissions::MANAGE_DAILY_LOGS.to_s])
+    login_as @tech
     entry = create_entry(logged_by: @tech)
     assert_no_difference "EquipmentEntry.count" do
       delete incident_equipment_entry_path(@incident, entry)
