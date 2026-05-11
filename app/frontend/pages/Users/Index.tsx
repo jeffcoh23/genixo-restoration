@@ -5,8 +5,8 @@ import InlineActionFeedback from "@/components/InlineActionFeedback";
 import PageHeader from "@/components/PageHeader";
 import DataTable, { Column, LinkCell, MutedCell } from "@/components/DataTable";
 import FormField from "@/components/FormField";
+import FormDialog from "@/components/FormDialog";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { SharedProps } from "@/types";
@@ -146,126 +146,116 @@ export default function UsersIndex() {
         action={{ label: "Invite User", onClick: () => setShowInviteModal(true) }}
       />
 
-      <Dialog open={showInviteModal} onOpenChange={setShowInviteModal}>
-        <DialogContent className="max-w-3xl p-0 gap-0 overflow-hidden">
-          <DialogHeader className="px-6 pt-5 pb-4 border-b border-border bg-muted/30">
-            <DialogTitle>Invite User</DialogTitle>
-            <p className="text-sm text-muted-foreground">
-              Choose the organization first, then select one of the roles available for that organization.
-            </p>
-          </DialogHeader>
+      <FormDialog
+        open={showInviteModal}
+        onOpenChange={setShowInviteModal}
+        title="Invite User"
+        description="Choose the organization first, then select one of the roles available for that organization."
+        size="xl"
+        onSubmit={handleInvite}
+        submitLabel="Send Invitation"
+        submitProcessingLabel="Sending..."
+        processing={form.processing}
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField id="invite_email" label="Email" type="email" value={form.data.email}
+            onChange={(v) => form.setData("email", v)} error={form.errors.email} required />
 
-          <form onSubmit={handleInvite} className="p-6 space-y-5">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField id="invite_email" label="Email" type="email" value={form.data.email}
-                onChange={(v) => form.setData("email", v)} error={form.errors.email} required />
-
-              {org_options.length > 1 && (
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Organization</label>
-                  <Select value={form.data.organization_id} onValueChange={(v) => { form.setData("organization_id", v); form.setData("user_type", ""); }}>
-                    <SelectTrigger className="h-11 sm:h-10">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {org_options.map((o) => <SelectItem key={o.id} value={String(o.id)}>{o.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
+          {org_options.length > 1 && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Organization</label>
+              <Select value={form.data.organization_id} onValueChange={(v) => { form.setData("organization_id", v); form.setData("user_type", ""); }}>
+                <SelectTrigger className="h-11 sm:h-10">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {org_options.map((o) => <SelectItem key={o.id} value={String(o.id)}>{o.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
+          )}
+        </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Role</label>
-                <Select value={form.data.user_type} onValueChange={(v) => form.setData("user_type", v)}>
-                  <SelectTrigger className="h-11 sm:h-10">
-                    <SelectValue placeholder="Select a role..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {selectedOrg?.role_options.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                {form.errors.user_type && <p className="text-sm text-destructive mt-1">{form.errors.user_type}</p>}
-                {!form.errors.user_type && (
-                  <p className="text-sm text-muted-foreground">Role options are scoped to the selected organization.</p>
-                )}
-              </div>
-              <FormField id="invite_title" label="Title" hint="optional" value={form.data.title}
-                onChange={(v) => form.setData("title", v)} />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField id="invite_first" label="First Name" hint="optional" value={form.data.first_name}
-                onChange={(v) => form.setData("first_name", v)} />
-              <FormField id="invite_last" label="Last Name" hint="optional" value={form.data.last_name}
-                onChange={(v) => form.setData("last_name", v)} />
-            </div>
-
-            <FormField id="invite_phone" label="Phone" hint="optional" type="tel" value={form.data.phone}
-              onChange={(v) => form.setData("phone", v)} />
-
-            {form.data.user_type && selectedOrg?.is_mitigation && (
-              <div className="space-y-3">
-                <label className="text-sm font-medium">Permissions</label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  {permissions_options.map((p) => (
-                    <div key={p.value} className="flex items-center gap-2">
-                      <Checkbox
-                        id={`perm_${p.value}`}
-                        checked={form.data.permissions.includes(p.value)}
-                        onCheckedChange={(checked) => {
-                          const next = checked
-                            ? [...form.data.permissions, p.value]
-                            : form.data.permissions.filter((v) => v !== p.value);
-                          form.setData("permissions", next);
-                        }}
-                      />
-                      <label htmlFor={`perm_${p.value}`} className="text-sm cursor-pointer">{p.label}</label>
-                    </div>
-                  ))}
-                </div>
-              </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Role</label>
+            <Select value={form.data.user_type} onValueChange={(v) => form.setData("user_type", v)}>
+              <SelectTrigger className="h-11 sm:h-10">
+                <SelectValue placeholder="Select a role..." />
+              </SelectTrigger>
+              <SelectContent>
+                {selectedOrg?.role_options.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            {form.errors.user_type && <p className="text-sm text-destructive mt-1">{form.errors.user_type}</p>}
+            {!form.errors.user_type && (
+              <p className="text-sm text-muted-foreground">Role options are scoped to the selected organization.</p>
             )}
+          </div>
+          <FormField id="invite_title" label="Title" value={form.data.title}
+            onChange={(v) => form.setData("title", v)} />
+        </div>
 
-            {form.data.user_type && (
-              <div className="space-y-3">
-                <label className="text-sm font-medium">Notification Preferences</label>
-                <div className="rounded-md border border-border divide-y divide-border">
-                  {notification_options.map((n) => (
-                    <div key={n.key} className="flex items-start gap-3 px-3 py-2.5">
-                      <Checkbox
-                        id={`notif_${n.key}`}
-                        checked={form.data.notification_preferences[n.key] || false}
-                        onCheckedChange={(checked) => {
-                          form.setData("notification_preferences", {
-                            ...form.data.notification_preferences,
-                            [n.key]: checked === true,
-                          });
-                        }}
-                        className="mt-0.5"
-                      />
-                      <label htmlFor={`notif_${n.key}`} className="cursor-pointer">
-                        <div className="text-sm font-medium text-foreground">{n.label}</div>
-                        <div className="text-xs text-muted-foreground">{n.description}</div>
-                      </label>
-                    </div>
-                  ))}
+        <div className="grid grid-cols-2 gap-4">
+          <FormField id="invite_first" label="First Name" value={form.data.first_name}
+            onChange={(v) => form.setData("first_name", v)} />
+          <FormField id="invite_last" label="Last Name" value={form.data.last_name}
+            onChange={(v) => form.setData("last_name", v)} />
+        </div>
+
+        <FormField id="invite_phone" label="Phone" type="tel" value={form.data.phone}
+          onChange={(v) => form.setData("phone", v)} />
+
+        {form.data.user_type && selectedOrg?.is_mitigation && (
+          <div className="space-y-3">
+            <label className="text-sm font-medium">Permissions</label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {permissions_options.map((p) => (
+                <div key={p.value} className="flex items-center gap-2">
+                  <Checkbox
+                    id={`perm_${p.value}`}
+                    checked={form.data.permissions.includes(p.value)}
+                    onCheckedChange={(checked) => {
+                      const next = checked
+                        ? [...form.data.permissions, p.value]
+                        : form.data.permissions.filter((v) => v !== p.value);
+                      form.setData("permissions", next);
+                    }}
+                  />
+                  <label htmlFor={`perm_${p.value}`} className="text-sm cursor-pointer">{p.label}</label>
                 </div>
-              </div>
-            )}
-
-            <div className="flex items-center justify-end gap-2 pt-1">
-              <Button type="button" variant="outline" onClick={() => setShowInviteModal(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={form.processing}>
-                {form.processing ? "Sending..." : "Send Invitation"}
-              </Button>
+              ))}
             </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+          </div>
+        )}
+
+        {form.data.user_type && (
+          <div className="space-y-3">
+            <label className="text-sm font-medium">Notification Preferences</label>
+            <div className="rounded-md border border-border divide-y divide-border">
+              {notification_options.map((n) => (
+                <div key={n.key} className="flex items-start gap-3 px-3 py-2.5">
+                  <Checkbox
+                    id={`notif_${n.key}`}
+                    checked={form.data.notification_preferences[n.key] || false}
+                    onCheckedChange={(checked) => {
+                      form.setData("notification_preferences", {
+                        ...form.data.notification_preferences,
+                        [n.key]: checked === true,
+                      });
+                    }}
+                    className="mt-0.5"
+                  />
+                  <label htmlFor={`notif_${n.key}`} className="cursor-pointer">
+                    <div className="text-sm font-medium text-foreground">{n.label}</div>
+                    <div className="text-xs text-muted-foreground">{n.description}</div>
+                  </label>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </FormDialog>
 
       {/* Pending Invitations */}
       {pending_invitations.length > 0 && (
