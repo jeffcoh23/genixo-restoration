@@ -55,6 +55,7 @@ export default function EquipmentForm({ path, equipment_types, equipment_items_b
   const [timeError, setTimeError] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const typeNameMap = useMemo(() =>
     new Map(equipment_types.map((t) => [String(t.id), t.name])),
@@ -141,9 +142,11 @@ export default function EquipmentForm({ path, equipment_types, equipment_items_b
   const handleDelete = () => {
     if (!entry?.edit_path) return;
     setDeleting(true);
+    setDeleteError(null);
     router.delete(entry.edit_path, {
       preserveScroll: true,
       onSuccess: () => onClose(),
+      onError: () => setDeleteError("Could not delete this entry. Please try again."),
       onFinish: () => setDeleting(false),
     });
   };
@@ -401,8 +404,11 @@ export default function EquipmentForm({ path, equipment_types, equipment_items_b
               <p className="text-xs text-foreground">
                 Delete this equipment entry? The equipment record is removed from this incident. This can't be undone.
               </p>
+              {deleteError && (
+                <p className="text-xs text-destructive">{deleteError}</p>
+              )}
               <div className="flex justify-end gap-2">
-                <Button type="button" variant="ghost" size="sm" onClick={() => setConfirmingDelete(false)} disabled={deleting}>
+                <Button type="button" variant="ghost" size="sm" onClick={() => { setConfirmingDelete(false); setDeleteError(null); }} disabled={deleting}>
                   Cancel
                 </Button>
                 <Button type="button" variant="destructive" size="sm" onClick={handleDelete} disabled={deleting}>

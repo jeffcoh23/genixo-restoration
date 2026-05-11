@@ -1,4 +1,5 @@
 require "test_helper"
+require "minitest/mock"
 
 class EquipmentEntriesControllerTest < ActionDispatch::IntegrationTest
   setup do
@@ -332,6 +333,52 @@ class EquipmentEntriesControllerTest < ActionDispatch::IntegrationTest
     end
     assert_redirected_to incident_path(@incident)
     assert_nil action.reload.equipment_entry_id
+  end
+
+  test "destroying entry snapshots type onto linked actions with no type" do
+    login_as @manager
+    entry = create_entry(logged_by: @tech)
+    activity = @incident.activity_entries.create!(
+      performed_by_user: @tech, title: "set up", occurred_at: Time.current
+    )
+    action = activity.equipment_actions.create!(
+      action_type: "add", equipment_entry: entry, quantity: 1
+    )
+    assert_nil action.equipment_type_id
+
+    delete incident_equipment_entry_path(@incident, entry)
+
+    action.reload
+    assert_nil action.equipment_entry_id
+    assert_equal @dehumidifier.id, action.equipment_type_id
+    assert_equal "Dehumidifier", action.type_name
+  end
+
+  test "destroying entry preserves existing type on linked actions" do
+    other_type = EquipmentType.create!(organization: @genixo, name: "Air Mover")
+    login_as @manager
+    entry = create_entry(logged_by: @tech)
+    activity = @incident.activity_entries.create!(
+      performed_by_user: @tech, title: "set up", occurred_at: Time.current
+    )
+    action = activity.equipment_actions.create!(
+      action_type: "add", equipment_entry: entry, equipment_type: other_type, quantity: 1
+    )
+
+    delete incident_equipment_entry_path(@incident, entry)
+
+    assert_equal other_type.id, action.reload.equipment_type_id
+  end
+
+  test "destroy rolls back when activity logging fails" do
+    login_as @manager
+    entry = create_entry(logged_by: @tech)
+    ActivityLogger.stub :log, ->(*) { raise "boom" } do
+      assert_raises(RuntimeError) do
+        delete incident_equipment_entry_path(@incident, entry)
+      end
+    end
+    assert EquipmentEntry.exists?(entry.id), "entry should still exist after rollback"
   end
 
   test "creates activity event on destroy" do
