@@ -228,6 +228,53 @@ class EquipmentEntriesControllerTest < ActionDispatch::IntegrationTest
     assert_not_nil entry.reload.removed_at
   end
 
+  test "remove without removed_at param records the actual current time, not midnight" do
+    # Regression: client used to send removed_at: today (an iso date), which the
+    # controller parsed to midnight of that day instead of the actual moment of
+    # removal. Now the client sends no removed_at and the server uses Time.current.
+    login_as @manager
+    entry = create_entry(logged_by: @tech)
+    before = Time.current
+    patch remove_incident_equipment_entry_path(@incident, entry)
+    after = Time.current
+
+    saved = entry.reload.removed_at
+    assert saved.between?(before, after),
+      "expected removed_at (#{saved}) within request window #{before}..#{after}"
+    refute_equal saved, saved.beginning_of_day,
+      "removed_at should not collapse to midnight"
+  end
+
+  test "remove honors users timezone when storing UTC" do
+    @manager.update!(timezone: "Pacific Time (US & Canada)")
+    login_as @manager
+    entry = create_entry(logged_by: @tech)
+    patch remove_incident_equipment_entry_path(@incident, entry)
+
+    saved = entry.reload.removed_at
+    # AR always stores UTC; the saved instant should match Time.current regardless
+    # of zone. Round-trip through the user's zone produces the same instant.
+    assert_in_delta Time.current.to_f, saved.to_f, 5.0
+    assert_equal "UTC", saved.utc.zone
+  end
+
+  test "remove with explicit removed_at param parses it in users timezone" do
+    @manager.update!(timezone: "Pacific Time (US & Canada)")
+    login_as @manager
+    # placed_at must be before removed_at — use a fixed past time and a removed_at after it
+    entry = @incident.equipment_entries.create!(
+      equipment_type: @dehumidifier, equipment_identifier: "DH-TZ",
+      placed_at: Time.zone.parse("2026-05-10T08:00"),
+      location_notes: "TZ test", logged_by_user: @tech
+    )
+    patch remove_incident_equipment_entry_path(@incident, entry), params: { removed_at: "2026-05-11T14:30" }
+    assert_redirected_to incident_path(@incident)
+
+    saved = entry.reload.removed_at
+    expected = Time.use_zone("Pacific Time (US & Canada)") { Time.zone.parse("2026-05-11T14:30") }
+    assert_equal expected, saved
+  end
+
   test "tech can remove own equipment" do
     login_as @tech
     entry = create_entry(logged_by: @tech)
