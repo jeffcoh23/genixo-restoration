@@ -119,6 +119,76 @@ class DailyOperationsAdditionalTest < ApplicationSystemTestCase
     assert_nil entry.reload.removed_at
   end
 
+  test "no-op edit preserves sub-hour precision in removed_at" do
+    # Symmetric to the placed_at test below: Pull writes Time.current to
+    # removed_at, edit form rounds for display, no-op edit must preserve.
+    precise_placed = Time.zone.parse("2026-05-09T08:00:00")
+    precise_removed = Time.zone.parse("2026-05-10T19:21:33")
+    entry = EquipmentEntry.create!(
+      incident: @incident,
+      logged_by_user: @manager,
+      equipment_type: @equipment_type,
+      equipment_identifier: "DH-PRECISE-REM",
+      placed_at: precise_placed,
+      removed_at: precise_removed,
+      location_notes: "Precision-removed test"
+    )
+
+    login_as @manager
+    visit incident_path(@incident)
+    find("[data-testid='incident-tab-equipment']").click
+
+    within(find("tr", text: "DH-PRECISE-REM")) { find("button[title='Edit']").click }
+
+    within("[role='dialog']") do
+      fill_in "Unit 806, kitchen", with: "Updated location"
+      click_button "Update"
+    end
+
+    assert_text "Equipment entry updated."
+    entry.reload
+    assert_equal "Updated location", entry.location_notes
+    assert_equal precise_removed, entry.removed_at,
+      "expected removed_at preserved at #{precise_removed} but got #{entry.removed_at}"
+    assert_equal precise_placed, entry.placed_at,
+      "placed_at should also be preserved (it was untouched too)"
+  end
+
+  test "no-op edit preserves sub-hour precision in placed_at" do
+    # Pull records Time.current (precise to the second). The edit form rounds
+    # to the hour for display via toHour(). If a user opens the form and clicks
+    # Update without touching the time, we must NOT post the rounded value
+    # back — that would clobber the precise stored value.
+    precise_placed = Time.zone.parse("2026-05-10T19:21:33")
+    entry = EquipmentEntry.create!(
+      incident: @incident,
+      logged_by_user: @manager,
+      equipment_type: @equipment_type,
+      equipment_identifier: "DH-PRECISE",
+      placed_at: precise_placed,
+      location_notes: "Precision test"
+    )
+
+    login_as @manager
+    visit incident_path(@incident)
+    find("[data-testid='incident-tab-equipment']").click
+
+    within(find("tr", text: "DH-PRECISE")) { find("button[title='Edit']").click }
+
+    # Touch a non-time field to force a real PATCH, then submit without
+    # changing placed_at (which displays rounded as 7:00 PM).
+    within("[role='dialog']") do
+      fill_in "Unit 806, kitchen", with: "Updated location"
+      click_button "Update"
+    end
+
+    assert_text "Equipment entry updated."
+    entry.reload
+    assert_equal "Updated location", entry.location_notes
+    assert_equal precise_placed, entry.placed_at,
+      "expected placed_at preserved at #{precise_placed} but got #{entry.placed_at}"
+  end
+
   test "delete equipment entry from edit dialog" do
     entry = EquipmentEntry.create!(
       incident: @incident,

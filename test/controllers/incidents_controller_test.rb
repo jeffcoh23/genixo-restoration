@@ -566,6 +566,26 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     assert_equal [ newer.id, older.id ], ids
   end
 
+  test "equipment log total_hours rounds to whole number even when stored timestamps are precise" do
+    incident = create_test_incident(status: "active")
+    eq_type = EquipmentType.create!(name: "Dehumidifier", organization: @genixo)
+    # Sub-hour precision in storage (Pull records Time.current). Display contract
+    # is whole hours. 5h 23m → 5, not 5.4.
+    placed = Time.current - 5.hours - 23.minutes
+    incident.equipment_entries.create!(
+      equipment_type: eq_type, equipment_identifier: "DH-WHOLE",
+      placed_at: placed, location_notes: "TZ test", logged_by_user: @manager
+    )
+
+    login_as @manager
+    deferred = inertia_deferred_props(incident_path(incident), "equipment_log")
+    serialized = deferred.fetch("equipment_log").first
+
+    assert_equal 5, serialized.fetch("total_hours"),
+      "expected total_hours to round to whole number; got #{serialized.fetch('total_hours').inspect}"
+    assert_kind_of Integer, serialized.fetch("total_hours")
+  end
+
   test "equipment log includes inventory-linked schema fields for editable entries" do
     incident = create_test_incident(status: "active")
     eq_type = EquipmentType.create!(name: "Dehumidifier", organization: @genixo)
