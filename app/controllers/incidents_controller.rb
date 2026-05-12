@@ -1079,6 +1079,12 @@ class IncidentsController < ApplicationController
       location = metadata_value(metadata, :location_notes)
       detail_parts = [ type_name, identifier.present? ? "##{identifier}" : nil, location ]
       [ "equipment", "Equipment updated", detail_parts.compact.join(" · ").presence ]
+    when "equipment_deleted"
+      type_name = metadata_value(metadata, :type_name) || metadata_value(metadata, :equipment_type)
+      identifier = metadata_value(metadata, :equipment_identifier) || metadata_value(metadata, :identifier)
+      location = metadata_value(metadata, :location_notes)
+      detail_parts = [ type_name, identifier.present? ? "##{identifier}" : nil, location ]
+      [ "equipment", "Equipment entry deleted", detail_parts.compact.join(" · ").presence ]
     when "attachment_uploaded"
       filename = metadata_value(metadata, :filename)
       category = metadata_value(metadata, :category)

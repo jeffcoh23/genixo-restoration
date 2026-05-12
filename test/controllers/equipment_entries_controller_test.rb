@@ -1,4 +1,5 @@
 require "test_helper"
+require "minitest/mock"
 
 class EquipmentEntriesControllerTest < ActionDispatch::IntegrationTest
   setup do
@@ -206,6 +207,16 @@ class EquipmentEntriesControllerTest < ActionDispatch::IntegrationTest
     assert_not_equal "Should not work", entry.reload.location_notes
   end
 
+  test "PM user cannot update equipment entry" do
+    login_as @pm_user
+    entry = create_entry(logged_by: @tech)
+    patch incident_equipment_entry_path(@incident, entry), params: {
+      equipment_entry: { location_notes: "Should not work" }
+    }
+    assert_response :not_found
+    assert_not_equal "Should not work", entry.reload.location_notes
+  end
+
   # --- Remove tests ---
 
   test "manager can remove equipment" do
@@ -215,6 +226,53 @@ class EquipmentEntriesControllerTest < ActionDispatch::IntegrationTest
     patch remove_incident_equipment_entry_path(@incident, entry)
     assert_redirected_to incident_path(@incident)
     assert_not_nil entry.reload.removed_at
+  end
+
+  test "remove without removed_at param records the actual current time, not midnight" do
+    # Regression: client used to send removed_at: today (an iso date), which the
+    # controller parsed to midnight of that day instead of the actual moment of
+    # removal. Now the client sends no removed_at and the server uses Time.current.
+    login_as @manager
+    entry = create_entry(logged_by: @tech)
+    before = Time.current
+    patch remove_incident_equipment_entry_path(@incident, entry)
+    after = Time.current
+
+    saved = entry.reload.removed_at
+    assert saved.between?(before, after),
+      "expected removed_at (#{saved}) within request window #{before}..#{after}"
+    refute_equal saved, saved.beginning_of_day,
+      "removed_at should not collapse to midnight"
+  end
+
+  test "remove honors users timezone when storing UTC" do
+    @manager.update!(timezone: "Pacific Time (US & Canada)")
+    login_as @manager
+    entry = create_entry(logged_by: @tech)
+    patch remove_incident_equipment_entry_path(@incident, entry)
+
+    saved = entry.reload.removed_at
+    # AR always stores UTC; the saved instant should match Time.current regardless
+    # of zone. Round-trip through the user's zone produces the same instant.
+    assert_in_delta Time.current.to_f, saved.to_f, 5.0
+    assert_equal "UTC", saved.utc.zone
+  end
+
+  test "remove with explicit removed_at param parses it in users timezone" do
+    @manager.update!(timezone: "Pacific Time (US & Canada)")
+    login_as @manager
+    # placed_at must be before removed_at — use a fixed past time and a removed_at after it
+    entry = @incident.equipment_entries.create!(
+      equipment_type: @dehumidifier, equipment_identifier: "DH-TZ",
+      placed_at: Time.zone.parse("2026-05-10T08:00"),
+      location_notes: "TZ test", logged_by_user: @tech
+    )
+    patch remove_incident_equipment_entry_path(@incident, entry), params: { removed_at: "2026-05-11T14:30" }
+    assert_redirected_to incident_path(@incident)
+
+    saved = entry.reload.removed_at
+    expected = Time.use_zone("Pacific Time (US & Canada)") { Time.zone.parse("2026-05-11T14:30") }
+    assert_equal expected, saved
   end
 
   test "tech can remove own equipment" do
@@ -231,6 +289,156 @@ class EquipmentEntriesControllerTest < ActionDispatch::IntegrationTest
     patch remove_incident_equipment_entry_path(@incident, entry)
     assert_response :not_found
     assert_nil entry.reload.removed_at
+  end
+
+  test "PM user cannot remove equipment entry" do
+    login_as @pm_user
+    entry = create_entry(logged_by: @tech)
+    patch remove_incident_equipment_entry_path(@incident, entry)
+    assert_response :not_found
+    assert_nil entry.reload.removed_at
+  end
+
+  # --- Destroy tests ---
+
+  test "manager can destroy equipment entry" do
+    login_as @manager
+    entry = create_entry(logged_by: @tech)
+    assert_difference "EquipmentEntry.count", -1 do
+      delete incident_equipment_entry_path(@incident, entry)
+    end
+    assert_redirected_to incident_path(@incident)
+  end
+
+  test "tech can destroy own equipment entry" do
+    login_as @tech
+    entry = create_entry(logged_by: @tech)
+    assert_difference "EquipmentEntry.count", -1 do
+      delete incident_equipment_entry_path(@incident, entry)
+    end
+    assert_redirected_to incident_path(@incident)
+  end
+
+  test "tech cannot destroy another users equipment entry" do
+    login_as @tech
+    entry = create_entry(logged_by: @other_tech)
+    assert_no_difference "EquipmentEntry.count" do
+      delete incident_equipment_entry_path(@incident, entry)
+    end
+    assert_response :not_found
+  end
+
+  test "office_sales cannot destroy equipment entry" do
+    login_as @office_sales
+    entry = create_entry(logged_by: @tech)
+    assert_no_difference "EquipmentEntry.count" do
+      delete incident_equipment_entry_path(@incident, entry)
+    end
+    assert_response :not_found
+  end
+
+  test "PM user cannot destroy equipment entry" do
+    login_as @pm_user
+    entry = create_entry(logged_by: @tech)
+    assert_no_difference "EquipmentEntry.count" do
+      delete incident_equipment_entry_path(@incident, entry)
+    end
+    assert_response :not_found
+  end
+
+  test "cross-org PM user cannot destroy equipment entry" do
+    login_as @cross_org_pm
+    entry = create_entry(logged_by: @tech)
+    assert_no_difference "EquipmentEntry.count" do
+      delete incident_equipment_entry_path(@incident, entry)
+    end
+    assert_response :not_found
+  end
+
+  test "tech with MANAGE_DAILY_LOGS revoked cannot destroy own entry" do
+    @tech.update!(permissions: @tech.permissions - [ Permissions::MANAGE_DAILY_LOGS.to_s ])
+    login_as @tech
+    entry = create_entry(logged_by: @tech)
+    assert_no_difference "EquipmentEntry.count" do
+      delete incident_equipment_entry_path(@incident, entry)
+    end
+    assert_response :not_found
+  end
+
+  test "destroying entry referenced by activity_equipment_action nullifies the link" do
+    login_as @manager
+    entry = create_entry(logged_by: @tech)
+    activity = @incident.activity_entries.create!(
+      performed_by_user: @tech, title: "set up", occurred_at: Time.current
+    )
+    action = activity.equipment_actions.create!(
+      action_type: "add", equipment_entry: entry, equipment_type: @dehumidifier, quantity: 1
+    )
+
+    assert_difference "EquipmentEntry.count", -1 do
+      delete incident_equipment_entry_path(@incident, entry)
+    end
+    assert_redirected_to incident_path(@incident)
+    assert_nil action.reload.equipment_entry_id
+  end
+
+  test "destroying entry snapshots type onto linked actions with no type" do
+    login_as @manager
+    entry = create_entry(logged_by: @tech)
+    activity = @incident.activity_entries.create!(
+      performed_by_user: @tech, title: "set up", occurred_at: Time.current
+    )
+    action = activity.equipment_actions.create!(
+      action_type: "add", equipment_entry: entry, quantity: 1
+    )
+    assert_nil action.equipment_type_id
+
+    delete incident_equipment_entry_path(@incident, entry)
+
+    action.reload
+    assert_nil action.equipment_entry_id
+    assert_equal @dehumidifier.id, action.equipment_type_id
+    assert_equal "Dehumidifier", action.type_name
+  end
+
+  test "destroying entry preserves existing type on linked actions" do
+    other_type = EquipmentType.create!(organization: @genixo, name: "Air Mover")
+    login_as @manager
+    entry = create_entry(logged_by: @tech)
+    activity = @incident.activity_entries.create!(
+      performed_by_user: @tech, title: "set up", occurred_at: Time.current
+    )
+    action = activity.equipment_actions.create!(
+      action_type: "add", equipment_entry: entry, equipment_type: other_type, quantity: 1
+    )
+
+    delete incident_equipment_entry_path(@incident, entry)
+
+    assert_equal other_type.id, action.reload.equipment_type_id
+  end
+
+  test "destroy rolls back when activity logging fails" do
+    login_as @manager
+    entry = create_entry(logged_by: @tech)
+    ActivityLogger.stub :log, ->(*) { raise "boom" } do
+      assert_raises(RuntimeError) do
+        delete incident_equipment_entry_path(@incident, entry)
+      end
+    end
+    assert EquipmentEntry.exists?(entry.id), "entry should still exist after rollback"
+  end
+
+  test "creates activity event on destroy" do
+    login_as @manager
+    entry = create_entry(logged_by: @tech)
+    assert_difference "ActivityEvent.count", 1 do
+      delete incident_equipment_entry_path(@incident, entry)
+    end
+    event = ActivityEvent.last
+    assert_equal "equipment_deleted", event.event_type
+    assert_equal @manager.id, event.performed_by_user_id
+    assert_equal "Dehumidifier", event.metadata["type_name"]
+    assert_equal entry.id, event.metadata["equipment_entry_id"]
   end
 
   # --- Activity event tests ---

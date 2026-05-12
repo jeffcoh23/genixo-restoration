@@ -78,6 +78,39 @@ class EquipmentEntriesController < ApplicationController
       alert: "Could not remove equipment."
   end
 
+  def destroy
+    entry = find_editable_entry!
+
+    metadata = {
+      equipment_entry_id: entry.id,
+      type_name: entry.type_name,
+      equipment_identifier: entry.equipment_identifier,
+      location_notes: entry.location_notes
+    }
+
+    ActiveRecord::Base.transaction do
+      # Snapshot the entry's type onto linked daily-log actions that lack their
+      # own type info, so type_name still resolves after the FK is nullified.
+      entry.activity_equipment_actions
+        .where(equipment_type_id: nil, equipment_type_other: [ nil, "" ])
+        .update_all(
+          equipment_type_id: entry.equipment_type_id,
+          equipment_type_other: entry.equipment_type_other
+        )
+
+      entry.destroy!
+
+      ActivityLogger.log(
+        incident: @incident,
+        event_type: "equipment_deleted",
+        user: current_user,
+        metadata: metadata
+      )
+    end
+
+    redirect_to incident_path(@incident), notice: "Equipment entry deleted."
+  end
+
   private
 
   def set_incident

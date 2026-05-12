@@ -140,21 +140,19 @@ export default function UserShow() {
     <AppLayout>
       <PageHeader title={user.full_name} backLink={{ href: routes.users, label: "Users" }} />
 
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <div className="flex items-center gap-3">
-            {!user.active && (
-              <Badge variant="destructive">Deactivated</Badge>
-            )}
-          </div>
-          <p className="text-muted-foreground mt-1">{user.display_role} at {user.organization_name}</p>
-          <div className="flex gap-4 text-sm text-muted-foreground mt-1">
-            <span>{user.email}</span>
-            {user.phone && <span>{user.phone}</span>}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div className="min-w-0">
+          {!user.active && (
+            <Badge variant="destructive" className="mb-1">Deactivated</Badge>
+          )}
+          <p className="text-muted-foreground">{user.display_role} at {user.organization_name}</p>
+          <div className="flex flex-col sm:flex-row sm:flex-wrap sm:gap-x-4 gap-y-0.5 text-sm text-muted-foreground mt-1">
+            <span className="break-all sm:break-normal">{user.email}</span>
+            {user.phone && <span className="whitespace-nowrap">{user.phone}</span>}
             <span>{user.timezone}</span>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {can_edit && <Button variant="outline" onClick={startEdit}>Edit</Button>}
           {can_deactivate && user.active && (
             <Button variant="outline" onClick={handleDeactivate} disabled={statusAction.processing}>

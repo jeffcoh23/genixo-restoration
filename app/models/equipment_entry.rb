@@ -3,6 +3,7 @@ class EquipmentEntry < ApplicationRecord
   belongs_to :equipment_type, optional: true
   belongs_to :equipment_item, optional: true
   belongs_to :logged_by_user, class_name: "User"
+  has_many :activity_equipment_actions, dependent: :nullify
 
   before_validation :normalize_equipment_type
 

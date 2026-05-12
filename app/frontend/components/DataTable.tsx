@@ -19,8 +19,8 @@ export default function DataTable<T>({ columns, rows, keyFn, emptyMessage }: Dat
   }
 
   return (
-    <div className="rounded-lg border border-border bg-card shadow-sm overflow-hidden">
-      <table className="w-full text-sm">
+    <div className="rounded-lg border border-border bg-card shadow-sm overflow-x-auto">
+      <table className="w-full min-w-max text-sm">
         <thead>
           <tr className="border-b border-border bg-muted/70">
             {columns.map((col, i) => (

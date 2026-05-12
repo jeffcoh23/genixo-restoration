@@ -42,6 +42,7 @@ export interface SharedProps extends Record<string, unknown> {
   emergency_phone?: string;
   today: string;
   now_datetime: string;
+  now_datetime_label: string;
   nav_items: NavItem[];
   routes: {
     dashboard: string;

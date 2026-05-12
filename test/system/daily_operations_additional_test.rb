@@ -83,10 +83,69 @@ class DailyOperationsAdditionalTest < ApplicationSystemTestCase
     visit incident_path(@incident)
     find("[data-testid='incident-tab-equipment']").click
 
-    find("button[title='Mark as removed']").click
+    find("button[title='Pull equipment (sets removal time to now)']").click
+
+    assert_text "Pull this equipment?"
+    within("[role='dialog']") do
+      click_button "Pull equipment"
+    end
 
     assert_text "Equipment removed."
     assert entry.reload.removed_at.present?
+  end
+
+  test "cancel pull confirm leaves equipment active" do
+    entry = EquipmentEntry.create!(
+      incident: @incident,
+      logged_by_user: @manager,
+      equipment_type: @equipment_type,
+      equipment_identifier: "DH-CANCEL",
+      placed_at: 1.day.ago,
+      location_notes: "Unit 99"
+    )
+
+    login_as @manager
+    visit incident_path(@incident)
+    find("[data-testid='incident-tab-equipment']").click
+
+    find("button[title='Pull equipment (sets removal time to now)']").click
+    assert_text "Pull this equipment?"
+    within("[role='dialog']") do
+      click_button "Cancel"
+    end
+
+    # Dialog closes, no flash, equipment unchanged
+    assert_no_text "Pull this equipment?"
+    assert_nil entry.reload.removed_at
+  end
+
+  test "delete equipment entry from edit dialog" do
+    entry = EquipmentEntry.create!(
+      incident: @incident,
+      logged_by_user: @manager,
+      equipment_type: @equipment_type,
+      equipment_identifier: "DH-DEL-01",
+      placed_at: 1.day.ago,
+      location_notes: "Unit 102 bedroom"
+    )
+
+    login_as @manager
+    visit incident_path(@incident)
+    find("[data-testid='incident-tab-equipment']").click
+
+    within(find("tr", text: "DH-DEL-01")) { find("button[title='Edit']").click }
+
+    within("[role='dialog']") do
+      click_button "Delete"
+      assert_text "Delete this equipment entry?"
+      assert_difference -> { EquipmentEntry.count }, -1 do
+        click_button "Delete entry"
+        assert_no_selector "[role='dialog']"
+      end
+    end
+
+    assert_text "Equipment entry deleted."
+    assert_not EquipmentEntry.exists?(entry.id)
   end
 
   test "log activity entry via daily log modal" do
