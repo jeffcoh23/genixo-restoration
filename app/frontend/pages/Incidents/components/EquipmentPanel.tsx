@@ -3,12 +3,28 @@ import { usePage } from "@inertiajs/react";
 import { Pencil, PackageMinus } from "lucide-react";
 import InlineActionFeedback from "@/components/InlineActionFeedback";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import useInertiaAction from "@/hooks/useInertiaAction";
 import { SharedProps } from "@/types";
 import type { EquipmentLogItem, EquipmentType } from "../types";
 import EquipmentForm from "./EquipmentForm";
 import IncidentPanelAddButton from "./IncidentPanelAddButton";
+
+function equipmentLabel(item: EquipmentLogItem): string {
+  const detail = item.tag_number
+    ? `Tag #${item.tag_number}`
+    : item.equipment_identifier
+      ? `Serial ${item.equipment_identifier}`
+      : item.location_notes;
+  return detail ? `${item.type_name} · ${detail}` : item.type_name;
+}
+
+function formatRemovalDate(iso: string): string {
+  // iso like "2026-05-11" — parse as local date, not UTC midnight
+  const d = new Date(`${iso}T00:00:00`);
+  return d.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });
+}
 
 interface EquipmentPanelProps {
   equipment_log: EquipmentLogItem[];
@@ -22,14 +38,21 @@ export default function EquipmentPanel({ equipment_log = [], can_manage_equipmen
   const { today } = usePage<SharedProps>().props;
   const [showForm, setShowForm] = useState(false);
   const [editingEntry, setEditingEntry] = useState<EquipmentLogItem | null>(null);
+  const [confirmRemove, setConfirmRemove] = useState<EquipmentLogItem | null>(null);
   const [filterType, setFilterType] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const removeAction = useInertiaAction();
 
   const handleRemove = (item: EquipmentLogItem) => {
     if (!item.remove_path || removeAction.processing) return;
-    removeAction.runPatch(item.remove_path, { removed_at: today }, {
+    setConfirmRemove(item);
+  };
+
+  const confirmAndRemove = () => {
+    if (!confirmRemove?.remove_path) return;
+    removeAction.runPatch(confirmRemove.remove_path, { removed_at: today }, {
       errorMessage: "Could not mark equipment as removed.",
+      onSuccess: () => setConfirmRemove(null),
     });
   };
 
@@ -176,6 +199,30 @@ export default function EquipmentPanel({ equipment_log = [], can_manage_equipmen
           onClose={() => setShowForm(false)}
         />
       )}
+
+      <Dialog open={!!confirmRemove} onOpenChange={(open) => { if (!open) setConfirmRemove(null); }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Pull this equipment?</DialogTitle>
+          </DialogHeader>
+          {confirmRemove && (
+            <p className="text-sm text-muted-foreground">
+              Mark <span className="font-medium text-foreground">{equipmentLabel(confirmRemove)}</span> as
+              removed? Removal date will be set to{" "}
+              <span className="font-medium text-foreground">{formatRemovalDate(today)}</span>. You can edit
+              the date later from the equipment row.
+            </p>
+          )}
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="ghost" onClick={() => setConfirmRemove(null)} disabled={removeAction.processing}>
+              Cancel
+            </Button>
+            <Button type="button" onClick={confirmAndRemove} disabled={removeAction.processing}>
+              {removeAction.processing ? "Pulling..." : "Pull equipment"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {editingEntry && editingEntry.edit_path && (
         <EquipmentForm

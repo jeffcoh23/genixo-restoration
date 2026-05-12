@@ -85,6 +85,11 @@ class DailyOperationsAdditionalTest < ApplicationSystemTestCase
 
     find("button[title='Pull equipment (sets removal time to now)']").click
 
+    assert_text "Pull this equipment?"
+    within("[role='dialog']") do
+      click_button "Pull equipment"
+    end
+
     assert_text "Equipment removed."
     assert entry.reload.removed_at.present?
   end
