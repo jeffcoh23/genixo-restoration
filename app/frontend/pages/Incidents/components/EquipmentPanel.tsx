@@ -1,12 +1,10 @@
 import { useMemo, useState } from "react";
-import { usePage } from "@inertiajs/react";
 import { Pencil, PackageMinus } from "lucide-react";
 import InlineActionFeedback from "@/components/InlineActionFeedback";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import useInertiaAction from "@/hooks/useInertiaAction";
-import { SharedProps } from "@/types";
 import type { EquipmentLogItem, EquipmentType } from "../types";
 import EquipmentForm from "./EquipmentForm";
 import IncidentPanelAddButton from "./IncidentPanelAddButton";
@@ -29,7 +27,6 @@ interface EquipmentPanelProps {
 }
 
 export default function EquipmentPanel({ equipment_log = [], can_manage_equipment, equipment_entries_path, equipment_types, equipment_items_by_type }: EquipmentPanelProps) {
-  const { now_datetime_label } = usePage<SharedProps>().props;
   const [showForm, setShowForm] = useState(false);
   const [editingEntry, setEditingEntry] = useState<EquipmentLogItem | null>(null);
   const [confirmRemove, setConfirmRemove] = useState<EquipmentLogItem | null>(null);
@@ -204,9 +201,7 @@ export default function EquipmentPanel({ equipment_log = [], can_manage_equipmen
           {confirmRemove && (
             <p className="text-sm text-muted-foreground">
               Mark <span className="font-medium text-foreground">{equipmentLabel(confirmRemove)}</span> as
-              removed? Removal time will be set to now (around{" "}
-              <span className="font-medium text-foreground">{now_datetime_label}</span>). You can edit
-              the date and time later from the equipment row.
+              removed? Removal time will be recorded as now. You can edit it later from the equipment row.
             </p>
           )}
           <div className="flex justify-end gap-2 pt-2">

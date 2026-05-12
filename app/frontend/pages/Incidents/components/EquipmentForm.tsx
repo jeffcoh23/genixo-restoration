@@ -40,7 +40,12 @@ export default function EquipmentForm({ path, equipment_types, equipment_items_b
   const { now_datetime } = usePage<SharedProps>().props;
   const nowHour = now_datetime.slice(0, 13) + ":00";
   const toHour = (dt: string | undefined) => dt ? dt.slice(0, 13) + ":00" : "";
-  const { data, setData, post, patch, processing, errors } = useForm({
+  // Initial rounded values — used to detect whether the user actually edited the
+  // datetime fields. The DB may hold sub-hour precision (e.g. from Pull recording
+  // Time.current); we don't want a no-op edit to clobber that with a rounded value.
+  const initialPlacedAt = entry?.placed_at ? toHour(entry.placed_at) : nowHour;
+  const initialRemovedAt = entry?.removed_at ? toHour(entry.removed_at) : "";
+  const { data, setData, post, patch, processing, errors, transform } = useForm({
     equipment_type_id: entry?.equipment_type_id ? String(entry.equipment_type_id) : "",
     equipment_type_other: entry?.equipment_type_other ?? "",
     equipment_item_id: entry?.equipment_item_id ? String(entry.equipment_item_id) : "",
@@ -48,8 +53,8 @@ export default function EquipmentForm({ path, equipment_types, equipment_items_b
     equipment_model: entry?.equipment_model ?? "",
     equipment_identifier: entry?.equipment_identifier ?? "",
     tag_number: entry?.tag_number ?? "",
-    placed_at: entry?.placed_at ? toHour(entry.placed_at) : nowHour,
-    removed_at: entry?.removed_at ? toHour(entry.removed_at) : "",
+    placed_at: initialPlacedAt,
+    removed_at: initialRemovedAt,
     location_notes: entry?.location_notes ?? "",
   });
   const [timeError, setTimeError] = useState<string | null>(null);
@@ -133,6 +138,16 @@ export default function EquipmentForm({ path, equipment_types, equipment_items_b
     if (data.placed_at && data.removed_at && data.removed_at <= data.placed_at) {
       setTimeError("Removed time must be after placed time");
       return;
+    }
+    // For edits: omit datetime fields the user didn't touch so we don't
+    // overwrite the server's (potentially sub-hour) precision with our rounded display.
+    if (editing) {
+      transform((current) => {
+        const next: Record<string, unknown> = { ...current };
+        if (current.placed_at === initialPlacedAt) delete next.placed_at;
+        if (current.removed_at === initialRemovedAt) delete next.removed_at;
+        return next;
+      });
     }
     const submit = editing ? patch : post;
     const url = editing ? entry!.edit_path! : path;

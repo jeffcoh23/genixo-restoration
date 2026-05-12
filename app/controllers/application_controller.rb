@@ -98,9 +98,6 @@ class ApplicationController < ActionController::Base
     Time.current.to_date.iso8601
   }
 
-  inertia_share now_datetime_label: -> {
-    format_datetime(Time.current)
-  }
 
   inertia_share now_datetime: -> {
     format_datetime_value(Time.current)

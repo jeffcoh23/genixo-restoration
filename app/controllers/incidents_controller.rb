@@ -1308,7 +1308,8 @@ class IncidentsController < ApplicationController
       .order(placed_at: :desc, created_at: :desc)
       .map do |entry|
       editable = can_edit_equipment_entry?(entry)
-      hours = (((entry.removed_at || Time.current) - entry.placed_at) / 1.hour).round(1)
+      # Equipment is logged at hour-granularity in the form; show whole hours.
+      hours = (((entry.removed_at || Time.current) - entry.placed_at) / 1.hour).round
       data = {
         id: entry.id,
         type_name: entry.type_name,
