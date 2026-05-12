@@ -256,8 +256,8 @@ heroku stack:set heroku-24
 ```bash
 # App
 heroku config:set APP_NAME="Genixo Restoration"
-heroku config:set APP_HOST="genixo-restoration.herokuapp.com"
-heroku config:set APP_URL="https://genixo-restoration.herokuapp.com"
+heroku config:set APP_HOST="genixorestoration.com"
+heroku config:set APP_URL="https://genixorestoration.com"
 
 # Rails
 heroku config:set RAILS_ENV=production
