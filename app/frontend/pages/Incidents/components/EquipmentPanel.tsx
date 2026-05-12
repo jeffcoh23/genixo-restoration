@@ -29,7 +29,7 @@ interface EquipmentPanelProps {
 }
 
 export default function EquipmentPanel({ equipment_log = [], can_manage_equipment, equipment_entries_path, equipment_types, equipment_items_by_type }: EquipmentPanelProps) {
-  const { today, today_label } = usePage<SharedProps>().props;
+  const { now_datetime_label } = usePage<SharedProps>().props;
   const [showForm, setShowForm] = useState(false);
   const [editingEntry, setEditingEntry] = useState<EquipmentLogItem | null>(null);
   const [confirmRemove, setConfirmRemove] = useState<EquipmentLogItem | null>(null);
@@ -44,7 +44,9 @@ export default function EquipmentPanel({ equipment_log = [], can_manage_equipmen
 
   const confirmAndRemove = () => {
     if (!confirmRemove?.remove_path) return;
-    removeAction.runPatch(confirmRemove.remove_path, { removed_at: today }, {
+    // Empty payload — server records Time.current, which is the actual
+    // moment the user confirmed (not whenever the dialog opened).
+    removeAction.runPatch(confirmRemove.remove_path, {}, {
       errorMessage: "Could not mark equipment as removed.",
       onSuccess: () => setConfirmRemove(null),
     });
@@ -202,9 +204,9 @@ export default function EquipmentPanel({ equipment_log = [], can_manage_equipmen
           {confirmRemove && (
             <p className="text-sm text-muted-foreground">
               Mark <span className="font-medium text-foreground">{equipmentLabel(confirmRemove)}</span> as
-              removed? Removal date will be set to{" "}
-              <span className="font-medium text-foreground">{today_label}</span>. You can edit
-              the date later from the equipment row.
+              removed? Removal time will be set to now (around{" "}
+              <span className="font-medium text-foreground">{now_datetime_label}</span>). You can edit
+              the date and time later from the equipment row.
             </p>
           )}
           <div className="flex justify-end gap-2 pt-2">
