@@ -20,12 +20,6 @@ function equipmentLabel(item: EquipmentLogItem): string {
   return detail ? `${item.type_name} · ${detail}` : item.type_name;
 }
 
-function formatRemovalDate(iso: string): string {
-  // iso like "2026-05-11" — parse as local date, not UTC midnight
-  const d = new Date(`${iso}T00:00:00`);
-  return d.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });
-}
-
 interface EquipmentPanelProps {
   equipment_log: EquipmentLogItem[];
   can_manage_equipment: boolean;
@@ -35,7 +29,7 @@ interface EquipmentPanelProps {
 }
 
 export default function EquipmentPanel({ equipment_log = [], can_manage_equipment, equipment_entries_path, equipment_types, equipment_items_by_type }: EquipmentPanelProps) {
-  const { today } = usePage<SharedProps>().props;
+  const { today, today_label } = usePage<SharedProps>().props;
   const [showForm, setShowForm] = useState(false);
   const [editingEntry, setEditingEntry] = useState<EquipmentLogItem | null>(null);
   const [confirmRemove, setConfirmRemove] = useState<EquipmentLogItem | null>(null);
@@ -209,7 +203,7 @@ export default function EquipmentPanel({ equipment_log = [], can_manage_equipmen
             <p className="text-sm text-muted-foreground">
               Mark <span className="font-medium text-foreground">{equipmentLabel(confirmRemove)}</span> as
               removed? Removal date will be set to{" "}
-              <span className="font-medium text-foreground">{formatRemovalDate(today)}</span>. You can edit
+              <span className="font-medium text-foreground">{today_label}</span>. You can edit
               the date later from the equipment row.
             </p>
           )}
