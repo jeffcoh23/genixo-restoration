@@ -17,12 +17,32 @@ class DfrPdfService
     Time.use_zone(@timezone) do
       build_pdf
     end
+  rescue Prawn::Errors::IncompatibleStringEncoding, Prawn::Errors::CannotRender => e
+    # Noto Sans covers Latin/Greek/Cyrillic and common punctuation. If a tech
+    # types an emoji or supplementary-plane char Noto can't render, fall back
+    # to sanitized text rather than fail the whole report.
+    Rails.logger.warn("[DfrPdfService] glyph not in font, retrying with sanitized text: #{e.message}")
+    @sanitize_text = true
+    Time.use_zone(@timezone) { build_pdf }
   end
 
   private
 
+  FONT_DIR = Rails.root.join("app/assets/fonts").freeze
+
   def build_pdf
     pdf = Prawn::Document.new(page_size: "LETTER", margin: [ 50, 50, 50, 50 ])
+
+    # Default Helvetica only supports Windows-1252; user-typed text from iOS
+    # (smart quotes, emoji, accented names) breaks PDF generation. Noto Sans
+    # is a UTF-8 TTF covering all common Latin/Greek/Cyrillic input.
+    pdf.font_families.update("NotoSans" => {
+      normal: FONT_DIR.join("NotoSans-Regular.ttf").to_s,
+      bold: FONT_DIR.join("NotoSans-Bold.ttf").to_s,
+      italic: FONT_DIR.join("NotoSans-Italic.ttf").to_s,
+      bold_italic: FONT_DIR.join("NotoSans-BoldItalic.ttf").to_s
+    })
+    pdf.font "NotoSans"
 
     render_header(pdf)
     render_info_grid(pdf)
@@ -48,10 +68,10 @@ class DfrPdfService
     superintendent = assigned_by_role("technician").first
 
     data = [
-      [ label_cell("Site Name:"), property.name, label_cell("Job Name:"), property.name ],
-      [ label_cell("Job Number:"), @incident.job_id || "—", label_cell("Date:"), @date.strftime("%-m/%-d/%y") ],
-      [ label_cell("Project Manager:"), manager&.full_name || "—", label_cell("Superintendent:"), superintendent&.full_name || "—" ],
-      [ label_cell("Visitors:"), visitors_for_date || "—", label_cell("Status:"), @incident.display_status_label ]
+      [ label_cell("Site Name:"), t(property.name), label_cell("Job Name:"), t(property.name) ],
+      [ label_cell("Job Number:"), t(@incident.job_id) || "-", label_cell("Date:"), @date.strftime("%-m/%-d/%y") ],
+      [ label_cell("Project Manager:"), t(manager&.full_name) || "-", label_cell("Superintendent:"), t(superintendent&.full_name) || "-" ],
+      [ label_cell("Visitors:"), t(visitors_for_date) || "-", label_cell("Status:"), t(@incident.display_status_label) ]
     ]
 
     pdf.table(data, width: pdf.bounds.width) do |t|
@@ -75,7 +95,7 @@ class DfrPdfService
 
     names = labor.map { |e| e.user&.full_name || e.created_by_user.full_name }.uniq
     pdf.font_size(10) do
-      pdf.text "Employees on Site: #{names.size} — #{names.join(', ')}", style: :bold
+      pdf.text t("Employees on Site: #{names.size} — #{names.join(', ')}"), style: :bold
     end
     pdf.move_down 10
   end
@@ -86,14 +106,14 @@ class DfrPdfService
 
     activities.each do |activity|
       pdf.font_size(10) do
-        pdf.text "• #{activity.title}", style: :bold, inline_format: true
+        pdf.text t("• #{activity.title}"), style: :bold, inline_format: true
         if activity.details.present?
-          pdf.indent(15) { pdf.text activity.details }
+          pdf.indent(15) { pdf.text t(activity.details) }
         end
 
         activity.equipment_actions.includes(:equipment_type).each do |action|
           parts = [ action_label(action.action_type), action.quantity, action.type_name, action.note ].compact
-          pdf.indent(15) { pdf.text "— #{parts.join(' ')}", color: "555555" }
+          pdf.indent(15) { pdf.text t("— #{parts.join(' ')}"), color: "555555" }
         end
       end
       pdf.move_down 5
@@ -109,7 +129,7 @@ class DfrPdfService
       pdf.text "Additional Notes:", style: :bold
       pdf.move_down 3
       notes.each do |note|
-        pdf.text "• #{note.note_text}"
+        pdf.text t("• #{note.note_text}")
         pdf.move_down 3
       end
     end
@@ -128,10 +148,10 @@ class DfrPdfService
     usable_returned = activity&.usable_rooms_returned
     edr = activity&.estimated_date_of_return || @incident.estimated_date_of_return
 
-    fields << [ "Number of Units Affected:", "#{units}#{units_desc.present? ? " — #{units_desc}" : ""}" ] if units.present?
-    fields << [ "Affected Room Numbers:", rooms ] if rooms.present?
-    fields << [ "Visitors:", visitors ] if visitors.present?
-    fields << [ "Usable Rooms Returned:", usable_returned.presence || "None" ] if usable_returned.present? || units.present?
+    fields << [ "Number of Units Affected:", t("#{units}#{units_desc.present? ? " — #{units_desc}" : ""}") ] if units.present?
+    fields << [ "Affected Room Numbers:", t(rooms) ] if rooms.present?
+    fields << [ "Visitors:", t(visitors) ] if visitors.present?
+    fields << [ "Usable Rooms Returned:", t(usable_returned.presence) || "None" ] if usable_returned.present? || units.present?
     fields << [ "Estimated Date of Return:", edr.present? ? edr.strftime("%-m/%-d/%y") : "TBD" ] if units.present?
 
     return if fields.empty?
@@ -167,7 +187,7 @@ class DfrPdfService
 
     by_role.each do |count, role, hours|
       pdf.font_size(10) do
-        pdf.text "• #{count} #{role}  #{hours} hrs"
+        pdf.text t("• #{count} #{role}  #{hours} hrs")
       end
     end
     pdf.move_down 10
@@ -187,7 +207,7 @@ class DfrPdfService
     by_type.each do |type_name, type_entries|
       total_hours = type_entries.sum { |e| equipment_hours_for_date(e) }
       pdf.font_size(10) do
-        pdf.text "• #{type_entries.size} #{type_name}  #{total_hours} hrs"
+        pdf.text t("• #{type_entries.size} #{type_name}  #{total_hours} hrs")
       end
     end
 
@@ -299,6 +319,15 @@ class DfrPdfService
 
   def label_cell(text)
     text
+  end
+
+  # Coerce to ASCII when the first PDF build raised a glyph error. Smart quotes,
+  # em dashes, and accents are preserved by Noto Sans on the normal path — only
+  # the fallback path strips chars the font can't render.
+  def t(str)
+    return str unless @sanitize_text
+    return str if str.nil?
+    str.to_s.encode("US-ASCII", invalid: :replace, undef: :replace, replace: "?")
   end
 
   def action_label(action_type)
