@@ -208,6 +208,47 @@ class DfrPdfServiceTest < ActiveSupport::TestCase
     assert_operator [ width, height ].max, :<, 1600, "Small photos should not be enlarged"
   end
 
+  test "renders smart quotes and other non-Latin-1 chars without raising" do
+    # Regression: Daniel's iPad-typed DFRs failed in 26ms because Prawn's
+    # default Helvetica font rejects U+2019 (’). iOS auto-corrects every
+    # apostrophe to a smart quote, so every it’s/door’s broke the entire PDF.
+    smart = 0x2019.chr("UTF-8")  # ’ right single quotation mark
+    em_space = 0x2003.chr("UTF-8")  # em-wide space
+    em_dash = 0x2014.chr("UTF-8")  # — em dash
+
+    @incident.activity_entries.create!(
+      title: "Scope#{smart}",
+      details: "All door#{smart}s 6 in. trim#{em_dash}rebuild#{em_space}required",
+      occurred_at: Time.current,
+      performed_by_user: @manager
+    )
+
+    pdf_data = DfrPdfService.new(incident: @incident, date: @date, include_photos: false).generate
+    text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
+
+    assert_includes text, "door#{smart}s", "smart quote should survive in rendered PDF"
+    assert_includes text, "rebuild", "em dash should not break surrounding text"
+  end
+
+  test "falls back to ASCII-coerced text when font lacks a glyph" do
+    # Noto Sans covers Latin/Greek/Cyrillic but not emoji. Rather than fail
+    # the whole report, the service should retry with sanitized text.
+    @incident.activity_entries.create!(
+      title: "Emoji test",
+      details: "Job site update 🔥 all clear 🚧",
+      occurred_at: Time.current,
+      performed_by_user: @manager
+    )
+
+    pdf_data = nil
+    assert_nothing_raised do
+      pdf_data = DfrPdfService.new(incident: @incident, date: @date, include_photos: false).generate
+    end
+    text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
+    assert_includes text, "Job site update", "non-emoji content should survive sanitization"
+    assert_includes text, "all clear", "non-emoji content should survive sanitization"
+  end
+
   test "does not include photos from other dates even if IDs match" do
     other_date_photo = create_photo("other.jpg", log_date: @date - 1.day)
 
