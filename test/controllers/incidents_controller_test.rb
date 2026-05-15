@@ -1414,24 +1414,24 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     attachment
   end
 
+  # Uses Zip::File.open_buffer (central-directory reader) rather than
+  # Zip::InputStream, because zip_kit writes entries with data descriptors
+  # (CRC/size 0 in the local header, real values trailing). The streaming
+  # reader chokes on that format; the random-access reader handles both.
+  # NB: in rubyzip 3.x, open_buffer-with-block returns the buffer (not the
+  # block value), so we capture it explicitly.
   def read_zip_entry_names(body)
     require "zip"
-    names = []
-    Zip::InputStream.open(StringIO.new(body)) do |io|
-      while (entry = io.get_next_entry)
-        names << entry.name
-      end
-    end
+    names = nil
+    Zip::File.open_buffer(StringIO.new(body)) { |zf| names = zf.entries.map(&:name) }
     names
   end
 
   def read_zip_entry_bytes(body)
     require "zip"
-    out = {}
-    Zip::InputStream.open(StringIO.new(body)) do |io|
-      while (entry = io.get_next_entry)
-        out[entry.name] = io.read
-      end
+    out = nil
+    Zip::File.open_buffer(StringIO.new(body)) do |zf|
+      out = zf.entries.to_h { |e| [ e.name, e.get_input_stream.read.b ] }
     end
     out
   end

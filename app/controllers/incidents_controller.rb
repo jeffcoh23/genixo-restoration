@@ -1,4 +1,6 @@
 class IncidentsController < ApplicationController
+  include ZipKit::RailsStreaming
+
   before_action :authorize_creation!, only: %i[new create]
   before_action :set_incident, only: %i[show update transition mark_read dfr dfr_photos photos_zip attachments_page report]
   before_action :authorize_edit!, only: %i[update]
@@ -324,8 +326,6 @@ class IncidentsController < ApplicationController
   end
 
   def photos_zip
-    require "zip"
-
     photo_ids = params[:photo_ids].present? ? Array(params[:photo_ids]).map(&:to_i).uniq : nil
     photos = @incident.attachments
       .includes(file_attachment: :blob)
@@ -333,16 +333,20 @@ class IncidentsController < ApplicationController
     photos = photos.where(id: photo_ids) if photo_ids
     photos = photos.order(:created_at)
 
-    buffer = Zip::OutputStream.write_buffer do |zos|
+    filename = "#{@incident.job_id.presence || @incident.id}-photos.zip"
+
+    zip_kit_stream(filename: filename) do |zip|
       photos.each_with_index do |att, idx|
         next unless att.file.attached?
-        zos.put_next_entry("#{idx + 1}-#{zip_entry_filename(att.file)}")
-        zos.write(att.file.blob.download)
+        entry_name = "#{idx + 1}-#{zip_entry_filename(att.file)}"
+        # write_stored_file = no deflate (photos are already compressed JPEG/PNG)
+        zip.write_stored_file(entry_name) do |sink|
+          att.file.blob.open do |blob_file|
+            IO.copy_stream(blob_file, sink)
+          end
+        end
       end
     end
-
-    filename = "#{@incident.job_id.presence || @incident.id}-photos.zip"
-    send_data buffer.string, filename: filename, type: "application/zip", disposition: "attachment"
   end
 
   def attachments_page

@@ -25,7 +25,9 @@ gem "prawn", require: false
 gem "prawn-table", require: false
 gem "matrix"  # Required by Prawn, removed from Ruby stdlib in 3.1+
 
-# ZIP archives (bulk photo download)
+# ZIP archives — zip_kit for HTTP-streamed bulk photo download
+# (rubyzip kept for any non-streaming use; remove later if unused)
+gem "zip_kit"
 gem "rubyzip", require: false
 
 # Image processing (EXIF auto-orientation before Prawn embed)
