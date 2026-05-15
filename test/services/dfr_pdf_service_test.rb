@@ -216,37 +216,46 @@ class DfrPdfServiceTest < ActiveSupport::TestCase
     em_space = 0x2003.chr("UTF-8")  # em-wide space
     em_dash = 0x2014.chr("UTF-8")  # — em dash
 
-    @incident.activity_entries.create!(
-      title: "Scope#{smart}",
-      details: "All door#{smart}s 6 in. trim#{em_dash}rebuild#{em_space}required",
-      occurred_at: Time.current,
-      performed_by_user: @manager
-    )
+    # travel_to keeps occurred_at and @date in lockstep — otherwise the UTC date
+    # (used for @date) and the Chicago day-window the service queries can
+    # straddle midnight, dropping the activity from the report (CI flake).
+    travel_to Time.utc(2026, 5, 15, 14, 0, 0) do
+      @date = Date.current
+      @incident.activity_entries.create!(
+        title: "Scope#{smart}",
+        details: "All door#{smart}s 6 in. trim#{em_dash}rebuild#{em_space}required",
+        occurred_at: Time.current,
+        performed_by_user: @manager
+      )
 
-    pdf_data = DfrPdfService.new(incident: @incident, date: @date, include_photos: false).generate
-    text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
+      pdf_data = DfrPdfService.new(incident: @incident, date: @date, include_photos: false).generate
+      text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
 
-    assert_includes text, "door#{smart}s", "smart quote should survive in rendered PDF"
-    assert_includes text, "rebuild", "em dash should not break surrounding text"
+      assert_includes text, "door#{smart}s", "smart quote should survive in rendered PDF"
+      assert_includes text, "rebuild", "em dash should not break surrounding text"
+    end
   end
 
   test "falls back to ASCII-coerced text when font lacks a glyph" do
     # Noto Sans covers Latin/Greek/Cyrillic but not emoji. Rather than fail
     # the whole report, the service should retry with sanitized text.
-    @incident.activity_entries.create!(
-      title: "Emoji test",
-      details: "Job site update 🔥 all clear 🚧",
-      occurred_at: Time.current,
-      performed_by_user: @manager
-    )
+    travel_to Time.utc(2026, 5, 15, 14, 0, 0) do
+      @date = Date.current
+      @incident.activity_entries.create!(
+        title: "Emoji test",
+        details: "Job site update 🔥 all clear 🚧",
+        occurred_at: Time.current,
+        performed_by_user: @manager
+      )
 
-    pdf_data = nil
-    assert_nothing_raised do
-      pdf_data = DfrPdfService.new(incident: @incident, date: @date, include_photos: false).generate
+      pdf_data = nil
+      assert_nothing_raised do
+        pdf_data = DfrPdfService.new(incident: @incident, date: @date, include_photos: false).generate
+      end
+      text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
+      assert_includes text, "Job site update", "non-emoji content should survive sanitization"
+      assert_includes text, "all clear", "non-emoji content should survive sanitization"
     end
-    text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
-    assert_includes text, "Job site update", "non-emoji content should survive sanitization"
-    assert_includes text, "all clear", "non-emoji content should survive sanitization"
   end
 
   test "does not include photos from other dates even if IDs match" do
