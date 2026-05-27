@@ -38,4 +38,12 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- In-WebView camera capture (getUserMedia + <input capture>). Video only, no mic. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <!-- DownloadManager writes to the public Downloads dir; only needed pre-scoped-storage (API <= 28). -->
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
 </manifest>
