@@ -251,6 +251,18 @@ heroku addons:create heroku-postgresql:essential-0
 heroku stack:set heroku-24
 ```
 
+### Buildpacks
+
+Order matters — **jemalloc must precede ruby** or it silently no-ops.
+
+```bash
+heroku buildpacks:add --index 1 https://github.com/gaffneyc/heroku-buildpack-jemalloc.git
+heroku buildpacks:add heroku/nodejs
+heroku buildpacks:add heroku/ruby
+```
+
+jemalloc swaps glibc's allocator (via `LD_PRELOAD`) to cut memory fragmentation — it dropped web RSS from ~485MB to ~206MB and eliminated `R14 (Memory quota exceeded)` on the 512MB Basic dynos. It's activated by `JEMALLOC_ENABLED=true` (see Environment Variables) and only takes effect on a slug rebuild (deploy), not a restart. `app.json` documents this buildpack order for review apps; live buildpacks are set via the CLI above.
+
 ### Environment Variables
 
 ```bash
@@ -263,6 +275,10 @@ heroku config:set APP_URL="https://genixorestoration.com"
 heroku config:set RAILS_ENV=production
 heroku config:set RAILS_MASTER_KEY=$(cat config/master.key)
 heroku config:set RAILS_SERVE_STATIC_FILES=true
+
+# Memory tuning (avoid R14 "Memory quota exceeded" on 512MB dynos)
+heroku config:set JEMALLOC_ENABLED=true   # activates the jemalloc buildpack
+heroku config:set MALLOC_ARENA_MAX=2      # caps glibc malloc arenas
 
 # Email (Resend — swap provider by changing mailer config)
 heroku config:set RESEND_API_KEY=re_XXX
