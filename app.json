@@ -1,0 +1,16 @@
+{
+  "name": "genixo-restoration",
+  "description": "Multi-tenant incident management for property restoration.",
+  "stack": "heroku-24",
+  "buildpacks": [
+    { "url": "https://github.com/gaffneyc/heroku-buildpack-jemalloc.git" },
+    { "url": "heroku/nodejs" },
+    { "url": "heroku/ruby" }
+  ],
+  "env": {
+    "JEMALLOC_ENABLED": {
+      "description": "Preload jemalloc to reduce memory fragmentation and avoid R14 (memory quota exceeded) on Basic dynos. Must be paired with the jemalloc buildpack at index 0.",
+      "value": "true"
+    }
+  }
+}
