@@ -11,6 +11,9 @@ Rails.application.routes.draw do
   # Public pages (no auth required)
   get "privacy", to: "privacy#show", as: :privacy
 
+  # Android App Links verification (mobile wrapper deep linking)
+  get "/.well-known/assetlinks.json", to: "well_known#assetlinks", defaults: { format: :json }
+
   # Public incident report (no auth required)
   get "report-incident", to: "public_incident_reports#new", as: :new_public_incident_report
   post "report-incident", to: "public_incident_reports#create", as: :public_incident_reports
