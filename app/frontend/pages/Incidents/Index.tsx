@@ -13,6 +13,7 @@ import { SharedProps } from "@/types";
 interface Incident {
   id: number;
   path: string;
+  job_id: string | null;
   property_name: string;
   description: string;
   status: string;
@@ -330,6 +331,9 @@ export default function IncidentsIndex() {
                     </div>
                     <StatusBadge status={incident.display_status} label={incident.status_label} />
                   </div>
+                  {incident.job_id && (
+                    <p className="mt-1 text-xs text-muted-foreground">{incident.job_id}</p>
+                  )}
                   <p className="mt-2 text-sm text-muted-foreground line-clamp-2">{incident.description}</p>
                   <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
                     {showEmergency && (
@@ -352,10 +356,11 @@ export default function IncidentsIndex() {
 
           <div className="hidden md:block rounded-lg border border-border bg-card shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-sm min-w-[960px]">
+              <table className="w-full text-sm min-w-[1040px]">
                 <thead>
                   <tr className="border-b bg-muted/70">
                     <SortHeader label="Property" column="property" sort={sort} onSort={handleSort} />
+                    <SortHeader label="Job #" column="job_id" sort={sort} onSort={handleSort} />
                     <th className="px-4 py-3 font-medium text-left">Description</th>
                     <SortHeader label="Status" column="status" sort={sort} onSort={handleSort} />
                     <th className="px-4 py-3 font-medium text-left">Type</th>
@@ -379,6 +384,9 @@ export default function IncidentsIndex() {
                             )}
                             {incident.property_name}
                           </Link>
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
+                          {incident.job_id || "—"}
                         </td>
                         <td className="px-4 py-3 text-muted-foreground max-w-[320px] truncate">
                           {incident.description}
