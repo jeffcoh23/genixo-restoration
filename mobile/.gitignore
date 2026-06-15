@@ -7,3 +7,10 @@ android/.gradle/
 android/build/
 android/app/build/
 .DS_Store
+
+# Android release signing — never commit the upload key or its password
+android/keystore/
+android/keystore.properties
+android/app/release/
+*.jks
+*.keystore
