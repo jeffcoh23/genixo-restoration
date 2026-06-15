@@ -11,3 +11,19 @@
 <p><%= link_to "Accept Invitation", @accept_url %></p>
 
 <p>This invitation expires on <%= @invitation.expires_at.strftime("%B %d, %Y") %>.</p>
+
+<% if @android_group_url.present? %>
+  <hr>
+  <p style="font-size: 14px; color: #555;">
+    <strong>📱 On an Android phone? (optional)</strong><br>
+    You can install the Genixo Restoration app to take site photos and pull reports from the field.
+    On iPhone or computer, skip this — just use the website above.
+  </p>
+  <ol style="font-size: 14px; color: #555;">
+    <li>Join the tester group: <%= link_to "Join group", @android_group_url %></li>
+    <li>Then install the app: <%= link_to "Install on Google Play", @android_opt_in_url %></li>
+  </ol>
+  <p style="font-size: 12px; color: #888;">
+    Both steps are required. After joining the group it can take a few minutes before the install link works.
+  </p>
+<% end %>
