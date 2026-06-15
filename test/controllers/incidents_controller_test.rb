@@ -112,6 +112,34 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "index includes job_id in incident props" do
+    incident = create_test_incident(status: "active", property: @property)
+    incident.update!(job_id: "GCM-2026-051")
+    login_as @manager
+    get incidents_path
+    assert_response :success
+    row = inertia_props["incidents"].find { |i| i["id"] == incident.id }
+    assert_equal "GCM-2026-051", row["job_id"]
+  end
+
+  test "index sorts by job_id" do
+    a = create_test_incident(status: "active", property: @property)
+    a.update!(job_id: "GCM-2026-001")
+    b = create_test_incident(status: "active", property: @property)
+    b.update!(job_id: "GCM-2026-099")
+    login_as @manager
+
+    get incidents_path, params: { sort: "job_id", direction: "asc" }
+    assert_response :success
+    asc = inertia_props["incidents"].map { |i| i["job_id"] }.compact
+    assert_equal asc.sort, asc, "job_id ascending"
+
+    get incidents_path, params: { sort: "job_id", direction: "desc" }
+    assert_response :success
+    desc = inertia_props["incidents"].map { |i| i["job_id"] }.compact
+    assert_equal desc.sort.reverse, desc, "job_id descending"
+  end
+
   # --- Show page ---
 
   test "manager can view incident detail" do

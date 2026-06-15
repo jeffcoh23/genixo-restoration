@@ -38,7 +38,7 @@ class IncidentsController < ApplicationController
     end
 
     # Sort
-    sort_col = %w[property status project_type last_activity_at created_at].include?(params[:sort]) ? params[:sort] : "created_at"
+    sort_col = %w[property status project_type last_activity_at created_at job_id].include?(params[:sort]) ? params[:sort] : "created_at"
     sort_dir = params[:direction] == "asc" ? :asc : :desc
 
     scope = case sort_col
@@ -1451,6 +1451,7 @@ class IncidentsController < ApplicationController
     {
       id: incident.id,
       path: incident_path(incident),
+      job_id: incident.job_id,
       property_name: incident.property.name,
       organization_name: incident.property.property_management_org.name,
       description: incident.description.truncate(80),
