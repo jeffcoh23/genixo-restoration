@@ -9,3 +9,15 @@ You've been invited to join <%= @invitation.organization.name %> as a <%= @invit
 Accept your invitation: <%= @accept_url %>
 
 This invitation expires on <%= @invitation.expires_at.strftime("%B %d, %Y") %>.
+<% if @android_group_url.present? %>
+--------------------------------------------------
+
+On an Android phone? (optional)
+Install the Genixo Restoration app to take site photos and pull reports from the field.
+On iPhone or computer, skip this — just use the website above.
+
+  1. Join the tester group: <%= @android_group_url %>
+  2. Then install the app:  <%= @android_opt_in_url %>
+
+Both steps are required. After joining the group it can take a few minutes before the install link works.
+<% end %>
