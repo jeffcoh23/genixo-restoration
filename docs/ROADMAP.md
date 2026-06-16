@@ -91,40 +91,33 @@ Read-only incident viewing for external people (insurance adjusters, building ow
 
 ---
 
-## Phase 7: Mobile App — App Store Ready
+## Phase 7: Mobile App — SHIPPED
 
-Capacitor shell exists in `mobile/` — loads the hosted Rails app in a native WebView. iOS project, branded assets, camera permissions, and TestFlight docs are already in place. See `mobile/README.md` and `mobile/TESTFLIGHT.md`.
+Capacitor shell in `mobile/` loads the hosted Rails app in a native WebView (iOS + Android).
 
-### Already done
-- [x] Capacitor initialized with iOS + Android projects
-- [x] Remote WebView loading hosted Heroku app
-- [x] Branded app icon + splash screen assets
-- [x] Camera + photo library permission strings in Info.plist
-- [x] QA checklist and TestFlight deployment docs
+### iOS — LIVE on the App Store ✅
+- Public listing: https://apps.apple.com/us/app/genixo-restoration/id6760802383 (app id `6760802383`, seller Jeffrey Cohen, free, iOS 15+)
+- One-tap install for any iPhone user — no beta/tester steps.
 
-### App Store approval prep
-Apple rejects apps that are just "repackaged websites" (Guideline 4.2). Need genuine native features beyond the WebView wrapper.
+### Android — closed beta (live) 🟡
+- Package `com.genixo.restoration`, personal Play Console account, closed-testing track "Alpha" Active.
+- Distribution = self-serve via Google Group (transitive-invite friendly, no allowlist): join `https://groups.google.com/g/genixo-android-testers` → opt in at `https://play.google.com/apps/testing/com.genixo.restoration` → install. 2-step.
+- Invite email surfaces the Android steps when `ANDROID_TESTER_GROUP_URL` env is set (it is). See `app/mailers/invitation_mailer.rb`.
+- To reach a clean one-tap Play Store link: accumulate 12 testers / 14 days via the group → apply for Production (or migrate to a DUNS org account, which is exempt from the gate). See [[project-play-console-state]] memory.
 
-- [ ] **Push notifications** — Firebase Cloud Messaging (FCM) via `@capacitor/push-notifications`. Rails backend sends push from notification jobs. Deep link tap → specific incident. See [PUSH_NOTIFICATIONS.md](PUSH_NOTIFICATIONS.md) for full implementation plan.
-- [ ] **Device token API** — Rails endpoint to register/unregister FCM tokens per user/device
-- [ ] **Biometric auth** — Face ID / Touch ID for quick re-login (avoids re-entering password)
+### Already done (both platforms)
+- [x] Capacitor iOS + Android projects, remote WebView, branded icon/splash
+- [x] Camera + photo permissions (iOS Info.plist; Android manifest + MainActivity download/camera bridge)
+- [x] iOS submitted + approved on App Store
+- [x] Android signed AAB, full Play listing, closed-test release Active
+- [x] `/.well-known/assetlinks.json` served from Rails for Android App Links
+
+### Optional native upgrades (not blocking — deferred)
+- [ ] **Push notifications** — FCM via `@capacitor/push-notifications`; Rails sends from notification jobs; deep-link tap → incident. See [PUSH_NOTIFICATIONS.md](PUSH_NOTIFICATIONS.md).
+- [ ] **Device token API** — Rails endpoint to register/unregister push tokens per user/device
+- [ ] **Biometric auth** — Face ID / Touch ID quick re-login
 - [ ] **Badge count** — unread incident count on app icon via push payload
 - [ ] **Offline fallback screen** — branded "no connection" page instead of blank WebView error
-
-### App Store submission
-- [ ] **Apple Developer account** — $99/year, configure signing + provisioning
-- [ ] **App Store Connect record** — app name, bundle ID, SKU, primary language
-- [ ] **Screenshots** — 6.7" + 5.5" iPhone sizes (minimum)
-- [ ] **Privacy policy URL** — required by both Apple and Google
-- [ ] **App description + keywords** — App Store metadata
-- [ ] **TestFlight beta** — internal testers first, then external with public link
-- [ ] **App Store review submission** — age rating, privacy questionnaire, review notes explaining the native features
-
-### Android (after iOS)
-- [ ] **Google Play Developer account** — $25 one-time
-- [ ] **Android build + signing** — generate signed APK/AAB
-- [ ] **Play Store listing** — screenshots, description, privacy policy
-- [ ] **Internal testing track** — staged rollout before production
 
 ---
 

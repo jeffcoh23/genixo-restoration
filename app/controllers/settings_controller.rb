@@ -20,7 +20,8 @@ class SettingsController < ApplicationController
       timezone_options: TIMEZONE_OPTIONS,
       update_path: settings_path,
       password_path: settings_password_path,
-      preferences_path: settings_preferences_path
+      preferences_path: settings_preferences_path,
+      mobile_app: MobileAppLinks.to_props
     }
   end
 
