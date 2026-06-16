@@ -118,6 +118,26 @@ class SettingsTest < ApplicationSystemTestCase
     assert_no_button "Save Organization"
   end
 
+  test "shows the mobile app card with the App Store link" do
+    login_as @user
+    visit settings_path
+
+    assert_text "Get the mobile app"
+    link = find_link("Download on the App Store")
+    assert_equal MobileAppLinks.ios_app_store_url, link[:href]
+  end
+
+  test "shows the Android beta steps when the tester group url is configured" do
+    with_env("ANDROID_TESTER_GROUP_URL" => "https://groups.google.com/g/genixo-android-testers") do
+      login_as @user
+      visit settings_path
+
+      assert_text "Android (beta)"
+      assert_link "Join the tester group", href: "https://groups.google.com/g/genixo-android-testers"
+      assert_link "Install on Google Play", href: MobileAppLinks.android_opt_in_url
+    end
+  end
+
   SETTINGS_CASES = {
     # Filled
   }.freeze
@@ -126,5 +146,15 @@ class SettingsTest < ApplicationSystemTestCase
     test description do
       pending_e2e id, "Settings UI selectors and copy need stable hooks before browser assertions are reliable"
     end
+  end
+
+  private
+
+  def with_env(values)
+    originals = values.each_key.to_h { |k| [ k, ENV[k] ] }
+    values.each { |k, v| ENV[k] = v }
+    yield
+  ensure
+    originals.each { |k, v| ENV[k] = v }
   end
 end

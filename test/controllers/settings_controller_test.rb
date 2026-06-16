@@ -55,6 +55,38 @@ class SettingsControllerReorderTest < ActionDispatch::IntegrationTest
   end
 end
 
+class SettingsControllerShowTest < ActionDispatch::IntegrationTest
+  setup do
+    @org = Organization.create!(name: "Genixo", organization_type: "mitigation")
+    @manager = User.create!(organization: @org, user_type: "manager",
+      email_address: "mgr@genixo.com", first_name: "Test", last_name: "Manager", password: "password123")
+  end
+
+  test "passes the mobile_app prop matching MobileAppLinks.to_props" do
+    login_as @manager
+    get settings_path
+    assert_response :success
+
+    mobile_app = inertia_props["mobile_app"]
+    assert_not_nil mobile_app, "expected the show action to pass a mobile_app prop"
+    assert_equal %w[android_group_url android_opt_in_url ios_url], mobile_app.keys.sort
+    assert_equal MobileAppLinks.ios_app_store_url, mobile_app["ios_url"]
+    assert_equal MobileAppLinks.android_opt_in_url, mobile_app["android_opt_in_url"]
+  end
+
+  private
+
+  def login_as(user)
+    post login_path, params: { email_address: user.email_address, password: "password123" }
+  end
+
+  def inertia_props
+    encoded = response.body.match(/data-page="([^"]+)"/m)&.captures&.first
+    raise "Missing Inertia data-page payload" unless encoded
+    JSON.parse(CGI.unescapeHTML(encoded)).fetch("props")
+  end
+end
+
 class SettingsControllerAutoAssignTest < ActionDispatch::IntegrationTest
   setup do
     @org = Organization.create!(name: "Genixo", organization_type: "mitigation")

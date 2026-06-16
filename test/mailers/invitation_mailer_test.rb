@@ -1,6 +1,10 @@
 require "test_helper"
 
 class InvitationMailerTest < ActionMailer::TestCase
+  IOS_URL = "https://apps.apple.com/us/app/genixo-restoration/id6760802383".freeze
+  ANDROID_OPT_IN = "https://play.google.com/apps/testing/com.genixo.restoration".freeze
+  GROUP_URL = "https://groups.google.com/g/genixo-android-testers".freeze
+
   setup do
     @org = Organization.create!(name: "Genixo", organization_type: "mitigation")
     @invitation = Invitation.create!(
@@ -19,36 +23,40 @@ class InvitationMailerTest < ActionMailer::TestCase
     assert_includes mail.text_part.body.to_s, "Accept your invitation:"
   end
 
-  test "omits the Android block when ANDROID_TESTER_GROUP_URL is not set" do
+  test "always includes the iOS App Store link" do
     with_env("ANDROID_TESTER_GROUP_URL" => nil) do
       mail = InvitationMailer.invite(@invitation)
-      refute_includes mail.html_part.body.to_s, "On an Android phone"
-      refute_includes mail.text_part.body.to_s, "On an Android phone"
+      assert_includes mail.html_part.body.to_s, IOS_URL
+      assert_includes mail.text_part.body.to_s, IOS_URL
     end
   end
 
-  test "includes the Android block with both links when the group URL is set" do
-    group_url = "https://groups.google.com/g/genixo-android-testers"
-    with_env("ANDROID_TESTER_GROUP_URL" => group_url, "ANDROID_OPT_IN_URL" => nil) do
+  test "omits the Android beta steps when ANDROID_TESTER_GROUP_URL is not set" do
+    with_env("ANDROID_TESTER_GROUP_URL" => nil) do
+      mail = InvitationMailer.invite(@invitation)
+      refute_includes mail.html_part.body.to_s, "Android (beta"
+      refute_includes mail.text_part.body.to_s, "Android (beta"
+    end
+  end
+
+  test "includes the Android beta steps with both links when the group URL is set" do
+    with_env("ANDROID_TESTER_GROUP_URL" => GROUP_URL, "ANDROID_OPT_IN_URL" => nil) do
       mail = InvitationMailer.invite(@invitation)
 
       html = mail.html_part.body.to_s
-      assert_includes html, "On an Android phone"
-      assert_includes html, group_url
-      assert_includes html, "https://play.google.com/apps/testing/com.genixo.restoration"
+      assert_includes html, "Android (beta"
+      assert_includes html, GROUP_URL
+      assert_includes html, ANDROID_OPT_IN
 
       text = mail.text_part.body.to_s
-      assert_includes text, "On an Android phone"
-      assert_includes text, group_url
-      assert_includes text, "https://play.google.com/apps/testing/com.genixo.restoration"
+      assert_includes text, "Android (beta"
+      assert_includes text, GROUP_URL
+      assert_includes text, ANDROID_OPT_IN
     end
   end
 
   test "honors a custom ANDROID_OPT_IN_URL override" do
-    with_env(
-      "ANDROID_TESTER_GROUP_URL" => "https://groups.google.com/g/genixo-android-testers",
-      "ANDROID_OPT_IN_URL" => "https://example.com/custom-optin"
-    ) do
+    with_env("ANDROID_TESTER_GROUP_URL" => GROUP_URL, "ANDROID_OPT_IN_URL" => "https://example.com/custom-optin") do
       mail = InvitationMailer.invite(@invitation)
       assert_includes mail.html_part.body.to_s, "https://example.com/custom-optin"
     end

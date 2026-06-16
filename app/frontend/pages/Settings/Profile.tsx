@@ -33,12 +33,19 @@ interface TimezoneOption {
   label: string;
 }
 
+interface MobileApp {
+  ios_url: string;
+  android_group_url: string | null;
+  android_opt_in_url: string;
+}
+
 interface Props {
   user: UserProfile;
   timezone_options: TimezoneOption[];
   update_path: string;
   password_path: string;
   preferences_path: string;
+  mobile_app: MobileApp;
 }
 
 function ProfileForm({ user, timezoneOptions, updatePath }: {
@@ -194,8 +201,48 @@ function NotificationPreferencesForm({ preferences, preferencesPath }: {
   );
 }
 
+function MobileAppCard({ app }: { app: MobileApp }) {
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">
+        Take site photos and pull reports from the field.
+      </p>
+
+      <div className="space-y-2">
+        <div className="text-sm font-medium text-foreground">iPhone or iPad</div>
+        <Button asChild variant="outline" size="sm">
+          <a href={app.ios_url} target="_blank" rel="noopener noreferrer">
+            Download on the App Store
+          </a>
+        </Button>
+      </div>
+
+      {app.android_group_url && (
+        <div className="space-y-2">
+          <div className="text-sm font-medium text-foreground">Android (beta)</div>
+          <p className="text-xs text-muted-foreground">
+            Two steps, in order. After joining the group, wait a few minutes before the install link works.
+          </p>
+          <ol className="list-decimal space-y-1 pl-5 text-sm text-foreground">
+            <li>
+              <a href={app.android_group_url} target="_blank" rel="noopener noreferrer" className="text-primary underline">
+                Join the tester group
+              </a>
+            </li>
+            <li>
+              <a href={app.android_opt_in_url} target="_blank" rel="noopener noreferrer" className="text-primary underline">
+                Install on Google Play
+              </a>
+            </li>
+          </ol>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function SettingsProfile() {
-  const { user, timezone_options, update_path, password_path, preferences_path } = usePage<SharedProps & Props>().props;
+  const { user, timezone_options, update_path, password_path, preferences_path, mobile_app } = usePage<SharedProps & Props>().props;
 
   return (
     <AppLayout>
@@ -225,6 +272,12 @@ export default function SettingsProfile() {
         <div className="bg-card rounded-lg border border-border shadow-sm p-5">
           <h2 className="text-sm font-semibold text-foreground mb-4">Change Password</h2>
           <PasswordForm passwordPath={password_path} />
+        </div>
+
+        {/* Mobile app */}
+        <div className="bg-card rounded-lg border border-border shadow-sm p-5">
+          <h2 className="text-sm font-semibold text-foreground mb-4">Get the mobile app</h2>
+          <MobileAppCard app={mobile_app} />
         </div>
       </div>
     </AppLayout>
