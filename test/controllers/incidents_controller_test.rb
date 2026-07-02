@@ -188,6 +188,17 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "show renders when a DFR attachment has no file (regression: blob-less DFR 500'd the page)" do
+    incident = create_test_incident(status: "active")
+    # A DFR row left without a file — the state a regeneration job produced when
+    # killed between purging the old blob and attaching the new one.
+    incident.attachments.create!(category: "dfr", log_date: Date.current, uploaded_by_user: @manager)
+    login_as @manager
+
+    get incident_path(incident)
+    assert_response :success
+  end
+
   # --- New page access control ---
 
   test "manager can access new incident page" do

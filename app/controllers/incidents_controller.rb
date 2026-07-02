@@ -876,6 +876,7 @@ class IncidentsController < ApplicationController
 
     # Index existing DFR attachments by date
     dfr_by_date = @incident ? @incident.attachments.where(category: "dfr")
+      .includes(file_attachment: :blob)
       .index_by { |a| a.log_date&.iso8601 } : {}
 
     # Count photos per date for DFR photo selection
@@ -900,7 +901,11 @@ class IncidentsController < ApplicationController
         total_labor_hours: labor_hours_by_date[date_key].round(1),
         total_equip_count: date_equip.sum { |e| e[:count] },
         photo_count: photo_counts_by_date[date_key] || 0,
-        dfr: dfr_att ? {
+        # Guard against a DFR row whose file is missing (e.g. a regeneration job
+        # killed mid-run): rails_blob_path would call signed_id on a nil blob and
+        # 500 the whole page. Render it as "not generated yet" so the Generate
+        # button reappears and the user can regenerate.
+        dfr: dfr_att&.file&.attached? ? {
           # disposition: "attachment" — clicking the DFR link downloads the file
           # with its proper filename. Inline preview shows the S3 object key in
           # Chrome's PDF viewer, which looks like a long random hash to the user.
