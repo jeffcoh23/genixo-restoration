@@ -188,6 +188,26 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "show renders when a DFR attachment has no file (regression: blob-less DFR 500'd the page)" do
+    incident = create_test_incident(status: "active")
+    # A DFR row left without a file — the state a regeneration job produced when
+    # killed between purging the old blob and attaching the new one.
+    incident.attachments.create!(category: "dfr", log_date: Date.current, uploaded_by_user: @manager)
+    login_as @manager
+
+    # Eager render — the daily-log DFR link (the path Honeybadger caught).
+    get incident_path(incident)
+    assert_response :success
+
+    # Deferred "documents" group — serialize_single_attachment, fetched by a
+    # follow-up Inertia partial reload the plain GET above doesn't trigger.
+    props = inertia_deferred_props(incident_path(incident), "attachments")
+    assert_response :success
+    dfr_doc = props["attachments"].find { |a| a["category"] == "dfr" }
+    assert dfr_doc, "blob-less DFR should still be serialized"
+    assert_nil dfr_doc["url"], "blob-less DFR should serialize with a nil url, not crash"
+  end
+
   # --- New page access control ---
 
   test "manager can access new incident page" do

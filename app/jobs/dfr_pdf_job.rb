@@ -15,7 +15,11 @@ class DfrPdfJob < ApplicationJob
 
     existing = incident.attachments.find_by(category: "dfr", log_date: parsed_date)
     if existing
-      existing.file.purge
+      # Attaching a new file replaces the old one and purges the previous blob
+      # (has_one_attached defaults to dependent: :purge_later). Do NOT purge
+      # first: purging and then re-attaching left the row without a file if the
+      # job died in between (e.g. an R14 memory kill during generation), which
+      # 500'd the whole incident page via the daily-log DFR link.
       existing.file.attach(
         io: StringIO.new(pdf_data),
         filename: filename,

@@ -80,6 +80,20 @@ class DfrPdfJobTest < ActiveSupport::TestCase
     end
   end
 
+  test "regenerating a DFR replaces the file and keeps it attached" do
+    date = Date.current.to_s
+
+    DfrPdfJob.perform_now(@incident.id, date, "America/Chicago", @manager.id)
+    dfr = @incident.attachments.find_by(category: "dfr", log_date: date)
+    original_blob_id = dfr.file.blob.id
+
+    DfrPdfJob.perform_now(@incident.id, date, "America/Chicago", @manager.id)
+    dfr.reload
+
+    assert dfr.file.attached?, "DFR should still have a file after regeneration"
+    refute_equal original_blob_id, dfr.file.blob.id, "regeneration should attach a new blob"
+  end
+
   test "PDF includes equipment summary with counts and hours for on-site equipment" do
     require "pdf/inspector"
 
