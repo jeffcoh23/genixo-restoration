@@ -1134,7 +1134,7 @@ class IncidentsController < ApplicationController
         id: attachment.id,
         filename: attachment.file.filename.to_s,
         category_label: attachment.category.titleize,
-        url: rails_blob_path(attachment.file, disposition: "inline"),
+        url: blob_path_or_nil(attachment.file, disposition: "inline"),
         content_type: attachment.file.content_type,
         byte_size: attachment.file.byte_size,
         created_at: attachment.created_at.iso8601,
@@ -1238,7 +1238,7 @@ class IncidentsController < ApplicationController
       uploaded_by_name: att.uploaded_by_user.full_name,
       content_type: att.file.content_type,
       byte_size: att.file.byte_size,
-      url: rails_blob_path(att.file, disposition: "inline"),
+      url: blob_path_or_nil(att.file, disposition: "inline"),
       thumbnail_url: thumbnail_url_for(att.file)
     }
     if can_manage_attachments?
@@ -1262,6 +1262,13 @@ class IncidentsController < ApplicationController
         created_by_name: note.created_by_user.full_name
       }
     end
+  end
+
+  # rails_blob_path raises (undefined method `signed_id' for nil) when the
+  # attachment has no blob — e.g. a DFR row left fileless by an interrupted
+  # regeneration. Return nil so the page renders instead of 500ing.
+  def blob_path_or_nil(file, **opts)
+    file.attached? ? rails_blob_path(file, **opts) : nil
   end
 
   def thumbnail_url_for(file)
