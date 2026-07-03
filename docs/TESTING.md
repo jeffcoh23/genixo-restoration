@@ -198,7 +198,7 @@ Latest full local run (before adding new files): `21 runs, 57 assertions, 5 fail
 | ID | Test | Roles | Flow | Verify |
 |----|------|-------|------|--------|
 | C1 | Create emergency incident | Manager | "Create Request" → select property → "Emergency Response" → fill form → submit | Status = "acknowledged"; emergency warning shown; escalation triggered; auto-assignments populated |
-| C2 | Create quote incident | Manager | Select "Mitigation RFQ" → submit | Status = "proposal_requested" |
+| C2 | Create quote incident | Manager | Select "Mitigation" → submit | Status = "proposal_requested" |
 | C3 | Create incident — PM user | Property_Manager | Login → "Create Request" → only sees assigned properties → submit | Incident created; mitigation managers auto-assigned |
 | C4 | Create incident — validation errors | Manager | Submit without required fields | Inline errors; stays on form |
 | C5 | Create with team assignment | Manager | Select property → auto-checked users → uncheck some → submit | Assignments match selections |
@@ -229,7 +229,7 @@ Latest full local run (before adding new files): `21 runs, 57 assertions, 5 fail
 
 | ID | Test | Roles | Flow | Verify |
 |----|------|-------|------|--------|
-| D1 | Assign mitigation user | Manager | Incident → Mitigation Team → add user | User in list; activity logged; notification sent |
+| D1 | Assign mitigation user | Manager | Incident → Team → add user | User in list; activity logged; notification sent |
 | D2 | Assign PM user (own org) | Property_Manager | Incident → PM Team → add PM user | Only own-org users available |
 | D3 | PM cannot assign mitigation users | Property_Manager | Direct POST with mitigation user_id | 404 |
 | D4 | Remove user from incident | Manager | Click Remove on team member | Removed; activity logged |
