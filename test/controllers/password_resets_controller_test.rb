@@ -18,14 +18,20 @@ class PasswordResetsControllerTest < ActionDispatch::IntegrationTest
   # --- Request reset ---
 
   test "sends reset email for valid user" do
-    post forgot_password_path, params: { email_address: "mgr@genixo.com" }
+    # Mail goes out via deliver_later — perform the enqueued job so the
+    # delivery itself (recipient, content) can still be asserted.
+    perform_enqueued_jobs do
+      post forgot_password_path, params: { email_address: "mgr@genixo.com" }
+    end
     assert_redirected_to forgot_password_path
     assert_equal 1, ActionMailer::Base.deliveries.size
     assert_equal [ "mgr@genixo.com" ], ActionMailer::Base.deliveries.first.to
   end
 
   test "does not leak email existence for unknown address" do
-    post forgot_password_path, params: { email_address: "nobody@genixo.com" }
+    perform_enqueued_jobs do
+      post forgot_password_path, params: { email_address: "nobody@genixo.com" }
+    end
     assert_redirected_to forgot_password_path
     assert_equal 0, ActionMailer::Base.deliveries.size
     assert_includes flash[:notice], "reset link"
@@ -33,7 +39,9 @@ class PasswordResetsControllerTest < ActionDispatch::IntegrationTest
 
   test "does not send reset email for inactive user" do
     @user.update!(active: false)
-    post forgot_password_path, params: { email_address: "mgr@genixo.com" }
+    perform_enqueued_jobs do
+      post forgot_password_path, params: { email_address: "mgr@genixo.com" }
+    end
     assert_redirected_to forgot_password_path
     assert_equal 0, ActionMailer::Base.deliveries.size
   end
@@ -88,5 +96,17 @@ class PasswordResetsControllerTest < ActionDispatch::IntegrationTest
     # Try to use the same token again — should fail because password_salt changed
     get edit_password_reset_path(token)
     assert_redirected_to forgot_password_path
+  end
+
+  private
+
+  # Same convention as the job tests: the suite runs the SolidQueue adapter, so
+  # swap in the :test adapter to execute deliver_later jobs inline.
+  def perform_enqueued_jobs(&block)
+    ActiveJob::Base.queue_adapter = :test
+    ActiveJob::Base.queue_adapter.perform_enqueued_jobs = true
+    yield
+  ensure
+    ActiveJob::Base.queue_adapter = :solid_queue
   end
 end

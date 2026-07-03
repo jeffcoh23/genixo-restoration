@@ -40,7 +40,7 @@ class BatchImprovementsTest < ApplicationSystemTestCase
     click_button "Manage"
 
     # Click user row to expand contact info — scope within the team section
-    within("section", text: "Mitigation Team") do
+    within("section", text: "Team") do
       find("span", text: "Mia Manager").click
     end
     assert_text "(203) 218-0897"
@@ -50,7 +50,7 @@ class BatchImprovementsTest < ApplicationSystemTestCase
     login_as @manager
     visit incident_path(@incident)
     click_button "Manage"
-    within("section", text: "Mitigation Team") do
+    within("section", text: "Team") do
       find("span", text: "Mia Manager").click
     end
 
@@ -180,11 +180,11 @@ class BatchImprovementsTest < ApplicationSystemTestCase
     visit incident_path(@incident)
     click_button "Manage"
 
-    assert_text "Mitigation Team"
+    assert_text "Team"
     assert_text "Property Management"
     assert_text "External"
     # PM user sees the team but cannot assign mitigation users
-    within("section", text: "Mitigation Team") do
+    within("section", text: "Team") do
       assert_no_text "Assign User"
     end
   end
@@ -194,7 +194,7 @@ class BatchImprovementsTest < ApplicationSystemTestCase
     visit incident_path(@incident)
     click_button "Manage"
 
-    assert_text "Mitigation Team"
+    assert_text "Team"
     assert_text "Property Management"
     assert_text "External"
   end
