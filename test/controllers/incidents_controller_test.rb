@@ -112,6 +112,46 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "my_jobs filter shows only incidents assigned to the current user" do
+    mine = create_test_incident(status: "active", property: @property)
+    other = create_test_incident(status: "active", property: @other_property)
+    IncidentAssignment.create!(incident: mine, user: @manager, assigned_by_user: @manager)
+    login_as @manager
+
+    get incidents_path, params: { my_jobs: "1" }
+    assert_response :success
+    ids = inertia_props["incidents"].map { |i| i["id"] }
+    assert_includes ids, mine.id
+    refute_includes ids, other.id
+  end
+
+  test "my_jobs filter round-trips through the filters prop for pagination" do
+    login_as @manager
+    get incidents_path, params: { my_jobs: "1", page: 1 }
+    assert_response :success
+    assert_equal "1", inertia_props["filters"]["my_jobs"]
+  end
+
+  test "my_jobs is a no-op for technicians whose scope is already assignment-only" do
+    mine = create_test_incident(status: "active", property: @property)
+    other = create_test_incident(status: "active", property: @other_property)
+    IncidentAssignment.create!(incident: mine, user: @tech, assigned_by_user: @manager)
+    login_as @tech
+
+    get incidents_path
+    baseline = inertia_props["incidents"].map { |i| i["id"] }
+
+    get incidents_path, params: { my_jobs: "1" }
+    assert_equal baseline, inertia_props["incidents"].map { |i| i["id"] }
+    assert_equal false, inertia_props["show_my_jobs"], "toggle should be hidden for technicians"
+  end
+
+  test "show_my_jobs is true for managers" do
+    login_as @manager
+    get incidents_path
+    assert_equal true, inertia_props["show_my_jobs"]
+  end
+
   test "index includes job_id in incident props" do
     incident = create_test_incident(status: "active", property: @property)
     incident.update!(job_id: "GCM-2026-051")
