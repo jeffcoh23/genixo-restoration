@@ -18,6 +18,12 @@ Rails.application.routes.draw do
   get "report-incident", to: "public_incident_reports#new", as: :new_public_incident_report
   post "report-incident", to: "public_incident_reports#create", as: :public_incident_reports
 
+  # Login requests (public form; review actions require MANAGE_USERS)
+  get "request-access", to: "login_requests#new", as: :new_login_request
+  post "request-access", to: "login_requests#create", as: :login_requests
+  patch "login-requests/:id/approve", to: "login_requests#approve", as: :approve_login_request
+  patch "login-requests/:id/reject", to: "login_requests#reject", as: :reject_login_request
+
   # Password reset
   get "forgot-password", to: "password_resets#new", as: :forgot_password
   post "forgot-password", to: "password_resets#create"

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_05_09_204825) do
+ActiveRecord::Schema[8.0].define(version: 2026_07_06_220646) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -223,19 +223,30 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_09_204825) do
   end
 
   create_table "incident_tasks", force: :cascade do |t|
-    t.bigint "incident_id", null: false
-    t.string "name", null: false
-    t.string "unit"
-    t.string "assigned_to"
-    t.integer "progress", default: 0, null: false
+    t.bigint "incident_unit_id", null: false
+    t.string "activity", null: false
     t.date "start_date", null: false
-    t.date "end_date"
-    t.boolean "needs_vacant", default: false, null: false
-    t.integer "position"
+    t.date "end_date", null: false
+    t.integer "position", default: 0, null: false
+    t.bigint "created_by_user_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["incident_id", "position"], name: "index_incident_tasks_on_incident_id_and_position"
-    t.index ["incident_id"], name: "index_incident_tasks_on_incident_id"
+    t.index ["created_by_user_id"], name: "index_incident_tasks_on_created_by_user_id"
+    t.index ["incident_unit_id", "position"], name: "index_incident_tasks_on_incident_unit_id_and_position"
+    t.index ["incident_unit_id"], name: "index_incident_tasks_on_incident_unit_id"
+  end
+
+  create_table "incident_units", force: :cascade do |t|
+    t.bigint "incident_id", null: false
+    t.string "unit_number", null: false
+    t.boolean "needs_vacant", default: false, null: false
+    t.integer "position", default: 0, null: false
+    t.bigint "created_by_user_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_by_user_id"], name: "index_incident_units_on_created_by_user_id"
+    t.index ["incident_id", "position"], name: "index_incident_units_on_incident_id_and_position"
+    t.index ["incident_id"], name: "index_incident_units_on_incident_id"
   end
 
   create_table "incidents", force: :cascade do |t|
@@ -308,6 +319,24 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_09_204825) do
     t.index ["incident_id", "log_date"], name: "index_labor_entries_on_incident_id_and_log_date"
     t.index ["incident_id"], name: "index_labor_entries_on_incident_id"
     t.index ["user_id"], name: "index_labor_entries_on_user_id"
+  end
+
+  create_table "login_requests", force: :cascade do |t|
+    t.string "email", null: false
+    t.string "first_name", null: false
+    t.string "last_name", null: false
+    t.string "company_name"
+    t.string "phone"
+    t.text "message"
+    t.string "status", default: "pending", null: false
+    t.bigint "reviewed_by_user_id"
+    t.datetime "reviewed_at"
+    t.text "rejection_reason"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["email"], name: "index_login_requests_on_email"
+    t.index ["reviewed_by_user_id"], name: "index_login_requests_on_reviewed_by_user_id"
+    t.index ["status"], name: "index_login_requests_on_status"
   end
 
   create_table "messages", force: :cascade do |t|
@@ -428,10 +457,10 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_09_204825) do
     t.decimal "temperature", precision: 5, scale: 1
     t.decimal "relative_humidity", precision: 5, scale: 1
     t.decimal "gpp", precision: 7, scale: 1
-    t.decimal "g_dep", precision: 5, scale: 1
     t.bigint "recorded_by_user_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.decimal "g_dep", precision: 5, scale: 1
     t.index ["log_date"], name: "index_psychrometric_readings_on_log_date"
     t.index ["psychrometric_point_id", "log_date"], name: "idx_psychrometric_readings_point_date", unique: true
     t.index ["psychrometric_point_id"], name: "index_psychrometric_readings_on_psychrometric_point_id"
@@ -640,7 +669,10 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_09_204825) do
   add_foreign_key "incident_contacts", "users", column: "created_by_user_id"
   add_foreign_key "incident_read_states", "incidents"
   add_foreign_key "incident_read_states", "users"
-  add_foreign_key "incident_tasks", "incidents"
+  add_foreign_key "incident_tasks", "incident_units"
+  add_foreign_key "incident_tasks", "users", column: "created_by_user_id"
+  add_foreign_key "incident_units", "incidents"
+  add_foreign_key "incident_units", "users", column: "created_by_user_id"
   add_foreign_key "incidents", "properties"
   add_foreign_key "incidents", "users", column: "created_by_user_id"
   add_foreign_key "invitations", "organizations"
@@ -648,6 +680,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_09_204825) do
   add_foreign_key "labor_entries", "incidents"
   add_foreign_key "labor_entries", "users"
   add_foreign_key "labor_entries", "users", column: "created_by_user_id"
+  add_foreign_key "login_requests", "users", column: "reviewed_by_user_id"
   add_foreign_key "messages", "incidents"
   add_foreign_key "messages", "users"
   add_foreign_key "moisture_measurement_points", "incidents"

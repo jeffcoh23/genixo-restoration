@@ -16,11 +16,12 @@ interface Props extends Record<string, unknown> {
   flash: FlashMessages;
   forgot_password_path: string;
   report_incident_path: string;
+  request_access_path: string;
   emergency_phone: string | null;
 }
 
 export default function Login() {
-  const { flash, forgot_password_path, report_incident_path, emergency_phone } = usePage<Props>().props;
+  const { flash, forgot_password_path, report_incident_path, request_access_path, emergency_phone } = usePage<Props>().props;
   const { data, setData, post, processing, errors } = useForm({
     email_address: "",
     password: "",
@@ -86,9 +87,12 @@ export default function Login() {
             </Button>
           </form>
 
-          <div className="mt-4 text-center">
+          <div className="mt-4 flex items-center justify-center gap-4 text-center">
             <Link href={forgot_password_path} className="text-sm text-muted-foreground hover:text-foreground">
               Forgot password?
+            </Link>
+            <Link href={request_access_path} className="text-sm text-muted-foreground hover:text-foreground">
+              Request access
             </Link>
           </div>
 
