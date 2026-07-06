@@ -47,8 +47,8 @@ class DfrPdfService
     render_labor_section(pdf)
     render_equipment_section(pdf)
     render_photos(pdf) if @include_photos
-    # Documents are parsed BEFORE the body renders (document_results) so the
-    # section can already reflect which ones will be attached vs only listed.
+    # render_documents_section triggers document parsing (document_results), so
+    # each file is classified appended/embedded/listed before append_documents runs.
     render_documents_section(pdf)
 
     append_documents(pdf.render)
@@ -251,7 +251,8 @@ class DfrPdfService
       pdf.image tempfile.path, fit: [ pdf.bounds.width, max_height ], position: :center
       pdf.move_down 15
     end
-  rescue StandardError
+  rescue StandardError => e
+    Rails.logger.warn("[DfrPdfService] could not embed image attachment #{attachment.id} (#{attachment.file.filename}): #{e.message}")
     nil
   end
 
@@ -274,7 +275,8 @@ class DfrPdfService
         pdf.font_size(10) { pdf.text t("• #{result[:filename]} (attached)") }
         pdf.move_down 3
       else
-        pdf.font_size(10) { pdf.text t("• #{result[:filename]}") }
+        label = result[:note] ? "• #{result[:filename]} (#{result[:note]})" : "• #{result[:filename]}"
+        pdf.font_size(10) { pdf.text t(label) }
         pdf.move_down 3
       end
     end
@@ -291,6 +293,12 @@ class DfrPdfService
     combined = CombinePDF.parse(data)
     parsed_docs.each { |doc| combined << doc }
     combined.to_pdf
+  rescue StandardError => e
+    # A merge failure must never kill the DFR: ship the Prawn body without the
+    # appended pages. (The Documents section will overstate "(attached)" for
+    # this rare case — preferable to no report at all.)
+    Rails.logger.warn("[DfrPdfService] could not append documents to DFR: #{e.message}")
+    data
   end
 
   def document_results
@@ -314,18 +322,28 @@ class DfrPdfService
       result = { attachment: att, filename: blob.filename.to_s, disposition: :listed, parsed: nil }
 
       if blob.content_type.to_s.start_with?("image/")
-        result[:disposition] = :embedded_image
-      elsif blob.content_type == "application/pdf" &&
-            blob.byte_size <= MAX_DOCUMENT_BYTES &&
-            appended_bytes + blob.byte_size <= MAX_TOTAL_DOCUMENT_BYTES
-        begin
-          result[:parsed] = CombinePDF.parse(blob.download)
-          result[:disposition] = :appended
-          appended_bytes += blob.byte_size
-        rescue StandardError => e
-          # Corrupt/encrypted PDF: fall back to a filename listing, never
-          # fail the whole DFR over one bad document.
-          Rails.logger.warn("[DfrPdfService] could not parse document #{att.id} (#{result[:filename]}): #{e.message}")
+        # Same per-file cap as PDFs: MiniMagick decodes the full image, so an
+        # oversized "image" document must not reach the embed path.
+        if blob.byte_size <= MAX_DOCUMENT_BYTES
+          result[:disposition] = :embedded_image
+        else
+          result[:note] = "too large to attach"
+        end
+      elsif blob.content_type == "application/pdf"
+        if blob.byte_size <= MAX_DOCUMENT_BYTES &&
+           appended_bytes + blob.byte_size <= MAX_TOTAL_DOCUMENT_BYTES
+          begin
+            result[:parsed] = CombinePDF.parse(blob.download)
+            result[:disposition] = :appended
+            appended_bytes += blob.byte_size
+          rescue StandardError => e
+            # Corrupt/encrypted PDF: fall back to a filename listing, never
+            # fail the whole DFR over one bad document.
+            Rails.logger.warn("[DfrPdfService] could not parse document #{att.id} (#{result[:filename]}): #{e.message}")
+            result[:note] = "could not be attached"
+          end
+        else
+          result[:note] = "too large to attach"
         end
       end
 

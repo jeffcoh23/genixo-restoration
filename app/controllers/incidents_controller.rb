@@ -4,7 +4,7 @@ class IncidentsController < ApplicationController
   before_action :authorize_creation!, only: %i[new create]
   before_action :set_incident, only: %i[show update transition mark_read dfr dfr_photos photos_zip attachments_page report]
   before_action :authorize_edit!, only: %i[update]
-  before_action :authorize_dfr!, only: %i[dfr]
+  before_action :authorize_dfr!, only: %i[dfr dfr_photos]
   before_action :authorize_transition!, only: %i[transition]
 
   def index
@@ -314,10 +314,16 @@ class IncidentsController < ApplicationController
   end
 
   def dfr
-    date = params[:date].presence || Date.current.to_s
-    photo_ids = params.key?(:photo_ids) ? Array(params[:photo_ids]).flatten.map(&:to_i).uniq : nil
-    document_ids = params.key?(:document_ids) ? Array(params[:document_ids]).flatten.map(&:to_i).uniq : nil
-    DfrPdfJob.perform_later(@incident.id, date, current_user.timezone, current_user.id, photo_ids, document_ids)
+    # Validate here, not in the job — a bad date raised inside DfrPdfJob is
+    # invisible (no retry/discard handler; the UI would poll forever).
+    date = begin
+      Date.iso8601(params[:date].presence || Date.current.to_s)
+    rescue ArgumentError, TypeError
+      return redirect_to incident_path(@incident), alert: "Could not generate DFR: invalid date."
+    end
+    photo_ids = dfr_id_array(:photo_ids)
+    document_ids = dfr_id_array(:document_ids)
+    DfrPdfJob.perform_later(@incident.id, date.iso8601, current_user.timezone, current_user.id, photo_ids, document_ids)
     redirect_to incident_path(@incident), notice: "DFR PDF is being generated. It will appear in the daily log shortly."
   end
 
@@ -387,6 +393,15 @@ class IncidentsController < ApplicationController
   end
 
   private
+
+  # nil when the param is absent (job falls back to default selection);
+  # otherwise a clean integer array. Integer(exception: false) drops
+  # non-numeric garbage — including hash-shaped params, which would make
+  # `.map(&:to_i)` raise a 500.
+  def dfr_id_array(key)
+    return nil unless params.key?(key)
+    Array(params[key]).flatten.filter_map { |v| Integer(v, exception: false) }.uniq
+  end
 
   # Some legacy uploads (camera capture path that ran the file through
   # browser-image-compression) landed in storage with filename "blob" — no

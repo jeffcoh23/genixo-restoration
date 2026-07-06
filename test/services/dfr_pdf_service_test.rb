@@ -333,7 +333,7 @@ class DfrPdfServiceTest < ActiveSupport::TestCase
     end
 
     text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
-    assert_includes text, "broken.pdf"
+    assert_includes text, "broken.pdf (could not be attached)"
     refute_includes text, "(attached)"
   end
 
@@ -349,7 +349,7 @@ class DfrPdfServiceTest < ActiveSupport::TestCase
     ).generate
 
     text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
-    assert_includes text, "huge.pdf"
+    assert_includes text, "huge.pdf (too large to attach)"
     refute_includes text, "(attached)"
   end
 
@@ -367,7 +367,7 @@ class DfrPdfServiceTest < ActiveSupport::TestCase
     text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
     assert_includes text, "a.pdf (attached)"
     assert_includes text, "b.pdf (attached)"
-    assert_includes text, "c.pdf"
+    assert_includes text, "c.pdf (too large to attach)"
     refute_includes text, "c.pdf (attached)"
   end
 
@@ -428,6 +428,62 @@ class DfrPdfServiceTest < ActiveSupport::TestCase
     assert_includes text, "site-map.jpg"
     assert_includes text, "notes.docx"
     assert_includes pdf_data, "DCTDecode", "image document should be embedded as JPEG"
+  end
+
+  test "image documents over the per-file cap are listed, not embedded" do
+    image_doc = @incident.attachments.create!(category: "signed_document", uploaded_by_user: @manager)
+    image_doc.file.attach(
+      io: File.open(Rails.root.join("test/fixtures/files/test_photo.jpg")),
+      filename: "huge-scan.jpg", content_type: "image/jpeg"
+    )
+    image_doc.file.blob.update_column(:byte_size, DfrPdfService::MAX_DOCUMENT_BYTES + 1)
+
+    pdf_data = DfrPdfService.new(
+      incident: @incident, date: @date, include_photos: false,
+      document_attachment_ids: [ image_doc.id ]
+    ).generate
+
+    text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
+    assert_includes text, "huge-scan.jpg (too large to attach)"
+    refute_includes pdf_data, "DCTDecode", "oversized image must not be embedded"
+  end
+
+  test "documents without an attached file are skipped gracefully" do
+    bare = @incident.attachments.create!(category: "signed_document", uploaded_by_user: @manager)
+
+    pdf_data = nil
+    assert_nothing_raised do
+      pdf_data = DfrPdfService.new(
+        incident: @incident, date: @date, include_photos: false,
+        document_attachment_ids: [ bare.id ]
+      ).generate
+    end
+
+    text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
+    refute_includes text, "Documents", "file-less attachment should not produce a Documents section"
+  end
+
+  test "a merge failure falls back to the unappended DFR body" do
+    require "prawn"
+    require "combine_pdf"
+    require "minitest/mock"
+    doc = create_pdf_document("merge-fail.pdf")
+    service = DfrPdfService.new(
+      incident: @incident, date: @date, include_photos: false,
+      document_attachment_ids: [ doc.id ]
+    )
+    body = Prawn::Document.new { |p| p.text "Body only" }.render
+
+    # Pre-memoize a successfully parsed document, then make the body re-parse
+    # blow up: append_documents must return the body unchanged rather than
+    # kill the job (DfrPdfJob has no retry — the UI would poll forever).
+    service.instance_variable_set(:@document_results,
+      [ { attachment: doc, filename: "merge-fail.pdf", disposition: :appended,
+          parsed: CombinePDF.parse(minimal_pdf) } ])
+
+    CombinePDF.stub(:parse, ->(*) { raise StandardError, "merge boom" }) do
+      assert_equal body, service.send(:append_documents, body)
+    end
   end
 
   private

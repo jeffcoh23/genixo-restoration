@@ -1176,6 +1176,39 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     ActiveJob::Base.queue_adapter = original_adapter
   end
 
+  test "dfr rejects an invalid date param without enqueueing a job" do
+    incident = create_test_incident(status: "active")
+    login_as @manager
+
+    original_adapter = ActiveJob::Base.queue_adapter
+    ActiveJob::Base.queue_adapter = :test
+    assert_no_enqueued_jobs(only: DfrPdfJob) do
+      post dfr_incident_path(incident), params: { date: "not-a-date" }
+    end
+    assert_redirected_to incident_path(incident)
+    assert_equal "Could not generate DFR: invalid date.", flash[:alert]
+  ensure
+    ActiveJob::Base.queue_adapter = original_adapter
+  end
+
+  test "dfr tolerates hash-shaped id params instead of 500ing" do
+    incident = create_test_incident(status: "active")
+    login_as @manager
+
+    post dfr_incident_path(incident),
+      params: { date: Date.current.to_s, photo_ids: { "a" => "b" } }
+    assert_redirected_to incident_path(incident)
+  end
+
+  test "dfr_photos requires manage_daily_logs like dfr" do
+    incident = create_test_incident(status: "active")
+    @manager.update!(permissions: @manager.permissions - [ Permissions::MANAGE_DAILY_LOGS.to_s ])
+    login_as @manager
+
+    get dfr_photos_incident_path(incident), params: { date: Date.current.to_s }
+    assert_response :not_found
+  end
+
   test "dfr_photos is scoped through visible_incidents" do
     incident = create_test_incident(status: "active")
     # PM user from a different org with no property assignments can't see this incident

@@ -164,6 +164,7 @@ export default function DfrPhotoSelectionModal({
           <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
             <ImageIcon className="h-8 w-8 mb-2" />
             <p className="text-sm">No photos or documents on this incident.</p>
+            <p className="text-xs mt-1">You can still generate the DFR without attachments.</p>
           </div>
         ) : (
           <>
@@ -201,7 +202,7 @@ export default function DfrPhotoSelectionModal({
                       variant="ghost"
                       size="sm"
                       onClick={() => toggleGroup(group)}
-                      className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2 hover:text-primary h-auto p-0"
+                      className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 hover:text-primary h-auto p-0"
                     >
                       <span
                         className={`flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-sm border ${
@@ -259,7 +260,7 @@ export default function DfrPhotoSelectionModal({
 
               {documents.length > 0 && (
                 <div className="py-2">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
                     Documents
                   </p>
                   <div className="space-y-1">
@@ -317,7 +318,7 @@ export default function DfrPhotoSelectionModal({
             )}
             <Button
               onClick={handleSubmit}
-              disabled={totalSelected === 0 || isLoading || loadError}
+              disabled={(hasContent && totalSelected === 0) || isLoading || loadError}
             >
               Generate DFR
               {totalSelected > 0 && (

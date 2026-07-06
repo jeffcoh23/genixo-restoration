@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { router, usePoll } from "@inertiajs/react";
 import { ChevronDown, FileText, Loader2, Pencil, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -103,7 +103,12 @@ export default function DailyLogPanel({
     startPolling();
   }, [dfr_path, startPolling, daily_log_table_groups, dfrSubmitting]);
 
+  // Guards against a slow response for date A landing after the modal was
+  // reopened for date B (A's payload — and its preselection — would win).
+  const photoFetchSeq = useRef(0);
+
   const fetchModalPhotos = useCallback((dateKey: string) => {
+    const seq = ++photoFetchSeq.current;
     setPhotoModalPhotos([]);
     setPhotoModalDocuments([]);
     setPhotoModalLoading(true);
@@ -117,11 +122,16 @@ export default function DailyLogPanel({
         return res.json();
       })
       .then((payload: { photos: DfrSelectablePhoto[]; documents: IncidentAttachment[] }) => {
+        if (seq !== photoFetchSeq.current) return;
         setPhotoModalPhotos(payload.photos);
         setPhotoModalDocuments(payload.documents);
       })
-      .catch(() => setPhotoModalError(true))
-      .finally(() => setPhotoModalLoading(false));
+      .catch(() => {
+        if (seq === photoFetchSeq.current) setPhotoModalError(true);
+      })
+      .finally(() => {
+        if (seq === photoFetchSeq.current) setPhotoModalLoading(false);
+      });
   }, [dfr_photos_path]);
 
   const handleGenerateDfr = useCallback((dateKey: string) => {
