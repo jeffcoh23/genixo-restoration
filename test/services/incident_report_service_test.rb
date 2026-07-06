@@ -113,4 +113,29 @@ class IncidentReportServiceTest < ActiveSupport::TestCase
 
     assert pdf_data.start_with?("%PDF")
   end
+
+  test "renders smart quotes and other non-Latin-1 chars without raising" do
+    # Same regression class the DFR hit: Prawn's default Helvetica rejects
+    # U+2019 (’), and iOS auto-corrects every apostrophe to a smart quote.
+    smart = 0x2019.chr("UTF-8")
+    em_dash = 0x2014.chr("UTF-8")
+    @property.update!(name: "Sunset#{smart}s Apts#{em_dash}East")
+
+    pdf_data = IncidentReportService.new(incident: @incident).generate
+    text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
+
+    assert_includes text, "Sunset#{smart}s", "smart quote should survive in rendered PDF"
+    assert_includes text, "East", "em dash should not break surrounding text"
+  end
+
+  test "falls back to ASCII-coerced text when font lacks a glyph" do
+    @property.update!(name: "Sunset Apts 🔥")
+
+    pdf_data = nil
+    assert_nothing_raised do
+      pdf_data = IncidentReportService.new(incident: @incident).generate
+    end
+    text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
+    assert_includes text, "Sunset Apts", "non-emoji content should survive sanitization"
+  end
 end

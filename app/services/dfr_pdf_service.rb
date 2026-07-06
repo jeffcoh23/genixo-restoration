@@ -1,5 +1,6 @@
 class DfrPdfService
   include ActionView::Helpers::NumberHelper
+  include PdfFontSupport
 
   def initialize(incident:, date:, timezone: "America/Chicago", include_photos: true, photo_attachment_ids: nil)
     @incident = incident
@@ -14,35 +15,18 @@ class DfrPdfService
     require "prawn/table"
     require "mini_magick"
 
-    Time.use_zone(@timezone) do
-      build_pdf
+    with_glyph_fallback do
+      Time.use_zone(@timezone) do
+        build_pdf
+      end
     end
-  rescue Prawn::Errors::IncompatibleStringEncoding, Prawn::Errors::CannotRender => e
-    # Noto Sans covers Latin/Greek/Cyrillic and common punctuation. If a tech
-    # types an emoji or supplementary-plane char Noto can't render, fall back
-    # to sanitized text rather than fail the whole report.
-    Rails.logger.warn("[DfrPdfService] glyph not in font, retrying with sanitized text: #{e.message}")
-    @sanitize_text = true
-    Time.use_zone(@timezone) { build_pdf }
   end
 
   private
 
-  FONT_DIR = Rails.root.join("app/assets/fonts").freeze
-
   def build_pdf
     pdf = Prawn::Document.new(page_size: "LETTER", margin: [ 50, 50, 50, 50 ])
-
-    # Default Helvetica only supports Windows-1252; user-typed text from iOS
-    # (smart quotes, emoji, accented names) breaks PDF generation. Noto Sans
-    # is a UTF-8 TTF covering all common Latin/Greek/Cyrillic input.
-    pdf.font_families.update("NotoSans" => {
-      normal: FONT_DIR.join("NotoSans-Regular.ttf").to_s,
-      bold: FONT_DIR.join("NotoSans-Bold.ttf").to_s,
-      italic: FONT_DIR.join("NotoSans-Italic.ttf").to_s,
-      bold_italic: FONT_DIR.join("NotoSans-BoldItalic.ttf").to_s
-    })
-    pdf.font "NotoSans"
+    apply_noto_sans(pdf)
 
     render_header(pdf)
     render_info_grid(pdf)
@@ -319,15 +303,6 @@ class DfrPdfService
 
   def label_cell(text)
     text
-  end
-
-  # Coerce to ASCII when the first PDF build raised a glyph error. Smart quotes,
-  # em dashes, and accents are preserved by Noto Sans on the normal path — only
-  # the fallback path strips chars the font can't render.
-  def t(str)
-    return str unless @sanitize_text
-    return str if str.nil?
-    str.to_s.encode("US-ASCII", invalid: :replace, undef: :replace, replace: "?")
   end
 
   def action_label(action_type)
