@@ -1047,7 +1047,7 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     refute_includes text, "Photos", "Skip photos should produce DFR without photos section"
   end
 
-  test "dfr_photos returns photos for the given date as JSON" do
+  test "dfr_photos returns all incident photos annotated with date grouping info" do
     incident = create_test_incident(status: "active")
     photo = incident.attachments.create!(
       category: "photo", log_date: Date.current, uploaded_by_user: @manager
@@ -1057,7 +1057,8 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
       filename: "test.jpg", content_type: "image/jpeg"
     )
 
-    # Photo on different date — should not be returned
+    # Photo on a different date is also returned — the picker offers every
+    # incident photo ("select any photos, not just photos for that day")
     other = incident.attachments.create!(
       category: "photo", log_date: Date.current - 1.day, uploaded_by_user: @manager
     )
@@ -1071,9 +1072,35 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     photos = JSON.parse(response.body)
+    assert_equal 2, photos.length
+
+    today = photos.find { |p| p["id"] == photo.id }
+    yesterday = photos.find { |p| p["id"] == other.id }
+    assert today["is_report_date"]
+    refute yesterday["is_report_date"]
+    assert_equal Date.current.iso8601, today["date_key"]
+    assert_equal (Date.current - 1.day).iso8601, yesterday["date_key"]
+    assert yesterday["date_label"].present?
+  end
+
+  test "dfr_photos uses created_at date for photos without a log_date" do
+    incident = create_test_incident(status: "active")
+    photo = incident.attachments.create!(
+      category: "photo", log_date: nil, uploaded_by_user: @manager
+    )
+    photo.file.attach(
+      io: File.open(Rails.root.join("test/fixtures/files/test_photo.jpg")),
+      filename: "nodate.jpg", content_type: "image/jpeg"
+    )
+
+    login_as @manager
+    get dfr_photos_incident_path(incident), params: { date: Date.current.to_s }
+
+    photos = JSON.parse(response.body)
     assert_equal 1, photos.length
-    assert_equal photo.id, photos.first["id"]
-    assert_equal "test.jpg", photos.first["filename"]
+    # Requests run inside Time.use_zone(current_user.timezone) — compare in that zone
+    expected = photo.created_at.in_time_zone(@manager.timezone || "UTC").to_date.iso8601
+    assert_equal expected, photos.first["date_key"]
   end
 
   test "dfr_photos returns empty array when no photos for date" do

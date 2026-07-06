@@ -42,6 +42,7 @@ export default function IncidentShow() {
     daily_activities = [],
     daily_log_dates = [],
     daily_log_table_groups = [],
+    incident_has_photos = false,
     messages = [],
     equipment_log = [],
     labor_entries = [],
@@ -292,6 +293,7 @@ export default function IncidentShow() {
               daily_activities={daily_activities}
               daily_log_dates={daily_log_dates}
               daily_log_table_groups={daily_log_table_groups}
+              incident_has_photos={incident_has_photos}
               labor_entries={labor_entries}
               can_manage_activities={can_manage_activities}
               can_generate_dfr={can_manage_activities}

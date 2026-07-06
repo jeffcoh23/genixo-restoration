@@ -338,6 +338,36 @@ class IncidentsAdditionalTest < ApplicationSystemTestCase
     assert_selector "[data-testid='dfr-processing-#{Date.current.iso8601}']"
   end
 
+  test "dfr photo modal offers photos from other days and submits the selection" do
+    ActivityEntry.create!(
+      incident: @active_incident,
+      performed_by_user: @manager,
+      title: "Drying day two",
+      occurred_at: Time.zone.parse("#{Date.current} 10:30")
+    )
+    photo = @active_incident.attachments.create!(
+      category: "photo", log_date: Date.current - 1.day, uploaded_by_user: @manager
+    )
+    photo.file.attach(
+      io: File.open(Rails.root.join("test/fixtures/files/test_photo.jpg")),
+      filename: "yesterday.jpg", content_type: "image/jpeg"
+    )
+
+    login_as @manager
+    visit incident_path(@active_incident)
+
+    # A photo exists on the incident (even though none is logged today), so
+    # Generate opens the picker instead of submitting immediately
+    find("[data-testid='dfr-generate-#{Date.current.iso8601}']").click
+    assert_text "Select Photos for DFR"
+    assert_selector "img[alt='yesterday.jpg']"
+
+    find("img[alt='yesterday.jpg']").click
+    click_button "Generate DFR"
+
+    assert_selector "[data-testid='dfr-processing-#{Date.current.iso8601}']"
+  end
+
   test "emergency incidents show distinct visual styling in list" do
     emergency = Incident.create!(
       property: @property_a,

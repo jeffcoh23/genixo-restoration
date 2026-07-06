@@ -258,12 +258,44 @@ class DfrPdfServiceTest < ActiveSupport::TestCase
     end
   end
 
-  test "does not include photos from other dates even if IDs match" do
+  test "includes photos from other dates when explicitly selected" do
+    # Daniel: "we should be able to select any photos, not just photos for
+    # that day." An explicit selection overrides the report-date scoping.
     other_date_photo = create_photo("other.jpg", log_date: @date - 1.day)
 
     service = DfrPdfService.new(
       incident: @incident, date: @date, include_photos: true,
       photo_attachment_ids: [ other_date_photo.id ]
+    )
+    pdf_data = service.generate
+    text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
+
+    assert_includes text, "Photos"
+    assert_includes pdf_data, "DCTDecode", "selected cross-date photo should be embedded as JPEG"
+  end
+
+  test "nil photo_attachment_ids still scopes photos to the report date" do
+    create_photo("other.jpg", log_date: @date - 1.day)
+
+    service = DfrPdfService.new(incident: @incident, date: @date, include_photos: true, photo_attachment_ids: nil)
+    pdf_data = service.generate
+    text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
+
+    refute_includes text, "Photos"
+  end
+
+  test "photo IDs belonging to another incident are excluded" do
+    other_incident = Incident.create!(property: @property, created_by_user: @manager,
+      status: "active", project_type: "emergency_response", damage_type: "flood", description: "Other")
+    foreign = other_incident.attachments.create!(category: "photo", log_date: @date, uploaded_by_user: @manager)
+    foreign.file.attach(
+      io: File.open(Rails.root.join("test/fixtures/files/test_photo.jpg")),
+      filename: "foreign.jpg", content_type: "image/jpeg"
+    )
+
+    service = DfrPdfService.new(
+      incident: @incident, date: @date, include_photos: true,
+      photo_attachment_ids: [ foreign.id ]
     )
     pdf_data = service.generate
     text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")

@@ -7,7 +7,7 @@ import type {
   DailyLogDate,
   DailyLogTableGroup,
   DailyLogTableRow,
-  IncidentAttachment,
+  DfrSelectablePhoto,
   LaborEntry,
 } from "../types";
 import ActivityForm from "./ActivityForm";
@@ -18,6 +18,7 @@ interface DailyLogPanelProps {
   daily_activities: DailyActivity[];
   daily_log_dates: DailyLogDate[];
   daily_log_table_groups: DailyLogTableGroup[];
+  incident_has_photos: boolean;
   labor_entries: LaborEntry[];
   can_manage_activities: boolean;
   can_generate_dfr: boolean;
@@ -30,6 +31,7 @@ export default function DailyLogPanel({
   daily_activities = [],
   daily_log_dates = [],
   daily_log_table_groups = [],
+  incident_has_photos = false,
   labor_entries = [],
   can_manage_activities,
   can_generate_dfr,
@@ -74,42 +76,60 @@ export default function DailyLogPanel({
 
   // DFR photo selection modal state
   const [photoModal, setPhotoModal] = useState<{ open: boolean; dateKey: string; dateLabel: string }>({ open: false, dateKey: "", dateLabel: "" });
-  const [photoModalPhotos, setPhotoModalPhotos] = useState<IncidentAttachment[]>([]);
+  const [photoModalPhotos, setPhotoModalPhotos] = useState<DfrSelectablePhoto[]>([]);
   const [photoModalLoading, setPhotoModalLoading] = useState(false);
+  const [photoModalError, setPhotoModalError] = useState(false);
+  // Guards the window between clicking Generate and the POST round-trip
+  // completing — a double-click would enqueue a second (harmless but wasteful) job.
+  const [dfrSubmitting, setDfrSubmitting] = useState(false);
 
   const submitDfr = useCallback((dateKey: string, photoIds?: number[]) => {
+    if (dfrSubmitting) return;
     const currentGroup = daily_log_table_groups.find((g) => g.date_key === dateKey);
     const currentUrl = currentGroup?.dfr?.url ?? null;
     const data = photoIds
       ? { date: dateKey, photo_ids: photoIds }
       : { date: dateKey };
-    router.post(dfr_path, data as Record<string, string | number[]>, { preserveScroll: true });
+    setDfrSubmitting(true);
+    router.post(dfr_path, data as Record<string, string | number[]>, {
+      preserveScroll: true,
+      onFinish: () => setDfrSubmitting(false),
+    });
     setRequestedDfrs((prev) => new Map(prev).set(dateKey, currentUrl));
     startPolling();
-  }, [dfr_path, startPolling, daily_log_table_groups]);
+  }, [dfr_path, startPolling, daily_log_table_groups, dfrSubmitting]);
+
+  const fetchModalPhotos = useCallback((dateKey: string) => {
+    setPhotoModalPhotos([]);
+    setPhotoModalLoading(true);
+    setPhotoModalError(false);
+
+    fetch(`${dfr_photos_path}?date=${dateKey}`, {
+      headers: { "Accept": "application/json" },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then((photos: DfrSelectablePhoto[]) => setPhotoModalPhotos(photos))
+      .catch(() => setPhotoModalError(true))
+      .finally(() => setPhotoModalLoading(false));
+  }, [dfr_photos_path]);
 
   const handleGenerateDfr = useCallback((dateKey: string) => {
     const group = daily_log_table_groups.find((g) => g.date_key === dateKey);
     if (!group) return;
 
-    // No photos for this date — generate immediately without photos
-    if (group.photo_count === 0) {
+    // Nothing to pick from anywhere on the incident — generate immediately.
+    // (The picker offers ALL the incident's photos, not just this date's.)
+    if (!incident_has_photos) {
       submitDfr(dateKey);
       return;
     }
 
-    // Photos exist — fetch them and show the selection modal
     setPhotoModal({ open: true, dateKey, dateLabel: group.date_label });
-    setPhotoModalPhotos([]);
-    setPhotoModalLoading(true);
-
-    fetch(`${dfr_photos_path}?date=${dateKey}`, {
-      headers: { "Accept": "application/json" },
-    })
-      .then((res) => res.json())
-      .then((photos: IncidentAttachment[]) => setPhotoModalPhotos(photos))
-      .finally(() => setPhotoModalLoading(false));
-  }, [daily_log_table_groups, dfr_photos_path, submitDfr]);
+    fetchModalPhotos(dateKey);
+  }, [daily_log_table_groups, incident_has_photos, fetchModalPhotos, submitDfr]);
 
   const handlePhotoSelectionSubmit = useCallback((photoIds: number[]) => {
     setPhotoModal({ open: false, dateKey: "", dateLabel: "" });
@@ -285,6 +305,7 @@ export default function DailyLogPanel({
                             variant="ghost"
                             size="sm"
                             onClick={() => handleGenerateDfr(group.date_key)}
+                            disabled={dfrSubmitting}
                             data-testid={`dfr-refresh-${group.date_key}`}
                             className="h-auto p-0.5 text-muted-foreground hover:text-foreground"
                             title="Regenerate DFR"
@@ -307,6 +328,7 @@ export default function DailyLogPanel({
                       variant="ghost"
                       size="sm"
                       onClick={() => handleGenerateDfr(group.date_key)}
+                      disabled={dfrSubmitting}
                       data-testid={`dfr-generate-${group.date_key}`}
                       className="h-auto py-0.5 px-1.5 text-sm text-foreground/75 hover:text-foreground"
                       title="Generate Daily Field Report"
@@ -451,6 +473,8 @@ export default function DailyLogPanel({
         dateLabel={photoModal.dateLabel}
         photos={photoModalPhotos}
         isLoading={photoModalLoading}
+        loadError={photoModalError}
+        onRetry={() => fetchModalPhotos(photoModal.dateKey)}
       />
     </div>
   );

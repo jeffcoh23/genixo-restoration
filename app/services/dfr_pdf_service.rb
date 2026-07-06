@@ -279,8 +279,15 @@ class DfrPdfService
     @photos_for_date ||= begin
       scope = @incident.attachments
         .includes(file_attachment: :blob)
-        .where(category: "photo", log_date: @date)
-      scope = scope.where(id: @photo_attachment_ids) if @photo_attachment_ids
+        .where(category: "photo")
+      # An explicit selection may span any date ("select any photos, not just
+      # photos for that day"); without one, default to the report date's photos.
+      # Scoping through @incident.attachments means foreign IDs can never leak in.
+      scope = if @photo_attachment_ids
+        scope.where(id: @photo_attachment_ids)
+      else
+        scope.where(log_date: @date)
+      end
       scope.order(:created_at)
     end
   end

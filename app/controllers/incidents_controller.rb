@@ -247,6 +247,11 @@ class IncidentsController < ApplicationController
       daily_activities: daily_activities,
       daily_log_dates: daily_log_dates,
       daily_log_table_groups: daily_log_table_groups,
+      # Incident-level flags: the DFR modal offers ALL the incident's photos and
+      # documents (not just the report date's), so the generate flow needs to
+      # know whether the picker is worth opening at all.
+      incident_has_photos: @incident.attachments.where(category: "photo").exists?,
+      incident_has_documents: @incident.attachments.where.not(category: %w[photo dfr]).exists?,
       labor_entries: labor_entries,
       can_transition: can_transition_status?,
       can_assign: can_assign_to_incident?,
@@ -319,9 +324,16 @@ class IncidentsController < ApplicationController
     date = params[:date].presence || Date.current.to_s
     photos = @incident.attachments
       .includes(:uploaded_by_user, file_attachment: :blob)
-      .where(category: "photo", log_date: date)
+      .where(category: "photo")
       .order(:created_at)
-      .map { |att| serialize_single_attachment(att) }
+      .map { |att|
+        date_key = att.log_date&.iso8601 || att.created_at.to_date.iso8601
+        serialize_single_attachment(att).merge(
+          date_key: date_key,
+          date_label: format_date(att.log_date || att.created_at),
+          is_report_date: date_key == date
+        )
+      }
     render json: photos
   end
 

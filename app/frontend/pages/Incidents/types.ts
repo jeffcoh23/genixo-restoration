@@ -177,6 +177,15 @@ export interface IncidentAttachment {
   destroy_path?: string | null;
 }
 
+// Photo as returned by the dfr_photos endpoint: every incident photo,
+// annotated so the selection modal can group by day and preselect the
+// report date's photos.
+export interface DfrSelectablePhoto extends IncidentAttachment {
+  date_key: string;
+  date_label: string;
+  is_report_date: boolean;
+}
+
 export interface EquipmentType {
   id: number;
   name: string;
@@ -466,6 +475,8 @@ export interface ShowProps {
   daily_activities: DailyActivity[];
   daily_log_dates: DailyLogDate[];
   daily_log_table_groups: DailyLogTableGroup[];
+  incident_has_photos: boolean;
+  incident_has_documents: boolean;
   messages: Message[];
   labor_entries: LaborEntry[];
   operational_notes: OperationalNote[];
