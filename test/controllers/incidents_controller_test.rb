@@ -735,6 +735,35 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes row_types, "document", "Attachment rows should not appear in daily log timeline"
   end
 
+  test "activity rows have no time label and sort by created_at within the day" do
+    # The activity form captures only a date; occurred_at is midnight-padded,
+    # so rendering it showed a fabricated "12:00 AM" on every activity row
+    # (Daniel's bug). Rows carry no time label and order by when they were logged.
+    incident = create_test_incident(status: "active")
+    first = second = nil
+    travel_to Time.zone.parse("#{Date.current} 09:00") do
+      first = incident.activity_entries.create!(
+        title: "Logged first", performed_by_user: @manager, occurred_at: Date.current.to_s
+      )
+    end
+    travel_to Time.zone.parse("#{Date.current} 14:00") do
+      second = incident.activity_entries.create!(
+        title: "Logged second", performed_by_user: @manager, occurred_at: Date.current.to_s
+      )
+    end
+
+    login_as @manager
+    get incident_path(incident)
+    assert_response :success
+
+    groups = inertia_props.fetch("daily_log_table_groups")
+    rows = groups.flat_map { |g| g.fetch("rows") }.select { |r| r["row_type"] == "activity" }
+    assert_equal 2, rows.length
+    rows.each { |r| assert_nil r["time_label"], "activity rows must not show a fabricated time" }
+    assert_equal [ "activity-#{second.id}", "activity-#{first.id}" ], rows.map { |r| r["id"] },
+      "rows should order by logged time (newest first) despite identical midnight occurred_at"
+  end
+
   test "daily log groups expose DFR url as a download (disposition=attachment)" do
     # Inline disposition makes Chrome's PDF viewer show the S3 object key
     # instead of the proper filename. Attachment disposition triggers a direct

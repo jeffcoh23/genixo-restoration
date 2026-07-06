@@ -782,7 +782,7 @@ class IncidentsController < ApplicationController
         status: entry.status,
         occurred_at: entry.occurred_at.iso8601,
         occurred_at_value: entry.occurred_at.to_date.iso8601,
-        occurred_at_label: format_datetime(entry.occurred_at),
+        created_at: entry.created_at.iso8601,
         date_key: entry.occurred_at.to_date.iso8601,
         date_label: format_date(entry.occurred_at),
         units_affected: entry.units_affected,
@@ -843,8 +843,13 @@ class IncidentsController < ApplicationController
     daily_activities.each do |activity|
       groups[activity[:date_key]] << {
         id: "activity-#{activity[:id]}",
-        occurred_at: activity[:occurred_at],
-        time_label: format_time(Time.zone.parse(activity[:occurred_at])),
+        # Sort by when the entry was logged: occurred_at only carries a date
+        # (the form has no time field), so its midnight padding made every
+        # activity tie at 12:00 AM.
+        occurred_at: activity[:created_at],
+        # No time label for the same reason — rendering the padded midnight
+        # showed a fabricated "12:00 AM" on every activity row.
+        time_label: nil,
         row_type: "activity",
         row_type_label: "Activity",
         primary_label: activity[:title],

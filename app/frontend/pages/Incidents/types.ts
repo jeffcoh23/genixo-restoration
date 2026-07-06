@@ -133,7 +133,7 @@ export interface DailyActivity {
   status: string;
   occurred_at: string;
   occurred_at_value: string;
-  occurred_at_label: string;
+  created_at: string;
   date_key: string;
   date_label: string;
   units_affected: number | null;
@@ -204,7 +204,9 @@ export interface DailyLogDate {
 export interface DailyLogTableRow {
   id: string;
   occurred_at: string;
-  time_label: string;
+  // null for activity rows: the form captures only a date, so there is no
+  // real clock time to show (a fabricated midnight rendered as "12:00 AM")
+  time_label: string | null;
   row_type: "activity" | "labor" | "note" | "document";
   row_type_label: string;
   primary_label: string;
