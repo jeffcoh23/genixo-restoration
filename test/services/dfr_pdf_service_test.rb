@@ -448,6 +448,31 @@ class DfrPdfServiceTest < ActiveSupport::TestCase
     refute_includes pdf_data, "DCTDecode", "oversized image must not be embedded"
   end
 
+  test "active content is stripped from appended PDF pages" do
+    require "combine_pdf"
+    # Author a PDF whose page carries script-bearing actions: an
+    # additional-actions dict (/AA) plus a link annotation firing JavaScript.
+    source = CombinePDF.parse(minimal_pdf)
+    page = source.pages.first
+    page[:AA] = { O: { S: :JavaScript, JS: "app.alert('aa-open')" } }
+    page[:Annots] = [ {
+      Type: :Annot, Subtype: :Link, Rect: [ 0, 0, 10, 10 ],
+      A: { S: :JavaScript, JS: "app.alert('link-js')" }
+    } ]
+    doc = create_pdf_document("scripted.pdf", content: source.to_pdf)
+
+    pdf_data = DfrPdfService.new(
+      incident: @incident, date: @date, include_photos: false,
+      document_attachment_ids: [ doc.id ]
+    ).generate
+
+    text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
+    assert_includes text, "scripted.pdf (attached)"
+    assert_includes text, "Attached document body", "page content must survive stripping"
+    refute_includes pdf_data, "app.alert", "JavaScript must not survive into the DFR"
+    refute_includes pdf_data, "/AA", "additional-actions dict must be stripped"
+  end
+
   test "documents without an attached file are skipped gracefully" do
     bare = @incident.attachments.create!(category: "signed_document", uploaded_by_user: @manager)
 

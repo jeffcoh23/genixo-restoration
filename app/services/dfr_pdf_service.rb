@@ -9,6 +9,13 @@ class DfrPdfService
   MAX_DOCUMENT_BYTES = 15.megabytes
   MAX_TOTAL_DOCUMENT_BYTES = 40.megabytes
 
+  # PDF actions that execute script or launch programs have no place in a
+  # report page shipped under the mitigation org's name. CombinePDF drops the
+  # source document's catalog on merge, but page-level annotations and
+  # additional-actions survive — strip them from every parsed object.
+  ACTIVE_CONTENT_KEYS = %i[JS JavaScript AA OpenAction Launch].freeze
+  ACTIVE_ACTION_TYPES = %i[JavaScript Launch].freeze
+
   def initialize(incident:, date:, timezone: "America/Chicago", include_photos: true,
                  photo_attachment_ids: nil, document_attachment_ids: nil)
     @incident = incident
@@ -333,7 +340,7 @@ class DfrPdfService
         if blob.byte_size <= MAX_DOCUMENT_BYTES &&
            appended_bytes + blob.byte_size <= MAX_TOTAL_DOCUMENT_BYTES
           begin
-            result[:parsed] = CombinePDF.parse(blob.download)
+            result[:parsed] = strip_active_content!(CombinePDF.parse(blob.download))
             result[:disposition] = :appended
             appended_bytes += blob.byte_size
           rescue StandardError => e
@@ -348,6 +355,28 @@ class DfrPdfService
       end
 
       result
+    end
+  end
+
+  def strip_active_content!(parsed)
+    seen = {}
+    parsed.objects.each { |obj| scrub_active_content!(obj, seen) }
+    parsed
+  end
+
+  def scrub_active_content!(node, seen)
+    case node
+    when Hash
+      return if seen[node.object_id]
+      seen[node.object_id] = true
+      ACTIVE_CONTENT_KEYS.each { |key| node.delete(key) }
+      if (action = node[:A]).is_a?(Hash)
+        target = action[:referenced_object].is_a?(Hash) ? action[:referenced_object] : action
+        node.delete(:A) if ACTIVE_ACTION_TYPES.include?(target[:S])
+      end
+      node.each_value { |value| scrub_active_content!(value, seen) }
+    when Array
+      node.each { |value| scrub_active_content!(value, seen) }
     end
   end
 
