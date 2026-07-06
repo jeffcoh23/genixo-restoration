@@ -35,6 +35,23 @@ interface PendingInvitation {
   cancel_path: string;
 }
 
+interface LoginRequestRow {
+  id: number;
+  full_name: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  company_name: string | null;
+  phone: string | null;
+  message: string | null;
+  status: string;
+  requested_at: string;
+  has_user: boolean;
+  has_pending_invitation: boolean;
+  approve_path: string;
+  reject_path: string;
+}
+
 interface RoleOption {
   value: string;
   label: string;
@@ -59,10 +76,11 @@ interface NotificationOption {
 }
 
 export default function UsersIndex() {
-  const { active_users, deactivated_users, pending_invitations, org_options, permissions_options, role_defaults, notification_options, routes } = usePage<SharedProps & {
+  const { active_users, deactivated_users, pending_invitations, login_requests, org_options, permissions_options, role_defaults, notification_options, routes } = usePage<SharedProps & {
     active_users: UserRow[];
     deactivated_users: UserRow[];
     pending_invitations: PendingInvitation[];
+    login_requests: LoginRequestRow[];
     org_options: OrgOption[];
     permissions_options: PermissionOption[];
     role_defaults: Record<string, string[]>;
@@ -117,6 +135,34 @@ export default function UsersIndex() {
         setShowInviteModal(false);
       },
     });
+  }
+
+  // Approving a request reuses the whole invitation flow: prefill the invite
+  // modal from the request. The admin still picks org/role and sends it.
+  function openPrefilledInvite(req: LoginRequestRow) {
+    form.setData((data) => ({
+      ...data,
+      email: req.email,
+      first_name: req.first_name,
+      last_name: req.last_name,
+      phone: req.phone || "",
+    }));
+    setShowInviteModal(true);
+  }
+
+  const reviewAction = useInertiaAction();
+
+  function handleApproveRequest(req: LoginRequestRow) {
+    reviewAction.runPatch(req.approve_path, {}, {
+      errorMessage: "Could not approve the request.",
+      onSuccess: () => openPrefilledInvite(req),
+    });
+  }
+
+  function handleRejectRequest(req: LoginRequestRow) {
+    const reason = prompt(`Reject the request from ${req.email}? Optional reason:`);
+    if (reason === null) return; // cancelled
+    reviewAction.runPatch(req.reject_path, { reason }, { errorMessage: "Could not reject the request." });
   }
 
   const userColumns: Column<UserRow>[] = [
@@ -256,6 +302,81 @@ export default function UsersIndex() {
           </div>
         )}
       </FormDialog>
+
+      {/* Login Requests */}
+      {login_requests.length > 0 && (
+        <div className="mb-6">
+          <h2 className="text-sm font-medium text-muted-foreground mb-2">
+            Login Requests ({login_requests.length})
+          </h2>
+          <InlineActionFeedback error={reviewAction.error} onDismiss={reviewAction.clearFeedback} className="mb-3" />
+          <DataTable
+            columns={[
+              { header: "Name", render: (req: LoginRequestRow) => (
+                <div>
+                  <div>{req.full_name}</div>
+                  {req.message && (
+                    <div className="text-xs text-muted-foreground max-w-[280px] truncate" title={req.message}>
+                      {req.message}
+                    </div>
+                  )}
+                </div>
+              )},
+              { header: "Email", render: (req) => <MutedCell>{req.email}</MutedCell> },
+              { header: "Company", render: (req) => <MutedCell>{req.company_name || "—"}</MutedCell> },
+              { header: "Phone", render: (req) => <MutedCell>{req.phone || "—"}</MutedCell> },
+              { header: "Requested", render: (req) => <MutedCell>{req.requested_at}</MutedCell> },
+              { header: "", align: "right", render: (req) => (
+                <div className="flex items-center gap-2 justify-end">
+                  {req.has_user ? (
+                    <span className="text-sm text-muted-foreground">Already has an account</span>
+                  ) : req.has_pending_invitation ? (
+                    <span className="text-sm text-muted-foreground">Invitation pending</span>
+                  ) : req.status === "approved" ? (
+                    <>
+                      <span className="text-sm text-muted-foreground">Approved</span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        data-testid={`login-request-invite-${req.id}`}
+                        onClick={() => openPrefilledInvite(req)}
+                        className="h-9 sm:h-8 text-sm sm:text-xs"
+                      >
+                        Invite
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        data-testid={`login-request-approve-${req.id}`}
+                        onClick={() => handleApproveRequest(req)}
+                        disabled={reviewAction.processing}
+                        className="h-9 sm:h-8 text-sm sm:text-xs"
+                      >
+                        {reviewAction.processing ? "Working..." : "Approve"}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        data-testid={`login-request-reject-${req.id}`}
+                        onClick={() => handleRejectRequest(req)}
+                        disabled={reviewAction.processing}
+                        className="h-9 sm:h-8 text-sm sm:text-xs text-destructive hover:text-destructive"
+                      >
+                        Reject
+                      </Button>
+                    </>
+                  )}
+                </div>
+              )},
+            ]}
+            rows={login_requests}
+            keyFn={(req) => req.id}
+          />
+        </div>
+      )}
 
       {/* Pending Invitations */}
       {pending_invitations.length > 0 && (
