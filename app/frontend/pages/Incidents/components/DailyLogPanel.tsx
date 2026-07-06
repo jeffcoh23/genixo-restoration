@@ -8,6 +8,7 @@ import type {
   DailyLogTableGroup,
   DailyLogTableRow,
   DfrSelectablePhoto,
+  IncidentAttachment,
   LaborEntry,
 } from "../types";
 import ActivityForm from "./ActivityForm";
@@ -19,6 +20,7 @@ interface DailyLogPanelProps {
   daily_log_dates: DailyLogDate[];
   daily_log_table_groups: DailyLogTableGroup[];
   incident_has_photos: boolean;
+  incident_has_documents: boolean;
   labor_entries: LaborEntry[];
   can_manage_activities: boolean;
   can_generate_dfr: boolean;
@@ -32,6 +34,7 @@ export default function DailyLogPanel({
   daily_log_dates = [],
   daily_log_table_groups = [],
   incident_has_photos = false,
+  incident_has_documents = false,
   labor_entries = [],
   can_manage_activities,
   can_generate_dfr,
@@ -77,21 +80,22 @@ export default function DailyLogPanel({
   // DFR photo selection modal state
   const [photoModal, setPhotoModal] = useState<{ open: boolean; dateKey: string; dateLabel: string }>({ open: false, dateKey: "", dateLabel: "" });
   const [photoModalPhotos, setPhotoModalPhotos] = useState<DfrSelectablePhoto[]>([]);
+  const [photoModalDocuments, setPhotoModalDocuments] = useState<IncidentAttachment[]>([]);
   const [photoModalLoading, setPhotoModalLoading] = useState(false);
   const [photoModalError, setPhotoModalError] = useState(false);
   // Guards the window between clicking Generate and the POST round-trip
   // completing — a double-click would enqueue a second (harmless but wasteful) job.
   const [dfrSubmitting, setDfrSubmitting] = useState(false);
 
-  const submitDfr = useCallback((dateKey: string, photoIds?: number[]) => {
+  const submitDfr = useCallback((dateKey: string, photoIds?: number[], documentIds?: number[]) => {
     if (dfrSubmitting) return;
     const currentGroup = daily_log_table_groups.find((g) => g.date_key === dateKey);
     const currentUrl = currentGroup?.dfr?.url ?? null;
-    const data = photoIds
-      ? { date: dateKey, photo_ids: photoIds }
-      : { date: dateKey };
+    const data: Record<string, string | number[]> = { date: dateKey };
+    if (photoIds) data.photo_ids = photoIds;
+    if (documentIds) data.document_ids = documentIds;
     setDfrSubmitting(true);
-    router.post(dfr_path, data as Record<string, string | number[]>, {
+    router.post(dfr_path, data, {
       preserveScroll: true,
       onFinish: () => setDfrSubmitting(false),
     });
@@ -101,6 +105,7 @@ export default function DailyLogPanel({
 
   const fetchModalPhotos = useCallback((dateKey: string) => {
     setPhotoModalPhotos([]);
+    setPhotoModalDocuments([]);
     setPhotoModalLoading(true);
     setPhotoModalError(false);
 
@@ -111,7 +116,10 @@ export default function DailyLogPanel({
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
       })
-      .then((photos: DfrSelectablePhoto[]) => setPhotoModalPhotos(photos))
+      .then((payload: { photos: DfrSelectablePhoto[]; documents: IncidentAttachment[] }) => {
+        setPhotoModalPhotos(payload.photos);
+        setPhotoModalDocuments(payload.documents);
+      })
       .catch(() => setPhotoModalError(true))
       .finally(() => setPhotoModalLoading(false));
   }, [dfr_photos_path]);
@@ -121,19 +129,20 @@ export default function DailyLogPanel({
     if (!group) return;
 
     // Nothing to pick from anywhere on the incident — generate immediately.
-    // (The picker offers ALL the incident's photos, not just this date's.)
-    if (!incident_has_photos) {
+    // (The picker offers ALL the incident's photos and documents, not just
+    // this date's.)
+    if (!incident_has_photos && !incident_has_documents) {
       submitDfr(dateKey);
       return;
     }
 
     setPhotoModal({ open: true, dateKey, dateLabel: group.date_label });
     fetchModalPhotos(dateKey);
-  }, [daily_log_table_groups, incident_has_photos, fetchModalPhotos, submitDfr]);
+  }, [daily_log_table_groups, incident_has_photos, incident_has_documents, fetchModalPhotos, submitDfr]);
 
-  const handlePhotoSelectionSubmit = useCallback((photoIds: number[]) => {
+  const handlePhotoSelectionSubmit = useCallback((photoIds: number[], documentIds: number[]) => {
     setPhotoModal({ open: false, dateKey: "", dateLabel: "" });
-    submitDfr(photoModal.dateKey, photoIds);
+    submitDfr(photoModal.dateKey, photoIds, documentIds);
   }, [photoModal.dateKey, submitDfr]);
 
   // When a specific date is selected, all rows are expanded by default (user collapses them).
@@ -472,6 +481,7 @@ export default function DailyLogPanel({
         onSubmit={handlePhotoSelectionSubmit}
         dateLabel={photoModal.dateLabel}
         photos={photoModalPhotos}
+        documents={photoModalDocuments}
         isLoading={photoModalLoading}
         loadError={photoModalError}
         onRetry={() => fetchModalPhotos(photoModal.dateKey)}

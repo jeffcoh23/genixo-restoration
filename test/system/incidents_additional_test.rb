@@ -338,7 +338,7 @@ class IncidentsAdditionalTest < ApplicationSystemTestCase
     assert_selector "[data-testid='dfr-processing-#{Date.current.iso8601}']"
   end
 
-  test "dfr photo modal offers photos from other days and submits the selection" do
+  test "dfr modal offers other days' photos and documents, submits the selection" do
     ActivityEntry.create!(
       incident: @active_incident,
       performed_by_user: @manager,
@@ -352,17 +352,26 @@ class IncidentsAdditionalTest < ApplicationSystemTestCase
       io: File.open(Rails.root.join("test/fixtures/files/test_photo.jpg")),
       filename: "yesterday.jpg", content_type: "image/jpeg"
     )
+    doc = @active_incident.attachments.create!(
+      category: "signed_document", uploaded_by_user: @manager
+    )
+    doc.file.attach(
+      io: StringIO.new("%PDF-1.4 minimal"), filename: "signed-scope.pdf",
+      content_type: "application/pdf"
+    )
 
     login_as @manager
     visit incident_path(@active_incident)
 
-    # A photo exists on the incident (even though none is logged today), so
+    # Attachments exist on the incident (even though none is logged today), so
     # Generate opens the picker instead of submitting immediately
     find("[data-testid='dfr-generate-#{Date.current.iso8601}']").click
-    assert_text "Select Photos for DFR"
+    assert_text "Select Photos & Documents for DFR"
     assert_selector "img[alt='yesterday.jpg']"
+    assert_text "signed-scope.pdf"
 
     find("img[alt='yesterday.jpg']").click
+    find("button", text: "signed-scope.pdf").click
     click_button "Generate DFR"
 
     assert_selector "[data-testid='dfr-processing-#{Date.current.iso8601}']"

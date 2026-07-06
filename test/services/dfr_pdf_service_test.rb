@@ -303,7 +303,152 @@ class DfrPdfServiceTest < ActiveSupport::TestCase
     refute_includes text, "Photos"
   end
 
+  # --- documents ---
+
+  test "appends a selected PDF document's pages to the DFR" do
+    doc = create_pdf_document("scope.pdf")
+
+    base = DfrPdfService.new(incident: @incident, date: @date, include_photos: false).generate
+    with_doc = DfrPdfService.new(
+      incident: @incident, date: @date, include_photos: false,
+      document_attachment_ids: [ doc.id ]
+    ).generate
+
+    text = PDF::Inspector::Text.analyze(with_doc).strings.join(" ")
+    assert_includes text, "Documents"
+    assert_includes text, "scope.pdf (attached)"
+    # documents section adds one page; the appended document adds its own page
+    assert_equal page_count(base) + 2, page_count(with_doc)
+  end
+
+  test "corrupt PDF documents are listed by filename, never fail the DFR" do
+    doc = create_pdf_document("broken.pdf", content: "not really a pdf at all")
+
+    pdf_data = nil
+    assert_nothing_raised do
+      pdf_data = DfrPdfService.new(
+        incident: @incident, date: @date, include_photos: false,
+        document_attachment_ids: [ doc.id ]
+      ).generate
+    end
+
+    text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
+    assert_includes text, "broken.pdf"
+    refute_includes text, "(attached)"
+  end
+
+  test "documents over the per-file size cap are listed, not appended" do
+    doc = create_pdf_document("huge.pdf")
+    # byte_size is a column on the blob — fake an oversized upload without
+    # allocating the bytes
+    doc.file.blob.update_column(:byte_size, DfrPdfService::MAX_DOCUMENT_BYTES + 1)
+
+    pdf_data = DfrPdfService.new(
+      incident: @incident, date: @date, include_photos: false,
+      document_attachment_ids: [ doc.id ]
+    ).generate
+
+    text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
+    assert_includes text, "huge.pdf"
+    refute_includes text, "(attached)"
+  end
+
+  test "documents past the aggregate cap are listed, not appended" do
+    near_cap = DfrPdfService::MAX_DOCUMENT_BYTES - 1.kilobyte
+    docs = [ "a.pdf", "b.pdf", "c.pdf" ].map { |name| create_pdf_document(name) }
+    docs.each { |d| d.file.blob.update_column(:byte_size, near_cap) }
+
+    pdf_data = DfrPdfService.new(
+      incident: @incident, date: @date, include_photos: false,
+      document_attachment_ids: docs.map(&:id)
+    ).generate
+
+    # 15MB-ish each against a 40MB aggregate: two append, the third is listed
+    text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
+    assert_includes text, "a.pdf (attached)"
+    assert_includes text, "b.pdf (attached)"
+    assert_includes text, "c.pdf"
+    refute_includes text, "c.pdf (attached)"
+  end
+
+  test "document IDs belonging to another incident are excluded" do
+    other_incident = Incident.create!(property: @property, created_by_user: @manager,
+      status: "active", project_type: "emergency_response", damage_type: "flood", description: "Other")
+    foreign = other_incident.attachments.create!(category: "signed_document", uploaded_by_user: @manager)
+    foreign.file.attach(io: StringIO.new(minimal_pdf), filename: "foreign.pdf", content_type: "application/pdf")
+
+    pdf_data = DfrPdfService.new(
+      incident: @incident, date: @date, include_photos: false,
+      document_attachment_ids: [ foreign.id ]
+    ).generate
+
+    text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
+    refute_includes text, "Documents"
+    refute_includes text, "foreign.pdf"
+  end
+
+  test "glyph-fallback rebuild still appends documents correctly" do
+    # An emoji forces with_glyph_fallback to build the PDF twice; the memoized
+    # parsed documents must survive being appended in both builds.
+    travel_to Time.utc(2026, 5, 15, 14, 0, 0) do
+      @date = Date.current
+      @incident.activity_entries.create!(
+        title: "Emoji retry 🔥", occurred_at: Time.current, performed_by_user: @manager
+      )
+      doc = create_pdf_document("retry.pdf")
+
+      pdf_data = DfrPdfService.new(
+        incident: @incident, date: @date, include_photos: false,
+        document_attachment_ids: [ doc.id ]
+      ).generate
+
+      assert pdf_data.start_with?("%PDF")
+      text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
+      assert_includes text, "retry.pdf (attached)"
+      assert_includes text, "Attached document body"
+    end
+  end
+
+  test "image documents are embedded, non-PDF documents listed by filename" do
+    image_doc = @incident.attachments.create!(category: "signed_document", uploaded_by_user: @manager)
+    image_doc.file.attach(
+      io: File.open(Rails.root.join("test/fixtures/files/test_photo.jpg")),
+      filename: "site-map.jpg", content_type: "image/jpeg"
+    )
+    word_doc = @incident.attachments.create!(category: "general", uploaded_by_user: @manager)
+    word_doc.file.attach(io: StringIO.new("fake docx"), filename: "notes.docx",
+      content_type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+
+    pdf_data = DfrPdfService.new(
+      incident: @incident, date: @date, include_photos: false,
+      document_attachment_ids: [ image_doc.id, word_doc.id ]
+    ).generate
+
+    text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
+    assert_includes text, "site-map.jpg"
+    assert_includes text, "notes.docx"
+    assert_includes pdf_data, "DCTDecode", "image document should be embedded as JPEG"
+  end
+
   private
+
+  def page_count(pdf_data)
+    PDF::Inspector::Page.analyze(pdf_data).pages.size
+  end
+
+  def minimal_pdf
+    require "prawn"
+    Prawn::Document.new { |p| p.text "Attached document body" }.render
+  end
+
+  def create_pdf_document(filename, category: "signed_document", content: nil)
+    att = @incident.attachments.create!(category: category, uploaded_by_user: @manager)
+    att.file.attach(
+      io: StringIO.new(content || minimal_pdf),
+      filename: filename, content_type: "application/pdf"
+    )
+    att
+  end
 
   def create_photo(filename, log_date: @date)
     # Create a minimal valid 1x1 JPEG for Prawn to process

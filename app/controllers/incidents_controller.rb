@@ -316,7 +316,8 @@ class IncidentsController < ApplicationController
   def dfr
     date = params[:date].presence || Date.current.to_s
     photo_ids = params.key?(:photo_ids) ? Array(params[:photo_ids]).flatten.map(&:to_i).uniq : nil
-    DfrPdfJob.perform_later(@incident.id, date, current_user.timezone, current_user.id, photo_ids)
+    document_ids = params.key?(:document_ids) ? Array(params[:document_ids]).flatten.map(&:to_i).uniq : nil
+    DfrPdfJob.perform_later(@incident.id, date, current_user.timezone, current_user.id, photo_ids, document_ids)
     redirect_to incident_path(@incident), notice: "DFR PDF is being generated. It will appear in the daily log shortly."
   end
 
@@ -334,7 +335,12 @@ class IncidentsController < ApplicationController
           is_report_date: date_key == date
         )
       }
-    render json: photos
+    documents = @incident.attachments
+      .includes(:uploaded_by_user, file_attachment: :blob)
+      .where.not(category: %w[photo dfr])
+      .order(:created_at)
+      .map { |att| serialize_single_attachment(att) }
+    render json: { photos: photos, documents: documents }
   end
 
   def photos_zip

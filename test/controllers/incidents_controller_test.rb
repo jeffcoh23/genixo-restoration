@@ -1100,7 +1100,7 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     get dfr_photos_incident_path(incident), params: { date: Date.current.to_s }
 
     assert_response :success
-    photos = JSON.parse(response.body)
+    photos = JSON.parse(response.body).fetch("photos")
     assert_equal 2, photos.length
 
     today = photos.find { |p| p["id"] == photo.id }
@@ -1125,22 +1125,55 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     login_as @manager
     get dfr_photos_incident_path(incident), params: { date: Date.current.to_s }
 
-    photos = JSON.parse(response.body)
+    photos = JSON.parse(response.body).fetch("photos")
     assert_equal 1, photos.length
     # Requests run inside Time.use_zone(current_user.timezone) — compare in that zone
     expected = photo.created_at.in_time_zone(@manager.timezone || "UTC").to_date.iso8601
     assert_equal expected, photos.first["date_key"]
   end
 
-  test "dfr_photos returns empty array when no photos for date" do
+  test "dfr_photos returns empty lists when the incident has no attachments" do
     incident = create_test_incident(status: "active")
     login_as @manager
 
     get dfr_photos_incident_path(incident), params: { date: Date.current.to_s }
 
     assert_response :success
-    photos = JSON.parse(response.body)
-    assert_equal 0, photos.length
+    payload = JSON.parse(response.body)
+    assert_equal 0, payload.fetch("photos").length
+    assert_equal 0, payload.fetch("documents").length
+  end
+
+  test "dfr_photos lists the incident's documents excluding photos and DFRs" do
+    incident = create_test_incident(status: "active")
+    doc = incident.attachments.create!(category: "signed_document", uploaded_by_user: @manager)
+    doc.file.attach(io: StringIO.new("%PDF-1.4 fake"), filename: "signed.pdf", content_type: "application/pdf")
+    dfr = incident.attachments.create!(category: "dfr", log_date: Date.current, uploaded_by_user: @manager)
+    dfr.file.attach(io: StringIO.new("%PDF-1.4 fake"), filename: "dfr.pdf", content_type: "application/pdf")
+
+    login_as @manager
+    get dfr_photos_incident_path(incident), params: { date: Date.current.to_s }
+
+    documents = JSON.parse(response.body).fetch("documents")
+    assert_equal [ doc.id ], documents.map { |d| d["id"] }
+    assert_equal "signed.pdf", documents.first["filename"]
+  end
+
+  test "dfr passes photo_ids and document_ids through to the job" do
+    incident = create_test_incident(status: "active")
+    login_as @manager
+
+    original_adapter = ActiveJob::Base.queue_adapter
+    ActiveJob::Base.queue_adapter = :test
+    assert_enqueued_with(
+      job: DfrPdfJob,
+      args: [ incident.id, Date.current.to_s, @manager.timezone, @manager.id, [ 1, 2 ], [ 9 ] ]
+    ) do
+      post dfr_incident_path(incident),
+        params: { date: Date.current.to_s, photo_ids: [ 1, 2 ], document_ids: [ 9 ] }
+    end
+  ensure
+    ActiveJob::Base.queue_adapter = original_adapter
   end
 
   test "dfr_photos is scoped through visible_incidents" do

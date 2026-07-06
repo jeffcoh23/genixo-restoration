@@ -2,18 +2,28 @@ class DfrPdfService
   include ActionView::Helpers::NumberHelper
   include PdfFontSupport
 
-  def initialize(incident:, date:, timezone: "America/Chicago", include_photos: true, photo_attachment_ids: nil)
+  # Appended-document limits: CombinePDF parses a whole file into Ruby objects
+  # (roughly 3-5x the file size in memory), so a per-file AND an aggregate cap
+  # keep DFR generation inside the worker's memory quota. Oversized documents
+  # are still listed by filename in the Documents section.
+  MAX_DOCUMENT_BYTES = 15.megabytes
+  MAX_TOTAL_DOCUMENT_BYTES = 40.megabytes
+
+  def initialize(incident:, date:, timezone: "America/Chicago", include_photos: true,
+                 photo_attachment_ids: nil, document_attachment_ids: nil)
     @incident = incident
     @date = date.is_a?(String) ? Date.parse(date) : date
     @timezone = timezone
     @include_photos = include_photos
     @photo_attachment_ids = photo_attachment_ids
+    @document_attachment_ids = document_attachment_ids
   end
 
   def generate
     require "prawn"
     require "prawn/table"
     require "mini_magick"
+    require "combine_pdf"
 
     with_glyph_fallback do
       Time.use_zone(@timezone) do
@@ -37,8 +47,11 @@ class DfrPdfService
     render_labor_section(pdf)
     render_equipment_section(pdf)
     render_photos(pdf) if @include_photos
+    # Documents are parsed BEFORE the body renders (document_results) so the
+    # section can already reflect which ones will be attached vs only listed.
+    render_documents_section(pdf)
 
-    pdf.render
+    append_documents(pdf.render)
   end
 
   def render_header(pdf)
@@ -212,29 +225,111 @@ class DfrPdfService
     max_height = (pdf.bounds.height - 30) / 2 - 15
 
     photos.each do |attachment|
-      blob = attachment.file.blob
-      next unless blob.content_type.start_with?("image/")
-      next unless blob.service.exist?(blob.key)
+      embed_image_attachment(pdf, attachment, max_height)
+    end
+  end
 
-      blob.open do |tempfile|
-        # Phone photos store the sensor's native (landscape) pixels and an EXIF
-        # orientation tag; Prawn ignores EXIF, so portraits would render sideways.
-        # auto_orient bakes the rotation into the pixels and strips the tag.
-        # Resize: source images are full sensor resolution (often 24MP), but the
-        # PDF only renders them at ~4in wide. Cap longest side at 1600px so the
-        # embedded copy is roughly print-resolution, keeping the PDF small and
-        # cutting peak memory during generation.
-        image = MiniMagick::Image.open(tempfile.path)
-        image.auto_orient
-        image.resize "1600x1600>"
-        image.quality 85
-        image.write(tempfile.path)
+  def embed_image_attachment(pdf, attachment, max_height)
+    blob = attachment.file.blob
+    return unless blob.content_type.start_with?("image/")
+    return unless blob.service.exist?(blob.key)
 
-        pdf.image tempfile.path, fit: [ pdf.bounds.width, max_height ], position: :center
-        pdf.move_down 15
+    blob.open do |tempfile|
+      # Phone photos store the sensor's native (landscape) pixels and an EXIF
+      # orientation tag; Prawn ignores EXIF, so portraits would render sideways.
+      # auto_orient bakes the rotation into the pixels and strips the tag.
+      # Resize: source images are full sensor resolution (often 24MP), but the
+      # PDF only renders them at ~4in wide. Cap longest side at 1600px so the
+      # embedded copy is roughly print-resolution, keeping the PDF small and
+      # cutting peak memory during generation.
+      image = MiniMagick::Image.open(tempfile.path)
+      image.auto_orient
+      image.resize "1600x1600>"
+      image.quality 85
+      image.write(tempfile.path)
+
+      pdf.image tempfile.path, fit: [ pdf.bounds.width, max_height ], position: :center
+      pdf.move_down 15
+    end
+  rescue StandardError
+    nil
+  end
+
+  def render_documents_section(pdf)
+    return if document_results.empty?
+
+    pdf.start_new_page
+    pdf.font_size(12) { pdf.text "Documents", style: :bold }
+    pdf.move_down 10
+
+    image_max_height = (pdf.bounds.height - 30) / 2 - 15
+
+    document_results.each do |result|
+      case result[:disposition]
+      when :embedded_image
+        pdf.font_size(10) { pdf.text t("• #{result[:filename]}") }
+        pdf.move_down 5
+        embed_image_attachment(pdf, result[:attachment], image_max_height)
+      when :appended
+        pdf.font_size(10) { pdf.text t("• #{result[:filename]} (attached)") }
+        pdf.move_down 3
+      else
+        pdf.font_size(10) { pdf.text t("• #{result[:filename]}") }
+        pdf.move_down 3
       end
-    rescue StandardError
-      nil
+    end
+  end
+
+  # Selected PDF documents get their pages appended after the Prawn body.
+  # Parsing happened up front (document_results), so a corrupt or oversized
+  # file was already downgraded to a filename listing — appending can only
+  # see successfully parsed documents.
+  def append_documents(data)
+    parsed_docs = document_results.filter_map { |r| r[:parsed] }
+    return data if parsed_docs.empty?
+
+    combined = CombinePDF.parse(data)
+    parsed_docs.each { |doc| combined << doc }
+    combined.to_pdf
+  end
+
+  def document_results
+    @document_results ||= build_document_results
+  end
+
+  def build_document_results
+    return [] if @document_attachment_ids.blank?
+
+    docs = @incident.attachments
+      .includes(file_attachment: :blob)
+      .where.not(category: %w[photo dfr])
+      .where(id: @document_attachment_ids)
+      .order(:created_at)
+
+    appended_bytes = 0
+    docs.filter_map do |att|
+      next unless att.file.attached?
+
+      blob = att.file.blob
+      result = { attachment: att, filename: blob.filename.to_s, disposition: :listed, parsed: nil }
+
+      if blob.content_type.to_s.start_with?("image/")
+        result[:disposition] = :embedded_image
+      elsif blob.content_type == "application/pdf" &&
+            blob.byte_size <= MAX_DOCUMENT_BYTES &&
+            appended_bytes + blob.byte_size <= MAX_TOTAL_DOCUMENT_BYTES
+        begin
+          result[:parsed] = CombinePDF.parse(blob.download)
+          result[:disposition] = :appended
+          appended_bytes += blob.byte_size
+        rescue StandardError => e
+          # Corrupt/encrypted PDF: fall back to a filename listing, never
+          # fail the whole DFR over one bad document.
+          Rails.logger.warn("[DfrPdfService] could not parse document #{att.id} (#{result[:filename]}): #{e.message}")
+        end
+      end
+
+      result
     end
   end
 

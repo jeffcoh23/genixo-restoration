@@ -1,14 +1,18 @@
 class DfrPdfJob < ApplicationJob
   queue_as :default
 
-  def perform(incident_id, date, user_timezone, user_id, photo_attachment_ids = nil)
+  # document_attachment_ids keeps a default: jobs enqueued before a deploy
+  # carry the old argument list (Solid Queue serializes positional args) and
+  # must still run on the new code.
+  def perform(incident_id, date, user_timezone, user_id, photo_attachment_ids = nil, document_attachment_ids = nil)
     incident = Incident.find(incident_id)
     user = User.find(user_id)
     parsed_date = Date.parse(date)
 
     pdf_data = DfrPdfService.new(
       incident: incident, date: date, timezone: user_timezone,
-      include_photos: true, photo_attachment_ids: photo_attachment_ids
+      include_photos: true, photo_attachment_ids: photo_attachment_ids,
+      document_attachment_ids: document_attachment_ids
     ).generate
 
     filename = build_filename(incident, date)
