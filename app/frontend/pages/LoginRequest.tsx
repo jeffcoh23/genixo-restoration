@@ -18,6 +18,13 @@ interface Props extends Record<string, unknown> {
   login_path: string;
 }
 
+// Rails sends errors.to_hash — an array per field. Inertia's types say
+// string; joining keeps multi-error fields readable.
+function errorText(error: string | string[] | undefined): string | undefined {
+  if (!error) return undefined;
+  return Array.isArray(error) ? error.join(", ") : error;
+}
+
 export default function LoginRequest() {
   const { flash, submit_path, login_path } = usePage<Props>().props;
   const { data, setData, post, processing, errors } = useForm({
@@ -69,7 +76,7 @@ export default function LoginRequest() {
                   value={data.first_name}
                   onChange={(e) => setData("first_name", e.target.value)}
                 />
-                {errors.first_name && <p className="text-sm text-destructive">{errors.first_name}</p>}
+                {errors.first_name && <p className="text-sm text-destructive">{errorText(errors.first_name)}</p>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="last_name">Last name</Label>
@@ -79,7 +86,7 @@ export default function LoginRequest() {
                   value={data.last_name}
                   onChange={(e) => setData("last_name", e.target.value)}
                 />
-                {errors.last_name && <p className="text-sm text-destructive">{errors.last_name}</p>}
+                {errors.last_name && <p className="text-sm text-destructive">{errorText(errors.last_name)}</p>}
               </div>
             </div>
 
@@ -92,7 +99,7 @@ export default function LoginRequest() {
                 value={data.email}
                 onChange={(e) => setData("email", e.target.value)}
               />
-              {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
+              {errors.email && <p className="text-sm text-destructive">{errorText(errors.email)}</p>}
             </div>
 
             <div className="space-y-2">

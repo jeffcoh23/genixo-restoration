@@ -5,7 +5,7 @@ class LoginRequest < ApplicationRecord
 
   normalizes :email, with: ->(e) { e.strip.downcase }
 
-  validates :email, presence: true, format: { with: URI::MailTo::EMAIL_REGEXP }
+  validates :email, presence: true, format: { with: URI::MailTo::EMAIL_REGEXP, allow_blank: true }
   validates :first_name, :last_name, presence: true
   validates :status, inclusion: { in: STATUSES }
   validates :email, uniqueness: {
