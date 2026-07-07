@@ -741,6 +741,32 @@ User invitation flow. Manager or Office/Sales creates an invitation, system send
 
 ---
 
+### login_requests
+
+Public "request access" form submissions (`/request-access`, rate-limited). Reviewed on the Users page by MANAGE_USERS holders; approving opens the invite modal prefilled, so the actual account creation still goes through the invitations flow.
+
+| Column | Type | Constraints | Notes |
+|--------|------|-------------|-------|
+| id | bigint | PK | |
+| email | string | NOT NULL | Normalized lowercase; only one *pending* request per email |
+| first_name | string | NOT NULL | |
+| last_name | string | NOT NULL | |
+| company_name | string | | Optional |
+| phone | string | | Optional |
+| message | text | | Optional free text from the requester |
+| status | string | NOT NULL, DEFAULT `pending` | `pending` / `approved` / `rejected` |
+| reviewed_by_user_id | bigint | FK → users | Null until reviewed |
+| reviewed_at | datetime | | |
+| rejection_reason | text | | Optional; never emailed to the requester |
+| created_at | datetime | NOT NULL | |
+| updated_at | datetime | NOT NULL | |
+
+**Indexes:**
+- `index_login_requests_on_status`
+- `index_login_requests_on_email`
+
+---
+
 ## Active Storage Tables
 
 Rails Active Storage provides these automatically:

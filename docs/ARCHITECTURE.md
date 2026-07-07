@@ -506,6 +506,16 @@ All business logic lives in `app/services/`. Controllers are thin — they valid
 | `DashboardService` | Compiles dashboard data with unread counts |
 | `NotificationDispatchService` | Provider-agnostic notification delivery (email, SMS, voice) |
 | `ActivityLogger` | Creates activity events + touches `last_activity_at` (used by all services) |
+| `DfrPdfService` | Builds the Daily Field Report PDF (Prawn), embeds selected photos, appends selected PDF documents |
+| `IncidentReportService` | Builds the on-demand summary report PDF (synchronous download) |
+| `PdfFontSupport` (module) | Shared by both PDF services: NotoSans font family + glyph-fallback retry (sanitizes to ASCII if a glyph can't render) |
+
+### PDF Generation
+
+- **DFR** is generated async by `DfrPdfJob` (Solid Queue); the Daily Log panel polls every 5s until the attachment appears. The summary report stays synchronous (`send_data`).
+- Photos: MiniMagick auto-orients (EXIF) and resizes to 1600px longest-side via tempfiles — sequential, one at a time, memory-safe.
+- Documents: selected PDFs are parsed with `combine_pdf` and appended as real pages after the Prawn body. CombinePDF holds ~3-5× the file size in worker memory, so appends are capped at **15MB/file and 40MB aggregate**; oversized/corrupt files fall back to an annotated filename listing, and a merge failure ships the body without appendices rather than failing the job. Script/launch actions (`/JS`, `/AA`, `/OpenAction`, `/Launch`) are stripped from appended pages.
+- Fonts: default Helvetica is Windows-1252-only — smart quotes/emoji from iOS crash it. Both PDF services use NotoSans via `PdfFontSupport`, with a sanitize-and-retry fallback for glyphs outside the font.
 
 ### ActivityLogger
 
@@ -631,6 +641,7 @@ end
 | `AssignmentNotificationJob` | `default` | Sends assignment notification to newly assigned user |
 | `MessageNotificationJob` | `default` | Sends new message notifications |
 | `DailyDigestJob` | `low` | Compiles and sends daily digest emails |
+| `DfrPdfJob` | `default` | Generates the DFR PDF and attaches it to the incident (positional args carry defaults so pre-deploy queued jobs survive new params) |
 
 ```ruby
 # config/solid_queue.yml (recurring tasks)

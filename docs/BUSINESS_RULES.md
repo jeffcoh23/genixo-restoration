@@ -86,6 +86,17 @@ Email is globally unique across all organizations. One email address = one user 
 - Accepting an invitation creates the user account and sets their password. The invitee must fill in any fields not provided by the inviter (first name, last name, phone are required on the account).
 - A pending invitation can be resent (generates new token, resets expiry).
 
+### Login Requests
+
+- Anyone can submit the public `/request-access` form (rate-limited: 5/min per IP). It creates a `LoginRequest` — never an account.
+- On submit, all **active mitigation users holding MANAGE_USERS** are emailed. Deliberately not the on-call escalation chain: that carries emergency semantics and must never be paged by a signup form.
+- Only one pending request per email; a new request is allowed after a rejection.
+- Review happens on the Users page (MANAGE_USERS required):
+  - **Approve** marks the request approved and opens the invite modal prefilled — account creation always goes through the normal invitation flow (org/role chosen by the admin).
+  - If the admin cancels the invite modal, the approved request keeps a re-invite affordance until an invitation or account exists for that email.
+  - **Reject** records an optional reason; the requester is not emailed.
+- Requests whose email already has an account or pending invitation can't be approved — the row shows that status instead.
+
 ---
 
 ## 3. Property Rules
@@ -319,6 +330,7 @@ When an incident is created, the system auto-assigns users based on the `auto_as
 - Equipment action `action_type` options: `add`, `remove`, `move`, `other`.
 - Equipment action fields are optional (`quantity`, equipment type, specific equipment reference, note).
 - Activity rows are shown newest-to-oldest in Daily Log.
+- `occurred_at` is captured with a **date-only** input; the stored datetime is midnight-padded. Activity rows therefore display no clock time (a fabricated "12:00 AM" was shown before 2026-07) and order by `created_at` within a day.
 - Creating/updating an activity generates an `activity_event` (`activity_logged` / `activity_updated`) and updates `last_activity_at`.
 
 ---
