@@ -1,4 +1,5 @@
 require "test_helper"
+require "minitest/mock"
 
 class LoginRequestsControllerTest < ActionDispatch::IntegrationTest
   include ActionMailer::TestHelper
@@ -76,6 +77,24 @@ class LoginRequestsControllerTest < ActionDispatch::IntegrationTest
       assert_redirected_to new_login_request_path
       assert flash[:alert].present?, "sixth request within a minute should be rejected"
     end
+  end
+
+  test "a duplicate pending request that races past validation is handled gracefully" do
+    LoginRequest.create!(valid_params(email: "race@acme.com"))
+
+    # Simulate the race: validation passes on a stale read, but the partial
+    # unique index rejects the insert. The controller must treat the
+    # RecordNotUnique as success, not 500.
+    racer = LoginRequest.new(valid_params(email: "race@acme.com"))
+    racer.define_singleton_method(:save) { raise ActiveRecord::RecordNotUnique, "duplicate" }
+
+    LoginRequest.stub(:new, racer) do
+      post login_requests_path, params: valid_params(email: "race@acme.com")
+    end
+
+    assert_redirected_to new_login_request_path
+    assert flash[:notice].present?
+    assert_equal 1, LoginRequest.where(email: "race@acme.com").count
   end
 
   # --- Review actions ---

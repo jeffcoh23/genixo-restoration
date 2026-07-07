@@ -27,6 +27,17 @@ class LoginRequestTest < ActiveSupport::TestCase
     refute LoginRequest.new(valid_attrs(email: "not-an-email")).valid?
   end
 
+  test "caps field lengths on the public form" do
+    request = LoginRequest.new(valid_attrs.merge(
+      first_name: "a" * 101, message: "m" * 2001, company_name: "c" * 201, phone: "5" * 51
+    ))
+    refute request.valid?
+    assert request.errors[:first_name].any?
+    assert request.errors[:message].any?
+    assert request.errors[:company_name].any?
+    assert request.errors[:phone].any?
+  end
+
   test "normalizes email to lowercase" do
     request = LoginRequest.create!(valid_attrs(email: "  Dan@Acme.COM "))
     assert_equal "dan@acme.com", request.email
@@ -43,6 +54,13 @@ class LoginRequestTest < ActiveSupport::TestCase
     first = LoginRequest.create!(valid_attrs)
     first.reject!(@manager)
     assert LoginRequest.new(valid_attrs).valid?
+  end
+
+  test "partial unique index rejects a second pending request at the DB level" do
+    LoginRequest.create!(valid_attrs(email: "race@acme.com"))
+    dup = LoginRequest.new(valid_attrs(email: "race@acme.com"))
+    # Bypass the model validation to prove the DB index is the backstop.
+    assert_raises(ActiveRecord::RecordNotUnique) { dup.save(validate: false) }
   end
 
   test "approve! stamps reviewer, time, and status" do

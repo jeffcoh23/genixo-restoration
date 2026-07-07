@@ -17,5 +17,9 @@ class CreateLoginRequests < ActiveRecord::Migration[8.0]
 
     add_index :login_requests, :status
     add_index :login_requests, :email
+    # Public form: a partial unique index backs up the model validation so a
+    # double-submit race can't persist two pending requests for one email.
+    add_index :login_requests, :email, unique: true, where: "status = 'pending'",
+      name: "index_login_requests_on_pending_email"
   end
 end

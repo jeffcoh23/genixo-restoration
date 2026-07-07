@@ -308,6 +308,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_07_07_145138) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["email"], name: "index_login_requests_on_email"
+    t.index ["email"], name: "index_login_requests_on_pending_email", unique: true, where: "((status)::text = 'pending'::text)"
     t.index ["reviewed_by_user_id"], name: "index_login_requests_on_reviewed_by_user_id"
     t.index ["status"], name: "index_login_requests_on_status"
   end

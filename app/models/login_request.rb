@@ -5,8 +5,14 @@ class LoginRequest < ApplicationRecord
 
   normalizes :email, with: ->(e) { e.strip.downcase }
 
-  validates :email, presence: true, format: { with: URI::MailTo::EMAIL_REGEXP, allow_blank: true }
-  validates :first_name, :last_name, presence: true
+  # Length caps: this is a public unauthenticated form. Unbounded input would
+  # bloat storage, the notification email, and the Users-page JSON payload.
+  validates :email, presence: true, format: { with: URI::MailTo::EMAIL_REGEXP, allow_blank: true },
+    length: { maximum: 255 }
+  validates :first_name, :last_name, presence: true, length: { maximum: 100 }
+  validates :company_name, length: { maximum: 200 }
+  validates :phone, length: { maximum: 50 }
+  validates :message, length: { maximum: 2000 }
   validates :status, inclusion: { in: STATUSES }
   validates :email, uniqueness: {
     conditions: -> { where(status: "pending") },
@@ -19,15 +25,21 @@ class LoginRequest < ApplicationRecord
   def approved? = status == "approved"
   def rejected? = status == "rejected"
 
+  # with_lock (SELECT ... FOR UPDATE) closes the check-then-update race: two
+  # admins acting on the same request can't both pass the pending? gate.
   def approve!(reviewer)
-    raise ArgumentError, "only pending requests can be approved" unless pending?
-    update!(status: "approved", reviewed_by_user: reviewer, reviewed_at: Time.current)
+    with_lock do
+      raise ArgumentError, "only pending requests can be approved" unless pending?
+      update!(status: "approved", reviewed_by_user: reviewer, reviewed_at: Time.current)
+    end
   end
 
   def reject!(reviewer, reason: nil)
-    raise ArgumentError, "only pending requests can be rejected" unless pending?
-    update!(status: "rejected", reviewed_by_user: reviewer, reviewed_at: Time.current,
-      rejection_reason: reason.presence)
+    with_lock do
+      raise ArgumentError, "only pending requests can be rejected" unless pending?
+      update!(status: "rejected", reviewed_by_user: reviewer, reviewed_at: Time.current,
+        rejection_reason: reason.presence)
+    end
   end
 
   def full_name

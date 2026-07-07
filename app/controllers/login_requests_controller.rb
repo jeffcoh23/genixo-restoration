@@ -17,14 +17,18 @@ class LoginRequestsController < ApplicationController
     login_request = LoginRequest.new(login_request_params)
 
     if login_request.save
-      LoginRequest.reviewer_recipients.each do |reviewer|
-        LoginRequestMailer.new_request(reviewer, login_request).deliver_later
-      end
+      notify_reviewers(login_request)
       redirect_to new_login_request_path,
         notice: "Request received. Someone will review it and email you an invitation."
     else
       redirect_to new_login_request_path, inertia: { errors: login_request.errors.to_hash }
     end
+  rescue ActiveRecord::RecordNotUnique
+    # The partial unique index caught a double-submit race that slipped past the
+    # model validation. A pending request already exists — tell the requester
+    # the same success message rather than 500ing.
+    redirect_to new_login_request_path,
+      notice: "Request received. Someone will review it and email you an invitation."
   end
 
   def approve
@@ -44,6 +48,16 @@ class LoginRequestsController < ApplicationController
   end
 
   private
+
+  def notify_reviewers(login_request)
+    recipients = LoginRequest.reviewer_recipients
+    # The request is still persisted and visible on the Users page; a missing
+    # recipient set means no one is actively notified, worth flagging.
+    Rails.logger.warn("[LoginRequest] no MANAGE_USERS recipients for request #{login_request.id}") if recipients.empty?
+    recipients.each do |reviewer|
+      LoginRequestMailer.new_request(reviewer, login_request).deliver_later
+    end
+  end
 
   def login_request_params
     params.permit(:email, :first_name, :last_name, :company_name, :phone, :message)
