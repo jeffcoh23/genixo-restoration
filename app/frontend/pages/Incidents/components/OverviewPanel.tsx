@@ -40,11 +40,11 @@ export default function OverviewPanel({ incident, can_assign, assignable_mitigat
   return (
     <div className="overflow-y-auto h-full p-4 bg-background">
       <div className="mx-auto grid max-w-[1800px] grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 items-start">
-        {/* Column 1: Mitigation Team */}
+        {/* Column 1: Team */}
         <section className="rounded-xl border border-border bg-card shadow-sm p-4 space-y-3">
             <div className="flex items-center gap-2">
               <h3 className="text-sm font-semibold text-foreground flex-1 whitespace-nowrap">
-                Mitigation Team
+                Team
               </h3>
               {can_assign && assignable_mitigation_users.length > 0 && (
                 <AssignSelect users={assignable_mitigation_users} onAssign={handleAssign} disabled={teamAction.processing} />

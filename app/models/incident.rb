@@ -17,9 +17,9 @@ class Incident < ApplicationRecord
 
   PROJECT_TYPE_LABELS = {
     "emergency_response" => "Emergency Response",
-    "mitigation_rfq" => "Mitigation RFQ",
-    "buildback_rfq" => "Buildback RFQ",
-    "capex_rfq" => "CapEx RFQ",
+    "mitigation_rfq" => "Mitigation",
+    "buildback_rfq" => "Buildback",
+    "capex_rfq" => "CapEx",
     "other" => "Other"
   }.freeze
 

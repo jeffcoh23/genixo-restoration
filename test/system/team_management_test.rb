@@ -41,9 +41,9 @@ class TeamManagementTest < ApplicationSystemTestCase
 
     # Go to Manage tab
     click_button "Manage"
-    assert_text "Mitigation Team"
+    assert_text "Team"
 
-    # The first "Assign User" trigger is in the Mitigation Team section
+    # The first "Assign User" trigger is in the Team section
     assign_buttons = all("button", text: "Assign User")
     assign_buttons[0].click
 

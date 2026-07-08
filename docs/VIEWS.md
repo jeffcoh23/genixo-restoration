@@ -161,7 +161,7 @@ The landing page. Shows incidents grouped by urgency for quick triage. For a fla
 │  ┌────────────────────────────────────────────────────────────────┐  │
 │  │ Greystar Towers                                      [ACTIVE] │  │
 │  │ Mold remediation in basement storage...                       │  │
-│  │ Mold · Mitigation RFQ · 2 hrs ago                             │  │
+│  │ Mold · Mitigation · 2 hrs ago                                 │  │
 │  ├────────────────────────────────────────────────────────────────┤  │
 │  │ ...                                                           │  │
 │  └────────────────────────────────────────────────────────────────┘  │
@@ -494,8 +494,8 @@ Viewing marks activity as read.
 │                                                                  │
 │  Project Type *                                                  │
 │  ○ Emergency Response                                            │
-│  ○ Mitigation RFQ                                                │
-│  ○ Buildback RFQ                                                 │
+│  ○ Mitigation                                                    │
+│  ○ Buildback                                                     │
 │  ○ Other                                                         │
 │                                                                  │
 │  ┌────────────────────────────────────────────────────────────┐  │

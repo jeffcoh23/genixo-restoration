@@ -10,7 +10,8 @@ class PasswordResetsController < ApplicationController
 
   def create
     user = User.find_by(email_address: params[:email_address])
-    PasswordResetMailer.reset_link(user).deliver_now if user&.active?
+    # deliver_later: a slow or failing mail provider shouldn't hang or 500 this request
+    PasswordResetMailer.reset_link(user).deliver_later if user&.active?
 
     # Always show success to avoid leaking email existence
     redirect_to forgot_password_path, notice: "If that email is in our system, you'll receive a reset link shortly."

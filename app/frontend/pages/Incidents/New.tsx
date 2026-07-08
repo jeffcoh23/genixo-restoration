@@ -382,7 +382,7 @@ export default function NewIncident() {
 
             {mitigationUsers.length > 0 && (
               <UserChecklistSection
-                label="Mitigation Team"
+                label="Team"
                 users={mitigationUsers}
                 selectedIds={data.additional_user_ids}
                 onToggle={toggleUser}

@@ -158,7 +158,7 @@ class IncidentsAdditionalTest < ApplicationSystemTestCase
 
     select_new_incident_org_and_property("Greystar", "River Oaks")
 
-    find("label", text: "Mitigation RFQ").click
+    find("label", text: "Mitigation", exact_text: true).click
     open_radix_select("Damage Type")
     click_radix_option("Mold")
     fill_in "description", with: "Quote requested for hallway mold remediation"
