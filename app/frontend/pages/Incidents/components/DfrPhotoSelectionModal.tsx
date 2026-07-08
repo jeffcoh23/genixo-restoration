@@ -194,6 +194,46 @@ export default function DfrPhotoSelectionModal({
             )}
 
             <div className="flex-1 overflow-y-auto min-h-0 -mx-1 px-1">
+              {documents.length > 0 && (
+                <div className="py-2 mb-2 border-b border-border">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                    Documents
+                  </p>
+                  <div className="space-y-1">
+                    {documents.map((doc) => {
+                      const isSelected = selectedDocIds.has(doc.id);
+                      return (
+                        <Button
+                          key={doc.id}
+                          variant="ghost"
+                          onClick={() => toggleDocument(doc.id)}
+                          className={`w-full justify-start gap-2 h-auto py-2 px-2 rounded-md border ${
+                            isSelected
+                              ? "border-primary/60 bg-primary/5"
+                              : "border-transparent hover:border-muted-foreground/30"
+                          }`}
+                        >
+                          <span
+                            className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border ${
+                              isSelected
+                                ? "bg-primary border-primary text-primary-foreground"
+                                : "border-muted-foreground/40"
+                            }`}
+                          >
+                            {isSelected && <Check className="h-3 w-3" />}
+                          </span>
+                          <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+                          <span className="truncate text-sm">{doc.filename}</span>
+                          <span className="ml-auto shrink-0 text-xs text-muted-foreground">
+                            {doc.category_label} · {formatBytes(doc.byte_size)}
+                          </span>
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {groups.map((group) => {
                 const groupAllSelected = group.photos.every((p) => selectedIds.has(p.id));
                 return (
@@ -258,45 +298,6 @@ export default function DfrPhotoSelectionModal({
                 );
               })}
 
-              {documents.length > 0 && (
-                <div className="py-2">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-                    Documents
-                  </p>
-                  <div className="space-y-1">
-                    {documents.map((doc) => {
-                      const isSelected = selectedDocIds.has(doc.id);
-                      return (
-                        <Button
-                          key={doc.id}
-                          variant="ghost"
-                          onClick={() => toggleDocument(doc.id)}
-                          className={`w-full justify-start gap-2 h-auto py-2 px-2 rounded-md border ${
-                            isSelected
-                              ? "border-primary/60 bg-primary/5"
-                              : "border-transparent hover:border-muted-foreground/30"
-                          }`}
-                        >
-                          <span
-                            className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border ${
-                              isSelected
-                                ? "bg-primary border-primary text-primary-foreground"
-                                : "border-muted-foreground/40"
-                            }`}
-                          >
-                            {isSelected && <Check className="h-3 w-3" />}
-                          </span>
-                          <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
-                          <span className="truncate text-sm">{doc.filename}</span>
-                          <span className="ml-auto shrink-0 text-xs text-muted-foreground">
-                            {doc.category_label} · {formatBytes(doc.byte_size)}
-                          </span>
-                        </Button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
             </div>
           </>
         )}
