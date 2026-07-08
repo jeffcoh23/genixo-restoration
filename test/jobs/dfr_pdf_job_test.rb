@@ -208,4 +208,34 @@ class DfrPdfJobTest < ActiveSupport::TestCase
     attachment = @incident.attachments.where(category: "dfr").last
     assert attachment.file.attached?
   end
+
+  test "runs with the pre-documents argument list (jobs enqueued before deploy)" do
+    # Solid Queue serializes positional args: a job enqueued before the
+    # document_attachment_ids param existed carries only five arguments and
+    # must still run after deploy.
+    date = Date.current.to_s
+
+    assert_nothing_raised do
+      DfrPdfJob.perform_now(@incident.id, date, "America/Chicago", @manager.id, nil)
+    end
+    assert @incident.attachments.where(category: "dfr").last.file.attached?
+  end
+
+  test "passes document_attachment_ids through to the generated PDF" do
+    require "pdf/inspector"
+    require "prawn"
+    date = Date.current.to_s
+
+    doc = @incident.attachments.create!(category: "signed_document", uploaded_by_user: @manager)
+    doc.file.attach(
+      io: StringIO.new(Prawn::Document.new { |p| p.text "Signed scope" }.render),
+      filename: "scope.pdf", content_type: "application/pdf"
+    )
+
+    DfrPdfJob.perform_now(@incident.id, date, "America/Chicago", @manager.id, nil, [ doc.id ])
+
+    attachment = @incident.attachments.where(category: "dfr").last
+    text = PDF::Inspector::Text.analyze(attachment.file.download).strings.join(" ")
+    assert_includes text, "scope.pdf (attached)"
+  end
 end

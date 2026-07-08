@@ -258,7 +258,9 @@ class DfrPdfServiceTest < ActiveSupport::TestCase
     end
   end
 
-  test "does not include photos from other dates even if IDs match" do
+  test "includes photos from other dates when explicitly selected" do
+    # Daniel: "we should be able to select any photos, not just photos for
+    # that day." An explicit selection overrides the report-date scoping.
     other_date_photo = create_photo("other.jpg", log_date: @date - 1.day)
 
     service = DfrPdfService.new(
@@ -268,10 +270,266 @@ class DfrPdfServiceTest < ActiveSupport::TestCase
     pdf_data = service.generate
     text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
 
+    assert_includes text, "Photos"
+    assert_includes pdf_data, "DCTDecode", "selected cross-date photo should be embedded as JPEG"
+  end
+
+  test "nil photo_attachment_ids still scopes photos to the report date" do
+    create_photo("other.jpg", log_date: @date - 1.day)
+
+    service = DfrPdfService.new(incident: @incident, date: @date, include_photos: true, photo_attachment_ids: nil)
+    pdf_data = service.generate
+    text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
+
     refute_includes text, "Photos"
   end
 
+  test "photo IDs belonging to another incident are excluded" do
+    other_incident = Incident.create!(property: @property, created_by_user: @manager,
+      status: "active", project_type: "emergency_response", damage_type: "flood", description: "Other")
+    foreign = other_incident.attachments.create!(category: "photo", log_date: @date, uploaded_by_user: @manager)
+    foreign.file.attach(
+      io: File.open(Rails.root.join("test/fixtures/files/test_photo.jpg")),
+      filename: "foreign.jpg", content_type: "image/jpeg"
+    )
+
+    service = DfrPdfService.new(
+      incident: @incident, date: @date, include_photos: true,
+      photo_attachment_ids: [ foreign.id ]
+    )
+    pdf_data = service.generate
+    text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
+
+    refute_includes text, "Photos"
+  end
+
+  # --- documents ---
+
+  test "appends a selected PDF document's pages to the DFR" do
+    doc = create_pdf_document("scope.pdf")
+
+    base = DfrPdfService.new(incident: @incident, date: @date, include_photos: false).generate
+    with_doc = DfrPdfService.new(
+      incident: @incident, date: @date, include_photos: false,
+      document_attachment_ids: [ doc.id ]
+    ).generate
+
+    text = PDF::Inspector::Text.analyze(with_doc).strings.join(" ")
+    assert_includes text, "Documents"
+    assert_includes text, "scope.pdf (attached)"
+    # documents section adds one page; the appended document adds its own page
+    assert_equal page_count(base) + 2, page_count(with_doc)
+  end
+
+  test "corrupt PDF documents are listed by filename, never fail the DFR" do
+    doc = create_pdf_document("broken.pdf", content: "not really a pdf at all")
+
+    pdf_data = nil
+    assert_nothing_raised do
+      pdf_data = DfrPdfService.new(
+        incident: @incident, date: @date, include_photos: false,
+        document_attachment_ids: [ doc.id ]
+      ).generate
+    end
+
+    text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
+    assert_includes text, "broken.pdf (could not be attached)"
+    refute_includes text, "(attached)"
+  end
+
+  test "documents over the per-file size cap are listed, not appended" do
+    doc = create_pdf_document("huge.pdf")
+    # byte_size is a column on the blob — fake an oversized upload without
+    # allocating the bytes
+    doc.file.blob.update_column(:byte_size, DfrPdfService::MAX_DOCUMENT_BYTES + 1)
+
+    pdf_data = DfrPdfService.new(
+      incident: @incident, date: @date, include_photos: false,
+      document_attachment_ids: [ doc.id ]
+    ).generate
+
+    text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
+    assert_includes text, "huge.pdf (too large to attach)"
+    refute_includes text, "(attached)"
+  end
+
+  test "documents past the aggregate cap are listed, not appended" do
+    near_cap = DfrPdfService::MAX_DOCUMENT_BYTES - 1.kilobyte
+    docs = [ "a.pdf", "b.pdf", "c.pdf" ].map { |name| create_pdf_document(name) }
+    docs.each { |d| d.file.blob.update_column(:byte_size, near_cap) }
+
+    pdf_data = DfrPdfService.new(
+      incident: @incident, date: @date, include_photos: false,
+      document_attachment_ids: docs.map(&:id)
+    ).generate
+
+    # 15MB-ish each against a 40MB aggregate: two append, the third is listed
+    text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
+    assert_includes text, "a.pdf (attached)"
+    assert_includes text, "b.pdf (attached)"
+    assert_includes text, "c.pdf (too large to attach)"
+    refute_includes text, "c.pdf (attached)"
+  end
+
+  test "document IDs belonging to another incident are excluded" do
+    other_incident = Incident.create!(property: @property, created_by_user: @manager,
+      status: "active", project_type: "emergency_response", damage_type: "flood", description: "Other")
+    foreign = other_incident.attachments.create!(category: "signed_document", uploaded_by_user: @manager)
+    foreign.file.attach(io: StringIO.new(minimal_pdf), filename: "foreign.pdf", content_type: "application/pdf")
+
+    pdf_data = DfrPdfService.new(
+      incident: @incident, date: @date, include_photos: false,
+      document_attachment_ids: [ foreign.id ]
+    ).generate
+
+    text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
+    refute_includes text, "Documents"
+    refute_includes text, "foreign.pdf"
+  end
+
+  test "glyph-fallback rebuild still appends documents correctly" do
+    # An emoji forces with_glyph_fallback to build the PDF twice; the memoized
+    # parsed documents must survive being appended in both builds.
+    travel_to Time.utc(2026, 5, 15, 14, 0, 0) do
+      @date = Date.current
+      @incident.activity_entries.create!(
+        title: "Emoji retry 🔥", occurred_at: Time.current, performed_by_user: @manager
+      )
+      doc = create_pdf_document("retry.pdf")
+
+      pdf_data = DfrPdfService.new(
+        incident: @incident, date: @date, include_photos: false,
+        document_attachment_ids: [ doc.id ]
+      ).generate
+
+      assert pdf_data.start_with?("%PDF")
+      text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
+      assert_includes text, "retry.pdf (attached)"
+      assert_includes text, "Attached document body"
+    end
+  end
+
+  test "image documents are embedded, non-PDF documents listed by filename" do
+    image_doc = @incident.attachments.create!(category: "signed_document", uploaded_by_user: @manager)
+    image_doc.file.attach(
+      io: File.open(Rails.root.join("test/fixtures/files/test_photo.jpg")),
+      filename: "site-map.jpg", content_type: "image/jpeg"
+    )
+    word_doc = @incident.attachments.create!(category: "general", uploaded_by_user: @manager)
+    word_doc.file.attach(io: StringIO.new("fake docx"), filename: "notes.docx",
+      content_type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+
+    pdf_data = DfrPdfService.new(
+      incident: @incident, date: @date, include_photos: false,
+      document_attachment_ids: [ image_doc.id, word_doc.id ]
+    ).generate
+
+    text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
+    assert_includes text, "site-map.jpg"
+    assert_includes text, "notes.docx"
+    assert_includes pdf_data, "DCTDecode", "image document should be embedded as JPEG"
+  end
+
+  test "image documents over the per-file cap are listed, not embedded" do
+    image_doc = @incident.attachments.create!(category: "signed_document", uploaded_by_user: @manager)
+    image_doc.file.attach(
+      io: File.open(Rails.root.join("test/fixtures/files/test_photo.jpg")),
+      filename: "huge-scan.jpg", content_type: "image/jpeg"
+    )
+    image_doc.file.blob.update_column(:byte_size, DfrPdfService::MAX_DOCUMENT_BYTES + 1)
+
+    pdf_data = DfrPdfService.new(
+      incident: @incident, date: @date, include_photos: false,
+      document_attachment_ids: [ image_doc.id ]
+    ).generate
+
+    text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
+    assert_includes text, "huge-scan.jpg (too large to attach)"
+    refute_includes pdf_data, "DCTDecode", "oversized image must not be embedded"
+  end
+
+  test "active content is stripped from appended PDF pages" do
+    require "combine_pdf"
+    # Author a PDF whose page carries script-bearing actions: an
+    # additional-actions dict (/AA) plus a link annotation firing JavaScript.
+    source = CombinePDF.parse(minimal_pdf)
+    page = source.pages.first
+    page[:AA] = { O: { S: :JavaScript, JS: "app.alert('aa-open')" } }
+    page[:Annots] = [ {
+      Type: :Annot, Subtype: :Link, Rect: [ 0, 0, 10, 10 ],
+      A: { S: :JavaScript, JS: "app.alert('link-js')" }
+    } ]
+    doc = create_pdf_document("scripted.pdf", content: source.to_pdf)
+
+    pdf_data = DfrPdfService.new(
+      incident: @incident, date: @date, include_photos: false,
+      document_attachment_ids: [ doc.id ]
+    ).generate
+
+    text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
+    assert_includes text, "scripted.pdf (attached)"
+    assert_includes text, "Attached document body", "page content must survive stripping"
+    refute_includes pdf_data, "app.alert", "JavaScript must not survive into the DFR"
+    refute_includes pdf_data, "/AA", "additional-actions dict must be stripped"
+  end
+
+  test "documents without an attached file are skipped gracefully" do
+    bare = @incident.attachments.create!(category: "signed_document", uploaded_by_user: @manager)
+
+    pdf_data = nil
+    assert_nothing_raised do
+      pdf_data = DfrPdfService.new(
+        incident: @incident, date: @date, include_photos: false,
+        document_attachment_ids: [ bare.id ]
+      ).generate
+    end
+
+    text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
+    refute_includes text, "Documents", "file-less attachment should not produce a Documents section"
+  end
+
+  test "a merge failure falls back to the unappended DFR body" do
+    require "prawn"
+    require "combine_pdf"
+    require "minitest/mock"
+    doc = create_pdf_document("merge-fail.pdf")
+    service = DfrPdfService.new(
+      incident: @incident, date: @date, include_photos: false,
+      document_attachment_ids: [ doc.id ]
+    )
+    body = Prawn::Document.new { |p| p.text "Body only" }.render
+
+    # Pre-memoize a successfully parsed document, then make the body re-parse
+    # blow up: append_documents must return the body unchanged rather than
+    # kill the job (DfrPdfJob has no retry — the UI would poll forever).
+    service.instance_variable_set(:@document_results,
+      [ { attachment: doc, filename: "merge-fail.pdf", disposition: :appended,
+          parsed: CombinePDF.parse(minimal_pdf) } ])
+
+    CombinePDF.stub(:parse, ->(*) { raise StandardError, "merge boom" }) do
+      assert_equal body, service.send(:append_documents, body)
+    end
+  end
+
   private
+
+  def page_count(pdf_data)
+    PDF::Inspector::Page.analyze(pdf_data).pages.size
+  end
+
+  def minimal_pdf
+    require "prawn"
+    Prawn::Document.new { |p| p.text "Attached document body" }.render
+  end
+
+  def create_pdf_document(filename, category: "signed_document", content: nil)
+    att = @incident.attachments.create!(category: category, uploaded_by_user: @manager)
+    att.file.attach(
+      io: StringIO.new(content || minimal_pdf),
+      filename: filename, content_type: "application/pdf"
+    )
+    att
+  end
 
   def create_photo(filename, log_date: @date)
     # Create a minimal valid 1x1 JPEG for Prawn to process

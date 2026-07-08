@@ -1,48 +1,49 @@
 class DfrPdfService
   include ActionView::Helpers::NumberHelper
+  include PdfFontSupport
 
-  def initialize(incident:, date:, timezone: "America/Chicago", include_photos: true, photo_attachment_ids: nil)
+  # Appended-document limits: CombinePDF parses a whole file into Ruby objects
+  # (roughly 3-5x the file size in memory), so a per-file AND an aggregate cap
+  # keep DFR generation inside the worker's memory quota. Oversized documents
+  # are still listed by filename in the Documents section.
+  MAX_DOCUMENT_BYTES = 15.megabytes
+  MAX_TOTAL_DOCUMENT_BYTES = 40.megabytes
+
+  # PDF actions that execute script or launch programs have no place in a
+  # report page shipped under the mitigation org's name. CombinePDF drops the
+  # source document's catalog on merge, but page-level annotations and
+  # additional-actions survive — strip them from every parsed object.
+  ACTIVE_CONTENT_KEYS = %i[JS JavaScript AA OpenAction Launch].freeze
+  ACTIVE_ACTION_TYPES = %i[JavaScript Launch].freeze
+
+  def initialize(incident:, date:, timezone: "America/Chicago", include_photos: true,
+                 photo_attachment_ids: nil, document_attachment_ids: nil)
     @incident = incident
     @date = date.is_a?(String) ? Date.parse(date) : date
     @timezone = timezone
     @include_photos = include_photos
     @photo_attachment_ids = photo_attachment_ids
+    @document_attachment_ids = document_attachment_ids
   end
 
   def generate
     require "prawn"
     require "prawn/table"
     require "mini_magick"
+    require "combine_pdf"
 
-    Time.use_zone(@timezone) do
-      build_pdf
+    with_glyph_fallback do
+      Time.use_zone(@timezone) do
+        build_pdf
+      end
     end
-  rescue Prawn::Errors::IncompatibleStringEncoding, Prawn::Errors::CannotRender => e
-    # Noto Sans covers Latin/Greek/Cyrillic and common punctuation. If a tech
-    # types an emoji or supplementary-plane char Noto can't render, fall back
-    # to sanitized text rather than fail the whole report.
-    Rails.logger.warn("[DfrPdfService] glyph not in font, retrying with sanitized text: #{e.message}")
-    @sanitize_text = true
-    Time.use_zone(@timezone) { build_pdf }
   end
 
   private
 
-  FONT_DIR = Rails.root.join("app/assets/fonts").freeze
-
   def build_pdf
     pdf = Prawn::Document.new(page_size: "LETTER", margin: [ 50, 50, 50, 50 ])
-
-    # Default Helvetica only supports Windows-1252; user-typed text from iOS
-    # (smart quotes, emoji, accented names) breaks PDF generation. Noto Sans
-    # is a UTF-8 TTF covering all common Latin/Greek/Cyrillic input.
-    pdf.font_families.update("NotoSans" => {
-      normal: FONT_DIR.join("NotoSans-Regular.ttf").to_s,
-      bold: FONT_DIR.join("NotoSans-Bold.ttf").to_s,
-      italic: FONT_DIR.join("NotoSans-Italic.ttf").to_s,
-      bold_italic: FONT_DIR.join("NotoSans-BoldItalic.ttf").to_s
-    })
-    pdf.font "NotoSans"
+    apply_noto_sans(pdf)
 
     render_header(pdf)
     render_info_grid(pdf)
@@ -53,8 +54,11 @@ class DfrPdfService
     render_labor_section(pdf)
     render_equipment_section(pdf)
     render_photos(pdf) if @include_photos
+    # render_documents_section triggers document parsing (document_results), so
+    # each file is classified appended/embedded/listed before append_documents runs.
+    render_documents_section(pdf)
 
-    pdf.render
+    append_documents(pdf.render)
   end
 
   def render_header(pdf)
@@ -228,29 +232,151 @@ class DfrPdfService
     max_height = (pdf.bounds.height - 30) / 2 - 15
 
     photos.each do |attachment|
-      blob = attachment.file.blob
-      next unless blob.content_type.start_with?("image/")
-      next unless blob.service.exist?(blob.key)
+      embed_image_attachment(pdf, attachment, max_height)
+    end
+  end
 
-      blob.open do |tempfile|
-        # Phone photos store the sensor's native (landscape) pixels and an EXIF
-        # orientation tag; Prawn ignores EXIF, so portraits would render sideways.
-        # auto_orient bakes the rotation into the pixels and strips the tag.
-        # Resize: source images are full sensor resolution (often 24MP), but the
-        # PDF only renders them at ~4in wide. Cap longest side at 1600px so the
-        # embedded copy is roughly print-resolution, keeping the PDF small and
-        # cutting peak memory during generation.
-        image = MiniMagick::Image.open(tempfile.path)
-        image.auto_orient
-        image.resize "1600x1600>"
-        image.quality 85
-        image.write(tempfile.path)
+  def embed_image_attachment(pdf, attachment, max_height)
+    blob = attachment.file.blob
+    return unless blob.content_type.start_with?("image/")
+    return unless blob.service.exist?(blob.key)
 
-        pdf.image tempfile.path, fit: [ pdf.bounds.width, max_height ], position: :center
-        pdf.move_down 15
+    blob.open do |tempfile|
+      # Phone photos store the sensor's native (landscape) pixels and an EXIF
+      # orientation tag; Prawn ignores EXIF, so portraits would render sideways.
+      # auto_orient bakes the rotation into the pixels and strips the tag.
+      # Resize: source images are full sensor resolution (often 24MP), but the
+      # PDF only renders them at ~4in wide. Cap longest side at 1600px so the
+      # embedded copy is roughly print-resolution, keeping the PDF small and
+      # cutting peak memory during generation.
+      image = MiniMagick::Image.open(tempfile.path)
+      image.auto_orient
+      image.resize "1600x1600>"
+      image.quality 85
+      image.write(tempfile.path)
+
+      pdf.image tempfile.path, fit: [ pdf.bounds.width, max_height ], position: :center
+      pdf.move_down 15
+    end
+  rescue StandardError => e
+    Rails.logger.warn("[DfrPdfService] could not embed image attachment #{attachment.id} (#{attachment.file.filename}): #{e.message}")
+    nil
+  end
+
+  def render_documents_section(pdf)
+    return if document_results.empty?
+
+    pdf.start_new_page
+    pdf.font_size(12) { pdf.text "Documents", style: :bold }
+    pdf.move_down 10
+
+    image_max_height = (pdf.bounds.height - 30) / 2 - 15
+
+    document_results.each do |result|
+      case result[:disposition]
+      when :embedded_image
+        pdf.font_size(10) { pdf.text t("• #{result[:filename]}") }
+        pdf.move_down 5
+        embed_image_attachment(pdf, result[:attachment], image_max_height)
+      when :appended
+        pdf.font_size(10) { pdf.text t("• #{result[:filename]} (attached)") }
+        pdf.move_down 3
+      else
+        label = result[:note] ? "• #{result[:filename]} (#{result[:note]})" : "• #{result[:filename]}"
+        pdf.font_size(10) { pdf.text t(label) }
+        pdf.move_down 3
       end
-    rescue StandardError
-      nil
+    end
+  end
+
+  # Selected PDF documents get their pages appended after the Prawn body.
+  # Parsing happened up front (document_results), so a corrupt or oversized
+  # file was already downgraded to a filename listing — appending can only
+  # see successfully parsed documents.
+  def append_documents(data)
+    parsed_docs = document_results.filter_map { |r| r[:parsed] }
+    return data if parsed_docs.empty?
+
+    combined = CombinePDF.parse(data)
+    parsed_docs.each { |doc| combined << doc }
+    combined.to_pdf
+  rescue StandardError => e
+    # A merge failure must never kill the DFR: ship the Prawn body without the
+    # appended pages. (The Documents section will overstate "(attached)" for
+    # this rare case — preferable to no report at all.)
+    Rails.logger.warn("[DfrPdfService] could not append documents to DFR: #{e.message}")
+    data
+  end
+
+  def document_results
+    @document_results ||= build_document_results
+  end
+
+  def build_document_results
+    return [] if @document_attachment_ids.blank?
+
+    docs = @incident.attachments
+      .includes(file_attachment: :blob)
+      .where.not(category: %w[photo dfr])
+      .where(id: @document_attachment_ids)
+      .order(:created_at)
+
+    appended_bytes = 0
+    docs.filter_map do |att|
+      next unless att.file.attached?
+
+      blob = att.file.blob
+      result = { attachment: att, filename: blob.filename.to_s, disposition: :listed, parsed: nil }
+
+      if blob.content_type.to_s.start_with?("image/")
+        # Same per-file cap as PDFs: MiniMagick decodes the full image, so an
+        # oversized "image" document must not reach the embed path.
+        if blob.byte_size <= MAX_DOCUMENT_BYTES
+          result[:disposition] = :embedded_image
+        else
+          result[:note] = "too large to attach"
+        end
+      elsif blob.content_type == "application/pdf"
+        if blob.byte_size <= MAX_DOCUMENT_BYTES &&
+           appended_bytes + blob.byte_size <= MAX_TOTAL_DOCUMENT_BYTES
+          begin
+            result[:parsed] = strip_active_content!(CombinePDF.parse(blob.download))
+            result[:disposition] = :appended
+            appended_bytes += blob.byte_size
+          rescue StandardError => e
+            # Corrupt/encrypted PDF: fall back to a filename listing, never
+            # fail the whole DFR over one bad document.
+            Rails.logger.warn("[DfrPdfService] could not parse document #{att.id} (#{result[:filename]}): #{e.message}")
+            result[:note] = "could not be attached"
+          end
+        else
+          result[:note] = "too large to attach"
+        end
+      end
+
+      result
+    end
+  end
+
+  def strip_active_content!(parsed)
+    seen = {}
+    parsed.objects.each { |obj| scrub_active_content!(obj, seen) }
+    parsed
+  end
+
+  def scrub_active_content!(node, seen)
+    case node
+    when Hash
+      return if seen[node.object_id]
+      seen[node.object_id] = true
+      ACTIVE_CONTENT_KEYS.each { |key| node.delete(key) }
+      if (action = node[:A]).is_a?(Hash)
+        target = action[:referenced_object].is_a?(Hash) ? action[:referenced_object] : action
+        node.delete(:A) if ACTIVE_ACTION_TYPES.include?(target[:S])
+      end
+      node.each_value { |value| scrub_active_content!(value, seen) }
+    when Array
+      node.each { |value| scrub_active_content!(value, seen) }
     end
   end
 
@@ -295,8 +421,15 @@ class DfrPdfService
     @photos_for_date ||= begin
       scope = @incident.attachments
         .includes(file_attachment: :blob)
-        .where(category: "photo", log_date: @date)
-      scope = scope.where(id: @photo_attachment_ids) if @photo_attachment_ids
+        .where(category: "photo")
+      # An explicit selection may span any date ("select any photos, not just
+      # photos for that day"); without one, default to the report date's photos.
+      # Scoping through @incident.attachments means foreign IDs can never leak in.
+      scope = if @photo_attachment_ids
+        scope.where(id: @photo_attachment_ids)
+      else
+        scope.where(log_date: @date)
+      end
       scope.order(:created_at)
     end
   end
@@ -319,15 +452,6 @@ class DfrPdfService
 
   def label_cell(text)
     text
-  end
-
-  # Coerce to ASCII when the first PDF build raised a glyph error. Smart quotes,
-  # em dashes, and accents are preserved by Noto Sans on the normal path — only
-  # the fallback path strips chars the font can't render.
-  def t(str)
-    return str unless @sanitize_text
-    return str if str.nil?
-    str.to_s.encode("US-ASCII", invalid: :replace, undef: :replace, replace: "?")
   end
 
   def action_label(action_type)

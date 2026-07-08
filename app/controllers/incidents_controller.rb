@@ -4,7 +4,7 @@ class IncidentsController < ApplicationController
   before_action :authorize_creation!, only: %i[new create]
   before_action :set_incident, only: %i[show update transition mark_read dfr dfr_photos photos_zip attachments_page report]
   before_action :authorize_edit!, only: %i[update]
-  before_action :authorize_dfr!, only: %i[dfr]
+  before_action :authorize_dfr!, only: %i[dfr dfr_photos]
   before_action :authorize_transition!, only: %i[transition]
 
   def index
@@ -247,6 +247,11 @@ class IncidentsController < ApplicationController
       daily_activities: daily_activities,
       daily_log_dates: daily_log_dates,
       daily_log_table_groups: daily_log_table_groups,
+      # Incident-level flags: the DFR modal offers ALL the incident's photos and
+      # documents (not just the report date's), so the generate flow needs to
+      # know whether the picker is worth opening at all.
+      incident_has_photos: @incident.attachments.where(category: "photo").exists?,
+      incident_has_documents: @incident.attachments.where.not(category: %w[photo dfr]).exists?,
       labor_entries: labor_entries,
       can_transition: can_transition_status?,
       can_assign: can_assign_to_incident?,
@@ -309,9 +314,16 @@ class IncidentsController < ApplicationController
   end
 
   def dfr
-    date = params[:date].presence || Date.current.to_s
-    photo_ids = params.key?(:photo_ids) ? Array(params[:photo_ids]).flatten.map(&:to_i).uniq : nil
-    DfrPdfJob.perform_later(@incident.id, date, current_user.timezone, current_user.id, photo_ids)
+    # Validate here, not in the job — a bad date raised inside DfrPdfJob is
+    # invisible (no retry/discard handler; the UI would poll forever).
+    date = begin
+      Date.iso8601(params[:date].presence || Date.current.to_s)
+    rescue ArgumentError, TypeError
+      return redirect_to incident_path(@incident), alert: "Could not generate DFR: invalid date."
+    end
+    photo_ids = dfr_id_array(:photo_ids)
+    document_ids = dfr_id_array(:document_ids)
+    DfrPdfJob.perform_later(@incident.id, date.iso8601, current_user.timezone, current_user.id, photo_ids, document_ids)
     redirect_to incident_path(@incident), notice: "DFR PDF is being generated. It will appear in the daily log shortly."
   end
 
@@ -319,10 +331,22 @@ class IncidentsController < ApplicationController
     date = params[:date].presence || Date.current.to_s
     photos = @incident.attachments
       .includes(:uploaded_by_user, file_attachment: :blob)
-      .where(category: "photo", log_date: date)
+      .where(category: "photo")
+      .order(:created_at)
+      .map { |att|
+        date_key = att.log_date&.iso8601 || att.created_at.to_date.iso8601
+        serialize_single_attachment(att).merge(
+          date_key: date_key,
+          date_label: format_date(att.log_date || att.created_at),
+          is_report_date: date_key == date
+        )
+      }
+    documents = @incident.attachments
+      .includes(:uploaded_by_user, file_attachment: :blob)
+      .where.not(category: %w[photo dfr])
       .order(:created_at)
       .map { |att| serialize_single_attachment(att) }
-    render json: photos
+    render json: { photos: photos, documents: documents }
   end
 
   def photos_zip
@@ -369,6 +393,15 @@ class IncidentsController < ApplicationController
   end
 
   private
+
+  # nil when the param is absent (job falls back to default selection);
+  # otherwise a clean integer array. Integer(exception: false) drops
+  # non-numeric garbage — including hash-shaped params, which would make
+  # `.map(&:to_i)` raise a 500.
+  def dfr_id_array(key)
+    return nil unless params.key?(key)
+    Array(params[key]).flatten.filter_map { |v| Integer(v, exception: false) }.uniq
+  end
 
   # Some legacy uploads (camera capture path that ran the file through
   # browser-image-compression) landed in storage with filename "blob" — no
@@ -770,7 +803,7 @@ class IncidentsController < ApplicationController
         status: entry.status,
         occurred_at: entry.occurred_at.iso8601,
         occurred_at_value: entry.occurred_at.to_date.iso8601,
-        occurred_at_label: format_datetime(entry.occurred_at),
+        created_at: entry.created_at.iso8601,
         date_key: entry.occurred_at.to_date.iso8601,
         date_label: format_date(entry.occurred_at),
         units_affected: entry.units_affected,
@@ -831,8 +864,13 @@ class IncidentsController < ApplicationController
     daily_activities.each do |activity|
       groups[activity[:date_key]] << {
         id: "activity-#{activity[:id]}",
-        occurred_at: activity[:occurred_at],
-        time_label: format_time(Time.zone.parse(activity[:occurred_at])),
+        # Sort by when the entry was logged: occurred_at only carries a date
+        # (the form has no time field), so its midnight padding made every
+        # activity tie at 12:00 AM.
+        occurred_at: activity[:created_at],
+        # No time label for the same reason — rendering the padded midnight
+        # showed a fabricated "12:00 AM" on every activity row.
+        time_label: nil,
         row_type: "activity",
         row_type_label: "Activity",
         primary_label: activity[:title],

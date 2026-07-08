@@ -735,6 +735,35 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes row_types, "document", "Attachment rows should not appear in daily log timeline"
   end
 
+  test "activity rows have no time label and sort by created_at within the day" do
+    # The activity form captures only a date; occurred_at is midnight-padded,
+    # so rendering it showed a fabricated "12:00 AM" on every activity row
+    # (Daniel's bug). Rows carry no time label and order by when they were logged.
+    incident = create_test_incident(status: "active")
+    first = second = nil
+    travel_to Time.zone.parse("#{Date.current} 09:00") do
+      first = incident.activity_entries.create!(
+        title: "Logged first", performed_by_user: @manager, occurred_at: Date.current.to_s
+      )
+    end
+    travel_to Time.zone.parse("#{Date.current} 14:00") do
+      second = incident.activity_entries.create!(
+        title: "Logged second", performed_by_user: @manager, occurred_at: Date.current.to_s
+      )
+    end
+
+    login_as @manager
+    get incident_path(incident)
+    assert_response :success
+
+    groups = inertia_props.fetch("daily_log_table_groups")
+    rows = groups.flat_map { |g| g.fetch("rows") }.select { |r| r["row_type"] == "activity" }
+    assert_equal 2, rows.length
+    rows.each { |r| assert_nil r["time_label"], "activity rows must not show a fabricated time" }
+    assert_equal [ "activity-#{second.id}", "activity-#{first.id}" ], rows.map { |r| r["id"] },
+      "rows should order by logged time (newest first) despite identical midnight occurred_at"
+  end
+
   test "daily log groups expose DFR url as a download (disposition=attachment)" do
     # Inline disposition makes Chrome's PDF viewer show the S3 object key
     # instead of the proper filename. Attachment disposition triggers a direct
@@ -1047,7 +1076,7 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     refute_includes text, "Photos", "Skip photos should produce DFR without photos section"
   end
 
-  test "dfr_photos returns photos for the given date as JSON" do
+  test "dfr_photos returns all incident photos annotated with date grouping info" do
     incident = create_test_incident(status: "active")
     photo = incident.attachments.create!(
       category: "photo", log_date: Date.current, uploaded_by_user: @manager
@@ -1057,7 +1086,8 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
       filename: "test.jpg", content_type: "image/jpeg"
     )
 
-    # Photo on different date — should not be returned
+    # Photo on a different date is also returned — the picker offers every
+    # incident photo ("select any photos, not just photos for that day")
     other = incident.attachments.create!(
       category: "photo", log_date: Date.current - 1.day, uploaded_by_user: @manager
     )
@@ -1070,21 +1100,113 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     get dfr_photos_incident_path(incident), params: { date: Date.current.to_s }
 
     assert_response :success
-    photos = JSON.parse(response.body)
-    assert_equal 1, photos.length
-    assert_equal photo.id, photos.first["id"]
-    assert_equal "test.jpg", photos.first["filename"]
+    photos = JSON.parse(response.body).fetch("photos")
+    assert_equal 2, photos.length
+
+    today = photos.find { |p| p["id"] == photo.id }
+    yesterday = photos.find { |p| p["id"] == other.id }
+    assert today["is_report_date"]
+    refute yesterday["is_report_date"]
+    assert_equal Date.current.iso8601, today["date_key"]
+    assert_equal (Date.current - 1.day).iso8601, yesterday["date_key"]
+    assert yesterday["date_label"].present?
   end
 
-  test "dfr_photos returns empty array when no photos for date" do
+  test "dfr_photos uses created_at date for photos without a log_date" do
+    incident = create_test_incident(status: "active")
+    photo = incident.attachments.create!(
+      category: "photo", log_date: nil, uploaded_by_user: @manager
+    )
+    photo.file.attach(
+      io: File.open(Rails.root.join("test/fixtures/files/test_photo.jpg")),
+      filename: "nodate.jpg", content_type: "image/jpeg"
+    )
+
+    login_as @manager
+    get dfr_photos_incident_path(incident), params: { date: Date.current.to_s }
+
+    photos = JSON.parse(response.body).fetch("photos")
+    assert_equal 1, photos.length
+    # Requests run inside Time.use_zone(current_user.timezone) — compare in that zone
+    expected = photo.created_at.in_time_zone(@manager.timezone || "UTC").to_date.iso8601
+    assert_equal expected, photos.first["date_key"]
+  end
+
+  test "dfr_photos returns empty lists when the incident has no attachments" do
     incident = create_test_incident(status: "active")
     login_as @manager
 
     get dfr_photos_incident_path(incident), params: { date: Date.current.to_s }
 
     assert_response :success
-    photos = JSON.parse(response.body)
-    assert_equal 0, photos.length
+    payload = JSON.parse(response.body)
+    assert_equal 0, payload.fetch("photos").length
+    assert_equal 0, payload.fetch("documents").length
+  end
+
+  test "dfr_photos lists the incident's documents excluding photos and DFRs" do
+    incident = create_test_incident(status: "active")
+    doc = incident.attachments.create!(category: "signed_document", uploaded_by_user: @manager)
+    doc.file.attach(io: StringIO.new("%PDF-1.4 fake"), filename: "signed.pdf", content_type: "application/pdf")
+    dfr = incident.attachments.create!(category: "dfr", log_date: Date.current, uploaded_by_user: @manager)
+    dfr.file.attach(io: StringIO.new("%PDF-1.4 fake"), filename: "dfr.pdf", content_type: "application/pdf")
+
+    login_as @manager
+    get dfr_photos_incident_path(incident), params: { date: Date.current.to_s }
+
+    documents = JSON.parse(response.body).fetch("documents")
+    assert_equal [ doc.id ], documents.map { |d| d["id"] }
+    assert_equal "signed.pdf", documents.first["filename"]
+  end
+
+  test "dfr passes photo_ids and document_ids through to the job" do
+    incident = create_test_incident(status: "active")
+    login_as @manager
+
+    original_adapter = ActiveJob::Base.queue_adapter
+    ActiveJob::Base.queue_adapter = :test
+    assert_enqueued_with(
+      job: DfrPdfJob,
+      args: [ incident.id, Date.current.to_s, @manager.timezone, @manager.id, [ 1, 2 ], [ 9 ] ]
+    ) do
+      post dfr_incident_path(incident),
+        params: { date: Date.current.to_s, photo_ids: [ 1, 2 ], document_ids: [ 9 ] }
+    end
+  ensure
+    ActiveJob::Base.queue_adapter = original_adapter
+  end
+
+  test "dfr rejects an invalid date param without enqueueing a job" do
+    incident = create_test_incident(status: "active")
+    login_as @manager
+
+    original_adapter = ActiveJob::Base.queue_adapter
+    ActiveJob::Base.queue_adapter = :test
+    assert_no_enqueued_jobs(only: DfrPdfJob) do
+      post dfr_incident_path(incident), params: { date: "not-a-date" }
+    end
+    assert_redirected_to incident_path(incident)
+    assert_equal "Could not generate DFR: invalid date.", flash[:alert]
+  ensure
+    ActiveJob::Base.queue_adapter = original_adapter
+  end
+
+  test "dfr tolerates hash-shaped id params instead of 500ing" do
+    incident = create_test_incident(status: "active")
+    login_as @manager
+
+    post dfr_incident_path(incident),
+      params: { date: Date.current.to_s, photo_ids: { "a" => "b" } }
+    assert_redirected_to incident_path(incident)
+  end
+
+  test "dfr_photos requires manage_daily_logs like dfr" do
+    incident = create_test_incident(status: "active")
+    @manager.update!(permissions: @manager.permissions - [ Permissions::MANAGE_DAILY_LOGS.to_s ])
+    login_as @manager
+
+    get dfr_photos_incident_path(incident), params: { date: Date.current.to_s }
+    assert_response :not_found
   end
 
   test "dfr_photos is scoped through visible_incidents" do

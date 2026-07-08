@@ -133,7 +133,7 @@ export interface DailyActivity {
   status: string;
   occurred_at: string;
   occurred_at_value: string;
-  occurred_at_label: string;
+  created_at: string;
   date_key: string;
   date_label: string;
   units_affected: number | null;
@@ -177,6 +177,15 @@ export interface IncidentAttachment {
   destroy_path?: string | null;
 }
 
+// Photo as returned by the dfr_photos endpoint: every incident photo,
+// annotated so the selection modal can group by day and preselect the
+// report date's photos.
+export interface DfrSelectablePhoto extends IncidentAttachment {
+  date_key: string;
+  date_label: string;
+  is_report_date: boolean;
+}
+
 export interface EquipmentType {
   id: number;
   name: string;
@@ -195,7 +204,9 @@ export interface DailyLogDate {
 export interface DailyLogTableRow {
   id: string;
   occurred_at: string;
-  time_label: string;
+  // null for activity rows: the form captures only a date, so there is no
+  // real clock time to show (a fabricated midnight rendered as "12:00 AM")
+  time_label: string | null;
   row_type: "activity" | "labor" | "note" | "document";
   row_type_label: string;
   primary_label: string;
@@ -466,6 +477,8 @@ export interface ShowProps {
   daily_activities: DailyActivity[];
   daily_log_dates: DailyLogDate[];
   daily_log_table_groups: DailyLogTableGroup[];
+  incident_has_photos: boolean;
+  incident_has_documents: boolean;
   messages: Message[];
   labor_entries: LaborEntry[];
   operational_notes: OperationalNote[];

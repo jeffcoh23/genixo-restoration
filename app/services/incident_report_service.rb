@@ -1,5 +1,6 @@
 class IncidentReportService
   include ActionView::Helpers::NumberHelper
+  include PdfFontSupport
 
   VALID_SECTIONS = %w[labor equipment moisture psychrometric].freeze
 
@@ -13,8 +14,10 @@ class IncidentReportService
     require "prawn"
     require "prawn/table"
 
-    Time.use_zone(@timezone) do
-      build_pdf
+    with_glyph_fallback do
+      Time.use_zone(@timezone) do
+        build_pdf
+      end
     end
   end
 
@@ -22,6 +25,7 @@ class IncidentReportService
 
   def build_pdf
     pdf = Prawn::Document.new(page_size: "LETTER", margin: [ 50, 50, 50, 50 ])
+    apply_noto_sans(pdf)
 
     render_header(pdf)
     render_property_info(pdf)
@@ -44,8 +48,8 @@ class IncidentReportService
     address = [ property.street_address, [ property.city, property.state ].filter_map(&:presence).join(", ") ].filter_map(&:presence).join(", ")
 
     data = [
-      [ "Property:", property.name, "Job #:", @incident.job_id || "—" ],
-      [ "Address:", address.presence || "—", "Damage:", Incident::DAMAGE_LABELS[@incident.damage_type] || @incident.damage_type ],
+      [ "Property:", t(property.name), "Job #:", t(@incident.job_id) || "—" ],
+      [ "Address:", t(address.presence) || "—", "Damage:", Incident::DAMAGE_LABELS[@incident.damage_type] || @incident.damage_type ],
       [ "Status:", @incident.display_status_label, "Project Type:", Incident::PROJECT_TYPE_LABELS[@incident.project_type] || @incident.project_type ]
     ]
 
@@ -80,7 +84,7 @@ class IncidentReportService
         names = role_entries.map { |e| e.user&.full_name || e.created_by_user.full_name }.uniq
         total_hours = role_entries.sum(&:hours)
         pdf.font_size(9) do
-          pdf.text "  • #{role}: #{names.join(', ')}  (#{total_hours} hrs)"
+          pdf.text t("  • #{role}: #{names.join(', ')}  (#{total_hours} hrs)")
         end
       end
       pdf.move_down 6
@@ -102,7 +106,7 @@ class IncidentReportService
         day_end = e.removed_at || Time.current
         ((day_end - e.placed_at) / 1.hour).round(1)
       end
-      pdf.font_size(10) { pdf.text "• #{type_entries.size} #{type_name}  —  #{total_hours} hrs total" }
+      pdf.font_size(10) { pdf.text t("• #{type_entries.size} #{type_name}  —  #{total_hours} hrs total") }
     end
 
     pdf.move_down 8
@@ -116,7 +120,7 @@ class IncidentReportService
       removed = entry.removed_at ? entry.removed_at.strftime("%-m/%-d") : "active"
       identifier = [ entry.tag_number.present? ? "##{entry.tag_number}" : nil, entry.equipment_identifier ].compact.first || "—"
       pdf.font_size(9) do
-        pdf.text "  #{entry.type_name}  #{identifier}  #{placed}–#{removed}  #{hours} hrs#{entry.location_notes.present? ? "  (#{entry.location_notes})" : ""}", color: "333333"
+        pdf.text t("  #{entry.type_name}  #{identifier}  #{placed}–#{removed}  #{hours} hrs#{entry.location_notes.present? ? "  (#{entry.location_notes})" : ""}"), color: "333333"
       end
     end
 
@@ -132,8 +136,8 @@ class IncidentReportService
     points.each do |point|
       label = [ point.unit, point.room, point.item ].filter_map(&:presence).join(" / ")
       goal_str = "goal: #{point.goal}#{point.measurement_unit}  material: #{point.material}"
-      pdf.font_size(10) { pdf.text label, style: :bold }
-      pdf.font_size(8) { pdf.text "  #{goal_str}", color: "888888" }
+      pdf.font_size(10) { pdf.text t(label), style: :bold }
+      pdf.font_size(8) { pdf.text t("  #{goal_str}"), color: "888888" }
 
       readings_by_date = point.moisture_readings.index_by(&:log_date)
       readings_by_date.keys.sort.each do |date|
@@ -154,7 +158,7 @@ class IncidentReportService
 
     points.each do |point|
       label = [ point.unit, point.room, point.dehumidifier_label ].filter_map(&:presence).join(" / ")
-      pdf.font_size(10) { pdf.text label, style: :bold }
+      pdf.font_size(10) { pdf.text t(label), style: :bold }
 
       point.psychrometric_readings.order(:log_date).each do |r|
         pdf.font_size(9) do
