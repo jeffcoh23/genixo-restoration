@@ -11,6 +11,7 @@ class SessionsController < ApplicationController
     render inertia: "Login", props: {
       forgot_password_path: forgot_password_path,
       report_incident_path: new_public_incident_report_path,
+      request_access_path: new_login_request_path,
       emergency_phone: format_phone(mit_org&.phone)
     }
   end

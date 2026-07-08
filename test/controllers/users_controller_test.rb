@@ -228,6 +228,51 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_equal true, @tech.reload.active
   end
 
+  # --- Login requests on the index ---
+
+  test "index lists pending login requests with resolution flags" do
+    pending = LoginRequest.create!(email: "new@acme.com", first_name: "New", last_name: "Person")
+    existing = LoginRequest.create!(email: "mgr@genixo.com", first_name: "Already", last_name: "Here")
+    invited = LoginRequest.create!(email: "invited@acme.com", first_name: "In", last_name: "Vited")
+    Invitation.create!(email: "invited@acme.com", user_type: "property_manager",
+      organization: @greystar, invited_by_user: @manager, expires_at: 7.days.from_now)
+
+    login_as @manager
+    get users_path
+    rows = inertia_props.fetch("login_requests")
+
+    by_id = rows.index_by { |r| r["id"] }
+    assert_equal false, by_id[pending.id]["has_user"]
+    assert_equal true, by_id[existing.id]["has_user"]
+    assert_equal true, by_id[invited.id]["has_pending_invitation"]
+  end
+
+  test "index hides approved requests once an invitation exists" do
+    approved = LoginRequest.create!(email: "done@acme.com", first_name: "Done", last_name: "Deal")
+    approved.approve!(@manager)
+    stranded = LoginRequest.create!(email: "stranded@acme.com", first_name: "Str", last_name: "Anded")
+    stranded.approve!(@manager)
+    Invitation.create!(email: "done@acme.com", user_type: "property_manager",
+      organization: @greystar, invited_by_user: @manager, expires_at: 7.days.from_now)
+
+    login_as @manager
+    get users_path
+    ids = inertia_props.fetch("login_requests").map { |r| r["id"] }
+
+    refute_includes ids, approved.id, "resolved approval should disappear"
+    assert_includes ids, stranded.id, "approved-but-uninvited keeps its re-invite row"
+  end
+
+  test "index excludes rejected requests" do
+    rejected = LoginRequest.create!(email: "no@acme.com", first_name: "No", last_name: "Thanks")
+    rejected.reject!(@manager)
+
+    login_as @manager
+    get users_path
+    ids = inertia_props.fetch("login_requests").map { |r| r["id"] }
+    refute_includes ids, rejected.id
+  end
+
   private
 
   def inertia_props

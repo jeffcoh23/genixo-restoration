@@ -26,6 +26,13 @@ class IncidentsController < ApplicationController
     scope = scope.where(emergency: true) if params[:emergency] == "1"
     scope = scope.where(emergency: false) if params[:emergency] == "0"
 
+    # Subquery, not joins+distinct — joins would duplicate rows and interact
+    # badly with sorts. A no-op for technicians/guests, whose visible scope is
+    # already assignment-only (the toggle is hidden for them).
+    if params[:my_jobs] == "1"
+      scope = scope.where(id: current_user.incident_assignments.select(:incident_id))
+    end
+
     # Hide closed incidents unless a status filter is explicitly applied
     scope = scope.where.not(status: "closed") if params[:status].blank?
 
@@ -67,6 +74,7 @@ class IncidentsController < ApplicationController
         property_id: params[:property_id],
         project_type: params[:project_type],
         emergency: params[:emergency],
+        my_jobs: params[:my_jobs],
         hide_closed: params[:status].blank?
       },
       sort: { column: sort_col, direction: sort_dir.to_s },
@@ -75,7 +83,10 @@ class IncidentsController < ApplicationController
         project_types: Incident::PROJECT_TYPES.map { |t| { value: t, label: Incident::PROJECT_TYPE_LABELS[t] } },
         properties: visible_properties.order(:name).map { |p| { id: p.id, name: p.name } }
       },
-      can_create: can_create_incident?
+      can_create: can_create_incident?,
+      # Technicians/guests already see only assigned incidents — the toggle
+      # would be a confusing no-op for them.
+      show_my_jobs: !current_user.technician? && !current_user.guest?
     }
   end
 

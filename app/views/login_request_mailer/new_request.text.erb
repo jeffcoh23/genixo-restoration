@@ -1,0 +1,15 @@
+NEW LOGIN REQUEST
+
+Someone has requested access to Genixo Restoration. Review it on the Users page — approving opens a prefilled invitation.
+
+Name: <%= @login_request.full_name %>
+Email: <%= @login_request.email %>
+<% if @login_request.company_name.present? %>Company: <%= @login_request.company_name %>
+<% end %><% if @login_request.phone.present? %>Phone: <%= @login_request.phone %>
+<% end %>
+<% if @login_request.message.present? %><%= @login_request.message %>
+
+<% end %>Review: <%= users_url %>
+
+---
+No account has been created — nothing happens until you approve and send an invitation.

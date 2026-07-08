@@ -14,6 +14,7 @@ class UsersController < ApplicationController
       active_users: active.map { |u| serialize_user(u) },
       deactivated_users: deactivated.map { |u| serialize_user(u) },
       pending_invitations: pending.map { |inv| serialize_invitation(inv) },
+      login_requests: login_request_rows,
       org_options: invite_org_options,
       permissions_options: Permissions::MITIGATION_VISIBLE_PERMISSIONS.map { |p| { value: p.to_s, label: Permissions::PERMISSION_LABELS[p] } },
       role_defaults: Permissions::ROLE_PERMISSIONS.transform_values { |perms| perms.map(&:to_s) },
@@ -96,6 +97,44 @@ class UsersController < ApplicationController
       organization_name: user.organization.name,
       active: user.active
     }
+  end
+
+  # Pending requests always show. Approved ones show only until an invitation
+  # or account exists for that email — the re-invite affordance for an admin
+  # who approved but cancelled the invite modal, without stranding rows forever.
+  def login_request_rows
+    requests = LoginRequest.where(status: %w[pending approved]).order(:created_at).to_a
+    return [] if requests.empty?
+
+    emails = requests.map(&:email)
+    user_emails = User.where(email_address: emails).pluck(:email_address).to_set
+    # Invitation emails aren't normalized on write — compare lowercased.
+    invited_emails = Invitation.where(accepted_at: nil)
+      .where("LOWER(email) IN (?)", emails)
+      .pluck(:email).map(&:downcase).to_set
+
+    requests.filter_map do |req|
+      has_user = user_emails.include?(req.email)
+      has_invitation = invited_emails.include?(req.email)
+      next if req.approved? && (has_user || has_invitation)
+
+      {
+        id: req.id,
+        full_name: req.full_name,
+        email: req.email,
+        first_name: req.first_name,
+        last_name: req.last_name,
+        company_name: req.company_name,
+        phone: req.phone,
+        message: req.message,
+        status: req.status,
+        requested_at: format_date(req.created_at),
+        has_user: has_user,
+        has_pending_invitation: has_invitation,
+        approve_path: approve_login_request_path(req),
+        reject_path: reject_login_request_path(req)
+      }
+    end
   end
 
   def serialize_invitation(inv)

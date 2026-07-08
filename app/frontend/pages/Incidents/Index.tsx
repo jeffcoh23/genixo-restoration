@@ -42,6 +42,7 @@ interface Filters {
   property_id: string | null;
   project_type: string | null;
   emergency: string | null;
+  my_jobs: string | null;
   hide_closed: boolean;
 }
 
@@ -73,6 +74,7 @@ interface IncidentsIndexProps {
   sort: Sort;
   filter_options: FilterOptions;
   can_create: boolean;
+  show_my_jobs: boolean;
 }
 
 const emergencyOptions = [
@@ -87,7 +89,7 @@ function removeCsvValue(csv: string | null, value: string): string | null {
 }
 
 export default function IncidentsIndex() {
-  const { incidents, pagination, filters, sort, filter_options, can_create, routes } =
+  const { incidents, pagination, filters, sort, filter_options, can_create, show_my_jobs, routes } =
     usePage<SharedProps & IncidentsIndexProps>().props;
 
   const [search, setSearch] = useState(filters.search || "");
@@ -100,6 +102,7 @@ export default function IncidentsIndex() {
       if (filters.property_id) current.property_id = filters.property_id;
       if (filters.project_type) current.project_type = filters.project_type;
       if (filters.emergency) current.emergency = filters.emergency;
+      if (filters.my_jobs) current.my_jobs = filters.my_jobs;
       if (sort.column !== "created_at") current.sort = sort.column;
       if (sort.direction !== "desc") current.direction = sort.direction;
 
@@ -124,7 +127,7 @@ export default function IncidentsIndex() {
     navigate({ sort: column, direction: newDir });
   };
 
-  const activeFilterCount = [filters.search, filters.status, filters.property_id, filters.project_type, filters.emergency]
+  const activeFilterCount = [filters.search, filters.status, filters.property_id, filters.project_type, filters.emergency, filters.my_jobs]
     .filter((value) => !!value).length;
 
   const filterChips = useMemo(() => {
@@ -180,6 +183,14 @@ export default function IncidentsIndex() {
       });
     }
 
+    if (filters.my_jobs === "1") {
+      chips.push({
+        key: "my-jobs",
+        label: "My Jobs",
+        onRemove: () => navigate({ my_jobs: null }),
+      });
+    }
+
     return chips;
   }, [filters, filter_options, navigate]);
 
@@ -226,6 +237,18 @@ export default function IncidentsIndex() {
           </form>
 
           <div className="flex flex-wrap items-center gap-2">
+            {show_my_jobs && (
+              <Button
+                variant={filters.my_jobs === "1" ? "default" : "outline"}
+                size="sm"
+                data-testid="my-jobs-toggle"
+                className="h-11 sm:h-8 text-sm sm:text-xs"
+                onClick={() => navigate({ my_jobs: filters.my_jobs === "1" ? null : "1" })}
+              >
+                My Jobs
+              </Button>
+            )}
+
             <MultiFilterSelect
               selected={filters.status ? filters.status.split(",") : []}
               onChange={(values) => navigate({ status: values.length ? values.join(",") : null })}
@@ -263,7 +286,7 @@ export default function IncidentsIndex() {
                 variant="ghost"
                 size="sm"
                 className="h-11 sm:h-8 text-sm sm:text-xs"
-                onClick={() => { setSearch(""); navigate({ search: null, status: null, property_id: null, project_type: null, emergency: null }); }}
+                onClick={() => { setSearch(""); navigate({ search: null, status: null, property_id: null, project_type: null, emergency: null, my_jobs: null }); }}
               >
                 Clear all
               </Button>

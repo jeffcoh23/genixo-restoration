@@ -80,7 +80,15 @@ Unread dot badge on **Dashboard** link when any visible incident has unread mess
 └──────────────────────────────────────┘
 ```
 
-No "sign up" link — users are created via invitations only. Redirects to dashboard on success.
+No self-serve "sign up" — accounts are created via invitations only. A **"Request access"** link goes to the public request form (below); admins review requests and send invitations. Redirects to dashboard on success.
+
+---
+
+### Request Access — `GET /request-access`
+
+**Page:** `LoginRequest.tsx` · Public, rate-limited (5/min per IP)
+
+Public form: first/last name, email (required), company, phone, optional message. Submitting creates a `LoginRequest` and emails active mitigation users holding MANAGE_USERS. The requester gets no account until an admin approves and sends an invitation from the Users page.
 
 ---
 
@@ -212,6 +220,7 @@ Flat list of all incidents with filters and sorting. Complements the dashboard �
 - Click row → incident detail.
 - "New Incident" visible to: manager, office_sales, property_manager, area_manager. Not technicians.
 - Paginated.
+- **My Jobs** toggle in the filter bar scopes the list to the current user's assigned incidents (`?my_jobs=1`, round-trips through pagination/sorting). Hidden for technicians and guests, whose visibility is already assignment-only.
 
 ---
 
@@ -424,6 +433,8 @@ Sticky at the top:
 - "Upload Document" — file picker, name/description (editable, defaults to filename), category dropdown, log_date (defaults to today). Visible to anyone who can see the incident.
 
 PM-side users see this panel as read-only (no add buttons for labor/equipment/notes, but can upload documents).
+
+**DFR generation** (per date group, MANAGE_DAILY_LOGS holders): the DFR button opens a selection modal offering **all** the incident's photos grouped by date — report date first and preselected — plus a Documents section listing the incident's non-photo attachments. Selected PDFs are appended into the generated DFR as real pages; image documents embed like photos; other types are listed by filename. "Skip attachments" generates a bare DFR. Generation is async (Solid Queue) with 5s polling until the link appears; regenerate replaces the file.
 
 Viewing marks activity as read.
 
@@ -763,6 +774,11 @@ Click row → org detail.
 
 Click user → user detail. "Invite User" opens modal with: email (required), user_type dropdown (required), first name, last name, phone (all optional — invitee fills in anything missing on signup).
 
+**Login Requests** section (above Pending Invitations, shown when any exist): pending `/request-access` submissions with name, email, company, phone, requested date, and the requester's message. Actions per row:
+- **Approve** — marks the request approved and opens the invite modal prefilled from the request (one invitation path; admin still picks org/role). If the admin cancels the modal, the approved row keeps an **Invite** button until an invitation or account exists for that email, then disappears.
+- **Reject** — optional reason recorded, nothing emailed to the requester.
+- Rows whose email already has an account or pending invitation show that status instead of actions.
+
 ---
 
 ### User Detail — `GET /users/:id`
@@ -930,6 +946,7 @@ The equipment placement form on incidents shows a cascading dropdown: pick type 
 | Route | Page | Access |
 |-------|------|--------|
 | `GET /login` | Login | Public |
+| `GET /request-access` | Request Access form | Public (rate-limited) |
 | `GET /invitations/:token` | Accept Invitation | Public |
 | `GET /dashboard` | Dashboard (grouped triage) | All users |
 | `GET /incidents` | Incident List (flat, filterable) | All users (scoped) |

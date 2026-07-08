@@ -121,6 +121,27 @@ Capacitor shell in `mobile/` loads the hosted Rails app in a native WebView (iOS
 
 ---
 
+## Phase 8: Client Feedback Cluster (June–July 2026)
+
+Daniel's (Genixo) feature requests and bug reports, shipped as two PRs plus a deferred weather PR.
+
+**DFR & reports (PR: `feature/dfr-photos-exports`)**
+- [x] **Any-date photo selection in DFRs** — picker offers all incident photos grouped by date, report date preselected
+- [x] **Documents in the DFR** — attach incident documents; PDFs append as real pages (15MB/40MB caps, active-content stripping), images embed, others listed
+- [x] **Summary report font fix** — NotoSans + glyph fallback via shared `PdfFontSupport` (smart quotes/emoji no longer crash)
+- [x] **Fix fabricated "12:00 AM" on Daily Log activity rows** — date-only input was midnight-padded and rendered as a time
+
+**Access & workflow (PR: `feature/my-jobs-login-requests`)**
+- [x] **My Jobs filter** on the incidents list (assigned-to-me toggle; hidden for technicians/guests)
+- [x] **Request a login** — public rate-limited form → MANAGE_USERS holders notified → approve opens prefilled invite modal
+- [x] **Drop dead `incident_tasks`/`incident_units` tables** (dev-only; prod never had them; prod attachments audited — 0 orphans)
+- [x] **Docs refresh** — SCHEMA, VIEWS, BUSINESS_RULES, ARCHITECTURE, ROADMAP
+
+**Deferred**
+- [ ] **Weather in the DFR** (PR 3) — explicit Daniel request; API choice open (Open-Meteo paid ~$33/mo vs NWS free-but-complex); persist weather with the DFR on first fetch so regeneration keeps it
+
+---
+
 ## Still Considering
 
 Features that may or may not be needed. Revisit later.
