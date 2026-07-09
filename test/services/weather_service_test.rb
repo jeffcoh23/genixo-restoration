@@ -101,4 +101,10 @@ class WeatherServiceTest < ActiveSupport::TestCase
     assert_nil WeatherService.for(incident: @incident, date: @date)
     assert_equal 0, WeatherSnapshot.count
   end
+
+  test "returns nil on a malformed (non-JSON) 200 body without raising" do
+    stub_vc(body: "<html>upstream error</html>")
+    assert_nil WeatherService.for(incident: @incident, date: @date)
+    assert_equal 0, WeatherSnapshot.count
+  end
 end

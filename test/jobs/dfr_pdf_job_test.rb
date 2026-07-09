@@ -29,6 +29,34 @@ class DfrPdfJobTest < ActiveSupport::TestCase
     assert_equal date, attachment.log_date.to_s
   end
 
+  test "renders the weather line when a snapshot is cached for the incident/date" do
+    require "pdf/inspector"
+    date = Date.current
+    # Pre-cache weather so WeatherService.for returns it without any HTTP; this
+    # proves the job fetches weather and threads it into the rendered PDF.
+    WeatherSnapshot.create!(incident: @incident, date: date, temp_max: 90, temp_min: 70,
+      conditions: "Sunny", wind_speed: 8, fetched_at: Time.current)
+
+    DfrPdfJob.perform_now(@incident.id, date.to_s, "America/Chicago", @manager.id)
+
+    pdf = @incident.attachments.where(category: "dfr").last.file.download
+    text = PDF::Inspector::Text.analyze(pdf).strings.join(" ")
+    assert_includes text, "Weather:"
+    assert_includes text, "Sunny"
+  end
+
+  test "generates the DFR normally when weather is unavailable" do
+    # No cached snapshot and no API key (test_helper unsets it) → WeatherService
+    # returns nil → the DFR must still generate without a weather line.
+    date = Date.current
+    assert_difference -> { @incident.attachments.count }, 1 do
+      DfrPdfJob.perform_now(@incident.id, date.to_s, "America/Chicago", @manager.id)
+    end
+    require "pdf/inspector"
+    pdf = @incident.attachments.where(category: "dfr").last.file.download
+    refute_includes PDF::Inspector::Text.analyze(pdf).strings.join(" "), "Weather:"
+  end
+
   test "filename uses 'DFR - Property - JobNumber - Date' format when job_id is present" do
     @incident.update!(job_id: "JOB-123")
     date = Date.current.to_s

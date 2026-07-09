@@ -29,7 +29,7 @@ class WeatherService
 
     fetch_and_store
   rescue StandardError => e
-    Rails.logger.warn("[WeatherService] weather unavailable for incident #{@incident.id} #{@date}: #{e.class}: #{e.message}")
+    Rails.logger.warn("[WeatherService] weather unavailable for incident #{@incident.id} #{@date}: #{e.class}: #{redact(e.message)}")
     nil
   end
 
@@ -94,5 +94,12 @@ class WeatherService
 
   def api_key
     ENV["VISUAL_CROSSING_API_KEY"]
+  end
+
+  # The API key travels as a query param, so a rare Faraday error that echoes the
+  # request URL could carry it into logs/Honeybadger. Scrub it defensively.
+  def redact(text)
+    key = api_key
+    key.present? ? text.to_s.gsub(key, "[REDACTED]") : text.to_s
   end
 end

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_07_09_013216) do
+ActiveRecord::Schema[8.0].define(version: 2026_07_09_014931) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -307,8 +307,10 @@ ActiveRecord::Schema[8.0].define(version: 2026_07_09_013216) do
     t.text "rejection_reason"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "organization_id"
     t.index ["email"], name: "index_login_requests_on_email"
     t.index ["email"], name: "index_login_requests_on_pending_email", unique: true, where: "((status)::text = 'pending'::text)"
+    t.index ["organization_id"], name: "index_login_requests_on_organization_id"
     t.index ["reviewed_by_user_id"], name: "index_login_requests_on_reviewed_by_user_id"
     t.index ["status"], name: "index_login_requests_on_status"
   end
@@ -668,6 +670,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_07_09_013216) do
   add_foreign_key "labor_entries", "incidents"
   add_foreign_key "labor_entries", "users"
   add_foreign_key "labor_entries", "users", column: "created_by_user_id"
+  add_foreign_key "login_requests", "organizations"
   add_foreign_key "login_requests", "users", column: "reviewed_by_user_id"
   add_foreign_key "messages", "incidents"
   add_foreign_key "messages", "users"
@@ -693,5 +696,5 @@ ActiveRecord::Schema[8.0].define(version: 2026_07_09_013216) do
   add_foreign_key "solid_queue_recurring_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "solid_queue_scheduled_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "users", "organizations"
-  add_foreign_key "weather_snapshots", "incidents"
+  add_foreign_key "weather_snapshots", "incidents", on_delete: :cascade
 end

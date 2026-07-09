@@ -1,7 +1,7 @@
 class CreateWeatherSnapshots < ActiveRecord::Migration[8.0]
   def change
     create_table :weather_snapshots do |t|
-      t.references :incident, null: false, foreign_key: true
+      t.references :incident, null: false, foreign_key: { on_delete: :cascade }
       t.date :date, null: false
       # Fahrenheit / mph / inches — Visual Crossing US unit group. Cached on
       # first fetch so DFR regeneration never re-hits the API or loses the line.
