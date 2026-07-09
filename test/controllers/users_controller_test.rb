@@ -231,9 +231,9 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
   # --- Login requests on the index ---
 
   test "index lists pending login requests with resolution flags" do
-    pending = LoginRequest.create!(email: "new@acme.com", first_name: "New", last_name: "Person")
-    existing = LoginRequest.create!(email: "mgr@genixo.com", first_name: "Already", last_name: "Here")
-    invited = LoginRequest.create!(email: "invited@acme.com", first_name: "In", last_name: "Vited")
+    pending = LoginRequest.create!(email: "new@acme.com", first_name: "New", last_name: "Person", organization: @greystar)
+    existing = LoginRequest.create!(email: "mgr@genixo.com", first_name: "Already", last_name: "Here", organization: @greystar)
+    invited = LoginRequest.create!(email: "invited@acme.com", first_name: "In", last_name: "Vited", organization: @greystar)
     Invitation.create!(email: "invited@acme.com", user_type: "property_manager",
       organization: @greystar, invited_by_user: @manager, expires_at: 7.days.from_now)
 
@@ -248,9 +248,9 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "index hides approved requests once an invitation exists" do
-    approved = LoginRequest.create!(email: "done@acme.com", first_name: "Done", last_name: "Deal")
+    approved = LoginRequest.create!(email: "done@acme.com", first_name: "Done", last_name: "Deal", organization: @greystar)
     approved.approve!(@manager)
-    stranded = LoginRequest.create!(email: "stranded@acme.com", first_name: "Str", last_name: "Anded")
+    stranded = LoginRequest.create!(email: "stranded@acme.com", first_name: "Str", last_name: "Anded", organization: @greystar)
     stranded.approve!(@manager)
     Invitation.create!(email: "done@acme.com", user_type: "property_manager",
       organization: @greystar, invited_by_user: @manager, expires_at: 7.days.from_now)
@@ -264,7 +264,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "index excludes rejected requests" do
-    rejected = LoginRequest.create!(email: "no@acme.com", first_name: "No", last_name: "Thanks")
+    rejected = LoginRequest.create!(email: "no@acme.com", first_name: "No", last_name: "Thanks", organization: @greystar)
     rejected.reject!(@manager)
 
     login_as @manager

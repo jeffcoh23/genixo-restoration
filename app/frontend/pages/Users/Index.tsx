@@ -42,6 +42,8 @@ interface LoginRequestRow {
   first_name: string;
   last_name: string;
   company_name: string | null;
+  organization_id: number | null;
+  default_user_type: string;
   phone: string | null;
   message: string | null;
   status: string;
@@ -138,7 +140,8 @@ export default function UsersIndex() {
   }
 
   // Approving a request reuses the whole invitation flow: prefill the invite
-  // modal from the request. The admin still picks org/role and sends it.
+  // modal from the request — including the org they picked and a default role.
+  // The admin can adjust the role/title, then sends it.
   function openPrefilledInvite(req: LoginRequestRow) {
     form.setData((data) => ({
       ...data,
@@ -146,6 +149,8 @@ export default function UsersIndex() {
       first_name: req.first_name,
       last_name: req.last_name,
       phone: req.phone || "",
+      organization_id: req.organization_id ? String(req.organization_id) : data.organization_id,
+      user_type: req.default_user_type,
     }));
     setShowInviteModal(true);
   }

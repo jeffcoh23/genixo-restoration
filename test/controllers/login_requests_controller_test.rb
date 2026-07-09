@@ -10,13 +10,13 @@ class LoginRequestsControllerTest < ActionDispatch::IntegrationTest
       email_address: "mgr@genixo.com", first_name: "Test", last_name: "Manager", password: "password123")
     @tech = User.create!(organization: @genixo, user_type: "technician",
       email_address: "tech@genixo.com", first_name: "Test", last_name: "Tech", password: "password123")
-    pm_org = Organization.create!(name: "Greystar", organization_type: "property_management")
-    @pm_user = User.create!(organization: pm_org, user_type: "property_manager",
+    @pm_org = Organization.create!(name: "Greystar", organization_type: "property_management")
+    @pm_user = User.create!(organization: @pm_org, user_type: "property_manager",
       email_address: "pm@greystar.com", first_name: "Test", last_name: "PM", password: "password123")
   end
 
   def valid_params(email: "dan@acme.com")
-    { email: email, first_name: "Dan", last_name: "Hutson", company_name: "Acme PM" }
+    { email: email, first_name: "Dan", last_name: "Hutson", organization_id: @pm_org.id }
   end
 
   # --- Public form ---

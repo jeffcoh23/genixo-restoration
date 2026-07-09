@@ -5,7 +5,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FormEvent } from "react";
+
+interface OrgOption {
+  id: number;
+  name: string;
+}
 
 interface FlashMessages {
   alert?: string;
@@ -16,6 +22,7 @@ interface Props extends Record<string, unknown> {
   flash: FlashMessages;
   submit_path: string;
   login_path: string;
+  org_options: OrgOption[];
 }
 
 // Rails sends errors.to_hash — an array per field. Inertia's types say
@@ -26,12 +33,12 @@ function errorText(error: string | string[] | undefined): string | undefined {
 }
 
 export default function LoginRequest() {
-  const { flash, submit_path, login_path } = usePage<Props>().props;
+  const { flash, submit_path, login_path, org_options } = usePage<Props>().props;
   const { data, setData, post, processing, errors } = useForm({
     first_name: "",
     last_name: "",
     email: "",
-    company_name: "",
+    organization_id: "",
     phone: "",
     message: "",
   });
@@ -103,13 +110,18 @@ export default function LoginRequest() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="company_name">Company</Label>
-              <Input
-                id="company_name"
-                autoComplete="organization"
-                value={data.company_name}
-                onChange={(e) => setData("company_name", e.target.value)}
-              />
+              <Label htmlFor="organization_id">Company</Label>
+              <Select value={data.organization_id} onValueChange={(v) => setData("organization_id", v)}>
+                <SelectTrigger id="organization_id">
+                  <SelectValue placeholder="Select your company" />
+                </SelectTrigger>
+                <SelectContent>
+                  {org_options.map((o) => (
+                    <SelectItem key={o.id} value={String(o.id)}>{o.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.organization_id && <p className="text-sm text-destructive">{errorText(errors.organization_id)}</p>}
             </div>
 
             <div className="space-y-2">

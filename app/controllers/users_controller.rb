@@ -125,6 +125,8 @@ class UsersController < ApplicationController
         first_name: req.first_name,
         last_name: req.last_name,
         company_name: req.company_name,
+        organization_id: req.organization_id,
+        default_user_type: User::PROPERTY_MANAGER,
         phone: req.phone,
         message: req.message,
         status: req.status,
