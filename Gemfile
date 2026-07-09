@@ -25,6 +25,7 @@ gem "prawn", require: false
 gem "prawn-table", require: false
 gem "matrix"  # Required by Prawn, removed from Ruby stdlib in 3.1+
 gem "combine_pdf", require: false  # append uploaded PDF documents to DFRs
+gem "faraday"                      # HTTP client for the Visual Crossing weather API
 
 # ZIP archives — zip_kit for HTTP-streamed bulk photo download
 # (rubyzip kept for any non-streaming use; remove later if unused)
@@ -62,6 +63,7 @@ end
 group :test do
   gem "capybara"
   gem "capybara-playwright-driver"
+  gem "webmock" # stub the Visual Crossing weather HTTP calls; repo makes no other external requests
 end
 
 gem "pdf-inspector", "~> 1.3", group: :test

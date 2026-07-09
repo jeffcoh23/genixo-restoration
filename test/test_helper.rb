@@ -1,4 +1,8 @@
 ENV["RAILS_ENV"] ||= "test"
+# Never let a real Visual Crossing key leak into the suite: with no key,
+# WeatherService.for returns nil (no HTTP), so DFR/job tests stay offline and
+# deterministic. WeatherServiceTest sets its own fake key + stubs HTTP.
+ENV.delete("VISUAL_CROSSING_API_KEY")
 require_relative "../config/environment"
 require "rails/test_help"
 require "json"

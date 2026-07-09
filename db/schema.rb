@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_07_07_145138) do
+ActiveRecord::Schema[8.0].define(version: 2026_07_09_013216) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -614,6 +614,24 @@ ActiveRecord::Schema[8.0].define(version: 2026_07_07_145138) do
     t.index ["organization_id"], name: "index_users_on_organization_id"
   end
 
+  create_table "weather_snapshots", force: :cascade do |t|
+    t.bigint "incident_id", null: false
+    t.date "date", null: false
+    t.decimal "temp_max", precision: 5, scale: 1
+    t.decimal "temp_min", precision: 5, scale: 1
+    t.decimal "temp_avg", precision: 5, scale: 1
+    t.string "conditions"
+    t.decimal "precip", precision: 6, scale: 2
+    t.integer "precip_probability"
+    t.decimal "wind_speed", precision: 5, scale: 1
+    t.integer "humidity"
+    t.datetime "fetched_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["incident_id", "date"], name: "index_weather_snapshots_on_incident_id_and_date", unique: true
+    t.index ["incident_id"], name: "index_weather_snapshots_on_incident_id"
+  end
+
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "activity_entries", "incidents"
@@ -675,4 +693,5 @@ ActiveRecord::Schema[8.0].define(version: 2026_07_07_145138) do
   add_foreign_key "solid_queue_recurring_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "solid_queue_scheduled_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "users", "organizations"
+  add_foreign_key "weather_snapshots", "incidents"
 end
