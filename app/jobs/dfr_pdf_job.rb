@@ -9,10 +9,14 @@ class DfrPdfJob < ApplicationJob
     user = User.find(user_id)
     parsed_date = Date.parse(date)
 
+    # Cached-or-fetched weather for the property/date. Returns nil on any
+    # failure (no key, no address, API error) so the DFR still generates.
+    weather = WeatherService.for(incident: incident, date: parsed_date)
+
     pdf_data = DfrPdfService.new(
       incident: incident, date: date, timezone: user_timezone,
       include_photos: true, photo_attachment_ids: photo_attachment_ids,
-      document_attachment_ids: document_attachment_ids
+      document_attachment_ids: document_attachment_ids, weather: weather
     ).generate
 
     filename = build_filename(incident, date)
