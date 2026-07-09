@@ -767,6 +767,33 @@ Public "request access" form submissions (`/request-access`, rate-limited). Revi
 
 ---
 
+### weather_snapshots
+
+Cached daily weather for an incident's property, fetched from the Visual Crossing Timeline API on DFR generation so regeneration never re-hits the API or loses the line. US units (°F / mph / inches). Any failure to fetch is not cached, so a later regeneration retries.
+
+| Column | Type | Constraints | Notes |
+|--------|------|-------------|-------|
+| id | bigint | PK | |
+| incident_id | bigint | NOT NULL, FK → incidents | |
+| date | date | NOT NULL | The DFR date; unique per incident |
+| temp_max | decimal(5,1) | | High, °F |
+| temp_min | decimal(5,1) | | Low, °F |
+| temp_avg | decimal(5,1) | | Average, °F |
+| conditions | string | | e.g. "Partly cloudy" |
+| precip | decimal(6,2) | | Precipitation, inches |
+| precip_probability | integer | | Percent (forecast dates only) |
+| wind_speed | decimal(5,1) | | mph |
+| humidity | integer | | Percent |
+| fetched_at | datetime | NOT NULL | |
+| created_at | datetime | NOT NULL | |
+| updated_at | datetime | NOT NULL | |
+
+**Indexes:**
+- `index_weather_snapshots_on_incident_id`
+- `index_weather_snapshots_on_incident_id_and_date` (unique)
+
+---
+
 ## Active Storage Tables
 
 Rails Active Storage provides these automatically:

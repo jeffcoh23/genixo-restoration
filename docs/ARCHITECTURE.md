@@ -509,6 +509,7 @@ All business logic lives in `app/services/`. Controllers are thin — they valid
 | `DfrPdfService` | Builds the Daily Field Report PDF (Prawn), embeds selected photos, appends selected PDF documents |
 | `IncidentReportService` | Builds the on-demand summary report PDF (synchronous download) |
 | `PdfFontSupport` (module) | Shared by both PDF services: NotoSans font family + glyph-fallback retry (sanitizes to ASCII if a glyph can't render) |
+| `WeatherService` | Fetches + caches the day's weather (Visual Crossing Timeline API) for the DFR; `for(incident:, date:)` → `WeatherSnapshot` or nil |
 
 ### PDF Generation
 
@@ -516,6 +517,7 @@ All business logic lives in `app/services/`. Controllers are thin — they valid
 - Photos: MiniMagick auto-orients (EXIF) and resizes to 1600px longest-side via tempfiles — sequential, one at a time, memory-safe.
 - Documents: selected PDFs are parsed with `combine_pdf` and appended as real pages after the Prawn body. CombinePDF holds ~3-5× the file size in worker memory, so appends are capped at **15MB/file and 40MB aggregate**; oversized/corrupt files fall back to an annotated filename listing, and a merge failure ships the body without appendices rather than failing the job. Script/launch actions (`/JS`, `/AA`, `/OpenAction`, `/Launch`) are stripped from appended pages.
 - Fonts: default Helvetica is Windows-1252-only — smart quotes/emoji from iOS crash it. Both PDF services use NotoSans via `PdfFontSupport`, with a sanitize-and-retry fallback for glyphs outside the font.
+- Weather: `DfrPdfJob` fetches the day's weather via `WeatherService` (Visual Crossing Timeline API, keyed by `VISUAL_CROSSING_API_KEY`) and passes the `WeatherSnapshot` to the pure PDF service, which renders a one-line summary + attribution under the header. Results are cached in `weather_snapshots` per incident/date (regeneration reuses them); any failure — missing key, unresolvable address, HTTP/timeout — is swallowed and simply omits the line. Uses `faraday`; the repo's only outbound HTTP call.
 
 ### ActivityLogger
 

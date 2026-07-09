@@ -137,8 +137,8 @@ Daniel's (Genixo) feature requests and bug reports, shipped as two PRs plus a de
 - [x] **Drop dead `incident_tasks`/`incident_units` tables** (dev-only; prod never had them; prod attachments audited — 0 orphans)
 - [x] **Docs refresh** — SCHEMA, VIEWS, BUSINESS_RULES, ARCHITECTURE, ROADMAP
 
-**Deferred**
-- [ ] **Weather in the DFR** (PR 3) — explicit Daniel request; API choice open (Open-Meteo paid ~$33/mo vs NWS free-but-complex); persist weather with the DFR on first fetch so regeneration keeps it
+**Weather (PR: `feature/weather-in-dfr`)**
+- [x] **Weather in the DFR** — the day's conditions (hi/lo, sky, precip, wind) fetched from the Visual Crossing Timeline API (free tier, commercial use permitted) by the property's address; cached per incident/date so regeneration keeps it; fetch failures never block the report. Chose Visual Crossing over Open-Meteo (free tier is non-commercial) and NWS (7-day history only, US-only, messy).
 
 ---
 
