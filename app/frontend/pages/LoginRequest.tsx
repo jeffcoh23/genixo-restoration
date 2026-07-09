@@ -43,6 +43,11 @@ export default function LoginRequest() {
     message: "",
   });
 
+  // With no client orgs to choose from, the required Company dropdown would be
+  // a dead end — steer the requester to contact us instead of letting them
+  // submit an unsatisfiable form.
+  const noCompanies = org_options.length === 0;
+
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     post(submit_path);
@@ -69,6 +74,13 @@ export default function LoginRequest() {
           {flash.notice && (
             <Alert className="mb-4 p-3 border-primary/30 bg-primary/10">
               <AlertDescription>{flash.notice}</AlertDescription>
+            </Alert>
+          )}
+          {noCompanies && !flash.notice && (
+            <Alert variant="destructive" className="mb-4 p-3">
+              <AlertDescription>
+                We couldn&apos;t find any companies to select. Please contact Genixo Restoration and we&apos;ll get you set up.
+              </AlertDescription>
             </Alert>
           )}
 
@@ -146,7 +158,7 @@ export default function LoginRequest() {
               />
             </div>
 
-            <Button type="submit" className="w-full" disabled={processing}>
+            <Button type="submit" className="w-full" disabled={processing || noCompanies}>
               {processing ? "Submitting..." : "Request Access"}
             </Button>
           </form>

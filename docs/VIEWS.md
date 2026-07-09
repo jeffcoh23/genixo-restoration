@@ -88,7 +88,7 @@ No self-serve "sign up" — accounts are created via invitations only. A **"Requ
 
 **Page:** `LoginRequest.tsx` · Public, rate-limited (5/min per IP)
 
-Public form: first/last name, email (required), company, phone, optional message. Submitting creates a `LoginRequest` and emails active mitigation users holding MANAGE_USERS. The requester gets no account until an admin approves and sends an invitation from the Users page.
+Public form: first/last name, email (required), **company (required — a dropdown of `property_management` client orgs)**, phone, optional message. Submitting creates a `LoginRequest` (storing the selected `organization_id`) and emails active mitigation users holding MANAGE_USERS. The requester gets no account until an admin approves and sends an invitation from the Users page. If no client orgs exist yet, the form shows a "contact us" message and disables submit.
 
 ---
 
@@ -775,7 +775,7 @@ Click row → org detail.
 Click user → user detail. "Invite User" opens modal with: email (required), user_type dropdown (required), first name, last name, phone (all optional — invitee fills in anything missing on signup).
 
 **Login Requests** section (above Pending Invitations, shown when any exist): pending `/request-access` submissions with name, email, company, phone, requested date, and the requester's message. Actions per row:
-- **Approve** — marks the request approved and opens the invite modal prefilled from the request (one invitation path; admin still picks org/role). If the admin cancels the modal, the approved row keeps an **Invite** button until an invitation or account exists for that email, then disappears.
+- **Approve** — marks the request approved and opens the invite modal prefilled from the request: the requester's chosen client org **and a default Property Manager role** (one invitation path; the admin can still adjust the role/title before sending). If the admin cancels the modal, the approved row keeps an **Invite** button until an invitation or account exists for that email, then disappears.
 - **Reject** — optional reason recorded, nothing emailed to the requester.
 - Rows whose email already has an account or pending invitation show that status instead of actions.
 
