@@ -88,11 +88,11 @@ Email is globally unique across all organizations. One email address = one user 
 
 ### Login Requests
 
-- Anyone can submit the public `/request-access` form (rate-limited: 5/min per IP). It creates a `LoginRequest` — never an account.
+- Anyone can submit the public `/request-access` form (rate-limited: 5/min per IP). It creates a `LoginRequest` — never an account. The requester picks their company from a dropdown of `property_management` (client) orgs, so the request stores a real `organization_id` (validated to be a PM org).
 - On submit, all **active mitigation users holding MANAGE_USERS** are emailed. Deliberately not the on-call escalation chain: that carries emergency semantics and must never be paged by a signup form.
 - Only one pending request per email; a new request is allowed after a rejection.
 - Review happens on the Users page (MANAGE_USERS required):
-  - **Approve** marks the request approved and opens the invite modal prefilled — account creation always goes through the normal invitation flow (org/role chosen by the admin).
+  - **Approve** marks the request approved and opens the invite modal prefilled with the requester's chosen client org **and a default Property Manager role** (the admin can change the role/title before sending) — account creation always goes through the normal invitation flow.
   - If the admin cancels the invite modal, the approved request keeps a re-invite affordance until an invitation or account exists for that email.
   - **Reject** records an optional reason; the requester is not emailed.
 - Requests whose email already has an account or pending invitation can't be approved — the row shows that status instead.
