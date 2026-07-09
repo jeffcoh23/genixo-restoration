@@ -23,6 +23,8 @@ class LoginRequest < ApplicationRecord
   validates :organization_id, presence: true, on: :create
   validate :organization_is_a_client, on: :create
   validates :phone, length: { maximum: 50 }
+  validates :phone, presence: true, on: :create
+  validates :title, length: { maximum: 100 }
   validates :message, length: { maximum: 2000 }
   validates :status, inclusion: { in: STATUSES }
   validates :email, uniqueness: {

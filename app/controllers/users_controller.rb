@@ -128,6 +128,7 @@ class UsersController < ApplicationController
         organization_id: req.organization_id,
         default_user_type: User::PROPERTY_MANAGER,
         phone: req.phone,
+        title: req.title,
         message: req.message,
         status: req.status,
         requested_at: format_date(req.created_at),

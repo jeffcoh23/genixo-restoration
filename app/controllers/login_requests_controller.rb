@@ -61,7 +61,7 @@ class LoginRequestsController < ApplicationController
   end
 
   def login_request_params
-    params.permit(:email, :first_name, :last_name, :organization_id, :phone, :message)
+    params.permit(:email, :first_name, :last_name, :organization_id, :phone, :title, :message)
   end
 
   # PM (client) orgs the requester can select. Public endpoint, so it isn't

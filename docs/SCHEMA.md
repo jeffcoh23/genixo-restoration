@@ -753,7 +753,8 @@ Public "request access" form submissions (`/request-access`, rate-limited). The 
 | last_name | string | NOT NULL | |
 | organization_id | bigint | FK → organizations | The client (PM) org the requester selected. Required on new requests (validated `on: :create`); nullable for legacy free-text rows |
 | company_name | string | | Snapshotted from the selected org at create (for display/email); a historical record if the org is later renamed |
-| phone | string | | Optional |
+| phone | string | | Required on new requests (validated `on: :create`) |
+| title | string | | Optional job title; prefills into the invitation on approval |
 | message | text | | Optional free text from the requester |
 | status | string | NOT NULL, DEFAULT `pending` | `pending` / `approved` / `rejected` |
 | reviewed_by_user_id | bigint | FK → users | Null until reviewed |

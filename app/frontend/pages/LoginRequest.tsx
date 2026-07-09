@@ -40,6 +40,7 @@ export default function LoginRequest() {
     email: "",
     organization_id: "",
     phone: "",
+    title: "",
     message: "",
   });
 
@@ -145,6 +146,19 @@ export default function LoginRequest() {
                 value={data.phone}
                 onChange={(e) => setData("phone", e.target.value)}
               />
+              {errors.phone && <p className="text-sm text-destructive">{errorText(errors.phone)}</p>}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="title">Title (optional)</Label>
+              <Input
+                id="title"
+                autoComplete="organization-title"
+                placeholder="e.g. Regional Manager"
+                value={data.title}
+                onChange={(e) => setData("title", e.target.value)}
+              />
+              {errors.title && <p className="text-sm text-destructive">{errorText(errors.title)}</p>}
             </div>
 
             <div className="space-y-2">

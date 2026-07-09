@@ -20,6 +20,8 @@ class LoginRequestSystemTest < ApplicationSystemTestCase
     fill_in "First name", with: "Dan"
     fill_in "Last name", with: "Hutson"
     fill_in "Email", with: "dan@acme.com"
+    fill_in "Phone", with: "512-555-0100"
+    fill_in "title", with: "Regional Manager"
     find("button", text: "Select your company").click
     find("[role='option']", text: "Acme PM").click
     click_button "Request Access"
@@ -43,6 +45,8 @@ class LoginRequestSystemTest < ApplicationSystemTestCase
     assert_equal "dan@acme.com", find("#invite_email").value
     assert_equal "Dan", find("#invite_first").value
     assert_equal "Hutson", find("#invite_last").value
+    assert_equal "512-555-0100", find("#invite_phone").value
+    assert_equal "Regional Manager", find("#invite_title").value
     assert_text "Acme PM"
     assert_text "Property Manager"
     assert request.reload.approved?
@@ -55,6 +59,7 @@ class LoginRequestSystemTest < ApplicationSystemTestCase
     assert invitation.present?, "approval flow should end in a real invitation"
     assert_equal @pm_org, invitation.organization
     assert_equal "property_manager", invitation.user_type
+    assert_equal "Regional Manager", invitation.title
 
     # The approved request row is resolved and disappears
     visit "/users"

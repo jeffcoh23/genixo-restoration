@@ -45,6 +45,7 @@ interface LoginRequestRow {
   organization_id: number | null;
   default_user_type: string;
   phone: string | null;
+  title: string | null;
   message: string | null;
   status: string;
   requested_at: string;
@@ -143,14 +144,21 @@ export default function UsersIndex() {
   // modal from the request — including the org they picked and a default role.
   // The admin can adjust the role/title, then sends it.
   function openPrefilledInvite(req: LoginRequestRow) {
+    // Only prefill the org (and its default role) when this admin actually
+    // services it — i.e. it's one of their org_options. Otherwise leave their
+    // default so the invite can't resolve to an org they can't invite into
+    // (which would error on submit); the admin then picks a valid org/role.
+    const orgServiceable =
+      req.organization_id != null && org_options.some((o) => o.id === req.organization_id);
     form.setData((data) => ({
       ...data,
       email: req.email,
       first_name: req.first_name,
       last_name: req.last_name,
       phone: req.phone || "",
-      organization_id: req.organization_id ? String(req.organization_id) : data.organization_id,
-      user_type: req.default_user_type,
+      title: req.title || "",
+      organization_id: orgServiceable ? String(req.organization_id) : data.organization_id,
+      user_type: orgServiceable ? req.default_user_type : "",
     }));
     setShowInviteModal(true);
   }

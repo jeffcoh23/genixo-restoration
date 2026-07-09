@@ -9,7 +9,7 @@ class LoginRequestTest < ActiveSupport::TestCase
   end
 
   def valid_attrs(email: "dan@acme.com")
-    { email: email, first_name: "Dan", last_name: "Hutson", organization: @pm_org }
+    { email: email, first_name: "Dan", last_name: "Hutson", organization: @pm_org, phone: "(210) 555-0100" }
   end
 
   test "valid with email and names" do
@@ -42,6 +42,12 @@ class LoginRequestTest < ActiveSupport::TestCase
     request = LoginRequest.new(valid_attrs.except(:organization))
     refute request.valid?
     assert request.errors[:organization_id].any?
+  end
+
+  test "requires a phone number" do
+    request = LoginRequest.new(valid_attrs.except(:phone))
+    refute request.valid?
+    assert request.errors[:phone].any?
   end
 
   test "rejects a non-property-management organization" do

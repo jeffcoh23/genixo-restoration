@@ -88,7 +88,7 @@ No self-serve "sign up" — accounts are created via invitations only. A **"Requ
 
 **Page:** `LoginRequest.tsx` · Public, rate-limited (5/min per IP)
 
-Public form: first/last name, email (required), **company (required — a dropdown of `property_management` client orgs)**, phone, optional message. Submitting creates a `LoginRequest` (storing the selected `organization_id`) and emails active mitigation users holding MANAGE_USERS. The requester gets no account until an admin approves and sends an invitation from the Users page. If no client orgs exist yet, the form shows a "contact us" message and disables submit.
+Public form: first/last name, email, phone, and **company (a dropdown of `property_management` client orgs)** — all required — plus an optional title and message. It collects everything needed to create the account (role is chosen by the admin on approval). Submitting creates a `LoginRequest` (storing the selected `organization_id`) and emails active mitigation users holding MANAGE_USERS. The requester gets no account until an admin approves and sends an invitation from the Users page. If no client orgs exist yet, the form shows a "contact us" message and disables submit.
 
 ---
 
