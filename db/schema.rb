@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_07_09_014931) do
+ActiveRecord::Schema[8.0].define(version: 2026_07_09_211712) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -308,6 +308,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_07_09_014931) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.bigint "organization_id"
+    t.string "title"
     t.index ["email"], name: "index_login_requests_on_email"
     t.index ["email"], name: "index_login_requests_on_pending_email", unique: true, where: "((status)::text = 'pending'::text)"
     t.index ["organization_id"], name: "index_login_requests_on_organization_id"

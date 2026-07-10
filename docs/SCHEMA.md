@@ -743,7 +743,7 @@ User invitation flow. Manager or Office/Sales creates an invitation, system send
 
 ### login_requests
 
-Public "request access" form submissions (`/request-access`, rate-limited). Reviewed on the Users page by MANAGE_USERS holders; approving opens the invite modal prefilled, so the actual account creation still goes through the invitations flow.
+Public "request access" form submissions (`/request-access`, rate-limited). The requester selects their company from a dropdown of `property_management` (client) orgs, so each request carries a real `organization_id`. Reviewed on the Users page by MANAGE_USERS holders; approving opens the invite modal prefilled (org + default Property Manager role), so the actual account creation still goes through the invitations flow.
 
 | Column | Type | Constraints | Notes |
 |--------|------|-------------|-------|
@@ -751,8 +751,10 @@ Public "request access" form submissions (`/request-access`, rate-limited). Revi
 | email | string | NOT NULL | Normalized lowercase; only one *pending* request per email |
 | first_name | string | NOT NULL | |
 | last_name | string | NOT NULL | |
-| company_name | string | | Optional |
-| phone | string | | Optional |
+| organization_id | bigint | FK → organizations | The client (PM) org the requester selected. Required on new requests (validated `on: :create`); nullable for legacy free-text rows |
+| company_name | string | | Snapshotted from the selected org at create (for display/email); a historical record if the org is later renamed |
+| phone | string | | Required on new requests (validated `on: :create`) |
+| title | string | | Optional job title; prefills into the invitation on approval |
 | message | text | | Optional free text from the requester |
 | status | string | NOT NULL, DEFAULT `pending` | `pending` / `approved` / `rejected` |
 | reviewed_by_user_id | bigint | FK → users | Null until reviewed |
@@ -764,6 +766,7 @@ Public "request access" form submissions (`/request-access`, rate-limited). Revi
 **Indexes:**
 - `index_login_requests_on_status`
 - `index_login_requests_on_email`
+- `index_login_requests_on_organization_id`
 
 ---
 
