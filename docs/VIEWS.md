@@ -774,6 +774,8 @@ Click row → org detail.
 
 Click user → user detail. "Invite User" opens modal with: email (required), user_type dropdown (required), first name, last name, phone (all optional — invitee fills in anything missing on signup).
 
+A **"Request access link"** row sits at the top of the page (always visible): the shareable public `/request-access` URL with a Copy button, so admins can send it to prospective users.
+
 **Login Requests** section (above Pending Invitations, shown when any exist): pending `/request-access` submissions with name, email, company, phone, requested date, and the requester's message. Actions per row:
 - **Approve** — marks the request approved and opens the invite modal prefilled from the request: the requester's chosen client org **and a default Property Manager role** (one invitation path; the admin can still adjust the role/title before sending). If the admin cancels the modal, the approved row keeps an **Invite** button until an invitation or account exists for that email, then disappears.
 - **Reject** — optional reason recorded, nothing emailed to the requester.

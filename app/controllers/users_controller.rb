@@ -15,6 +15,7 @@ class UsersController < ApplicationController
       deactivated_users: deactivated.map { |u| serialize_user(u) },
       pending_invitations: pending.map { |inv| serialize_invitation(inv) },
       login_requests: login_request_rows,
+      request_access_url: new_login_request_url,
       org_options: invite_org_options,
       permissions_options: Permissions::MITIGATION_VISIBLE_PERMISSIONS.map { |p| { value: p.to_s, label: Permissions::PERMISSION_LABELS[p] } },
       role_defaults: Permissions::ROLE_PERMISSIONS.transform_values { |perms| perms.map(&:to_s) },
