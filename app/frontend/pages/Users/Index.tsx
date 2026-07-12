@@ -79,11 +79,12 @@ interface NotificationOption {
 }
 
 export default function UsersIndex() {
-  const { active_users, deactivated_users, pending_invitations, login_requests, org_options, permissions_options, role_defaults, notification_options, routes } = usePage<SharedProps & {
+  const { active_users, deactivated_users, pending_invitations, login_requests, request_access_url, org_options, permissions_options, role_defaults, notification_options, routes } = usePage<SharedProps & {
     active_users: UserRow[];
     deactivated_users: UserRow[];
     pending_invitations: PendingInvitation[];
     login_requests: LoginRequestRow[];
+    request_access_url: string;
     org_options: OrgOption[];
     permissions_options: PermissionOption[];
     role_defaults: Record<string, string[]>;
@@ -92,8 +93,16 @@ export default function UsersIndex() {
 
   const [showDeactivated, setShowDeactivated] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
   const resendInviteAction = useInertiaAction();
   const cancelInviteAction = useInertiaAction();
+
+  function copyRequestAccessLink() {
+    navigator.clipboard?.writeText(request_access_url).then(() => {
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2000);
+    });
+  }
 
   const form = useForm({
     email: "",
@@ -204,6 +213,22 @@ export default function UsersIndex() {
         title="Users"
         action={{ label: "Invite User", onClick: () => setShowInviteModal(true) }}
       />
+
+      {/* Shareable public request-access link for prospective users */}
+      <div className="mb-6 flex flex-wrap items-center gap-3 rounded-lg border border-border bg-muted/40 px-4 py-3">
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-medium">Request access link</div>
+          <div className="text-sm text-muted-foreground">
+            Share this so people can request access — requests show up here for you to review.
+          </div>
+        </div>
+        <code className="hidden truncate text-sm text-muted-foreground sm:block sm:max-w-[280px]">
+          {request_access_url.replace(/^https?:\/\//, "")}
+        </code>
+        <Button variant="outline" size="sm" onClick={copyRequestAccessLink} className="h-9 shrink-0 sm:h-8">
+          {copiedLink ? "Copied!" : "Copy link"}
+        </Button>
+      </div>
 
       <FormDialog
         open={showInviteModal}

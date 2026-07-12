@@ -273,6 +273,12 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     refute_includes ids, rejected.id
   end
 
+  test "index exposes the public request-access link to share" do
+    login_as @manager
+    get users_path
+    assert_match %r{/request-access\z}, inertia_props.fetch("request_access_url")
+  end
+
   private
 
   def inertia_props
