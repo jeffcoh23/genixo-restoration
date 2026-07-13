@@ -17,13 +17,16 @@ class DfrPdfService
   ACTIVE_ACTION_TYPES = %i[JavaScript Launch].freeze
 
   def initialize(incident:, date:, timezone: "America/Chicago", include_photos: true,
-                 photo_attachment_ids: nil, document_attachment_ids: nil)
+                 photo_attachment_ids: nil, document_attachment_ids: nil, weather: nil)
     @incident = incident
     @date = date.is_a?(String) ? Date.parse(date) : date
     @timezone = timezone
     @include_photos = include_photos
     @photo_attachment_ids = photo_attachment_ids
     @document_attachment_ids = document_attachment_ids
+    # A WeatherSnapshot (or nil). Fetched by the caller so the PDF service stays
+    # pure and testable without HTTP; nil simply omits the weather line.
+    @weather = weather
   end
 
   def generate
@@ -47,6 +50,7 @@ class DfrPdfService
 
     render_header(pdf)
     render_info_grid(pdf)
+    render_weather(pdf)
     render_employees_section(pdf)
     render_work_details(pdf)
     render_notes(pdf)
@@ -91,6 +95,22 @@ class DfrPdfService
     pdf.move_down 5
     pdf.stroke_horizontal_rule
     pdf.move_down 10
+  end
+
+  def render_weather(pdf)
+    line = @weather&.summary_line
+    return if line.blank?
+
+    pdf.font_size(10) do
+      # conditions comes from the weather API — escape it so external content
+      # is never parsed as Prawn inline_format markup.
+      pdf.text t("<b>Weather:</b> #{CGI.escapeHTML(line)}"), inline_format: true
+    end
+    # Visual Crossing's free tier requires attribution.
+    pdf.font_size(7) { pdf.text "Weather data by Visual Crossing", color: "999999" }
+    pdf.move_down 8
+  rescue StandardError => e
+    Rails.logger.warn("[DfrPdfService] weather line skipped for incident #{@incident.id}: #{e.message}")
   end
 
   def render_employees_section(pdf)

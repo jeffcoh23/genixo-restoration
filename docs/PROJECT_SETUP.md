@@ -283,6 +283,9 @@ heroku config:set MALLOC_ARENA_MAX=2      # caps glibc malloc arenas
 # Email (Resend — swap provider by changing mailer config)
 heroku config:set RESEND_API_KEY=re_XXX
 
+# Weather in the DFR (Visual Crossing — free tier; DFR omits the weather line if unset)
+heroku config:set VISUAL_CROSSING_API_KEY=xxx
+
 # SMS/Voice notifications (provider TBD)
 # heroku config:set NOTIFICATION_PROVIDER=twilio
 # heroku config:set TWILIO_ACCOUNT_SID=xxx

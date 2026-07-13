@@ -71,6 +71,42 @@ class DfrPdfServiceTest < ActiveSupport::TestCase
     refute_includes text, "Photos"
   end
 
+  test "renders a weather line with attribution when a snapshot is provided" do
+    weather = WeatherSnapshot.new(
+      incident: @incident, date: @date, temp_max: 88, temp_min: 71, temp_avg: 79,
+      conditions: "Partly cloudy", precip: 0.12, wind_speed: 9, fetched_at: Time.current
+    )
+    pdf_data = DfrPdfService.new(incident: @incident, date: @date, include_photos: false, weather: weather).generate
+    text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
+
+    # Stable tokens only — PDF::Inspector splits runs unpredictably, so the exact
+    # temp/precip formatting is asserted in WeatherSnapshotTest#summary_line.
+    assert_includes text, "Weather:"
+    assert_includes text, "Partly cloudy"
+    assert_includes text, "Weather data by Visual Crossing"
+  end
+
+  test "omits the weather line when no snapshot is provided" do
+    pdf_data = DfrPdfService.new(incident: @incident, date: @date, include_photos: false).generate
+    text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
+
+    refute_includes text, "Weather:"
+    refute_includes text, "Visual Crossing"
+  end
+
+  test "API-sourced conditions render as literal text, never as inline_format markup" do
+    weather = WeatherSnapshot.new(
+      incident: @incident, date: @date, temp_max: 80, temp_min: 60,
+      conditions: "<i>Rain & hail</i>", fetched_at: Time.current
+    )
+    pdf_data = DfrPdfService.new(incident: @incident, date: @date, include_photos: false, weather: weather).generate
+    text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
+
+    # Escaped: the tag characters survive as literal glyphs. Unescaped, Prawn
+    # would parse <i>...</i> as italic markup and the brackets would vanish.
+    assert_includes text, "<i>Rain & hail</i>"
+  end
+
   test "photo image data is actually embedded in PDF when photo included" do
     photo = create_photo("photo1.jpg")
 
