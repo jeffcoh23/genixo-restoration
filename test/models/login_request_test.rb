@@ -54,6 +54,19 @@ class LoginRequestTest < ActiveSupport::TestCase
     assert_equal "dan@acme.com", request.email
   end
 
+  test "strips control characters and trims public-form scalars" do
+    # Newlines in company_name could inject fake lines into the plain-text
+    # reviewer notification email; scalars are flattened, message is exempt.
+    request = LoginRequest.create!(valid_attrs.merge(
+      company_name: "  Acme\nFrom: attacker@evil.com  ",
+      title: "Regional\r\nManager ",
+      message: "line one\nline two"
+    ))
+    assert_equal "Acme From: attacker@evil.com", request.company_name
+    assert_equal "Regional Manager", request.title
+    assert_equal "line one\nline two", request.message, "message keeps its newlines"
+  end
+
   test "disallows a second pending request for the same email" do
     LoginRequest.create!(valid_attrs)
     dup = LoginRequest.new(valid_attrs)

@@ -49,6 +49,12 @@ class LoginRequestSystemTest < ApplicationSystemTestCase
     assert_equal "Regional Manager", find("#invite_title").value
     assert request.reload.approved?
 
+    # No org is preselected — the admin must deliberately match the typed
+    # company to an org (a stale default could invite into the wrong org).
+    within("[role='dialog']") do
+      assert_includes all("[role='combobox']")[0].text, "Select an organization"
+    end
+
     within("[role='dialog']") { all("[role='combobox']")[0].click }
     find("[role='option']", text: "Acme PM").click
     within("[role='dialog']") { all("[role='combobox']")[1].click }

@@ -4,6 +4,12 @@ class LoginRequest < ApplicationRecord
   belongs_to :reviewed_by_user, class_name: "User", optional: true
 
   normalizes :email, with: ->(e) { e.strip.downcase }
+  # Public-form scalars get trimmed and stripped of control characters:
+  # newlines in e.g. company_name would let a requester inject fake lines into
+  # the plain-text reviewer notification email. message may keep its newlines —
+  # it renders as its own block, never inline.
+  normalizes :first_name, :last_name, :company_name, :phone, :title,
+    with: ->(v) { v.gsub(/[[:cntrl:]]/, " ").squeeze(" ").strip }
 
   # Length caps: this is a public unauthenticated form. Unbounded input would
   # bloat storage, the notification email, and the Users-page JSON payload.
