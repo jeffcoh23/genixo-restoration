@@ -9,8 +9,7 @@ class LoginRequestsController < ApplicationController
   def new
     render inertia: "LoginRequest", props: {
       submit_path: login_requests_path,
-      login_path: login_path,
-      org_options: client_org_options
+      login_path: login_path
     }
   end
 
@@ -61,15 +60,7 @@ class LoginRequestsController < ApplicationController
   end
 
   def login_request_params
-    params.permit(:email, :first_name, :last_name, :organization_id, :phone, :title, :message)
-  end
-
-  # PM (client) orgs the requester can select. Public endpoint, so it isn't
-  # scoped to a mitigation org — fine while there's a single provider; revisit
-  # (scope per provider) if a second real mitigation org onboards.
-  def client_org_options
-    Organization.where(organization_type: "property_management").order(:name)
-                .map { |o| { id: o.id, name: o.name } }
+    params.permit(:email, :first_name, :last_name, :company_name, :phone, :title, :message)
   end
 
   def require_users_management_access

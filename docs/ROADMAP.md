@@ -134,7 +134,7 @@ Daniel's (Genixo) feature requests and bug reports, shipped as two PRs plus a de
 **Access & workflow (PR: `feature/my-jobs-login-requests`)**
 - [x] **My Jobs filter** on the incidents list (assigned-to-me toggle; hidden for technicians/guests)
 - [x] **Request a login** — public rate-limited form → MANAGE_USERS holders notified → approve opens prefilled invite modal
-  - [x] Company is a required dropdown of client (PM) orgs (stores `organization_id`); approve prefills the invite modal with that org + a default Property Manager role
+  - [x] Company is required free text (`company_name`) — the client-org dropdown was reverted (exposed the customer list on a public page); the admin matches the typed company to an org in the invite modal, which opens with org/role cleared
 - [x] **Drop dead `incident_tasks`/`incident_units` tables** (dev-only; prod never had them; prod attachments audited — 0 orphans)
 - [x] **Docs refresh** — SCHEMA, VIEWS, BUSINESS_RULES, ARCHITECTURE, ROADMAP
 

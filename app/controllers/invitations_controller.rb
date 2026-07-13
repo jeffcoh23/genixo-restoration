@@ -4,6 +4,16 @@ class InvitationsController < ApplicationController
 
   # POST /invitations — create and send invitation
   def create
+    # A blank org must be an explicit error: target_organization falls back to
+    # the inviter's own (mitigation) org, so a no-selection submit — e.g. the
+    # cleared org state when approving a login request — would otherwise
+    # silently invite an outsider into the wrong org.
+    if params[:organization_id].blank?
+      return redirect_to users_path,
+        inertia: { errors: { organization_id: [ "must be selected" ] } },
+        alert: "Could not send invitation."
+    end
+
     org = target_organization
     invitation = org.invitations.new(
       invited_by_user: current_user,

@@ -22,14 +22,13 @@ class LoginRequestSystemTest < ApplicationSystemTestCase
     fill_in "Email", with: "dan@acme.com"
     fill_in "Phone", with: "512-555-0100"
     fill_in "title", with: "Regional Manager"
-    find("button", text: "Select your company").click
-    find("[role='option']", text: "Acme PM").click
+    fill_in "Company", with: "Acme PM"
     click_button "Request Access"
 
     assert_text "Request received"
     request = LoginRequest.find_by!(email: "dan@acme.com")
     assert request.pending?
-    assert_equal @pm_org, request.organization
+    assert_equal "Acme PM", request.company_name
 
     # --- Admin review ---
     login_as @manager
@@ -39,19 +38,27 @@ class LoginRequestSystemTest < ApplicationSystemTestCase
 
     find("[data-testid='login-request-approve-#{request.id}']").click
 
-    # Approve opens the invite modal prefilled from the request — including the
-    # org they chose and a default Property Manager role.
+    # Approve opens the invite modal prefilled with the requester's details.
+    # Company was free text (no org on the request), so the admin picks the
+    # matching org + role before sending.
     assert_text "Invite User"
     assert_equal "dan@acme.com", find("#invite_email").value
     assert_equal "Dan", find("#invite_first").value
     assert_equal "Hutson", find("#invite_last").value
     assert_equal "512-555-0100", find("#invite_phone").value
     assert_equal "Regional Manager", find("#invite_title").value
-    assert_text "Acme PM"
-    assert_text "Property Manager"
     assert request.reload.approved?
 
-    # Role is already prefilled — the admin just sends it.
+    # No org is preselected — the admin must deliberately match the typed
+    # company to an org (a stale default could invite into the wrong org).
+    within("[role='dialog']") do
+      assert_includes all("[role='combobox']")[0].text, "Select an organization"
+    end
+
+    within("[role='dialog']") { all("[role='combobox']")[0].click }
+    find("[role='option']", text: "Acme PM").click
+    within("[role='dialog']") { all("[role='combobox']")[1].click }
+    find("[role='option']", text: "Property Manager").click
     click_button "Send Invitation"
 
     assert_text "Invitation sent to dan@acme.com"

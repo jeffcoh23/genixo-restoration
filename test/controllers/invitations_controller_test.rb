@@ -25,7 +25,8 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
     login_as @manager
     assert_difference "Invitation.count", 1 do
       post invitations_path, params: {
-        email: "new@genixo.com", user_type: "technician"
+        email: "new@genixo.com", user_type: "technician",
+        organization_id: @genixo.id
       }
     end
     assert_redirected_to users_path
@@ -35,11 +36,24 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "technician", inv.user_type
   end
 
+  test "blank organization_id is rejected — never falls back to the inviter's org" do
+    # Regression: target_organization defaults blank to current_user.organization,
+    # which would silently invite a login-request approvee into the mitigation org.
+    login_as @manager
+    assert_no_difference "Invitation.count" do
+      post invitations_path, params: {
+        email: "noorg@acme.com", user_type: "technician", organization_id: ""
+      }
+    end
+    assert_redirected_to users_path
+  end
+
   test "office_sales can create invitation" do
     login_as @office
     assert_difference "Invitation.count", 1 do
       post invitations_path, params: {
-        email: "sales@genixo.com", user_type: "office_sales"
+        email: "sales@genixo.com", user_type: "office_sales",
+        organization_id: @genixo.id
       }
     end
     assert_redirected_to users_path
@@ -91,7 +105,7 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
   test "invitation saves optional first_name, last_name, phone" do
     login_as @manager
     post invitations_path, params: {
-      email: "full@genixo.com", user_type: "technician",
+      email: "full@genixo.com", user_type: "technician", organization_id: @genixo.id,
       first_name: "John", last_name: "Doe", phone: "555-1234"
     }
     inv = Invitation.last
@@ -103,7 +117,7 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
   test "invitation saves title, permissions, and notification_preferences" do
     login_as @manager
     post invitations_path, params: {
-      email: "custom@genixo.com", user_type: "technician",
+      email: "custom@genixo.com", user_type: "technician", organization_id: @genixo.id,
       title: "Lead Technician",
       permissions: %w[manage_daily_logs manage_attachments],
       notification_preferences: { status_change: "true", new_message: "true", incident_user_assignment: "false" }

@@ -16,7 +16,7 @@ class LoginRequestsControllerTest < ActionDispatch::IntegrationTest
   end
 
   def valid_params(email: "dan@acme.com")
-    { email: email, first_name: "Dan", last_name: "Hutson", organization_id: @pm_org.id, phone: "(210) 555-0100" }
+    { email: email, first_name: "Dan", last_name: "Hutson", company_name: "Greystar", phone: "(210) 555-0100" }
   end
 
   # --- Public form ---

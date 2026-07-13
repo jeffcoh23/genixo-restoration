@@ -153,10 +153,11 @@ export default function UsersIndex() {
   // modal from the request — including the org they picked and a default role.
   // The admin can adjust the role/title, then sends it.
   function openPrefilledInvite(req: LoginRequestRow) {
-    // Only prefill the org (and its default role) when this admin actually
-    // services it — i.e. it's one of their org_options. Otherwise leave their
-    // default so the invite can't resolve to an org they can't invite into
-    // (which would error on submit); the admin then picks a valid org/role.
+    // Only prefill the org (and its default role) when the request carries an
+    // org this admin actually services (legacy dropdown-era rows). Otherwise
+    // CLEAR the org so the admin must deliberately match the typed company to
+    // an org — leaving the previous/default selection risks silently inviting
+    // the requester into the wrong org (even the mitigation org itself).
     const orgServiceable =
       req.organization_id != null && org_options.some((o) => o.id === req.organization_id);
     form.setData((data) => ({
@@ -166,7 +167,7 @@ export default function UsersIndex() {
       last_name: req.last_name,
       phone: req.phone || "",
       title: req.title || "",
-      organization_id: orgServiceable ? String(req.organization_id) : data.organization_id,
+      organization_id: orgServiceable ? String(req.organization_id) : "",
       user_type: orgServiceable ? req.default_user_type : "",
     }));
     setShowInviteModal(true);
@@ -250,7 +251,7 @@ export default function UsersIndex() {
               <label className="text-sm font-medium">Organization</label>
               <Select value={form.data.organization_id} onValueChange={(v) => { form.setData("organization_id", v); form.setData("user_type", ""); }}>
                 <SelectTrigger className="h-11 sm:h-10">
-                  <SelectValue />
+                  <SelectValue placeholder="Select an organization..." />
                 </SelectTrigger>
                 <SelectContent>
                   {org_options.map((o) => <SelectItem key={o.id} value={String(o.id)}>{o.name}</SelectItem>)}

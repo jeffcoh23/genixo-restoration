@@ -5,10 +5,9 @@ class LoginRequestMailerTest < ActionMailer::TestCase
     @org = Organization.create!(name: "Genixo", organization_type: "mitigation")
     @manager = User.create!(organization: @org, user_type: "manager",
       email_address: "mgr@genixo.com", first_name: "Test", last_name: "Manager", password: "password123")
-    @pm_org = Organization.create!(name: "Acme PM", organization_type: "property_management")
     @request = LoginRequest.create!(
       email: "dan@acme.com", first_name: "Dan", last_name: "Hutson",
-      organization: @pm_org, phone: "(210) 555-0100", message: "I manage the Sunset portfolio."
+      company_name: "Acme PM", phone: "(210) 555-0100", message: "I manage the Sunset portfolio."
     )
   end
 
