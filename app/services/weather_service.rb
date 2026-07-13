@@ -9,6 +9,12 @@ require "faraday"
 # returns nil — weather is a nice-to-have on the DFR and must never block or
 # fail report generation. Failures are NOT cached, so a later regeneration
 # retries.
+#
+# Caching: a snapshot fetched on the report date itself may hold provisional
+# forecast values (a DFR is usually generated the same day). Such a snapshot is
+# refreshed on the next generation after the day has ended; once a fetch lands
+# after its date, the row is final and never re-fetched. If a refresh attempt
+# fails, the stale snapshot is returned rather than nothing.
 class WeatherService
   BASE_URL = "https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline".freeze
   ELEMENTS = "tempmax,tempmin,temp,conditions,precip,precipprob,windspeed,humidity".freeze
@@ -25,17 +31,31 @@ class WeatherService
 
   def call
     cached = WeatherSnapshot.find_by(incident_id: @incident.id, date: @date)
-    return cached if cached
+    return cached if cached && final?(cached)
 
-    fetch_and_store
+    fetch_and_store(cached) || cached
   rescue StandardError => e
     Rails.logger.warn("[WeatherService] weather unavailable for incident #{@incident.id} #{@date}: #{e.class}: #{redact(e.message)}")
-    nil
+    # Timeouts/HTTP/parse failures are expected transients; anything else is a
+    # bug worth surfacing (matches NotificationService's swallow-but-notify).
+    unless e.is_a?(Faraday::Error) || e.is_a?(JSON::ParserError)
+      Honeybadger.notify(e) if defined?(Honeybadger)
+    end
+    cached
   end
 
   private
 
-  def fetch_and_store
+  # A snapshot holds final (observed) data once it was fetched after its date
+  # ended. fetched_at is UTC; for US-continent properties the UTC day flips a
+  # few hours early, which at worst treats a late-evening fetch as final —
+  # acceptable next to the flaw this guards against (a morning forecast being
+  # cached forever).
+  def final?(snapshot)
+    snapshot.fetched_at.to_date > snapshot.date
+  end
+
+  def fetch_and_store(existing = nil)
     return nil if api_key.blank?
 
     location = location_string
@@ -49,14 +69,17 @@ class WeatherService
       req.params["unitGroup"] = "us"
       req.params["contentType"] = "json"
     end
-    return nil unless response.success?
+    unless response.success?
+      # Never silent: a 401 (bad key) or 429 (quota) must be visible in logs,
+      # not just a missing weather line. Status only — the key stays out.
+      Rails.logger.warn("[WeatherService] Visual Crossing returned #{response.status} for incident #{@incident.id} #{@date}")
+      return nil
+    end
 
     day = JSON.parse(response.body).dig("days", 0)
     return nil if day.blank?
 
-    WeatherSnapshot.create!(
-      incident_id: @incident.id,
-      date: @date,
+    attrs = {
       temp_max: day["tempmax"],
       temp_min: day["tempmin"],
       temp_avg: day["temp"],
@@ -66,9 +89,19 @@ class WeatherService
       wind_speed: day["windspeed"],
       humidity: day["humidity"],
       fetched_at: Time.current
-    )
-  rescue ActiveRecord::RecordNotUnique
-    # A concurrent generation stored it first — use the winner's row.
+    }
+
+    if existing
+      existing.update!(attrs)
+      existing
+    else
+      WeatherSnapshot.create!(attrs.merge(incident_id: @incident.id, date: @date))
+    end
+  rescue ActiveRecord::RecordNotUnique, ActiveRecord::RecordInvalid
+    # A concurrent generation stored it first — use the winner's row. The race
+    # surfaces two ways: the DB unique index (RecordNotUnique) or the model's
+    # uniqueness validation seeing the winner just before our INSERT
+    # (RecordInvalid). Both mean the same thing.
     WeatherSnapshot.find_by(incident_id: @incident.id, date: @date)
   end
 

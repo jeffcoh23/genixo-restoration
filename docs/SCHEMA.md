@@ -772,7 +772,7 @@ Public "request access" form submissions (`/request-access`, rate-limited). The 
 
 ### weather_snapshots
 
-Cached daily weather for an incident's property, fetched from the Visual Crossing Timeline API on DFR generation so regeneration never re-hits the API or loses the line. US units (°F / mph / inches). Any failure to fetch is not cached, so a later regeneration retries.
+Cached daily weather for an incident's property, fetched from the Visual Crossing Timeline API on DFR generation. US units (°F / mph / inches). A snapshot fetched on the report date itself may hold provisional forecast values, so it's refreshed on the next generation after the day ends; once fetched after its date, the row is final and regeneration never re-hits the API. Fetch failures are not cached (a later regeneration retries), and a failed refresh falls back to the stale row.
 
 | Column | Type | Constraints | Notes |
 |--------|------|-------------|-------|
@@ -792,8 +792,7 @@ Cached daily weather for an incident's property, fetched from the Visual Crossin
 | updated_at | datetime | NOT NULL | |
 
 **Indexes:**
-- `index_weather_snapshots_on_incident_id`
-- `index_weather_snapshots_on_incident_id_and_date` (unique)
+- `index_weather_snapshots_on_incident_id_and_date` (unique; also serves incident_id lookups via its leading column)
 
 ---
 

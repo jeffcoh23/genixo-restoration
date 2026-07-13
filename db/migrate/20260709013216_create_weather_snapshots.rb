@@ -1,7 +1,9 @@
 class CreateWeatherSnapshots < ActiveRecord::Migration[8.0]
   def change
     create_table :weather_snapshots do |t|
-      t.references :incident, null: false, foreign_key: { on_delete: :cascade }
+      # index: false — the composite unique index below already serves
+      # incident_id lookups via its leading column.
+      t.references :incident, null: false, index: false, foreign_key: { on_delete: :cascade }
       t.date :date, null: false
       # Fahrenheit / mph / inches — Visual Crossing US unit group. Cached on
       # first fetch so DFR regeneration never re-hits the API or loses the line.
@@ -18,8 +20,9 @@ class CreateWeatherSnapshots < ActiveRecord::Migration[8.0]
       t.timestamps
     end
 
-    # One snapshot per incident+date; the weather for a past date is immutable,
-    # so a unique index also backstops a double-generate race.
+    # One snapshot per incident+date; the unique index also backstops a
+    # double-generate race. (Same-day snapshots hold provisional data and are
+    # refreshed by WeatherService after the day ends — see the service.)
     add_index :weather_snapshots, [ :incident_id, :date ], unique: true
   end
 end

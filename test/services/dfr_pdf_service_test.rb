@@ -94,6 +94,19 @@ class DfrPdfServiceTest < ActiveSupport::TestCase
     refute_includes text, "Visual Crossing"
   end
 
+  test "API-sourced conditions render as literal text, never as inline_format markup" do
+    weather = WeatherSnapshot.new(
+      incident: @incident, date: @date, temp_max: 80, temp_min: 60,
+      conditions: "<i>Rain & hail</i>", fetched_at: Time.current
+    )
+    pdf_data = DfrPdfService.new(incident: @incident, date: @date, include_photos: false, weather: weather).generate
+    text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
+
+    # Escaped: the tag characters survive as literal glyphs. Unescaped, Prawn
+    # would parse <i>...</i> as italic markup and the brackets would vanish.
+    assert_includes text, "<i>Rain & hail</i>"
+  end
+
   test "photo image data is actually embedded in PDF when photo included" do
     photo = create_photo("photo1.jpg")
 

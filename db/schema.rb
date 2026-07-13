@@ -632,7 +632,6 @@ ActiveRecord::Schema[8.0].define(version: 2026_07_09_211712) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["incident_id", "date"], name: "index_weather_snapshots_on_incident_id_and_date", unique: true
-    t.index ["incident_id"], name: "index_weather_snapshots_on_incident_id"
   end
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"

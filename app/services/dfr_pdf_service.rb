@@ -102,7 +102,9 @@ class DfrPdfService
     return if line.blank?
 
     pdf.font_size(10) do
-      pdf.text t("<b>Weather:</b> #{line}"), inline_format: true
+      # conditions comes from the weather API — escape it so external content
+      # is never parsed as Prawn inline_format markup.
+      pdf.text t("<b>Weather:</b> #{CGI.escapeHTML(line)}"), inline_format: true
     end
     # Visual Crossing's free tier requires attribution.
     pdf.font_size(7) { pdf.text "Weather data by Visual Crossing", color: "999999" }

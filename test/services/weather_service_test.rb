@@ -1,5 +1,6 @@
 require "test_helper"
 require "webmock/minitest"
+require "minitest/mock"
 
 class WeatherServiceTest < ActiveSupport::TestCase
   setup do
@@ -106,5 +107,82 @@ class WeatherServiceTest < ActiveSupport::TestCase
     stub_vc(body: "<html>upstream error</html>")
     assert_nil WeatherService.for(incident: @incident, date: @date)
     assert_equal 0, WeatherSnapshot.count
+  end
+
+  # --- Same-day (provisional) snapshot refresh ---
+
+  test "refreshes a snapshot that was fetched on the report date itself" do
+    # Fetched the same day it describes → may hold forecast values, not finals.
+    stale = WeatherSnapshot.create!(incident: @incident, date: Date.current,
+      temp_max: 75, conditions: "Forecast-ish", fetched_at: Time.current)
+    stub = stub_vc
+
+    snap = WeatherService.for(incident: @incident, date: Date.current)
+
+    assert_requested stub, times: 1
+    assert_equal stale.id, snap.id, "must update the existing row, not create a duplicate"
+    assert_equal "Partly cloudy", snap.reload.conditions
+    assert_equal 1, WeatherSnapshot.where(incident: @incident, date: Date.current).count
+  end
+
+  test "a snapshot fetched after its date is final — no refetch" do
+    # No stub registered: any HTTP attempt would make WebMock raise.
+    final = WeatherSnapshot.create!(incident: @incident, date: @date,
+      conditions: "Observed", fetched_at: (@date + 1).noon)
+    snap = WeatherService.for(incident: @incident, date: @date)
+    assert_equal final.id, snap.id
+    assert_equal "Observed", snap.conditions
+  end
+
+  test "a failed refresh falls back to the stale snapshot instead of nil" do
+    stale = WeatherSnapshot.create!(incident: @incident, date: Date.current,
+      conditions: "Morning forecast", fetched_at: Time.current)
+    stub_request(:get, /weather\.visualcrossing\.com/).to_timeout
+
+    snap = WeatherService.for(incident: @incident, date: Date.current)
+    assert_equal stale.id, snap.id, "stale weather beats no weather"
+  end
+
+  # --- Concurrency: both duplicate-insert failure modes return the winner ---
+
+  test "returns the winner's row when the model uniqueness validation loses the race" do
+    winner = WeatherSnapshot.create!(incident: @incident, date: @date,
+      conditions: "Winner", fetched_at: (@date + 1).noon)
+    stub_vc
+
+    # Simulate the race: the initial cache check misses (returns nil), but the
+    # winner's committed row makes create! raise RecordInvalid via the model's
+    # uniqueness validation. The rescue must recover the winner, not return nil.
+    calls = 0
+    racing_find_by = lambda do |*args, **kwargs|
+      calls += 1
+      calls == 1 ? nil : winner
+    end
+
+    WeatherSnapshot.stub(:find_by, racing_find_by) do
+      assert_equal winner.id, WeatherService.for(incident: @incident, date: @date)&.id
+    end
+  end
+
+  # --- Operational visibility ---
+
+  test "logs the HTTP status on a non-2xx response" do
+    stub_vc(status: 401, body: "No API token found")
+    logged = []
+    Rails.logger.stub(:warn, ->(msg) { logged << msg }) do
+      assert_nil WeatherService.for(incident: @incident, date: @date)
+    end
+    assert logged.any? { |m| m.include?("401") }, "a bad key / quota failure must be visible in logs, got: #{logged.inspect}"
+  end
+
+  test "redacts the API key from logged error messages" do
+    stub_request(:get, /weather\.visualcrossing\.com/)
+      .to_raise(Faraday::ConnectionFailed.new("connection refused for /timeline?key=test-key&include=days"))
+    logged = []
+    Rails.logger.stub(:warn, ->(msg) { logged << msg }) do
+      assert_nil WeatherService.for(incident: @incident, date: @date)
+    end
+    refute logged.join.include?("test-key"), "the API key must never reach the logs"
+    assert logged.join.include?("[REDACTED]")
   end
 end
