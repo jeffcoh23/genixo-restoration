@@ -5,11 +5,10 @@ class LoginRequestTest < ActiveSupport::TestCase
     @genixo = Organization.create!(name: "Genixo", organization_type: "mitigation")
     @manager = User.create!(organization: @genixo, user_type: "manager",
       email_address: "mgr@genixo.com", first_name: "Test", last_name: "Manager", password: "password123")
-    @pm_org = Organization.create!(name: "Acme PM", organization_type: "property_management")
   end
 
   def valid_attrs(email: "dan@acme.com")
-    { email: email, first_name: "Dan", last_name: "Hutson", organization: @pm_org, phone: "(210) 555-0100" }
+    { email: email, first_name: "Dan", last_name: "Hutson", company_name: "Acme PM", phone: "(210) 555-0100" }
   end
 
   test "valid with email and names" do
@@ -38,27 +37,16 @@ class LoginRequestTest < ActiveSupport::TestCase
     assert request.errors[:phone].any?
   end
 
-  test "requires an organization" do
-    request = LoginRequest.new(valid_attrs.except(:organization))
+  test "requires a company name" do
+    request = LoginRequest.new(valid_attrs.except(:company_name))
     refute request.valid?
-    assert request.errors[:organization_id].any?
+    assert request.errors[:company_name].any?
   end
 
   test "requires a phone number" do
     request = LoginRequest.new(valid_attrs.except(:phone))
     refute request.valid?
     assert request.errors[:phone].any?
-  end
-
-  test "rejects a non-property-management organization" do
-    request = LoginRequest.new(valid_attrs.merge(organization: @genixo))
-    refute request.valid?
-    assert request.errors[:organization_id].any?
-  end
-
-  test "snapshots company_name from the chosen organization" do
-    request = LoginRequest.create!(valid_attrs)
-    assert_equal "Acme PM", request.company_name
   end
 
   test "normalizes email to lowercase" do

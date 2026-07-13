@@ -2,26 +2,19 @@ class LoginRequest < ApplicationRecord
   STATUSES = %w[pending approved rejected].freeze
 
   belongs_to :reviewed_by_user, class_name: "User", optional: true
-  # optional: true keeps legacy free-text requests (no org) approvable; new
-  # requests are forced to pick a real client via the on: :create validations.
-  belongs_to :organization, optional: true
 
   normalizes :email, with: ->(e) { e.strip.downcase }
-
-  # The requester picks their company from a dropdown of PM (client) orgs, so we
-  # store the real org and snapshot its name into company_name for display/email
-  # and as a historical record if the org is later renamed.
-  before_validation :snapshot_company_name, on: :create
 
   # Length caps: this is a public unauthenticated form. Unbounded input would
   # bloat storage, the notification email, and the Users-page JSON payload.
   validates :email, presence: true, format: { with: URI::MailTo::EMAIL_REGEXP, allow_blank: true },
     length: { maximum: 255 }
   validates :first_name, :last_name, presence: true, length: { maximum: 100 }
+  # Free-text company name. A public unauthenticated form must NOT expose a
+  # dropdown of client orgs (that leaks the customer list), so the requester
+  # types their company and the admin links it to an org when approving.
+  validates :company_name, presence: true, on: :create
   validates :company_name, length: { maximum: 200 }
-  # Errors attach to :organization_id so they surface on the form's dropdown.
-  validates :organization_id, presence: true, on: :create
-  validate :organization_is_a_client, on: :create
   validates :phone, length: { maximum: 50 }
   validates :phone, presence: true, on: :create
   validates :title, length: { maximum: 100 }
@@ -67,16 +60,5 @@ class LoginRequest < ApplicationRecord
         .joins(:organization)
         .where(organizations: { organization_type: "mitigation" })
         .select { |u| u.can?(Permissions::MANAGE_USERS) }
-  end
-
-  private
-
-  def snapshot_company_name
-    self.company_name = organization&.name
-  end
-
-  def organization_is_a_client
-    return if organization_id.blank? # presence validation handles the blank case
-    errors.add(:organization_id, "is not a valid company") unless organization&.property_management?
   end
 end
