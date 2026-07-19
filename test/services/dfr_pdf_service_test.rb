@@ -524,27 +524,142 @@ class DfrPdfServiceTest < ActiveSupport::TestCase
     refute_includes text, "Documents", "file-less attachment should not produce a Documents section"
   end
 
-  test "a merge failure falls back to the unappended DFR body" do
-    require "prawn"
+  test "concat falls back to an in-memory merge when pdfunite is unavailable" do
     require "combine_pdf"
+    require "open3"
+    require "tmpdir"
     require "minitest/mock"
-    doc = create_pdf_document("merge-fail.pdf")
+    service = DfrPdfService.new(incident: @incident, date: @date, include_photos: false)
+
+    Dir.mktmpdir do |dir|
+      a = File.join(dir, "a.pdf"); File.binwrite(a, minimal_pdf)
+      b = File.join(dir, "b.pdf"); File.binwrite(b, minimal_pdf)
+
+      # Simulate pdfunite missing (capture3 raises ENOENT). The CombinePDF
+      # fallback must still stitch both parts into a valid PDF.
+      merged = Open3.stub(:capture3, ->(*) { raise Errno::ENOENT, "pdfunite" }) do
+        service.send(:concat_parts, [ a, b ], dir)
+      end
+
+      assert_equal 2, page_count(merged), "fallback merge must combine both parts"
+    end
+  end
+
+  test "concat returns the body part when both pdfunite and the fallback merge fail" do
+    require "combine_pdf"
+    require "open3"
+    require "tmpdir"
+    require "minitest/mock"
+    service = DfrPdfService.new(incident: @incident, date: @date, include_photos: false)
+
+    Dir.mktmpdir do |dir|
+      body = File.join(dir, "body.pdf"); File.binwrite(body, minimal_pdf)
+      other = File.join(dir, "b.pdf"); File.binwrite(other, minimal_pdf)
+
+      # pdfunite missing AND every part fails to load: generation must never
+      # raise — it ships the body part alone. DfrPdfJob has no retry, so a raise
+      # would leave the UI polling forever.
+      result = Open3.stub(:capture3, ->(*) { raise Errno::ENOENT, "pdfunite" }) do
+        CombinePDF.stub(:load, ->(*) { raise StandardError, "merge boom" }) do
+          service.send(:concat_parts, [ body, other ], dir)
+        end
+      end
+
+      assert_equal File.binread(body), result, "must fall back to the body part, never raise"
+    end
+  end
+
+  test "fallback skips a corrupt part instead of losing the whole report" do
+    require "combine_pdf"
+    require "open3"
+    require "tmpdir"
+    require "minitest/mock"
+    service = DfrPdfService.new(incident: @incident, date: @date, include_photos: false)
+
+    Dir.mktmpdir do |dir|
+      body = File.join(dir, "body.pdf"); File.binwrite(body, minimal_pdf)
+      corrupt = File.join(dir, "corrupt.pdf"); File.binwrite(corrupt, "not a pdf")
+      good = File.join(dir, "good.pdf"); File.binwrite(good, minimal_pdf)
+
+      # pdfunite missing → in-memory fallback. One part is corrupt; it must be
+      # skipped, not sink the two good parts.
+      merged = Open3.stub(:capture3, ->(*) { raise Errno::ENOENT, "pdfunite" }) do
+        service.send(:concat_parts, [ body, corrupt, good ], dir)
+      end
+
+      assert_equal 2, page_count(merged), "corrupt part skipped; body + good part survive"
+    end
+  end
+
+  test "fallback ships body only when parts exceed the in-memory merge cap" do
+    require "open3"
+    require "tmpdir"
+    require "minitest/mock"
+    service = DfrPdfService.new(incident: @incident, date: @date, include_photos: false)
+
+    Dir.mktmpdir do |dir|
+      body = File.join(dir, "body.pdf"); File.binwrite(body, minimal_pdf)
+      other = File.join(dir, "b.pdf"); File.binwrite(other, minimal_pdf)
+
+      # pdfunite missing AND the parts are (pretend) huge: the fallback must NOT
+      # load them all into memory (that re-creates the OOM) — it ships body only.
+      oversize = DfrPdfService::MAX_FALLBACK_MERGE_BYTES
+      result = Open3.stub(:capture3, ->(*) { raise Errno::ENOENT, "pdfunite" }) do
+        File.stub(:size, oversize) do
+          service.send(:concat_parts, [ body, other ], dir)
+        end
+      end
+
+      assert_equal File.binread(body), result, "over the cap, ship body only — never bulk-load into memory"
+    end
+  end
+
+  test "renders every photo across a batch boundary" do
+    # PHOTO_BATCH_SIZE + 1 photos span two batches; the extra photo must not be
+    # dropped and the report must stay a valid, multi-page PDF.
+    count = DfrPdfService::PHOTO_BATCH_SIZE + 1
+    count.times { |i| create_photo("p#{i}.jpg") }
+
+    service = DfrPdfService.new(incident: @incident, date: @date, include_photos: true)
+    pdf_data = service.generate
+
+    assert_includes PDF::Inspector::Text.analyze(pdf_data).strings.join(" "), "Photos"
+    pages = PDF::Inspector::Page.analyze(pdf_data).pages
+    assert_operator pages.size, :>, DfrPdfService::PHOTO_BATCH_SIZE / 2,
+      "expected #{count} photos across batches to span many pages; got #{pages.size}"
+  end
+
+  test "the Photos heading appears once even when photos span multiple batches" do
+    (DfrPdfService::PHOTO_BATCH_SIZE + 3).times { |i| create_photo("p#{i}.jpg") }
+
+    service = DfrPdfService.new(incident: @incident, date: @date, include_photos: true)
+    text = PDF::Inspector::Text.analyze(service.generate).strings.join
+
+    assert_equal 1, text.scan("Photos").size, "Photos heading must not repeat per batch"
+  end
+
+  test "parts concatenate in order: body, photos (across batches), documents, appended pages" do
+    # The whole report in one shot with photos spanning a batch boundary AND an
+    # appended PDF — verifies concatenation order is body → photos → documents
+    # section → appended document pages, and that nothing is dropped.
+    (DfrPdfService::PHOTO_BATCH_SIZE + 2).times { |i| create_photo("p#{i}.jpg") }
+    doc = create_pdf_document("scope.pdf")
+
     service = DfrPdfService.new(
-      incident: @incident, date: @date, include_photos: false,
+      incident: @incident, date: @date, include_photos: true,
       document_attachment_ids: [ doc.id ]
     )
-    body = Prawn::Document.new { |p| p.text "Body only" }.render
+    text = PDF::Inspector::Text.analyze(service.generate).strings.join(" ")
 
-    # Pre-memoize a successfully parsed document, then make the body re-parse
-    # blow up: append_documents must return the body unchanged rather than
-    # kill the job (DfrPdfJob has no retry — the UI would poll forever).
-    service.instance_variable_set(:@document_results,
-      [ { attachment: doc, filename: "merge-fail.pdf", disposition: :appended,
-          parsed: CombinePDF.parse(minimal_pdf) } ])
+    photos_at = text.index("Photos")
+    docs_at = text.index("Documents")
+    appended_at = text.index("Attached document body") # body of the appended minimal_pdf
 
-    CombinePDF.stub(:parse, ->(*) { raise StandardError, "merge boom" }) do
-      assert_equal body, service.send(:append_documents, body)
-    end
+    assert photos_at, "Photos section missing"
+    assert docs_at, "Documents section missing"
+    assert appended_at, "appended document page missing"
+    assert_operator photos_at, :<, docs_at, "photos must precede the Documents section"
+    assert_operator docs_at, :<, appended_at, "the Documents section must precede appended pages"
   end
 
   private

@@ -9,6 +9,19 @@ class DfrPdfService
   MAX_DOCUMENT_BYTES = 15.megabytes
   MAX_TOTAL_DOCUMENT_BYTES = 40.megabytes
 
+  # Photos render in batches to separate PDFs that are concatenated on disk with
+  # pdfunite. A single Prawn document holding every photo spikes memory at render
+  # time (O(photos): a 673-photo report serialized ~175MB in one shot and OOM'd
+  # the 512MB worker — Heroku R15). Batching bounds the render peak to one batch.
+  # 20 keeps each batch's render spike trivial (<10MB) and renders 2-up photo pages.
+  PHOTO_BATCH_SIZE = 20
+
+  # Ceiling for the in-memory CombinePDF fallback used only when pdfunite is
+  # unavailable. CombinePDF loads every part at once (~3-5x file size in RAM), so
+  # above this we ship the body alone rather than risk re-OOMing the worker — the
+  # exact failure batching exists to prevent. A hard OOM-kill would bypass rescue.
+  MAX_FALLBACK_MERGE_BYTES = 50.megabytes
+
   # PDF actions that execute script or launch programs have no place in a
   # report page shipped under the mitigation org's name. CombinePDF drops the
   # source document's catalog on merge, but page-level annotations and
@@ -34,6 +47,8 @@ class DfrPdfService
     require "prawn/table"
     require "mini_magick"
     require "combine_pdf"
+    require "tmpdir"
+    require "open3"
 
     with_glyph_fallback do
       Time.use_zone(@timezone) do
@@ -44,10 +59,32 @@ class DfrPdfService
 
   private
 
+  # Assembly pipeline. Peak memory is bounded to one photo batch, not the whole
+  # report:
+  #
+  #   body.pdf ─────────────────────────────┐
+  #   photos_0.pdf (batch of PHOTO_BATCH_SIZE)│
+  #   photos_1.pdf ...                        ├─ pdfunite (streams on disk) ─► PDF bytes
+  #   documents.pdf (inline images + listings)│
+  #   appended_0.pdf (scrubbed source PDFs) ..┘
+  #
+  # Each sub-PDF is rendered, flushed to disk, and dropped before the next, so no
+  # single render holds all photos. pdfunite concatenates without parsing page
+  # contents into Ruby (unlike CombinePDF), keeping the merge memory-flat too.
   def build_pdf
-    pdf = Prawn::Document.new(page_size: "LETTER", margin: [ 50, 50, 50, 50 ])
-    apply_noto_sans(pdf)
+    Dir.mktmpdir("dfr") do |dir|
+      parts = []
+      parts << render_part(dir, "body") { |pdf| render_body(pdf) }
+      parts.concat(render_photo_parts(dir)) if @include_photos
+      # document_results parses/scrubs selected PDFs up front (classifying each as
+      # appended/embedded/listed) — referenced by both the section and the append.
+      parts << render_part(dir, "documents") { |pdf| render_documents_body(pdf) } if document_results.any?
+      parts.concat(appended_document_parts(dir))
+      concat_parts(parts, dir)
+    end
+  end
 
+  def render_body(pdf)
     render_header(pdf)
     render_info_grid(pdf)
     render_weather(pdf)
@@ -57,12 +94,18 @@ class DfrPdfService
     render_summary_fields(pdf)
     render_labor_section(pdf)
     render_equipment_section(pdf)
-    render_photos(pdf) if @include_photos
-    # render_documents_section triggers document parsing (document_results), so
-    # each file is classified appended/embedded/listed before append_documents runs.
-    render_documents_section(pdf)
+  end
 
-    append_documents(pdf.render)
+  # Renders a Prawn document via the block, flushes it to a temp PDF, and returns
+  # the path. The document falls out of scope after render so its (potentially
+  # large) buffers can be reclaimed before the next part is built.
+  def render_part(dir, name)
+    pdf = Prawn::Document.new(page_size: "LETTER", margin: [ 50, 50, 50, 50 ])
+    apply_noto_sans(pdf)
+    yield pdf
+    path = File.join(dir, "#{name}.pdf")
+    File.binwrite(path, pdf.render)
+    path
   end
 
   def render_header(pdf)
@@ -238,21 +281,31 @@ class DfrPdfService
     pdf.move_down 10
   end
 
-  def render_photos(pdf)
+  # Photos in batches of PHOTO_BATCH_SIZE, each rendered to its own PDF part (see
+  # build_pdf). The "Photos" heading leads the first batch; later batches are
+  # photos only, so concatenation reproduces one continuous Photos section. A
+  # batch boundary forces a page break — cosmetically identical since photos
+  # already paginate 2-up.
+  def render_photo_parts(dir)
     photos = photos_for_date
-    return if photos.empty?
+    return [] if photos.empty?
 
-    pdf.start_new_page
-    pdf.font_size(12) { pdf.text "Photos", style: :bold }
-    pdf.move_down 10
+    photos.each_slice(PHOTO_BATCH_SIZE).with_index.map do |batch, idx|
+      path = render_part(dir, "photos_#{idx}") do |pdf|
+        if idx.zero?
+          pdf.font_size(12) { pdf.text "Photos", style: :bold }
+          pdf.move_down 10
+        end
 
-    # Cap each photo at half-page height so two stack per page. Without a
-    # height cap, full-width portrait photos dominate a page each and Prawn
-    # paginates fresh between them, leaving large blank gaps.
-    max_height = (pdf.bounds.height - 30) / 2 - 15
+        # Cap each photo at half-page height so two stack per page. Without a
+        # height cap, full-width portrait photos dominate a page each and Prawn
+        # paginates fresh between them, leaving large blank gaps.
+        max_height = (pdf.bounds.height - 30) / 2 - 15
 
-    photos.each do |attachment|
-      embed_image_attachment(pdf, attachment, max_height)
+        batch.each { |attachment| embed_image_attachment(pdf, attachment, max_height) }
+      end
+      GC.start
+      path
     end
   end
 
@@ -283,10 +336,10 @@ class DfrPdfService
     nil
   end
 
-  def render_documents_section(pdf)
-    return if document_results.empty?
-
-    pdf.start_new_page
+  # Documents section (heading + inline image documents + filename listings) as
+  # its own PDF part. The leading page break is provided by concatenation, so no
+  # start_new_page here. Caller guards on document_results.any?.
+  def render_documents_body(pdf)
     pdf.font_size(12) { pdf.text "Documents", style: :bold }
     pdf.move_down 10
 
@@ -309,23 +362,84 @@ class DfrPdfService
     end
   end
 
-  # Selected PDF documents get their pages appended after the Prawn body.
-  # Parsing happened up front (document_results), so a corrupt or oversized
-  # file was already downgraded to a filename listing — appending can only
-  # see successfully parsed documents.
-  def append_documents(data)
-    parsed_docs = document_results.filter_map { |r| r[:parsed] }
-    return data if parsed_docs.empty?
+  # Selected PDF documents become their own concatenation parts, appended after
+  # the body/photos/documents section. Each was already parsed and scrubbed of
+  # active content up front (document_results), so here we only re-serialize the
+  # scrubbed copy to disk — no giant merge, no re-parsing the photo pages.
+  def appended_document_parts(dir)
+    parts = []
+    document_results.each_with_index do |result, i|
+      parsed = result[:parsed]
+      next unless parsed
 
-    combined = CombinePDF.parse(data)
-    parsed_docs.each { |doc| combined << doc }
+      begin
+        path = File.join(dir, "appended_#{i}.pdf")
+        File.binwrite(path, parsed.to_pdf)
+        parts << path
+      rescue StandardError => e
+        # A bad appended document must never kill the DFR: skip it. The Documents
+        # section still lists it as "(attached)" — preferable to no report at all.
+        Rails.logger.warn("[DfrPdfService] could not serialize appended document #{result[:filename]}: #{e.message}")
+      end
+    end
+    parts
+  end
+
+  # Concatenate the PDF parts on disk with pdfunite (poppler), which streams
+  # pages without parsing their contents into Ruby, keeping merge memory flat
+  # regardless of photo count. pdfunite ships with the Heroku stack; the
+  # in-memory fallback below is only for its (rare) absence or failure.
+  def concat_parts(parts, dir)
+    return "".b if parts.empty?
+    # parts.first is always the body part (build_pdf adds it first), so a
+    # single-part return / fallback always yields a valid report body.
+    return File.binread(parts.first) if parts.one?
+
+    output = File.join(dir, "dfr.pdf")
+    reason =
+      begin
+        _out, err, status = Open3.capture3("pdfunite", *parts, output)
+        return File.binread(output) if status.success?
+        err.to_s.strip.presence || "exit #{status.exitstatus}"
+      rescue StandardError => e
+        # e.g. pdfunite not installed (Errno::ENOENT) — capture3 raises where
+        # system() would return nil; both mean "fall back".
+        e.message
+      end
+
+    Rails.logger.warn("[DfrPdfService] pdfunite unavailable (#{reason}); falling back to in-memory merge")
+    combine_parts_fallback(parts)
+  end
+
+  # In-memory fallback for a missing/failed pdfunite. CombinePDF loads every part
+  # at once, so on a large photo report this could itself blow the worker's memory
+  # quota (a hard OOM-kill would even bypass the rescue). So above a size ceiling
+  # we ship the body alone — a valid, if incomplete, report — and log loudly so
+  # the broken pdfunite is caught. Parts are merged individually so one bad file
+  # can't sink the whole report.
+  def combine_parts_fallback(parts)
+    total = parts.sum { |path| File.size(path) }
+    if total > MAX_FALLBACK_MERGE_BYTES
+      Rails.logger.error("[DfrPdfService] pdfunite unavailable and parts too large to merge in memory (#{total} bytes); shipping body only")
+      return File.binread(parts.first)
+    end
+
+    combined = CombinePDF.new
+    merged_any = false
+    parts.each do |path|
+      combined << CombinePDF.load(path)
+      merged_any = true
+    rescue StandardError => e
+      Rails.logger.warn("[DfrPdfService] fallback merge skipped a bad part #{File.basename(path)}: #{e.message}")
+    end
+    # If nothing loaded (not even the body), ship the raw body bytes rather than
+    # an empty PDF.
+    return File.binread(parts.first) unless merged_any
+
     combined.to_pdf
   rescue StandardError => e
-    # A merge failure must never kill the DFR: ship the Prawn body without the
-    # appended pages. (The Documents section will overstate "(attached)" for
-    # this rare case — preferable to no report at all.)
-    Rails.logger.warn("[DfrPdfService] could not append documents to DFR: #{e.message}")
-    data
+    Rails.logger.error("[DfrPdfService] fallback merge failed: #{e.message}")
+    File.binread(parts.first)
   end
 
   def document_results
