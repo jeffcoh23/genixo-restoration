@@ -424,18 +424,23 @@ class DfrPdfService
       return File.binread(parts.first)
     end
 
-    combined = CombinePDF.new
-    merged_any = false
-    parts.each do |path|
+    # Load the body first: it anchors the report, so if even it can't be parsed
+    # there's nothing worth shipping but the raw body bytes. Remaining parts are
+    # merged individually so one bad file can't sink the whole report.
+    body, *rest = parts
+    combined =
+      begin
+        CombinePDF.load(body)
+      rescue StandardError => e
+        Rails.logger.error("[DfrPdfService] fallback could not load body part: #{e.message}")
+        return File.binread(body)
+      end
+
+    rest.each do |path|
       combined << CombinePDF.load(path)
-      merged_any = true
     rescue StandardError => e
       Rails.logger.warn("[DfrPdfService] fallback merge skipped a bad part #{File.basename(path)}: #{e.message}")
     end
-    # If nothing loaded (not even the body), ship the raw body bytes rather than
-    # an empty PDF.
-    return File.binread(parts.first) unless merged_any
-
     combined.to_pdf
   rescue StandardError => e
     Rails.logger.error("[DfrPdfService] fallback merge failed: #{e.message}")
