@@ -1,6 +1,16 @@
 class DfrPdfJob < ApplicationJob
   queue_as :default
 
+  # DFR generation can fail transiently — e.g. one of many S3 photo reads
+  # hiccuping into a nil mid-render on a large report. Retry a few times so a
+  # flake self-heals instead of leaving the user with a failed report. Safe to
+  # retry: perform is idempotent — it regenerates and replaces the DFR for the
+  # date, so a retry just redoes the work. After the attempts are exhausted the
+  # error re-raises so the failure stays visible (Solid Queue failed jobs /
+  # Honeybadger). A deleted incident or user can never succeed → discard those.
+  retry_on StandardError, attempts: 3, wait: :polynomially_longer
+  discard_on ActiveRecord::RecordNotFound
+
   # document_attachment_ids keeps a default: jobs enqueued before a deploy
   # carry the old argument list (Solid Queue serializes positional args) and
   # must still run on the new code.
