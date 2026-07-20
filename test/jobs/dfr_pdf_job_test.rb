@@ -249,6 +249,36 @@ class DfrPdfJobTest < ActiveSupport::TestCase
     assert @incident.attachments.where(category: "dfr").last.file.attached?
   end
 
+  test "retries on a transient generation failure instead of dropping the report" do
+    require "minitest/mock"
+    date = Date.current.to_s
+
+    # Simulate a transient failure (e.g. a flaky S3 read surfacing as a nil).
+    # retry_on must catch it and re-enqueue rather than fail outright.
+    raising = ->(*_args, **_kw) { raise StandardError, "transient S3 blip" }
+    with_test_queue_adapter do
+      assert_enqueued_jobs 1, only: DfrPdfJob do
+        DfrPdfService.stub(:new, raising) do
+          DfrPdfJob.perform_now(@incident.id, date, "America/Chicago", @manager.id)
+        end
+      end
+    end
+  end
+
+  test "discards (never retries) when the incident no longer exists" do
+    date = Date.current.to_s
+
+    # A deleted incident raises RecordNotFound, which can never succeed — it must
+    # be discarded, not retried forever, and must not raise.
+    with_test_queue_adapter do
+      assert_no_enqueued_jobs do
+        assert_nothing_raised do
+          DfrPdfJob.perform_now(999_999, date, "America/Chicago", @manager.id)
+        end
+      end
+    end
+  end
+
   test "passes document_attachment_ids through to the generated PDF" do
     require "pdf/inspector"
     require "prawn"
@@ -265,5 +295,17 @@ class DfrPdfJobTest < ActiveSupport::TestCase
     attachment = @incident.attachments.where(category: "dfr").last
     text = PDF::Inspector::Text.analyze(attachment.file.download).strings.join(" ")
     assert_includes text, "scope.pdf (attached)"
+  end
+
+  private
+
+  # This app runs Solid Queue as the ActiveJob adapter even in tests, so the
+  # enqueue assertions (which need the :test adapter) require a local swap.
+  def with_test_queue_adapter
+    old = ActiveJob::Base.queue_adapter
+    ActiveJob::Base.queue_adapter = :test
+    yield
+  ensure
+    ActiveJob::Base.queue_adapter = old
   end
 end
