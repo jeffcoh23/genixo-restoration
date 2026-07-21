@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_07_09_211712) do
+ActiveRecord::Schema[8.0].define(version: 2026_07_21_162441) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -101,10 +101,39 @@ ActiveRecord::Schema[8.0].define(version: 2026_07_09_211712) do
     t.date "log_date"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.date "log_date_end"
+    t.index ["attachable_type", "attachable_id", "category", "log_date", "log_date_end"], name: "index_attachments_on_generated_report_identity", unique: true, where: "((category)::text = ANY ((ARRAY['dfr'::character varying, 'weekly_report'::character varying])::text[]))"
     t.index ["attachable_type", "attachable_id", "category"], name: "idx_on_attachable_type_attachable_id_category_16fe0cfdc5"
     t.index ["attachable_type", "attachable_id", "log_date"], name: "idx_on_attachable_type_attachable_id_log_date_9509925004"
     t.index ["attachable_type", "attachable_id"], name: "index_attachments_on_attachable"
     t.index ["uploaded_by_user_id"], name: "index_attachments_on_uploaded_by_user_id"
+  end
+
+  create_table "consumable_entries", force: :cascade do |t|
+    t.bigint "incident_id", null: false
+    t.bigint "consumable_type_id"
+    t.string "custom_name"
+    t.integer "quantity", null: false
+    t.date "log_date", null: false
+    t.bigint "logged_by_user_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["consumable_type_id"], name: "index_consumable_entries_on_consumable_type_id"
+    t.index ["incident_id", "log_date"], name: "index_consumable_entries_on_incident_id_and_log_date"
+    t.index ["incident_id"], name: "index_consumable_entries_on_incident_id"
+    t.index ["logged_by_user_id"], name: "index_consumable_entries_on_logged_by_user_id"
+    t.check_constraint "consumable_type_id IS NOT NULL AND custom_name IS NULL OR consumable_type_id IS NULL AND custom_name IS NOT NULL", name: "consumable_entries_type_xor_custom"
+  end
+
+  create_table "consumable_types", force: :cascade do |t|
+    t.bigint "organization_id", null: false
+    t.string "name", null: false
+    t.integer "position", default: 0, null: false
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["organization_id", "name"], name: "index_consumable_types_on_organization_id_and_name", unique: true
+    t.index ["organization_id"], name: "index_consumable_types_on_organization_id"
   end
 
   create_table "equipment_entries", force: :cascade do |t|
@@ -244,6 +273,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_07_09_211712) do
     t.decimal "do_not_exceed_limit"
     t.text "location_of_damage"
     t.string "moisture_supervisor_pm"
+    t.boolean "delayed", default: false, null: false
     t.index ["created_by_user_id"], name: "index_incidents_on_created_by_user_id"
     t.index ["emergency"], name: "index_incidents_on_emergency", where: "(emergency = true)"
     t.index ["last_activity_at"], name: "index_incidents_on_last_activity_at"
@@ -632,6 +662,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_07_09_211712) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["incident_id", "date"], name: "index_weather_snapshots_on_incident_id_and_date", unique: true
+    t.index ["incident_id"], name: "index_weather_snapshots_on_incident_id"
   end
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
@@ -644,6 +675,10 @@ ActiveRecord::Schema[8.0].define(version: 2026_07_09_211712) do
   add_foreign_key "activity_events", "incidents"
   add_foreign_key "activity_events", "users", column: "performed_by_user_id"
   add_foreign_key "attachments", "users", column: "uploaded_by_user_id"
+  add_foreign_key "consumable_entries", "consumable_types"
+  add_foreign_key "consumable_entries", "incidents"
+  add_foreign_key "consumable_entries", "users", column: "logged_by_user_id"
+  add_foreign_key "consumable_types", "organizations"
   add_foreign_key "equipment_entries", "equipment_items"
   add_foreign_key "equipment_entries", "equipment_types"
   add_foreign_key "equipment_entries", "incidents"
@@ -696,5 +731,5 @@ ActiveRecord::Schema[8.0].define(version: 2026_07_09_211712) do
   add_foreign_key "solid_queue_recurring_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "solid_queue_scheduled_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "users", "organizations"
-  add_foreign_key "weather_snapshots", "incidents", on_delete: :cascade
+  add_foreign_key "weather_snapshots", "incidents"
 end

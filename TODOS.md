@@ -11,6 +11,15 @@ Deferred work with context. Added by /plan-eng-review 2026-07-19 (Weekly Field R
 - **Context:** Add `timezone` to properties (default `America/Chicago`), pass property timezone at `DfrPdfJob` enqueue sites instead of `current_user.timezone`. Update DFR + weekly + IncidentReportService.
 - **Depends on / blocked by:** Nothing; do after the weekly-report feature lands.
 
+## Self-serve Consumable Types manager (Settings)
+
+- **What:** Org-scoped add/deactivate page for `consumable_types`, copying the Settings → Equipment Types pattern (`settings_controller.rb:199+`, `routes.rb:139`).
+- **Why:** The seeded list is Daniel's 11 items; today a new standard item needs a console `ConsumableType.create!`. Self-serve removes the dev round-trip.
+- **Pros:** ~30-45 min (existing pattern); write-ins stay one-offs instead of a workaround.
+- **Cons:** UI surface Daniel didn't ask for; his printed sheet suggests the list rarely changes.
+- **Trigger:** Ship when write-ins for the same item keep recurring or Daniel asks to change the list.
+- **Depends on / blocked by:** Consumables feature (2026-07 weekly-report branch) must land first.
+
 ## Report generation status tracking (queued/running/failed)
 
 - **What:** Explicit job state surfaced in the Daily Log and Weekly Reports panels, replacing inference-by-polling.
