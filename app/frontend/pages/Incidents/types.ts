@@ -177,6 +177,12 @@ export interface IncidentAttachment {
   destroy_path?: string | null;
 }
 
+// Generated weekly field report: an attachment spanning log_date..log_date_end.
+export interface WeeklyReport extends IncidentAttachment {
+  log_date_end: string | null;
+  range_label: string;
+}
+
 // Photo as returned by the dfr_photos endpoint: every incident photo,
 // annotated so the selection modal can group by day and preselect the
 // report date's photos.
@@ -262,6 +268,7 @@ export interface IncidentDetail {
   upload_photo_path: string;
   photos_zip_path: string;
   dfr_path: string;
+  weekly_report_path: string;
   dfr_photos_path: string;
   report_path: string;
   mark_read_path: string;
@@ -483,6 +490,7 @@ export interface ShowProps {
   labor_entries: LaborEntry[];
   operational_notes: OperationalNote[];
   attachments: IncidentAttachment[];
+  weekly_reports: WeeklyReport[];
   equipment_log: EquipmentLogItem[];
   labor_log: LaborLog;
   can_transition: boolean;

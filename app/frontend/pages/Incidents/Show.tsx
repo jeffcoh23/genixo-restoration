@@ -10,6 +10,7 @@ import { SharedProps } from "@/types";
 import RightPanelShell from "./components/RightPanelShell";
 import MessagePanel from "./components/MessagePanel";
 import DailyLogPanel from "./components/DailyLogPanel";
+import WeeklyReportsPanel from "./components/WeeklyReportsPanel";
 import EquipmentPanel from "./components/EquipmentPanel";
 import LaborPanel from "./components/LaborPanel";
 import PhotosPanel from "./components/PhotosPanel";
@@ -27,6 +28,7 @@ import { statusColor } from "@/lib/statusColor";
 // keys via `router.reload` on activation. Mirrors incidents_controller.rb.
 // daily_log is absent: all its data is eager (daily_activities, daily_log_dates, etc.).
 const TAB_PROP_KEYS: Record<string, string[] | undefined> = {
+  weekly_reports: ["weekly_reports"],
   labor: ["labor_log", "assignable_labor_users"],
   equipment: ["equipment_log", "equipment_types", "equipment_items_by_type", "attachable_equipment_entries"],
   documents: ["attachments", "operational_notes"],
@@ -49,6 +51,7 @@ export default function IncidentShow() {
     labor_entries = [],
     labor_log = { dates: [], date_labels: [], employees: [] },
     attachments = [],
+    weekly_reports = [],
     can_transition,
     can_edit = false,
     can_assign = false,
@@ -70,7 +73,7 @@ export default function IncidentShow() {
     back_path,
   } = usePage<SharedProps & ShowProps>().props;
 
-  const VALID_TABS = ["daily_log", "labor", "equipment", "photos", "documents", "messages", "readings", "manage"];
+  const VALID_TABS = ["daily_log", "weekly_reports", "labor", "equipment", "photos", "documents", "messages", "readings", "manage"];
   const initialTab = (() => {
     const param = new URLSearchParams(window.location.search).get("tab");
     return param && VALID_TABS.includes(param) ? param : "daily_log";
@@ -303,6 +306,18 @@ export default function IncidentShow() {
               dfr_path={incident.dfr_path}
               dfr_photos_path={incident.dfr_photos_path}
             />
+          )}
+          {activeTab === "weekly_reports" && (
+            <Deferred data={["weekly_reports"]} fallback={<PanelSkeleton />}>
+              <WeeklyReportsPanel
+                weekly_reports={weekly_reports}
+                incident_has_photos={incident_has_photos}
+                incident_has_documents={incident_has_documents}
+                can_generate={can_manage_activities}
+                weekly_report_path={incident.weekly_report_path}
+                dfr_photos_path={incident.dfr_photos_path}
+              />
+            </Deferred>
           )}
           {activeTab === "equipment" && (
             <Deferred data={["equipment_log", "equipment_types", "equipment_items_by_type", "attachable_equipment_entries"]} fallback={<PanelSkeleton />}>
