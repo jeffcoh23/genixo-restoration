@@ -339,6 +339,172 @@ class DfrPdfServiceTest < ActiveSupport::TestCase
     refute_includes text, "Photos"
   end
 
+  # Pins the fully-populated single-day report before the date-range
+  # generalization: every body section present, in order, with day-scoped
+  # content. If the range refactor changes single-day output, this fails.
+  test "fully-populated single-day report pins section order and content" do
+    travel_to Time.utc(2026, 5, 15, 14, 0, 0) do
+      @date = Date.current
+      tech = User.create!(organization: @genixo, user_type: "technician",
+        email_address: "svc-tech@genixo.com", first_name: "Terry", last_name: "Tech", password: "password123")
+      @incident.update!(units_affected: 4, affected_room_numbers: "101, 102")
+      @incident.activity_entries.create!(
+        title: "Demo and dry-down", details: "Removed baseboards in unit 101",
+        occurred_at: Time.current, performed_by_user: @manager, visitors: "Adjuster Bob"
+      )
+      @incident.labor_entries.create!(
+        user: tech, created_by_user: @manager, role_label: "Technician",
+        log_date: @date, started_at: Time.current - 8.hours, ended_at: Time.current, hours: 8
+      )
+      @incident.operational_notes.create!(
+        note_text: "Waiting on adjuster approval", log_date: @date, created_by_user: @manager
+      )
+      scrubber = EquipmentType.create!(organization: @genixo, name: "Air Scrubber")
+      @incident.equipment_entries.create!(
+        equipment_type: scrubber, equipment_identifier: "AS-01",
+        placed_at: Time.current - 2.hours, logged_by_user: @manager
+      )
+      weather = WeatherSnapshot.new(
+        incident: @incident, date: @date, temp_max: 88, temp_min: 71,
+        conditions: "Sunny", fetched_at: Time.current
+      )
+
+      pdf_data = DfrPdfService.new(
+        incident: @incident, date: @date, include_photos: false, weather: weather
+      ).generate
+      text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
+
+      expected_order = [
+        "Daily Field Report",
+        "Site Name:",
+        "Weather:",
+        "Employees on Site: 1",
+        "Demo and dry-down",
+        "Additional Notes:",
+        "Number of Units Affected:",
+        "Time:",
+        "Equipment:"
+      ]
+      positions = expected_order.map { |token| [ token, text.index(token) ] }
+      positions.each { |token, at| assert at, "section token #{token.inspect} missing from report" }
+      positions.each_cons(2) do |(a, at_a), (b, at_b)|
+        assert_operator at_a, :<, at_b, "#{a.inspect} must precede #{b.inspect}"
+      end
+
+      assert_includes text, "Sunset Apts"
+      assert_includes text, "Terry Tech"
+      assert_includes text, "Removed baseboards in unit 101"
+      assert_includes text, "Adjuster Bob"
+      assert_includes text, "Waiting on adjuster approval"
+      assert_includes text, "1 Technician"
+      assert_includes text, "1 Air Scrubber"
+      assert_includes text, "101, 102"
+    end
+  end
+
+  # --- weekly (multi-day) mode ---
+
+  test "multi-day report titles as Weekly Field Report with a date-range Date cell" do
+    start_date = Date.new(2026, 5, 11)
+    pdf_data = DfrPdfService.new(
+      incident: @incident, date: start_date, end_date: start_date + 6.days, include_photos: false
+    ).generate
+    text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
+
+    assert_includes text, "Weekly Field Report"
+    refute_includes text, "Daily Field Report"
+    assert_includes text, "5/11/26"
+    assert_includes text, "5/17/26"
+  end
+
+  test "weekly report renders a heading per day in order and marks empty days" do
+    travel_to Time.utc(2026, 5, 15, 14, 0, 0) do
+      start_date = Date.new(2026, 5, 11)
+      # Activity on Monday and Wednesday only; the rest of the span is empty.
+      Time.use_zone("America/Chicago") do
+        @incident.activity_entries.create!(title: "Monday demo work",
+          occurred_at: Time.zone.local(2026, 5, 11, 10, 0), performed_by_user: @manager)
+        @incident.activity_entries.create!(title: "Wednesday dry-down",
+          occurred_at: Time.zone.local(2026, 5, 13, 10, 0), performed_by_user: @manager)
+      end
+
+      pdf_data = DfrPdfService.new(
+        incident: @incident, date: start_date, end_date: start_date + 4.days, include_photos: false
+      ).generate
+      text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
+
+      day_headings = (0..4).map { |i| (start_date + i).strftime("%A, %B %-d, %Y") }
+      positions = day_headings.map { |h| [ h, text.index(h) ] }
+      positions.each { |h, at| assert at, "missing day heading #{h.inspect}" }
+      positions.each_cons(2) { |(_, a), (_, b)| assert_operator a, :<, b, "day headings out of order" }
+
+      monday_at = text.index("Monday demo work")
+      wednesday_at = text.index("Wednesday dry-down")
+      assert monday_at && wednesday_at
+      assert_operator text.index(day_headings[0]), :<, monday_at
+      assert_operator monday_at, :<, text.index(day_headings[2])
+      assert_operator text.index(day_headings[2]), :<, wednesday_at
+
+      # Three empty days (Tue, Thu, Fri) each carry the empty marker.
+      assert_equal 3, text.scan("No activity recorded.").size
+    end
+  end
+
+  test "weekly report renders per-day weather from a date-keyed hash" do
+    start_date = Date.new(2026, 5, 11)
+    weather = {
+      start_date => WeatherSnapshot.new(incident: @incident, date: start_date,
+        temp_max: 88, temp_min: 71, conditions: "Sunny Monday", fetched_at: Time.current),
+      start_date + 1 => WeatherSnapshot.new(incident: @incident, date: start_date + 1,
+        temp_max: 60, temp_min: 50, conditions: "Rainy Tuesday", fetched_at: Time.current)
+    }
+
+    pdf_data = DfrPdfService.new(
+      incident: @incident, date: start_date, end_date: start_date + 2.days,
+      include_photos: false, weather: weather
+    ).generate
+    text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
+
+    assert_includes text, "Sunny Monday"
+    assert_includes text, "Rainy Tuesday"
+    # Day 3 has no snapshot — exactly two weather lines render.
+    assert_equal 2, text.scan("Weather:").size
+  end
+
+  test "weekly report without explicit photo selection includes the whole span's photos" do
+    start_date = @date - 6.days
+    create_photo("mid-span.jpg", log_date: @date - 3.days)
+
+    pdf_data = DfrPdfService.new(
+      incident: @incident, date: start_date, end_date: @date, include_photos: true
+    ).generate
+    text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
+
+    assert_includes text, "Photos"
+  end
+
+  test "weekly report does not repeat incident-level summary fallbacks on every day" do
+    @incident.update!(units_affected: 4, affected_room_numbers: "101, 102")
+    start_date = Date.new(2026, 5, 11)
+
+    pdf_data = DfrPdfService.new(
+      incident: @incident, date: start_date, end_date: start_date + 6.days, include_photos: false
+    ).generate
+    text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
+
+    refute_includes text, "Number of Units Affected:",
+      "incident-level units fallback must not repeat under every empty day"
+  end
+
+  test "rejects an end_date before the start date and spans over the cap" do
+    assert_raises(ArgumentError) do
+      DfrPdfService.new(incident: @incident, date: @date, end_date: @date - 1.day)
+    end
+    assert_raises(ArgumentError) do
+      DfrPdfService.new(incident: @incident, date: @date, end_date: @date + DfrPdfService::MAX_REPORT_DAYS.days)
+    end
+  end
+
   # --- documents ---
 
   test "appends a selected PDF document's pages to the DFR" do
