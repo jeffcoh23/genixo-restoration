@@ -297,6 +297,115 @@ class DfrPdfJobTest < ActiveSupport::TestCase
     assert_includes text, "scope.pdf (attached)"
   end
 
+  # --- weekly reports ---
+
+  test "end_date produces a weekly_report attachment spanning the range" do
+    start_date = Date.current - 6.days
+
+    assert_difference -> { @incident.attachments.where(category: "weekly_report").count }, 1 do
+      DfrPdfJob.perform_now(@incident.id, start_date.to_s, "America/Chicago", @manager.id, [], nil, Date.current.to_s)
+    end
+
+    attachment = @incident.attachments.where(category: "weekly_report").last
+    assert attachment.file.attached?
+    assert_equal start_date, attachment.log_date
+    assert_equal Date.current, attachment.log_date_end
+    assert_includes attachment.description, "Weekly Field Report"
+
+    require "pdf/inspector"
+    text = PDF::Inspector::Text.analyze(attachment.file.download).strings.join(" ")
+    assert_includes text, "Weekly Field Report"
+  end
+
+  test "weekly filename spans the range" do
+    @incident.update!(job_id: "JOB-123")
+    start_date = Date.current - 6.days
+
+    DfrPdfJob.perform_now(@incident.id, start_date.to_s, "America/Chicago", @manager.id, [], nil, Date.current.to_s)
+
+    attachment = @incident.attachments.where(category: "weekly_report").last
+    assert_equal "Weekly Report - Sunset Apts - JOB-123 - #{start_date} to #{Date.current}.pdf",
+      attachment.file.filename.to_s
+  end
+
+  test "regenerating the same span replaces the file instead of adding a row" do
+    start_date = Date.current - 6.days
+    args = [ @incident.id, start_date.to_s, "America/Chicago", @manager.id, [], nil, Date.current.to_s ]
+
+    DfrPdfJob.perform_now(*args)
+    report = @incident.attachments.find_by(category: "weekly_report", log_date: start_date)
+    original_blob_id = report.file.blob.id
+
+    assert_no_difference -> { @incident.attachments.count } do
+      DfrPdfJob.perform_now(*args)
+    end
+    report.reload
+    assert report.file.attached?
+    refute_equal original_blob_id, report.file.blob.id
+  end
+
+  test "same start date with different end dates are distinct weekly reports" do
+    start_date = Date.current - 13.days
+
+    DfrPdfJob.perform_now(@incident.id, start_date.to_s, "America/Chicago", @manager.id, [], nil, (start_date + 6).to_s)
+    DfrPdfJob.perform_now(@incident.id, start_date.to_s, "America/Chicago", @manager.id, [], nil, (start_date + 13).to_s)
+
+    assert_equal 2, @incident.attachments.where(category: "weekly_report", log_date: start_date).count
+  end
+
+  test "a weekly report and a DFR for the same date coexist" do
+    date = Date.current
+
+    DfrPdfJob.perform_now(@incident.id, date.to_s, "America/Chicago", @manager.id)
+    DfrPdfJob.perform_now(@incident.id, date.to_s, "America/Chicago", @manager.id, [], nil, (date + 6).to_s)
+
+    assert_equal 1, @incident.attachments.where(category: "dfr", log_date: date).count
+    assert_equal 1, @incident.attachments.where(category: "weekly_report", log_date: date).count
+  end
+
+  test "a losing concurrent weekly insert attaches over the winner's row" do
+    start_date = Date.current - 6.days
+    end_date = Date.current
+
+    # Simulate the race: the winner's row appears after this job's find_by
+    # returned nothing. The unique index rejects the insert; the job must
+    # rescue and attach over the winner instead of failing.
+    winner = @incident.attachments.create!(category: "weekly_report",
+      log_date: start_date, log_date_end: end_date, uploaded_by_user: @manager)
+
+    original_find_by = Attachment.method(:find_by)
+    faked_once = false
+    assert_no_difference -> { @incident.attachments.count } do
+      @incident.attachments.singleton_class.define_method(:find_by) do |*args, **kw|
+        if !faked_once && kw[:category] == "weekly_report"
+          faked_once = true
+          nil
+        else
+          super(*args, **kw)
+        end
+      end
+      DfrPdfJob.perform_now(@incident.id, start_date.to_s, "America/Chicago", @manager.id, [], nil, end_date.to_s)
+    end
+
+    assert winner.reload.file.attached?, "the job must attach its PDF onto the winner's row"
+  end
+
+  test "weekly report threads per-day cached weather into the PDF" do
+    require "pdf/inspector"
+    start_date = Date.current - 2.days
+    WeatherSnapshot.create!(incident: @incident, date: start_date, temp_max: 90, temp_min: 70,
+      conditions: "Sunny start", fetched_at: Time.current)
+    WeatherSnapshot.create!(incident: @incident, date: Date.current, temp_max: 60, temp_min: 50,
+      conditions: "Rainy finish", fetched_at: Time.current)
+
+    DfrPdfJob.perform_now(@incident.id, start_date.to_s, "America/Chicago", @manager.id, [], nil, Date.current.to_s)
+
+    pdf = @incident.attachments.where(category: "weekly_report").last.file.download
+    text = PDF::Inspector::Text.analyze(pdf).strings.join(" ")
+    assert_includes text, "Sunny start"
+    assert_includes text, "Rainy finish"
+  end
+
   private
 
   # This app runs Solid Queue as the ActiveJob adapter even in tests, so the
