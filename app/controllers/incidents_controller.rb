@@ -2,9 +2,9 @@ class IncidentsController < ApplicationController
   include ZipKit::RailsStreaming
 
   before_action :authorize_creation!, only: %i[new create]
-  before_action :set_incident, only: %i[show update transition mark_read dfr dfr_photos photos_zip attachments_page report]
+  before_action :set_incident, only: %i[show update transition mark_read dfr weekly_report dfr_photos photos_zip attachments_page report]
   before_action :authorize_edit!, only: %i[update]
-  before_action :authorize_dfr!, only: %i[dfr dfr_photos]
+  before_action :authorize_dfr!, only: %i[dfr weekly_report dfr_photos]
   before_action :authorize_transition!, only: %i[transition]
 
   def index
@@ -245,6 +245,7 @@ class IncidentsController < ApplicationController
         upload_photo_path: upload_photo_incident_attachments_path(@incident),
         photos_zip_path: photos_zip_incident_path(@incident),
         dfr_path: dfr_incident_path(@incident),
+        weekly_report_path: weekly_report_incident_path(@incident),
         dfr_photos_path: dfr_photos_incident_path(@incident),
         report_path: report_incident_path(@incident),
         attachments_page_path: attachments_page_incident_path(@incident),
@@ -262,7 +263,7 @@ class IncidentsController < ApplicationController
       # documents (not just the report date's), so the generate flow needs to
       # know whether the picker is worth opening at all.
       incident_has_photos: @incident.attachments.where(category: "photo").exists?,
-      incident_has_documents: @incident.attachments.where.not(category: %w[photo dfr]).exists?,
+      incident_has_documents: @incident.attachments.where.not(category: [ "photo" ] + Attachment::GENERATED_REPORT_CATEGORIES).exists?,
       labor_entries: labor_entries,
       can_transition: can_transition_status?,
       can_assign: can_assign_to_incident?,
@@ -289,6 +290,7 @@ class IncidentsController < ApplicationController
       attachable_equipment_entries: InertiaRails.defer(group: "equipment") { can_manage_activities? ? attachable_equipment_entries(@incident) : [] },
       messages: InertiaRails.defer(group: "messages") { serialize_messages(@incident.messages.includes({ user: :organization }, { attachments: [ :uploaded_by_user, { file_attachment: :blob } ] }).order(created_at: :asc)) },
       attachments: InertiaRails.defer(group: "documents") { serialize_attachments(@incident) },
+      weekly_reports: InertiaRails.defer(group: "weekly_reports") { serialize_weekly_reports(@incident) },
       operational_notes: InertiaRails.defer(group: "documents") { serialize_operational_notes(@incident) },
       activity_entries: InertiaRails.defer(group: "activity") { serialize_activity_entries(@incident) },
       moisture_data: InertiaRails.defer(group: "readings") { serialize_moisture_data(@incident) },
@@ -327,15 +329,35 @@ class IncidentsController < ApplicationController
   def dfr
     # Validate here, not in the job — a bad date raised inside DfrPdfJob is
     # invisible (no retry/discard handler; the UI would poll forever).
-    date = begin
-      Date.iso8601(params[:date].presence || Date.current.to_s)
-    rescue ArgumentError, TypeError
-      return redirect_to incident_path(@incident), alert: "Could not generate DFR: invalid date."
-    end
+    date = parse_iso_date(params[:date].presence || Date.current.to_s)
+    return redirect_to incident_path(@incident), alert: "Could not generate DFR: invalid date." if date.nil?
     photo_ids = dfr_id_array(:photo_ids)
     document_ids = dfr_id_array(:document_ids)
     DfrPdfJob.perform_later(@incident.id, date.iso8601, current_user.timezone, current_user.id, photo_ids, document_ids)
     redirect_to incident_path(@incident), notice: "DFR PDF is being generated. It will appear in the daily log shortly."
+  end
+
+  # Enqueues a weekly (multi-day) field report. Same validation posture as
+  # #dfr: reject bad input here, pre-enqueue — a bad date raised inside the job
+  # would leave the UI polling with nothing to find.
+  def weekly_report
+    start_date = parse_iso_date(params[:start_date])
+    end_date = parse_iso_date(params[:end_date])
+    error =
+      if start_date.nil? || end_date.nil?
+        "Could not generate weekly report: invalid date."
+      elsif end_date <= start_date
+        "Could not generate weekly report: end date must be after the start date."
+      elsif (end_date - start_date).to_i >= DfrPdfService::MAX_REPORT_DAYS
+        "Could not generate weekly report: date range cannot exceed #{DfrPdfService::MAX_REPORT_DAYS} days."
+      end
+    return redirect_to incident_path(@incident), alert: error if error
+
+    photo_ids = dfr_id_array(:photo_ids)
+    document_ids = dfr_id_array(:document_ids)
+    DfrPdfJob.perform_later(@incident.id, start_date.iso8601, current_user.timezone, current_user.id,
+      photo_ids, document_ids, end_date.iso8601)
+    redirect_to incident_path(@incident), notice: "Weekly report is being generated. It will appear in the Weekly Reports tab shortly."
   end
 
   def dfr_photos
@@ -354,7 +376,7 @@ class IncidentsController < ApplicationController
       }
     documents = @incident.attachments
       .includes(:uploaded_by_user, file_attachment: :blob)
-      .where.not(category: %w[photo dfr])
+      .where.not(category: [ "photo" ] + Attachment::GENERATED_REPORT_CATEGORIES)
       .order(:created_at)
       .map { |att| serialize_single_attachment(att) }
     render json: { photos: photos, documents: documents }
@@ -412,6 +434,12 @@ class IncidentsController < ApplicationController
   def dfr_id_array(key)
     return nil unless params.key?(key)
     Array(params[key]).flatten.filter_map { |v| Integer(v, exception: false) }.uniq
+  end
+
+  def parse_iso_date(value)
+    Date.iso8601(value.to_s)
+  rescue ArgumentError, TypeError
+    nil
   end
 
   # Some legacy uploads (camera capture path that ran the file through
@@ -863,8 +891,11 @@ class IncidentsController < ApplicationController
   end
 
   def attachment_date_labels(incident)
+    # A weekly report's log_date is a range start, not a daily-log day — it
+    # must not conjure an empty date into the daily log.
     incident.attachments
       .where.not(log_date: nil)
+      .where.not(category: "weekly_report")
       .distinct.pluck(:log_date)
       .each_with_object({}) { |d, h| h[d.iso8601] = format_date(d) }
   end
@@ -1253,15 +1284,32 @@ class IncidentsController < ApplicationController
     end
   end
 
+  # Weekly reports live in their own tab (serialize_weekly_reports); they are
+  # excluded from the Documents/photos listings so a generated report can never
+  # be re-selected into another generated report.
   def serialize_attachments(incident)
     incident.attachments.includes(:uploaded_by_user, file_attachment: :blob)
+      .where.not(category: "weekly_report")
       .order(created_at: :desc)
       .limit(200)
       .map { |att| serialize_single_attachment(att) }
   end
 
+  def serialize_weekly_reports(incident)
+    incident.attachments.includes(:uploaded_by_user, file_attachment: :blob)
+      .where(category: "weekly_report")
+      .order(log_date: :desc, log_date_end: :desc)
+      .map { |att|
+        serialize_single_attachment(att).merge(
+          log_date_end: att.log_date_end&.iso8601,
+          range_label: "#{format_date(att.log_date)} – #{format_date(att.log_date_end)}"
+        )
+      }
+  end
+
   def serialize_attachments_page(incident, page: 1, per_page: 20)
     scope = incident.attachments.includes(:uploaded_by_user, file_attachment: :blob)
+      .where.not(category: "weekly_report")
       .order(created_at: :desc)
     total = scope.count
     attachments = scope.offset((page - 1) * per_page).limit(per_page)

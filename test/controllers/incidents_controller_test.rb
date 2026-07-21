@@ -1261,6 +1261,143 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
+  # --- weekly reports ---
+
+  test "weekly_report enqueues a job and redirects with a notice" do
+    incident = create_test_incident(status: "active")
+    login_as @manager
+
+    start_date = Date.current - 6.days
+    with_test_queue_adapter do
+      assert_enqueued_with(job: DfrPdfJob,
+        args: [ incident.id, start_date.iso8601, @manager.timezone, @manager.id, [ 1 ], nil, Date.current.iso8601 ]) do
+        post weekly_report_incident_path(incident),
+          params: { start_date: start_date.iso8601, end_date: Date.current.iso8601, photo_ids: [ 1 ] }
+      end
+    end
+    assert_redirected_to incident_path(incident)
+    assert_match(/Weekly report is being generated/, flash[:notice])
+  end
+
+  test "weekly_report rejects invalid dates before enqueueing" do
+    incident = create_test_incident(status: "active")
+    login_as @manager
+
+    with_test_queue_adapter do
+      assert_no_enqueued_jobs only: DfrPdfJob do
+        post weekly_report_incident_path(incident), params: { start_date: "not-a-date", end_date: Date.current.iso8601 }
+      end
+    end
+    assert_redirected_to incident_path(incident)
+    assert_match(/invalid date/, flash[:alert])
+  end
+
+  test "weekly_report rejects an end date on or before the start date" do
+    incident = create_test_incident(status: "active")
+    login_as @manager
+
+    with_test_queue_adapter do
+      assert_no_enqueued_jobs only: DfrPdfJob do
+        post weekly_report_incident_path(incident),
+          params: { start_date: Date.current.iso8601, end_date: Date.current.iso8601 }
+      end
+    end
+    assert_match(/end date must be after/, flash[:alert])
+  end
+
+  test "weekly_report rejects a span over the cap" do
+    incident = create_test_incident(status: "active")
+    login_as @manager
+
+    with_test_queue_adapter do
+      assert_no_enqueued_jobs only: DfrPdfJob do
+        post weekly_report_incident_path(incident),
+          params: { start_date: (Date.current - 31.days).iso8601, end_date: Date.current.iso8601 }
+      end
+    end
+    assert_match(/cannot exceed/, flash[:alert])
+  end
+
+  test "weekly_report requires manage_daily_logs" do
+    incident = create_test_incident(status: "active")
+    @manager.update!(permissions: @manager.permissions - [ Permissions::MANAGE_DAILY_LOGS.to_s ])
+    login_as @manager
+
+    post weekly_report_incident_path(incident),
+      params: { start_date: (Date.current - 6.days).iso8601, end_date: Date.current.iso8601 }
+    assert_response :not_found
+  end
+
+  test "weekly_report is scoped through visible_incidents" do
+    incident = create_test_incident(status: "active")
+    other_pm_org = Organization.create!(name: "Unrelated PM Co", organization_type: "property_management")
+    other_pm = User.create!(organization: other_pm_org, user_type: "property_manager",
+      email_address: "other-pm-weekly@other.com", first_name: "Other", last_name: "PM", password: "password123")
+    login_as other_pm
+
+    post weekly_report_incident_path(incident),
+      params: { start_date: (Date.current - 6.days).iso8601, end_date: Date.current.iso8601 }
+    assert_response :not_found
+  end
+
+  test "weekly_reports deferred prop serializes reports with a range label" do
+    incident = create_test_incident(status: "active")
+    report = incident.attachments.create!(category: "weekly_report",
+      log_date: Date.new(2026, 7, 13), log_date_end: Date.new(2026, 7, 19), uploaded_by_user: @manager)
+    report.file.attach(io: StringIO.new("%PDF-fake"), filename: "weekly.pdf", content_type: "application/pdf")
+    login_as @manager
+
+    get incident_path(incident)
+    assert_response :success
+    props = inertia_deferred_props(incident_path(incident), "weekly_reports")
+
+    reports = props.fetch("weekly_reports")
+    assert_equal 1, reports.size
+    assert_equal "2026-07-13", reports.first["log_date"]
+    assert_equal "2026-07-19", reports.first["log_date_end"]
+    assert reports.first["range_label"].present?
+  end
+
+  test "weekly reports are excluded from the Documents listing, pickers, and pagination" do
+    incident = create_test_incident(status: "active")
+    report = incident.attachments.create!(category: "weekly_report",
+      log_date: Date.current - 6.days, log_date_end: Date.current, uploaded_by_user: @manager)
+    report.file.attach(io: StringIO.new("%PDF-fake"), filename: "weekly.pdf", content_type: "application/pdf")
+    dfr = incident.attachments.create!(category: "dfr", log_date: Date.current, uploaded_by_user: @manager)
+    dfr.file.attach(io: StringIO.new("%PDF-fake"), filename: "dfr.pdf", content_type: "application/pdf")
+    login_as @manager
+
+    get incident_path(incident)
+    props = inertia_deferred_props(incident_path(incident), "attachments")
+    categories = props.fetch("attachments").map { |a| a["category"] }
+    refute_includes categories, "weekly_report", "Documents listing must not include weekly reports"
+
+    get dfr_photos_incident_path(incident), params: { date: Date.current.to_s }
+    body = JSON.parse(response.body)
+    picker_categories = body.fetch("documents").map { |d| d["category"] }
+    refute_includes picker_categories, "weekly_report", "picker must not offer generated weekly reports"
+    refute_includes picker_categories, "dfr", "picker must not offer generated DFRs"
+
+    get attachments_page_incident_path(incident), params: { page: 1 }
+    page_categories = JSON.parse(response.body).fetch("items").map { |a| a["category"] }
+    refute_includes page_categories, "weekly_report"
+  end
+
+  test "a weekly report's start date does not appear as a daily log date" do
+    incident = create_test_incident(status: "active")
+    start_date = Date.current - 20.days
+    incident.attachments.create!(category: "weekly_report",
+      log_date: start_date, log_date_end: start_date + 6.days, uploaded_by_user: @manager)
+    login_as @manager
+
+    get incident_path(incident)
+    assert_response :success
+    props = inertia_props
+    dates = props.dig("daily_log_dates")&.map { |d| d["date"] } || []
+    refute_includes dates, start_date.iso8601,
+      "weekly report log_date must not conjure an empty daily-log date"
+  end
+
   # --- photos_zip ---
 
   test "photos_zip streams a zip with all incident photos when no filter" do
@@ -1603,6 +1740,16 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     get report_incident_path(incident)
 
     assert_response :not_found
+  end
+
+  # This app runs Solid Queue as the ActiveJob adapter even in tests, so the
+  # enqueue assertions (which need the :test adapter) require a local swap.
+  def with_test_queue_adapter
+    old = ActiveJob::Base.queue_adapter
+    ActiveJob::Base.queue_adapter = :test
+    yield
+  ensure
+    ActiveJob::Base.queue_adapter = old
   end
 
   def create_test_incident(status:, property: nil, description: "Test incident")

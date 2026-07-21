@@ -39,6 +39,7 @@ Rails.application.routes.draw do
       patch :transition
       patch :mark_read
       post :dfr
+      post :weekly_report
       get :dfr_photos
       get :photos_zip
       get :attachments_page
