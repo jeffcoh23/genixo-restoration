@@ -112,6 +112,7 @@ class DfrPdfService
           render_day_sections(pdf, day)
         end
       end
+      render_consumables_totals(pdf)
     else
       render_day_sections(pdf, @date)
     end
@@ -125,6 +126,7 @@ class DfrPdfService
     render_summary_fields(pdf, day)
     render_labor_section(pdf, day)
     render_equipment_section(pdf, day)
+    render_consumables_section(pdf, day)
   end
 
   def render_day_heading(pdf, day, first:)
@@ -139,7 +141,8 @@ class DfrPdfService
     activities_for_date(day).empty? &&
       labor_entries_for_date(day).empty? &&
       notes_for_date(day).empty? &&
-      equipment_entries_for_date(day).empty?
+      equipment_entries_for_date(day).empty? &&
+      consumable_entries_for_date(day).empty?
   end
 
   def multi_day?
@@ -347,6 +350,44 @@ class DfrPdfService
       t.cells.padding = [ 2, 5, 2, 5 ]
       t.cells.size = 10
       t.row(0).font_style = :bold
+    end
+
+    pdf.move_down 10
+  end
+
+  def render_consumables_section(pdf, day)
+    entries = consumable_entries_for_date(day)
+    return if entries.empty?
+
+    pdf.stroke_horizontal_rule
+    pdf.move_down 8
+
+    pdf.font_size(10) { pdf.text "Consumables Used:", style: :bold }
+    pdf.move_down 3
+
+    entries.each do |entry|
+      pdf.font_size(10) { pdf.text t("• #{entry.display_name}  ×#{entry.quantity}") }
+    end
+
+    pdf.move_down 10
+  end
+
+  # Weekly only: one summed block after the last day, so billing doesn't have
+  # to tally quantities across seven day sections by hand.
+  def render_consumables_totals(pdf)
+    all_entries = consumables_by_day.values.flatten
+    return if all_entries.empty?
+
+    pdf.move_down 4
+    pdf.stroke_horizontal_rule
+    pdf.move_down 8
+
+    pdf.font_size(11) { pdf.text "Consumables Totals (#{report_date_label}):", style: :bold }
+    pdf.move_down 3
+
+    totals = all_entries.group_by(&:display_name).map { |name, group| [ name, group.sum(&:quantity) ] }
+    totals.sort_by { |name, _| name.to_s.downcase }.each do |name, quantity|
+      pdf.font_size(10) { pdf.text t("• #{name}  ×#{quantity}") }
     end
 
     pdf.move_down 10
@@ -647,6 +688,18 @@ class DfrPdfService
 
   def notes_for_date(day)
     notes_by_day[day] || []
+  end
+
+  def consumable_entries_for_date(day)
+    consumables_by_day[day] || []
+  end
+
+  def consumables_by_day
+    @consumables_by_day ||= @incident.consumable_entries
+      .includes(:consumable_type)
+      .where(log_date: @date..@end_date)
+      .order(:created_at)
+      .group_by(&:log_date)
   end
 
   def notes_by_day

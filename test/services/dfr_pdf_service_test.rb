@@ -415,6 +415,54 @@ class DfrPdfServiceTest < ActiveSupport::TestCase
     assert_includes text, "Yes"
   end
 
+  # --- consumables ---
+
+  test "daily report renders the day's consumables with quantities" do
+    hepa = ConsumableType.create!(organization: @genixo, name: "HEPA Filter Air Scrubber Small")
+    @incident.consumable_entries.create!(consumable_type: hepa, quantity: 3, log_date: @date, logged_by_user: @manager)
+    @incident.consumable_entries.create!(custom_name: "Ozone pads", quantity: 2, log_date: @date, logged_by_user: @manager)
+    # Another day's entry must not leak into this report.
+    @incident.consumable_entries.create!(consumable_type: hepa, quantity: 9, log_date: @date - 1.day, logged_by_user: @manager)
+
+    pdf_data = DfrPdfService.new(incident: @incident, date: @date, include_photos: false).generate
+    text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
+
+    assert_includes text, "Consumables Used:"
+    assert_includes text, "HEPA Filter Air Scrubber Small"
+    assert_match(/×\s*3/, text)
+    assert_includes text, "Ozone pads"
+    assert_match(/×\s*2/, text)
+    refute_match(/×\s*9/, text, "other days' consumables must not appear on a daily report")
+    refute_includes text, "Consumables Totals", "the totals block is weekly-only"
+  end
+
+  test "daily report omits the consumables section when none are logged" do
+    pdf_data = DfrPdfService.new(incident: @incident, date: @date, include_photos: false).generate
+    refute_includes PDF::Inspector::Text.analyze(pdf_data).strings.join(" "), "Consumables"
+  end
+
+  test "weekly report renders per-day consumables and a summed totals block" do
+    hepa = ConsumableType.create!(organization: @genixo, name: "HEPA Filter Air Scrubber Small")
+    start_date = Date.new(2026, 5, 11)
+    @incident.consumable_entries.create!(consumable_type: hepa, quantity: 3, log_date: start_date, logged_by_user: @manager)
+    @incident.consumable_entries.create!(consumable_type: hepa, quantity: 4, log_date: start_date + 2, logged_by_user: @manager)
+    @incident.consumable_entries.create!(custom_name: "Ozone pads", quantity: 2, log_date: start_date + 2, logged_by_user: @manager)
+
+    pdf_data = DfrPdfService.new(
+      incident: @incident, date: start_date, end_date: start_date + 6.days, include_photos: false
+    ).generate
+    text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
+
+    assert_equal 2, text.scan("Consumables Used:").size, "one per-day section per day with entries"
+    assert_includes text, "Consumables Totals"
+    assert_match(/×\s*7/, text, "totals must sum the type across days (3 + 4)")
+    # A consumables-only day counts as activity, not an empty day.
+    monday_heading = start_date.strftime("%A, %B %-d, %Y")
+    monday_at = text.index(monday_heading)
+    tuesday_at = text.index((start_date + 1).strftime("%A, %B %-d, %Y"))
+    refute_includes text[monday_at...tuesday_at], "No activity recorded."
+  end
+
   # --- weekly (multi-day) mode ---
 
   test "multi-day report titles as Weekly Field Report with a date-range Date cell" do
