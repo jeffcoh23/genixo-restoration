@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { router, usePoll } from "@inertiajs/react";
+import { router, usePage, usePoll } from "@inertiajs/react";
 import { AlertCircle, FileText, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import type { SharedProps } from "@/types";
 import type { DfrSelectablePhoto, IncidentAttachment, WeeklyReport } from "../types";
 import DfrPhotoSelectionModal from "./DfrPhotoSelectionModal";
 
@@ -20,13 +22,17 @@ interface WeeklyReportsPanelProps {
 const POLL_TIMEOUT_MS = 180_000;
 const MAX_RANGE_DAYS = 31;
 
-function toIsoDate(date: Date): string {
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+// Date-only ISO strings parse as UTC midnight, so day arithmetic on them is
+// exact and DST-proof. The anchor date itself comes from the server (`today`
+// shared prop, in the user's timezone) — never from the browser clock.
+function addDays(iso: string, days: number): string {
+  const date = new Date(iso);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
 }
 
 function daysBetween(startIso: string, endIso: string): number {
-  return Math.round((new Date(endIso).getTime() - new Date(startIso).getTime()) / 86_400_000);
+  return Math.round((Date.parse(endIso) - Date.parse(startIso)) / 86_400_000);
 }
 
 function rangeKey(startIso: string, endIso: string): string {
@@ -41,8 +47,9 @@ export default function WeeklyReportsPanel({
   weekly_report_path,
   dfr_photos_path,
 }: WeeklyReportsPanelProps) {
-  const [startDate, setStartDate] = useState(() => toIsoDate(new Date(Date.now() - 6 * 86_400_000)));
-  const [endDate, setEndDate] = useState(() => toIsoDate(new Date()));
+  const { today } = usePage<SharedProps>().props;
+  const [startDate, setStartDate] = useState(() => addDays(today, -6));
+  const [endDate, setEndDate] = useState(today);
   // Requested ranges mapped to the report URL at request time (null = new
   // report) so a regeneration completing is detectable as a URL change.
   const [requested, setRequested] = useState<Map<string, string | null>>(new Map());
@@ -176,22 +183,22 @@ export default function WeeklyReportsPanel({
           <div className="flex flex-wrap items-end gap-3">
             <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
               Start date
-              <input
+              <Input
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
                 data-testid="weekly-report-start-date"
-                className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground"
+                className="h-9 w-auto"
               />
             </label>
             <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
               End date
-              <input
+              <Input
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
                 data-testid="weekly-report-end-date"
-                className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground"
+                className="h-9 w-auto"
               />
             </label>
             <Button
