@@ -318,6 +318,10 @@ class DfrPdfService
     pdf.move_down 10
   end
 
+  # Per-unit rows matching the Equipment tab (Daniel: "listed out by ID number,
+  # equipment type, start date, and end date"). The old per-type "N Type X hrs"
+  # aggregate summed each unit's computed time-in-place, which read as a
+  # mystery number on the report.
   def render_equipment_section(pdf, day)
     entries = equipment_entries_for_date(day)
     return if entries.empty?
@@ -328,15 +332,33 @@ class DfrPdfService
     pdf.font_size(10) { pdf.text "Equipment:", style: :bold }
     pdf.move_down 3
 
-    by_type = entries.group_by { |e| e.type_name.to_s.strip }.sort_by { |name, _| name.downcase }
-    by_type.each do |type_name, type_entries|
-      total_hours = type_entries.sum { |e| equipment_hours_for_date(e, day) }
-      pdf.font_size(10) do
-        pdf.text t("• #{type_entries.size} #{type_name}  #{total_hours} hrs")
-      end
+    rows = [ [ "ID", "Type", "Start Date", "End Date" ] ]
+    entries.each do |entry|
+      rows << [
+        t(equipment_id_label(entry)) || "-",
+        t(entry.type_name.to_s.strip) || "-",
+        entry.placed_at.strftime("%-m/%-d/%y"),
+        entry.removed_at ? entry.removed_at.strftime("%-m/%-d/%y") : "In place"
+      ]
+    end
+
+    pdf.table(rows, width: pdf.bounds.width, header: true) do |t|
+      t.cells.borders = []
+      t.cells.padding = [ 2, 5, 2, 5 ]
+      t.cells.size = 10
+      t.row(0).font_style = :bold
     end
 
     pdf.move_down 10
+  end
+
+  def equipment_id_label(entry)
+    [ entry.tag_number, entry.equipment_identifier ]
+      .map { |v| v.to_s.strip }
+      .reject(&:blank?)
+      .uniq
+      .join(" / ")
+      .presence
   end
 
   # Photos in batches of PHOTO_BATCH_SIZE, each rendered to its own PDF part (see
@@ -609,13 +631,6 @@ class DfrPdfService
         full_range.last, full_range.first)
       .order(:placed_at)
       .to_a
-  end
-
-  def equipment_hours_for_date(entry, day)
-    range = day_range(day)
-    day_start = [ entry.placed_at, range.first ].max
-    day_end = [ entry.removed_at || Time.current, range.last ].min
-    ((day_end - day_start) / 1.hour).round(1)
   end
 
   def labor_entries_for_date(day)

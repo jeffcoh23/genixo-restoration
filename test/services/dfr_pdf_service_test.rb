@@ -397,7 +397,9 @@ class DfrPdfServiceTest < ActiveSupport::TestCase
       assert_includes text, "Adjuster Bob"
       assert_includes text, "Waiting on adjuster approval"
       assert_includes text, "1 Technician"
-      assert_includes text, "1 Air Scrubber"
+      assert_includes text, "AS-01"
+      assert_includes text, "Air Scrubber"
+      assert_includes text, "In place"
       assert_includes text, "101, 102"
     end
   end

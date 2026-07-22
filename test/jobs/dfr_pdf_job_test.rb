@@ -122,21 +122,18 @@ class DfrPdfJobTest < ActiveSupport::TestCase
     refute_equal original_blob_id, dfr.file.blob.id, "regeneration should attach a new blob"
   end
 
-  test "PDF includes equipment summary with counts and hours for on-site equipment" do
+  test "PDF lists equipment per unit with ID, type, start date, and end date" do
     require "pdf/inspector"
 
     dehu = EquipmentType.create!(name: "Dehumidifier", organization: @genixo)
     air_mover = EquipmentType.create!(name: "Air Mover", organization: @genixo)
 
-    # 2 dehumidifiers placed yesterday, still on-site
-    EquipmentEntry.create!(incident: @incident, equipment_type: dehu,
+    EquipmentEntry.create!(incident: @incident, equipment_type: dehu, tag_number: "DH-101",
+      placed_at: 2.days.ago, logged_by_user: @manager)
+    EquipmentEntry.create!(incident: @incident, equipment_type: dehu, equipment_identifier: "SN-555",
       placed_at: 1.day.ago, logged_by_user: @manager)
-    EquipmentEntry.create!(incident: @incident, equipment_type: dehu,
-      placed_at: 1.day.ago, logged_by_user: @manager)
-
-    # 1 air mover placed yesterday, still on-site
-    EquipmentEntry.create!(incident: @incident, equipment_type: air_mover,
-      placed_at: 1.day.ago, logged_by_user: @manager)
+    EquipmentEntry.create!(incident: @incident, equipment_type: air_mover, tag_number: "AM-7",
+      placed_at: 2.days.ago, removed_at: 2.hours.ago, logged_by_user: @manager)
 
     pdf_data = DfrPdfService.new(
       incident: @incident, date: Date.current, timezone: "America/Chicago", include_photos: false
@@ -144,9 +141,17 @@ class DfrPdfJobTest < ActiveSupport::TestCase
 
     text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
     assert_includes text, "Equipment:"
-    assert_includes text, "2 Dehumidifier"
-    assert_includes text, "1 Air Mover"
-    assert_match(/\d+\.\d+ hrs/, text, "Should include hours for equipment")
+    # Header row + one row per unit, tagged by ID and type.
+    [ "ID", "Type", "Start Date", "End Date" ].each { |h| assert_includes text, h }
+    assert_includes text, "DH-101"
+    assert_includes text, "SN-555"
+    assert_includes text, "AM-7"
+    assert_includes text, "Dehumidifier"
+    assert_includes text, "Air Mover"
+    assert_includes text, "In place", "still-deployed units must show In place, not an end date"
+    assert_includes text, 2.hours.ago.in_time_zone("America/Chicago").strftime("%-m/%-d/%y"),
+      "removed unit shows its end date"
+    refute_match(/\d+\.\d+ hrs/, text, "the computed hours aggregate must be gone")
   end
 
   test "PDF excludes equipment removed before the report date" do
@@ -168,7 +173,7 @@ class DfrPdfJobTest < ActiveSupport::TestCase
     ).generate
 
     text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
-    assert_includes text, "1 Dehumidifier"
+    assert_includes text, "Dehumidifier"
     refute_includes text, "Air Mover", "Removed equipment should not appear"
   end
 
