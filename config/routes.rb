@@ -86,6 +86,7 @@ Rails.application.routes.draw do
     end
     delete "psychrometric_points/:id", to: "psychrometric_readings#destroy_point", as: :psychrometric_point
     resources :operational_notes, only: %i[create]
+    resources :consumable_entries, only: %i[create]
     resources :attachments, only: %i[create update destroy] do
       collection do
         post :upload_photo

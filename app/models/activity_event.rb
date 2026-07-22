@@ -5,6 +5,7 @@ class ActivityEvent < ApplicationRecord
     labor_created labor_updated labor_deleted
     activity_logged activity_updated
     equipment_placed equipment_removed equipment_updated equipment_deleted
+    consumables_logged
     attachment_uploaded attachment_deleted
     operational_note_added
     escalation_attempted escalation_skipped escalation_exhausted

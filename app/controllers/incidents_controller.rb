@@ -246,6 +246,7 @@ class IncidentsController < ApplicationController
         activity_entries_path: incident_activity_entries_path(@incident),
         labor_entries_path: incident_labor_entries_path(@incident),
         equipment_entries_path: incident_equipment_entries_path(@incident),
+        consumable_entries_path: incident_consumable_entries_path(@incident),
         operational_notes_path: incident_operational_notes_path(@incident),
         attachments_path: incident_attachments_path(@incident),
         upload_photo_path: upload_photo_incident_attachments_path(@incident),
@@ -294,6 +295,8 @@ class IncidentsController < ApplicationController
       equipment_types: InertiaRails.defer(group: "equipment") { can_manage_equipment? ? equipment_types_for_incident(@incident) : [] },
       equipment_items_by_type: InertiaRails.defer(group: "equipment") { can_manage_equipment? ? equipment_items_by_type(@incident) : {} },
       attachable_equipment_entries: InertiaRails.defer(group: "equipment") { can_manage_activities? ? attachable_equipment_entries(@incident) : [] },
+      consumable_types: InertiaRails.defer(group: "equipment") { serialize_consumable_types(@incident) },
+      consumable_entries: InertiaRails.defer(group: "equipment") { serialize_consumable_entries(@incident) },
       messages: InertiaRails.defer(group: "messages") { serialize_messages(@incident.messages.includes({ user: :organization }, { attachments: [ :uploaded_by_user, { file_attachment: :blob } ] }).order(created_at: :asc)) },
       attachments: InertiaRails.defer(group: "documents") { serialize_attachments(@incident) },
       weekly_reports: InertiaRails.defer(group: "weekly_reports") { serialize_weekly_reports(@incident) },
@@ -1191,6 +1194,15 @@ class IncidentsController < ApplicationController
       [ "document", "Document uploaded", [ filename, category&.to_s&.titleize ].compact.join(" · ").presence ]
     when "operational_note_added"
       [ "note", "Operational note added", metadata_value(metadata, :note_preview) ]
+    when "consumables_logged"
+      log_date = metadata_value(metadata, :log_date)
+      count = metadata_value(metadata, :count)
+      date_label = begin
+        log_date.present? ? format_date(Date.iso8601(log_date.to_s)) : nil
+      rescue ArgumentError, TypeError
+        nil
+      end
+      [ "equipment", "Consumables logged", [ date_label, count.present? ? "#{count} item#{count.to_i == 1 ? '' : 's'}" : nil ].compact.join(" · ").presence ]
     when "contact_added"
       name = metadata_value(metadata, :contact_name) || "Contact"
       [ "contact", "#{name} added to contacts", nil ]
@@ -1354,6 +1366,39 @@ class IncidentsController < ApplicationController
       data[:destroy_path] = incident_attachment_path(@incident, att)
     end
     data
+  end
+
+  # The standard list is the mitigation org's active types in sheet order —
+  # every user who can see the Equipment tab sees the same prefilled rows.
+  def serialize_consumable_types(incident)
+    incident.property.mitigation_org.consumable_types.active.ordered.map do |type|
+      { id: type.id, name: type.name }
+    end
+  end
+
+  # All logged consumables keyed by day, newest day first, for the Equipment
+  # tab's sheet view and history list.
+  def serialize_consumable_entries(incident)
+    incident.consumable_entries
+      .includes(:consumable_type, :logged_by_user)
+      .order(log_date: :desc, created_at: :asc)
+      .group_by(&:log_date)
+      .map do |date, entries|
+        {
+          log_date: date.iso8601,
+          date_label: format_date(date),
+          entries: entries.map { |e|
+            {
+              id: e.id,
+              consumable_type_id: e.consumable_type_id,
+              name: e.display_name,
+              custom_name: e.custom_name,
+              quantity: e.quantity,
+              logged_by_name: e.logged_by_user.full_name
+            }
+          }
+        }
+      end
   end
 
   def serialize_operational_notes(incident)

@@ -14,6 +14,7 @@ class Organization < ApplicationRecord
   # Mitigation org only
   has_many :equipment_types, dependent: :destroy
   has_many :equipment_items, dependent: :destroy
+  has_many :consumable_types, dependent: :destroy
   has_one :on_call_configuration, dependent: :destroy
   has_many :invitations, dependent: :destroy
 
