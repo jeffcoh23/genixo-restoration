@@ -12,6 +12,7 @@ import MessagePanel from "./components/MessagePanel";
 import DailyLogPanel from "./components/DailyLogPanel";
 import WeeklyReportsPanel from "./components/WeeklyReportsPanel";
 import EquipmentPanel from "./components/EquipmentPanel";
+import type { EquipmentView } from "./components/EquipmentPanel";
 import LaborPanel from "./components/LaborPanel";
 import PhotosPanel from "./components/PhotosPanel";
 import DocumentPanel from "./components/DocumentPanel";
@@ -84,6 +85,7 @@ export default function IncidentShow() {
   const [statusOpen, setStatusOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(initialTab);
   const [readingsView, setReadingsView] = useState<ReadingsView>("moisture");
+  const [equipmentView, setEquipmentView] = useState<EquipmentView>("equipment");
   const [editFormOpen, setEditFormOpen] = useState(false);
   const [markedTabs, setMarkedTabs] = useState<Set<string>>(new Set());
   const statusAction = useInertiaAction();
@@ -207,6 +209,7 @@ export default function IncidentShow() {
                 size="sm"
                 className="h-10 sm:h-8 text-sm sm:text-xs gap-1.5"
                 onClick={() => setEditFormOpen(true)}
+                data-testid="edit-incident-btn"
               >
                 <Pencil className="h-3.5 w-3.5" />
                 Edit
@@ -339,6 +342,8 @@ export default function IncidentShow() {
                 consumable_days={consumable_entries}
                 consumable_entries_path={incident.consumable_entries_path}
                 can_manage_consumables={can_manage_activities}
+                view={equipmentView}
+                onViewChange={setEquipmentView}
               />
             </Deferred>
           )}

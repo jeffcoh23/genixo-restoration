@@ -91,8 +91,11 @@ export default function ConsumablesSection({
         .filter((row) => row.name.trim() !== "" && row.quantity !== "")
         .map((row) => ({ custom_name: row.name.trim(), quantity: row.quantity })),
     ];
+    // preserveState keeps the panel on the Consumables view (and on the same
+    // date) across the save's redirect round-trip.
     saveAction.runPost(consumable_entries_path, { log_date: selectedDate, entries }, {
       errorMessage: "Could not save consumables. Please try again.",
+      preserveState: true,
     });
   };
 

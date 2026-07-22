@@ -237,6 +237,26 @@ equipment_types = {}
   equipment_types[name] = EquipmentType.find_or_create_by!(organization: genixo, name: name)
 end
 
+# Standard consumables sheet (mirrors the CreateConsumables migration seed for
+# orgs created after that migration ran).
+[
+  "HEPA Filter Air Scrubber Small",
+  "HEPA Filter Air Scrubber Large",
+  "HEPA Vacuum Small",
+  "HEPA Vacuum Large",
+  "Hydroxyl Unit",
+  "Portable Water Extractor",
+  "Truck Mount Unit",
+  "Truck/Van Vehicle",
+  "Decontamination of Equipment",
+  "Filter Replacement",
+  "Disposal"
+].each_with_index do |name, position|
+  ConsumableType.find_or_create_by!(organization: genixo, name: name) do |type|
+    type.position = position
+  end
+end
+
 EQUIPMENT_INVENTORY = [
   # Dehumidifiers — Drieaz LGR 5000 LI-127690
   { category: "Dehumidifier", make: "Drieaz", model: "LGR 5000 LI-127690", serial: "2284", tag: "1000" },

@@ -29,10 +29,15 @@ interface EquipmentPanelProps {
   consumable_days?: ConsumableDay[];
   consumable_entries_path: string;
   can_manage_consumables: boolean;
+  // View state lives in Show.tsx (like ReadingsPanel's) so it survives the
+  // Deferred wrapper unmounting this panel while deferred props refetch.
+  view: EquipmentView;
+  onViewChange: (view: EquipmentView) => void;
 }
 
-export default function EquipmentPanel({ equipment_log = [], can_manage_equipment, equipment_entries_path, equipment_types, equipment_items_by_type, consumable_types = [], consumable_days = [], consumable_entries_path, can_manage_consumables }: EquipmentPanelProps) {
-  const [view, setView] = useState<"equipment" | "consumables">("equipment");
+export type EquipmentView = "equipment" | "consumables";
+
+export default function EquipmentPanel({ equipment_log = [], can_manage_equipment, equipment_entries_path, equipment_types, equipment_items_by_type, consumable_types = [], consumable_days = [], consumable_entries_path, can_manage_consumables, view, onViewChange }: EquipmentPanelProps) {
   const [showForm, setShowForm] = useState(false);
   const [editingEntry, setEditingEntry] = useState<EquipmentLogItem | null>(null);
   const [confirmRemove, setConfirmRemove] = useState<EquipmentLogItem | null>(null);
@@ -81,7 +86,7 @@ export default function EquipmentPanel({ equipment_log = [], can_manage_equipmen
           size="sm"
           role="tab"
           aria-selected={view === key}
-          onClick={() => setView(key)}
+          onClick={() => onViewChange(key)}
           data-testid={`equipment-view-${key}`}
           className={`h-8 rounded-none text-xs px-3 ${
             view === key ? "bg-muted font-semibold text-foreground" : "text-muted-foreground"
