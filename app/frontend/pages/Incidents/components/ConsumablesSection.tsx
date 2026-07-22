@@ -22,10 +22,6 @@ interface WriteInRow {
 
 const MIN_WRITE_IN_ROWS = 4;
 
-function emptyWriteIns(): WriteInRow[] {
-  return Array.from({ length: MIN_WRITE_IN_ROWS }, () => ({ name: "", quantity: "" }));
-}
-
 // Daniel's paper sheet, digitized: every standard item prefilled with a
 // quantity box for the selected day, plus write-in rows for one-offs. Saving
 // replaces that day's entries, so cleared quantities disappear on save.
