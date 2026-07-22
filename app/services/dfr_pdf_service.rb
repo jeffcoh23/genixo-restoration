@@ -70,7 +70,8 @@ class DfrPdfService
   # Assembly pipeline. Peak memory is bounded to one photo batch, not the whole
   # report:
   #
-  #   body.pdf ─────────────────────────────┐
+  #   body.pdf (daily: one day's sections;  ─┐
+  #     weekly: per-day blocks + totals)      │
   #   photos_0.pdf (batch of PHOTO_BATCH_SIZE)│
   #   photos_1.pdf ...                        ├─ pdfunite (streams on disk) ─► PDF bytes
   #   documents.pdf (inline images + listings)│
