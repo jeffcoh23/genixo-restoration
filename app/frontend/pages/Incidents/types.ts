@@ -291,6 +291,7 @@ export interface IncidentDetail {
   damage_type: string;
   damage_label: string;
   emergency: boolean;
+  delayed: boolean;
   job_id: string | null;
   do_not_exceed_limit: string | null;
   location_of_damage: string | null;

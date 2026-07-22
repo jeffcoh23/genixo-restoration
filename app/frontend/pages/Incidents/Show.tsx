@@ -173,6 +173,12 @@ export default function IncidentShow() {
                 </Badge>
               )}
 
+              {incident.delayed && (
+                <Badge className="text-sm px-3 py-1.5 bg-status-warning text-black" data-testid="incident-delayed-badge">
+                  Delayed
+                </Badge>
+              )}
+
               {statusOpen && (
                 <>
                   <div className="fixed inset-0 z-30" onClick={() => setStatusOpen(false)} />

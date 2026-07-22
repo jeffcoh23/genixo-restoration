@@ -9,6 +9,7 @@ class ActivityEvent < ApplicationRecord
     operational_note_added
     escalation_attempted escalation_skipped escalation_exhausted
     contact_added contact_removed
+    incident_flags_updated
     moisture_point_created moisture_point_deleted
     moisture_readings_recorded moisture_reading_updated moisture_reading_deleted
     moisture_supervisor_updated

@@ -402,6 +402,17 @@ class DfrPdfServiceTest < ActiveSupport::TestCase
     end
   end
 
+  test "renders a Delayed grid line only when the incident is flagged" do
+    without_flag = DfrPdfService.new(incident: @incident, date: @date, include_photos: false).generate
+    refute_includes PDF::Inspector::Text.analyze(without_flag).strings.join(" "), "Delayed:"
+
+    @incident.update!(delayed: true)
+    with_flag = DfrPdfService.new(incident: @incident, date: @date, include_photos: false).generate
+    text = PDF::Inspector::Text.analyze(with_flag).strings.join(" ")
+    assert_includes text, "Delayed:"
+    assert_includes text, "Yes"
+  end
+
   # --- weekly (multi-day) mode ---
 
   test "multi-day report titles as Weekly Field Report with a date-range Date cell" do

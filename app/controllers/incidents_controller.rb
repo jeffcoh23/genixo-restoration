@@ -137,7 +137,12 @@ class IncidentsController < ApplicationController
   end
 
   def update
+    delayed_was = @incident.delayed
     @incident.update!(update_incident_params)
+    if @incident.delayed != delayed_was
+      ActivityLogger.log(incident: @incident, event_type: "incident_flags_updated", user: current_user,
+        metadata: { flag: "delayed", value: @incident.delayed })
+    end
     redirect_to incident_path(@incident), notice: "Incident updated."
   rescue ActiveRecord::RecordInvalid => e
     redirect_to incident_path(@incident),
@@ -193,6 +198,7 @@ class IncidentsController < ApplicationController
         damage_type: @incident.damage_type,
         damage_label: Incident::DAMAGE_LABELS[@incident.damage_type],
         emergency: @incident.emergency,
+        delayed: @incident.delayed,
         job_id: @incident.job_id,
         do_not_exceed_limit: @incident.do_not_exceed_limit,
         location_of_damage: @incident.location_of_damage,
@@ -581,7 +587,8 @@ class IncidentsController < ApplicationController
       :units_affected, :affected_room_numbers, :job_id,
       :project_type, :damage_type,
       :do_not_exceed_limit, :location_of_damage,
-      :visitors, :usable_rooms_returned, :estimated_date_of_return
+      :visitors, :usable_rooms_returned, :estimated_date_of_return,
+      :delayed
     )
   end
 
@@ -1124,6 +1131,10 @@ class IncidentsController < ApplicationController
       old_status = status_label_for(metadata_value(metadata, :old_status))
       new_status = status_label_for(metadata_value(metadata, :new_status))
       [ "status", "Status changed", "#{old_status} -> #{new_status}" ]
+    when "incident_flags_updated"
+      flag_label = metadata_value(metadata, :flag).to_s.humanize
+      value = metadata_value(metadata, :value)
+      [ "status", value ? "Marked #{flag_label.downcase}" : "#{flag_label} flag cleared", nil ]
     when "user_assigned"
       user_name = metadata_value(metadata, :assigned_user_name) || metadata_value(metadata, :user_name) || "User"
       [ "assignment", "#{user_name} assigned", nil ]

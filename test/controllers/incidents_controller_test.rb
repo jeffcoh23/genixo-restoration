@@ -1261,6 +1261,34 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
+  # --- delayed flag ---
+
+  test "toggling delayed logs an incident_flags_updated event and updates the prop" do
+    incident = create_test_incident(status: "active")
+    login_as @manager
+
+    assert_difference -> { incident.activity_events.where(event_type: "incident_flags_updated").count }, 1 do
+      patch incident_path(incident), params: { incident: { delayed: true } }
+    end
+    assert incident.reload.delayed
+
+    get incident_path(incident)
+    assert_equal true, inertia_props.dig("incident", "delayed")
+
+    event = incident.activity_events.where(event_type: "incident_flags_updated").last
+    assert_equal "delayed", event.metadata["flag"]
+    assert_equal true, event.metadata["value"]
+  end
+
+  test "updating without changing delayed logs no flags event" do
+    incident = create_test_incident(status: "active")
+    login_as @manager
+
+    assert_no_difference -> { incident.activity_events.where(event_type: "incident_flags_updated").count } do
+      patch incident_path(incident), params: { incident: { description: "New description", delayed: false } }
+    end
+  end
+
   # --- weekly reports ---
 
   test "weekly_report enqueues a job and redirects with a notice" do

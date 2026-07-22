@@ -177,6 +177,8 @@ class DfrPdfService
       # summary fields instead of pretending one value covers the whole span.
       [ label_cell("Visitors:"), multi_day? ? "-" : (t(visitors_for_date(@date)) || "-"), label_cell("Status:"), t(@incident.display_status_label) ]
     ]
+    # Only when flagged — an always-present "Delayed: No" row would read as noise.
+    data << [ label_cell("Delayed:"), "Yes", "", "" ] if @incident.delayed
 
     pdf.table(data, width: pdf.bounds.width) do |t|
       t.cells.borders = []
