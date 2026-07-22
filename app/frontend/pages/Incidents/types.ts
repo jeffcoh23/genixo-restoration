@@ -197,6 +197,27 @@ export interface EquipmentType {
   name: string;
 }
 
+export interface ConsumableType {
+  id: number;
+  name: string;
+}
+
+export interface ConsumableDayEntry {
+  id: number;
+  consumable_type_id: number | null;
+  name: string;
+  custom_name: string | null;
+  quantity: number;
+  logged_by_name: string;
+}
+
+// One logged day of consumables (newest day first from the server).
+export interface ConsumableDay {
+  log_date: string;
+  date_label: string;
+  entries: ConsumableDayEntry[];
+}
+
 export interface AttachableEquipmentEntry {
   id: number;
   label: string;
@@ -263,6 +284,7 @@ export interface IncidentDetail {
   activity_entries_path: string;
   labor_entries_path: string;
   equipment_entries_path: string;
+  consumable_entries_path: string;
   operational_notes_path: string;
   attachments_path: string;
   upload_photo_path: string;
@@ -493,6 +515,8 @@ export interface ShowProps {
   attachments: IncidentAttachment[];
   weekly_reports: WeeklyReport[];
   equipment_log: EquipmentLogItem[];
+  consumable_types: ConsumableType[];
+  consumable_entries: ConsumableDay[];
   labor_log: LaborLog;
   can_transition: boolean;
   can_assign: boolean;

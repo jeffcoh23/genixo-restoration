@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import useInertiaAction from "@/hooks/useInertiaAction";
-import type { EquipmentLogItem, EquipmentType } from "../types";
+import type { ConsumableDay, ConsumableType, EquipmentLogItem, EquipmentType } from "../types";
+import ConsumablesSection from "./ConsumablesSection";
 import EquipmentForm from "./EquipmentForm";
 import IncidentPanelAddButton from "./IncidentPanelAddButton";
 
@@ -24,9 +25,14 @@ interface EquipmentPanelProps {
   equipment_entries_path: string;
   equipment_types: EquipmentType[];
   equipment_items_by_type?: Record<string, { id: number; identifier: string; tag_number: string | null; make: string | null; model_name: string | null }[]>;
+  consumable_types?: ConsumableType[];
+  consumable_days?: ConsumableDay[];
+  consumable_entries_path: string;
+  can_manage_consumables: boolean;
 }
 
-export default function EquipmentPanel({ equipment_log = [], can_manage_equipment, equipment_entries_path, equipment_types, equipment_items_by_type }: EquipmentPanelProps) {
+export default function EquipmentPanel({ equipment_log = [], can_manage_equipment, equipment_entries_path, equipment_types, equipment_items_by_type, consumable_types = [], consumable_days = [], consumable_entries_path, can_manage_consumables }: EquipmentPanelProps) {
+  const [view, setView] = useState<"equipment" | "consumables">("equipment");
   const [showForm, setShowForm] = useState(false);
   const [editingEntry, setEditingEntry] = useState<EquipmentLogItem | null>(null);
   const [confirmRemove, setConfirmRemove] = useState<EquipmentLogItem | null>(null);
@@ -66,9 +72,47 @@ export default function EquipmentPanel({ equipment_log = [], can_manage_equipmen
     });
   }, [equipment_log, filterType, filterStatus]);
 
+  const viewToggle = (
+    <div className="flex rounded-md border border-border overflow-hidden shrink-0" role="tablist">
+      {([ [ "equipment", "Equipment" ], [ "consumables", "Consumables" ] ] as const).map(([ key, label ]) => (
+        <Button
+          key={key}
+          variant="ghost"
+          size="sm"
+          role="tab"
+          aria-selected={view === key}
+          onClick={() => setView(key)}
+          data-testid={`equipment-view-${key}`}
+          className={`h-8 rounded-none text-xs px-3 ${
+            view === key ? "bg-muted font-semibold text-foreground" : "text-muted-foreground"
+          }`}
+        >
+          {label}
+        </Button>
+      ))}
+    </div>
+  );
+
+  if (view === "consumables") {
+    return (
+      <div className="flex flex-col h-full">
+        <div className="flex items-center gap-2 border-b border-border px-4 py-3 shrink-0">
+          {viewToggle}
+        </div>
+        <ConsumablesSection
+          consumable_types={consumable_types}
+          consumable_days={consumable_days}
+          consumable_entries_path={consumable_entries_path}
+          can_manage={can_manage_consumables}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center gap-2 border-b border-border px-4 py-3 shrink-0 flex-wrap">
+        {viewToggle}
         {can_manage_equipment && (
           <IncidentPanelAddButton
             label="Add Equipment"

@@ -30,7 +30,7 @@ import { statusColor } from "@/lib/statusColor";
 const TAB_PROP_KEYS: Record<string, string[] | undefined> = {
   weekly_reports: ["weekly_reports"],
   labor: ["labor_log", "assignable_labor_users"],
-  equipment: ["equipment_log", "equipment_types", "equipment_items_by_type", "attachable_equipment_entries"],
+  equipment: ["equipment_log", "equipment_types", "equipment_items_by_type", "attachable_equipment_entries", "consumable_types", "consumable_entries"],
   documents: ["attachments", "operational_notes"],
   messages: ["messages"],
   readings: ["moisture_data", "psychrometric_data"],
@@ -68,6 +68,8 @@ export default function IncidentShow() {
     assignable_labor_users = [],
     equipment_types = [],
     equipment_items_by_type = {},
+    consumable_types = [],
+    consumable_entries = [],
     project_types = [],
     damage_types = [],
     back_path,
@@ -333,6 +335,10 @@ export default function IncidentShow() {
                 equipment_entries_path={incident.equipment_entries_path}
                 equipment_types={equipment_types}
                 equipment_items_by_type={equipment_items_by_type}
+                consumable_types={consumable_types}
+                consumable_days={consumable_entries}
+                consumable_entries_path={incident.consumable_entries_path}
+                can_manage_consumables={can_manage_activities}
               />
             </Deferred>
           )}
