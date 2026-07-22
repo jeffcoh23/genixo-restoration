@@ -22,15 +22,9 @@ interface WeeklyReportsPanelProps {
 const POLL_TIMEOUT_MS = 180_000;
 const MAX_RANGE_DAYS = 31;
 
-// Date-only ISO strings parse as UTC midnight, so day arithmetic on them is
-// exact and DST-proof. The anchor date itself comes from the server (`today`
-// shared prop, in the user's timezone) — never from the browser clock.
-function addDays(iso: string, days: number): string {
-  const date = new Date(iso);
-  date.setUTCDate(date.getUTCDate() + days);
-  return date.toISOString().slice(0, 10);
-}
-
+// Date-only ISO strings parse as UTC midnight, so the span math on the two
+// picker values is exact and DST-proof. Both default values come from the
+// server (today / week_ago shared props) — never from the browser clock.
 function daysBetween(startIso: string, endIso: string): number {
   return Math.round((Date.parse(endIso) - Date.parse(startIso)) / 86_400_000);
 }
@@ -47,8 +41,8 @@ export default function WeeklyReportsPanel({
   weekly_report_path,
   dfr_photos_path,
 }: WeeklyReportsPanelProps) {
-  const { today } = usePage<SharedProps>().props;
-  const [startDate, setStartDate] = useState(() => addDays(today, -6));
+  const { today, week_ago } = usePage<SharedProps>().props;
+  const [startDate, setStartDate] = useState(week_ago);
   const [endDate, setEndDate] = useState(today);
   // Requested ranges mapped to the report URL at request time (null = new
   // report) so a regeneration completing is detectable as a URL change.

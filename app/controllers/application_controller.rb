@@ -98,6 +98,12 @@ class ApplicationController < ActionController::Base
     Time.current.to_date.iso8601
   }
 
+  # Default start for the weekly-report range picker (a 7-day window ending
+  # today). Computed server-side so the client never does date arithmetic.
+  inertia_share week_ago: -> {
+    (Time.current.to_date - 6.days).iso8601
+  }
+
 
   inertia_share now_datetime: -> {
     format_datetime_value(Time.current)
