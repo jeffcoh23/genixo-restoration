@@ -737,6 +737,55 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     assert_equal dates.sort.reverse, dates, "Labor log dates should be newest first"
   end
 
+  test "technician receives all labor management features for an assigned incident" do
+    incident = create_test_incident(status: "active")
+    IncidentAssignment.create!(incident: incident, user: @tech, assigned_by_user: @manager)
+    entry = incident.labor_entries.create!(
+      role_label: "Manager", log_date: Date.current, hours: 2,
+      started_at: Time.current.beginning_of_day + 8.hours,
+      ended_at: Time.current.beginning_of_day + 10.hours,
+      user: @manager, created_by_user: @manager
+    )
+
+    login_as @tech
+    get incident_path(incident)
+
+    assert_response :success
+    assert inertia_props.fetch("can_manage_labor")
+    serialized_entry = inertia_props.fetch("labor_entries").find { |item| item.fetch("id") == entry.id }
+    assert_equal incident_labor_entry_path(incident, entry), serialized_entry.fetch("edit_path")
+    assert_equal incident_labor_entry_path(incident, entry), serialized_entry.fetch("delete_path")
+
+    deferred = inertia_deferred_props(incident_path(incident), "assignable_labor_users")
+    assignable_ids = deferred.fetch("assignable_labor_users").map { |user| user.fetch("id") }
+    assert_includes assignable_ids, @manager.id
+    assert_includes assignable_ids, @tech.id
+  end
+
+  test "technician without daily log privilege receives no labor management features" do
+    incident = create_test_incident(status: "active")
+    IncidentAssignment.create!(incident: incident, user: @tech, assigned_by_user: @manager)
+    entry = incident.labor_entries.create!(
+      role_label: "Manager", log_date: Date.current, hours: 2,
+      started_at: Time.current.beginning_of_day + 8.hours,
+      ended_at: Time.current.beginning_of_day + 10.hours,
+      user: @manager, created_by_user: @manager
+    )
+    @tech.update!(permissions: @tech.permissions - [ Permissions::MANAGE_DAILY_LOGS.to_s ])
+
+    login_as @tech
+    get incident_path(incident)
+
+    assert_response :success
+    assert_not inertia_props.fetch("can_manage_labor")
+    serialized_entry = inertia_props.fetch("labor_entries").find { |item| item.fetch("id") == entry.id }
+    assert_nil serialized_entry.fetch("edit_path")
+    assert_nil serialized_entry.fetch("delete_path")
+
+    deferred = inertia_deferred_props(incident_path(incident), "assignable_labor_users")
+    assert_empty deferred.fetch("assignable_labor_users")
+  end
+
   # --- Daily log timeline ---
 
   test "daily log table groups exclude labor entries" do

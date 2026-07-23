@@ -338,11 +338,11 @@ When an incident is created, the system auto-assigns users based on the `auto_as
 ## 9. Labor Tracking Rules
 
 - Labor entries track time on an incident. Supports both user-specific and generic role-based entries.
-- **Who can create:** Technicians (for themselves), managers (for anyone — including generic labor not tied to a system user).
-- **Who can edit:** The person who created it (own entries only), managers (any entry on incidents they can see).
+- **Who can manage:** Any user with the `manage_daily_logs` permission. By default, technicians and managers can create labor for any eligible mitigation worker (or generic labor not tied to a system user), and edit or delete any labor entry on an incident they can access.
+- **Who can edit/delete:** Any user with the `manage_daily_logs` permission can edit or delete any labor entry on an incident they can access.
 - **Required fields:** `role_label` (freeform string — "Technician", "Supervisor", "General Labor"), `hours` (decimal, must be > 0), `log_date`.
 - **Optional fields:** `user_id` (the person who worked — nullable for generic entries), `started_at`, `ended_at`, `notes`.
-- If `user_id` is set: this is a specific person's hours (e.g., a tech logging their own time).
+- If `user_id` is set: this is a specific person's hours. The selected user must belong to the incident's mitigation organization and have the manager or technician role; the picker lists active eligible users.
 - If `user_id` is null: generic role-based hours not tied to a system user (e.g., "General Labor: 1hr").
 - If `started_at` and `ended_at` are both provided, `hours` is calculated from them.
 - `log_date` determines which day this entry appears in the daily log.

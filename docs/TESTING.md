@@ -249,10 +249,10 @@ Latest full local run (before adding new files): `21 runs, 57 assertions, 5 fail
 | E2 | Send message with attachment | Any | Attach file + type message → send | Message + file stored; visible in thread |
 | E3 | Empty message rejected | Any | Submit empty body | Alert; message not sent |
 | E4 | Log labor — technician (self) | Technician | Incident → Labor → fill form → submit | Entry created with user = self |
-| E5 | Log labor — manager (any user) | Manager | Select different user from dropdown → submit | Entry with specified user; hours calculated |
-| E6 | Edit own labor entry | Technician | Click edit → change hours → save | Updated; activity logged |
+| E5 | Log labor — privileged user (any user) | Manager or technician | Select different user from dropdown → submit | Entry with specified user; hours calculated |
+| E6 | Edit labor entry | Technician | Click any entry's edit action → change hours → save | Updated; activity logged |
 | E7 | Delete labor entry | Manager | Click delete on entry | Removed; activity logged |
-| E8 | Technician cannot edit other's labor | Technician | PATCH entry not created by self | 404 |
+| E8 | Technician can edit another worker's labor | Technician | PATCH entry not created by self | Entry updated |
 | E9 | Place equipment | Manager | Equipment tab → Place → select type → submit | Entry created; activity logged |
 | E10 | Place equipment — inventory picker | Manager | Select type → pick specific item from inventory | Identifier + model auto-populated |
 | E11 | Place equipment — "Other" type | Technician | Select "Other" → enter custom type | Entry with `equipment_type_other` set |
@@ -333,7 +333,7 @@ Latest full local run (before adding new files): `21 runs, 57 assertions, 5 fail
 | H11 | Authenticated user redirected from login | Any | Visit `/login` while logged in | Redirect to incidents |
 | H12 | Emergency visual indicators | Any | View emergency incident in new/acknowledged status | Red highlight; "Emergency" badge; AlertTriangle icon |
 | H13 | Pagination preserves filters | Manager | Apply status filter → page 2 | Both filter + page in URL; preserved on reload |
-| H14 | Technician labor auto-assigned to self | Technician | POST labor with another user's ID | user_id stripped; entry created with own user |
+| H14 | Technician labor can target another worker | Technician | POST labor with another user's ID | Entry created for specified user |
 | H15 | Invitation cross-org targeting | Manager | Invite to serviced PM org vs. unrelated PM org | Serviced: works. Unrelated: not available |
 
 **Priority:** H1–H4 = P1. H5–H10 = P2. H11–H15 = P3.

@@ -5,7 +5,6 @@ class LaborEntriesController < ApplicationController
   def create
     entry = @incident.labor_entries.new(labor_entry_params)
     entry.created_by_user = current_user
-    entry.user_id = current_user.id if current_user.technician?
     calculate_hours!(entry)
 
     entry.save!
@@ -32,7 +31,6 @@ class LaborEntriesController < ApplicationController
     entry = find_editable_entry!
 
     entry.assign_attributes(labor_entry_params)
-    entry.user_id = current_user.id if current_user.technician?
     calculate_hours!(entry)
 
     entry.save!
@@ -84,19 +82,13 @@ class LaborEntriesController < ApplicationController
   end
 
   def find_editable_entry!
-    if mitigation_admin?
-      @incident.labor_entries.find(params[:id])
-    else
-      @incident.labor_entries.where(created_by_user_id: current_user.id).find(params[:id])
-    end
+    @incident.labor_entries.find(params[:id])
   end
 
   def labor_entry_params
-    permitted = params.require(:labor_entry).permit(
+    params.require(:labor_entry).permit(
       :role_label, :log_date, :started_at, :ended_at, :notes, :user_id
     )
-    permitted.delete(:user_id) if current_user.technician?
-    permitted
   end
 
   def calculate_hours!(entry)

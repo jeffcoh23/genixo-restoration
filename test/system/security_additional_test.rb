@@ -184,7 +184,7 @@ class SecurityAdditionalTest < ApplicationSystemTestCase
     assert_no_text "Should be filtered out"
   end
 
-  test "technician labor post with another user id is forced to self" do
+  test "technician labor post can target another user" do
     incident = Incident.create!(
       property: @property,
       created_by_user: @manager,
@@ -208,7 +208,7 @@ class SecurityAdditionalTest < ApplicationSystemTestCase
 
     assert_text "Labor entry created."
     entry = incident.labor_entries.order(:id).last
-    assert_equal @tech.id, entry.user_id
+    assert_equal @manager.id, entry.user_id
     assert_equal @tech.id, entry.created_by_user_id
   end
 

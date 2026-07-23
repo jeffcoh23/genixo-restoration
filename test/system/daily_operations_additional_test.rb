@@ -340,7 +340,7 @@ class DailyOperationsAdditionalTest < ApplicationSystemTestCase
     assert_equal "labor_deleted", @incident.activity_events.order(:id).last.event_type
   end
 
-  test "technician cannot edit another users labor entry" do
+  test "technician can edit another users labor entry" do
     entry = LaborEntry.create!(
       incident: @incident,
       created_by_user: @manager,
@@ -362,13 +362,14 @@ class DailyOperationsAdditionalTest < ApplicationSystemTestCase
       role_label: "Technician",
       started_at: "2026-02-23T08:00:00-06:00",
       ended_at: "2026-02-23T09:00:00-06:00",
-      notes: "Unauthorized edit"
+      notes: "Technician correction"
     )
 
-    assert_not_found_rendered
+    assert_text "Labor entry updated."
     entry.reload
-    assert_equal "Supervisor", entry.role_label
-    assert_equal "Manager entry", entry.notes
+    assert_equal "Technician", entry.role_label
+    assert_equal 1.0, entry.hours.to_f
+    assert_equal "Technician correction", entry.notes
   end
 
   test "equipment placement uses inventory picker" do

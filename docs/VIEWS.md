@@ -428,7 +428,7 @@ Sticky at the top:
 
 **Add buttons** (inline forms or slide-up modals):
 - "Add Activity" — title, occurred_at, status, units affected, units affected description, details, and optional equipment action rows (`add/remove/move/other`, quantity, type, optional note).
-- "Add Labor" — role_label, hours (or start/end time), log_date, notes, user picker (managers only). Visible to technicians and managers.
+- "Add Labor" — role_label, hours (or start/end time), log_date, notes, and a picker of active managers and technicians in the incident's mitigation organization. Users with `MANAGE_DAILY_LOGS` can create labor for any listed worker (or generic labor), and edit or delete any labor entry on an incident they can access. Visible to technicians and managers by default.
 - "Add Note" — note text, log_date. Visible to technicians and managers.
 - "Upload Document" — file picker, name/description (editable, defaults to filename), category dropdown, log_date (defaults to today). Visible to anyone who can see the incident.
 
