@@ -10,7 +10,7 @@ import { SharedProps } from "@/types";
 import RightPanelShell from "./components/RightPanelShell";
 import MessagePanel from "./components/MessagePanel";
 import DailyLogPanel from "./components/DailyLogPanel";
-import WeeklyReportsPanel from "./components/WeeklyReportsPanel";
+import WeeklyReportsPanel, { useWeeklyReportPolling } from "./components/WeeklyReportsPanel";
 import EquipmentPanel from "./components/EquipmentPanel";
 import type { EquipmentView } from "./components/EquipmentPanel";
 import LaborPanel from "./components/LaborPanel";
@@ -86,6 +86,9 @@ export default function IncidentShow() {
   const [activeTab, setActiveTab] = useState(initialTab);
   const [readingsView, setReadingsView] = useState<ReadingsView>("moisture");
   const [equipmentView, setEquipmentView] = useState<EquipmentView>("equipment");
+  // Hosted here (not in the panel) so pending state and the 5s poll survive
+  // the Deferred wrapper remounting the panel after the generate redirect.
+  const weeklyReportPolling = useWeeklyReportPolling(weekly_reports);
   const [editFormOpen, setEditFormOpen] = useState(false);
   const [markedTabs, setMarkedTabs] = useState<Set<string>>(new Set());
   const statusAction = useInertiaAction();
@@ -327,6 +330,7 @@ export default function IncidentShow() {
                 can_generate={can_manage_activities}
                 weekly_report_path={incident.weekly_report_path}
                 dfr_photos_path={incident.dfr_photos_path}
+                polling={weeklyReportPolling}
               />
             </Deferred>
           )}

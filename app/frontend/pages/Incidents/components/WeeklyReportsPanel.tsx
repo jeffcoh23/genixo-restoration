@@ -7,15 +7,6 @@ import type { SharedProps } from "@/types";
 import type { DfrSelectablePhoto, IncidentAttachment, WeeklyReport } from "../types";
 import DfrPhotoSelectionModal from "./DfrPhotoSelectionModal";
 
-interface WeeklyReportsPanelProps {
-  weekly_reports: WeeklyReport[];
-  incident_has_photos: boolean;
-  incident_has_documents: boolean;
-  can_generate: boolean;
-  weekly_report_path: string;
-  dfr_photos_path: string;
-}
-
 // Attachments can't represent job state, so completion is inferred by polling
 // the weekly_reports prop. Bounded: past this deadline we stop and tell the
 // user instead of polling forever (see TODOS.md — report status tracking).
@@ -33,41 +24,34 @@ function rangeKey(startIso: string, endIso: string): string {
   return `${startIso}|${endIso}`;
 }
 
-export default function WeeklyReportsPanel({
-  weekly_reports = [],
-  incident_has_photos = false,
-  incident_has_documents = false,
-  can_generate,
-  weekly_report_path,
-  dfr_photos_path,
-}: WeeklyReportsPanelProps) {
-  const { today, week_ago } = usePage<SharedProps>().props;
-  const [startDate, setStartDate] = useState(week_ago);
-  const [endDate, setEndDate] = useState(today);
+export interface WeeklyReportPolling {
+  pendingRanges: Set<string>;
+  timedOut: boolean;
+  registerRequest: (key: string, oldUrl: string | null) => void;
+}
+
+// Lives in Show.tsx (which stays mounted), NOT in the panel: the panel sits
+// inside a <Deferred> wrapper that unmounts it while deferred props refetch
+// after the generate POST's redirect — panel-local state would silently drop
+// the pending row and kill the poll.
+export function useWeeklyReportPolling(weekly_reports: WeeklyReport[]): WeeklyReportPolling {
   // Requested ranges mapped to the report URL at request time (null = new
   // report) so a regeneration completing is detectable as a URL change.
   const [requested, setRequested] = useState<Map<string, string | null>>(new Map());
   const [timedOut, setTimedOut] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
   const { start: startPolling, stop: stopPolling } = usePoll(5000, {
     only: ["weekly_reports"],
   }, { autoStart: false });
-
-  const findReport = useCallback(
-    (start: string, end: string) =>
-      weekly_reports.find((r) => r.log_date === start && r.log_date_end === end),
-    [weekly_reports]
-  );
 
   const pendingRanges = useMemo(() => {
     const pending = new Set<string>();
     for (const [key, oldUrl] of requested) {
       const [start, end] = key.split("|");
-      const report = findReport(start, end);
+      const report = weekly_reports.find((r) => r.log_date === start && r.log_date_end === end);
       if (!report || report.url === oldUrl) pending.add(key);
     }
     return pending;
-  }, [requested, findReport]);
+  }, [requested, weekly_reports]);
 
   // Stop polling once every requested report has (re)generated.
   useEffect(() => {
@@ -88,6 +72,46 @@ export default function WeeklyReportsPanel({
     }, POLL_TIMEOUT_MS);
     return () => clearTimeout(timer);
   }, [requested, stopPolling]);
+
+  const registerRequest = useCallback((key: string, oldUrl: string | null) => {
+    setTimedOut(false);
+    setRequested((prev) => new Map(prev).set(key, oldUrl));
+    startPolling();
+  }, [startPolling]);
+
+  return { pendingRanges, timedOut, registerRequest };
+}
+
+interface WeeklyReportsPanelProps {
+  weekly_reports: WeeklyReport[];
+  incident_has_photos: boolean;
+  incident_has_documents: boolean;
+  can_generate: boolean;
+  weekly_report_path: string;
+  dfr_photos_path: string;
+  polling: WeeklyReportPolling;
+}
+
+export default function WeeklyReportsPanel({
+  weekly_reports = [],
+  incident_has_photos = false,
+  incident_has_documents = false,
+  can_generate,
+  weekly_report_path,
+  dfr_photos_path,
+  polling,
+}: WeeklyReportsPanelProps) {
+  const { today, week_ago } = usePage<SharedProps>().props;
+  const [startDate, setStartDate] = useState(week_ago);
+  const [endDate, setEndDate] = useState(today);
+  const [submitting, setSubmitting] = useState(false);
+  const { pendingRanges, timedOut, registerRequest } = polling;
+
+  const findReport = useCallback(
+    (start: string, end: string) =>
+      weekly_reports.find((r) => r.log_date === start && r.log_date_end === end),
+    [weekly_reports]
+  );
 
   // Photo/document selection modal state (same flow as DailyLogPanel's DFR,
   // but nothing preselected — the user opts a week of photos in explicitly).
@@ -113,14 +137,12 @@ export default function WeeklyReportsPanel({
     if (photoIds) data.photo_ids = photoIds;
     if (documentIds) data.document_ids = documentIds;
     setSubmitting(true);
-    setTimedOut(false);
     router.post(weekly_report_path, data, {
       preserveScroll: true,
       onFinish: () => setSubmitting(false),
     });
-    setRequested((prev) => new Map(prev).set(rangeKey(start, end), currentUrl));
-    startPolling();
-  }, [weekly_report_path, findReport, startPolling, submitting]);
+    registerRequest(rangeKey(start, end), currentUrl);
+  }, [weekly_report_path, findReport, registerRequest, submitting]);
 
   const fetchModalPhotos = useCallback((start: string) => {
     const seq = ++photoFetchSeq.current;

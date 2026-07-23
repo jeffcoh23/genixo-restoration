@@ -26,6 +26,12 @@ class WeeklyReportsTest < ApplicationSystemTestCase
     )
   end
 
+  # "Today" as the logged-in user sees it: users default to Central time and
+  # every server-rendered date (today/week_ago props) is in that zone.
+  def central_today
+    Time.current.in_time_zone("Central Time (US & Canada)").to_date
+  end
+
   test "manager generates a weekly report end to end" do
     ActivityEntry.create!(
       incident: @incident, performed_by_user: @manager,
@@ -38,8 +44,10 @@ class WeeklyReportsTest < ApplicationSystemTestCase
     find("[data-testid='incident-tab-weekly_reports']").click
     assert_text "Generate Weekly Report"
 
-    start_date = (Date.current - 6.days).iso8601
-    end_date = Date.current.iso8601
+    # The panel's default range comes from the server in the USER's timezone
+    # (Central) — around the UTC date rollover that differs from Date.current.
+    start_date = (central_today - 6.days).iso8601
+    end_date = central_today.iso8601
 
     # No photos/documents on the incident → Generate submits directly.
     find("[data-testid='weekly-report-generate']").click
@@ -83,9 +91,10 @@ class WeeklyReportsTest < ApplicationSystemTestCase
     find("[data-testid='consumable-writein-qty-0']").fill_in with: "2"
     find("[data-testid='consumables-save']").click
 
-    assert_selector "[data-testid='consumables-day-#{Date.current.iso8601}']", wait: 10
+    # The sheet's default date is server-provided in the user's timezone.
+    assert_selector "[data-testid='consumables-day-#{central_today.iso8601}']", wait: 10
 
-    entries = @incident.consumable_entries.for_date(Date.current)
+    entries = @incident.consumable_entries.for_date(central_today)
     assert_equal 2, entries.count
     assert_equal 3, entries.find_by(consumable_type: hepa).quantity
     assert_equal 2, entries.find_by(custom_name: "Ozone pads").quantity
