@@ -634,6 +634,26 @@ class DfrPdfServiceTest < ActiveSupport::TestCase
     refute_includes text, "c.pdf (attached)"
   end
 
+  test "generated reports can never be embedded as documents in another report" do
+    weekly = @incident.attachments.create!(category: "weekly_report",
+      log_date: @date - 6.days, log_date_end: @date, uploaded_by_user: @manager)
+    weekly.file.attach(io: StringIO.new(minimal_pdf), filename: "weekly.pdf", content_type: "application/pdf")
+    dfr = @incident.attachments.create!(category: "dfr", log_date: @date, uploaded_by_user: @manager)
+    dfr.file.attach(io: StringIO.new(minimal_pdf), filename: "dfr.pdf", content_type: "application/pdf")
+
+    # A crafted document_ids param names generated reports directly — the
+    # exclusion must hold at consumption, not just in the picker listing.
+    pdf_data = DfrPdfService.new(
+      incident: @incident, date: @date, include_photos: false,
+      document_attachment_ids: [ weekly.id, dfr.id ]
+    ).generate
+
+    text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
+    refute_includes text, "Documents", "generated reports must not produce a Documents section"
+    refute_includes text, "weekly.pdf"
+    refute_includes text, "dfr.pdf"
+  end
+
   test "document IDs belonging to another incident are excluded" do
     other_incident = Incident.create!(property: @property, created_by_user: @manager,
       status: "active", project_type: "emergency_response", damage_type: "flood", description: "Other")

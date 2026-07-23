@@ -6,13 +6,23 @@ class ConsumableEntriesController < ApplicationController
   # REPLACE that date's entries (the UI shows the full prefilled list, so what
   # comes back is the whole sheet — zero/blank rows simply aren't stored).
   def create
-    log_date = parse_date(params[:log_date])
+    log_date = parse_iso_date(params[:log_date])
     return redirect_to incident_path(@incident), alert: "Could not save consumables: invalid date." if log_date.nil?
 
     rows = Array(params[:entries]).filter_map { |row| build_row(row, log_date) }
 
     ConsumableEntry.transaction do
-      @incident.consumable_entries.for_date(log_date).destroy_all
+      # Serialize concurrent saves per incident: without the lock, two
+      # replace-day transactions can interleave delete/insert and double the
+      # day's rows — and PDF billing totals sum every row.
+      @incident.lock!
+      # Entries of deactivated types are invisible in the sheet (it only
+      # renders active types), so they must survive a replace — deleting them
+      # here would be silent data loss the user can't see or prevent.
+      active_type_ids = @incident.property.mitigation_org.consumable_types.active.pluck(:id)
+      @incident.consumable_entries.for_date(log_date)
+        .where(consumable_type_id: [ nil ] + active_type_ids)
+        .destroy_all
       rows.each(&:save!)
     end
 
@@ -33,9 +43,16 @@ class ConsumableEntriesController < ApplicationController
   private
 
   def build_row(row, log_date)
+    # A crafted payload can put scalars in the entries array — drop them
+    # instead of 500ing on row.permit.
+    return nil unless row.respond_to?(:permit)
+
     permitted = row.permit(:consumable_type_id, :custom_name, :quantity)
     quantity = Integer(permitted[:quantity], exception: false)
     return nil if quantity.nil? || quantity <= 0
+    # Above the model's cap: keep the row and let validation reject it with a
+    # proper inline error instead of a cast-time RangeError 500.
+    quantity = [ quantity, ConsumableEntry::MAX_QUANTITY + 1 ].min
 
     type_id = permitted[:consumable_type_id].presence
     custom_name = permitted[:custom_name].to_s.strip.presence
@@ -52,12 +69,6 @@ class ConsumableEntriesController < ApplicationController
       log_date: log_date,
       logged_by_user: current_user
     )
-  end
-
-  def parse_date(value)
-    Date.iso8601(value.to_s)
-  rescue ArgumentError, TypeError
-    nil
   end
 
   def set_incident

@@ -98,6 +98,54 @@ class ConsumableEntriesControllerTest < ActionDispatch::IntegrationTest
     assert_equal 0, @incident.consumable_entries.count
   end
 
+  test "saving an empty sheet clears the day" do
+    login_as @manager
+    save_day([ { consumable_type_id: @hepa.id, quantity: "3" } ])
+    save_day([])
+
+    assert_redirected_to incident_path(@incident)
+    assert_equal 0, @incident.consumable_entries.for_date(@date).count
+  end
+
+  test "a validation failure rolls back the day's replace and redirects with errors" do
+    login_as @manager
+    save_day([ { consumable_type_id: @hepa.id, quantity: "3" } ])
+
+    # Over the model's quantity cap: passes build_row (clamped to cap + 1) and
+    # fails validation at save! — the destroy_all must roll back with it.
+    save_day([ { consumable_type_id: @disposal.id, quantity: (ConsumableEntry::MAX_QUANTITY + 5).to_s } ])
+
+    assert_redirected_to incident_path(@incident)
+    entries = @incident.consumable_entries.for_date(@date)
+    assert_equal 1, entries.count, "failed save must roll back the destroy_all"
+    assert_equal @hepa, entries.first.consumable_type
+  end
+
+  test "non-hash entries rows are dropped instead of erroring" do
+    login_as @manager
+    save_day([ "garbage", { consumable_type_id: @hepa.id, quantity: "2" }, 42 ])
+
+    assert_redirected_to incident_path(@incident)
+    entries = @incident.consumable_entries.for_date(@date)
+    assert_equal 1, entries.count
+    assert_equal 2, entries.first.quantity
+  end
+
+  test "entries of deactivated types survive a replace-day save" do
+    login_as @manager
+    save_day([ { consumable_type_id: @hepa.id, quantity: "3" }, { consumable_type_id: @disposal.id, quantity: "1" } ])
+
+    # Deactivate a type after its entry exists: the sheet no longer shows it,
+    # so a resave must not silently destroy it.
+    @disposal.update!(active: false)
+    save_day([ { consumable_type_id: @hepa.id, quantity: "5" } ])
+
+    entries = @incident.consumable_entries.for_date(@date)
+    assert_equal 2, entries.count
+    assert_equal 5, entries.find_by(consumable_type: @hepa).quantity
+    assert_equal 1, entries.find_by(consumable_type: @disposal).quantity, "inactive-type entry must survive"
+  end
+
   test "requires manage_daily_logs" do
     @manager.update!(permissions: @manager.permissions - [ Permissions::MANAGE_DAILY_LOGS.to_s ])
     login_as @manager

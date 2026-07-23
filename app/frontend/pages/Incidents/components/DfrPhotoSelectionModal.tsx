@@ -175,7 +175,7 @@ export default function DfrPhotoSelectionModal({
           <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
             <ImageIcon className="h-8 w-8 mb-2" />
             <p className="text-sm">No photos or documents on this incident.</p>
-            <p className="text-xs mt-1">You can still generate the DFR without attachments.</p>
+            <p className="text-xs mt-1">You can still generate the {reportLabel} without attachments.</p>
           </div>
         ) : (
           <>

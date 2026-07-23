@@ -11,7 +11,6 @@ import DfrPhotoSelectionModal from "./DfrPhotoSelectionModal";
 // the weekly_reports prop. Bounded: past this deadline we stop and tell the
 // user instead of polling forever (see TODOS.md — report status tracking).
 const POLL_TIMEOUT_MS = 180_000;
-const MAX_RANGE_DAYS = 31;
 
 // Date-only ISO strings parse as UTC midnight, so the span math on the two
 // picker values is exact and DST-proof. Both default values come from the
@@ -101,7 +100,9 @@ export default function WeeklyReportsPanel({
   dfr_photos_path,
   polling,
 }: WeeklyReportsPanelProps) {
-  const { today, week_ago } = usePage<SharedProps>().props;
+  // max_report_days comes from the server (DfrPdfService::MAX_REPORT_DAYS) so
+  // the inline validation can never drift from the controller's rejection.
+  const { today, week_ago, max_report_days } = usePage<SharedProps>().props;
   const [startDate, setStartDate] = useState(week_ago);
   const [endDate, setEndDate] = useState(today);
   const [submitting, setSubmitting] = useState(false);
@@ -126,9 +127,9 @@ export default function WeeklyReportsPanel({
     if (!startDate || !endDate) return "Pick a start and end date.";
     const span = daysBetween(startDate, endDate);
     if (span <= 0) return "End date must be after the start date.";
-    if (span >= MAX_RANGE_DAYS) return `Date range cannot exceed ${MAX_RANGE_DAYS} days.`;
+    if (span >= max_report_days) return `Date range cannot exceed ${max_report_days} days.`;
     return null;
-  }, [startDate, endDate]);
+  }, [startDate, endDate, max_report_days]);
 
   const submitReport = useCallback((start: string, end: string, photoIds?: number[], documentIds?: number[]) => {
     if (submitting) return;
@@ -302,7 +303,7 @@ export default function WeeklyReportsPanel({
                     {report.filename} · {report.uploaded_by_name} · {report.created_at_label}
                   </p>
                 </div>
-                {can_generate && (
+                {can_generate && report.log_date && report.log_date_end && (
                   regenerating ? (
                     <Loader2 className="h-4 w-4 animate-spin text-muted-foreground shrink-0" data-testid={`weekly-report-refreshing-${report.log_date}`} />
                   ) : (

@@ -397,9 +397,11 @@ class DfrPdfService
 
   # Cumulative time-in-place in whole hours, like the Equipment tab — but
   # capped at the report day's end so a historical report shows the hours as
-  # of ITS date, not a live counter that grows every regeneration.
+  # of ITS date, not a live counter that grows every regeneration. Also capped
+  # at now: a same-day report generated at 10am must not count hours through
+  # 11:59pm that haven't happened yet.
   def equipment_hours_through(entry, day)
-    cutoff = [ entry.removed_at, day_range(day).last ].compact.min
+    cutoff = [ entry.removed_at, day_range(day).last, Time.current ].compact.min
     [ ((cutoff - entry.placed_at) / 1.hour).round, 0 ].max
   end
 
@@ -585,9 +587,12 @@ class DfrPdfService
   def build_document_results
     return [] if @document_attachment_ids.blank?
 
+    # GENERATED_REPORT_CATEGORIES excluded here — not just in the picker UI —
+    # so a crafted document_ids param can never embed one generated report
+    # inside another (recursive size amplification).
     docs = @incident.attachments
       .includes(file_attachment: :blob)
-      .where.not(category: %w[photo dfr])
+      .where.not(category: [ "photo" ] + Attachment::GENERATED_REPORT_CATEGORIES)
       .where(id: @document_attachment_ids)
       .order(:created_at)
 

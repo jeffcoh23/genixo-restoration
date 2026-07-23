@@ -104,6 +104,16 @@ class ApplicationController < ActionController::Base
     (Time.current.to_date - 6.days).iso8601
   }
 
+  # The client mirrors the server's report-span cap for inline validation —
+  # shared as a prop so the two can never drift.
+  inertia_share max_report_days: -> { DfrPdfService::MAX_REPORT_DAYS }
+
+  private def parse_iso_date(value)
+    Date.iso8601(value.to_s)
+  rescue ArgumentError, TypeError
+    nil
+  end
+
 
   inertia_share now_datetime: -> {
     format_datetime_value(Time.current)

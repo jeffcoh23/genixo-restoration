@@ -208,7 +208,6 @@ export interface ConsumableDayEntry {
   name: string;
   custom_name: string | null;
   quantity: number;
-  logged_by_name: string;
 }
 
 // One logged day of consumables (newest day first from the server).

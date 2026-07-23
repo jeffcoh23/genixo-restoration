@@ -1280,6 +1280,19 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
     assert_equal true, event.metadata["value"]
   end
 
+  test "clearing delayed logs a second flags event with value false" do
+    incident = create_test_incident(status: "active")
+    incident.update!(delayed: true)
+    login_as @manager
+
+    assert_difference -> { incident.activity_events.where(event_type: "incident_flags_updated").count }, 1 do
+      patch incident_path(incident), params: { incident: { delayed: false } }
+    end
+    refute incident.reload.delayed
+    event = incident.activity_events.where(event_type: "incident_flags_updated").last
+    assert_equal false, event.metadata["value"]
+  end
+
   test "updating without changing delayed logs no flags event" do
     incident = create_test_incident(status: "active")
     login_as @manager
@@ -1331,6 +1344,19 @@ class IncidentsControllerTest < ActionDispatch::IntegrationTest
       end
     end
     assert_match(/end date must be after/, flash[:alert])
+  end
+
+  test "weekly_report accepts the maximum allowed span" do
+    incident = create_test_incident(status: "active")
+    login_as @manager
+
+    with_test_queue_adapter do
+      assert_enqueued_with(job: DfrPdfJob) do
+        post weekly_report_incident_path(incident),
+          params: { start_date: (Date.current - 30.days).iso8601, end_date: Date.current.iso8601 }
+      end
+    end
+    assert_match(/being generated/, flash[:notice])
   end
 
   test "weekly_report rejects a span over the cap" do

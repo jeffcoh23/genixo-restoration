@@ -148,9 +148,13 @@ class DfrPdfJobTest < ActiveSupport::TestCase
       # Header row + one row per unit, tagged by ID and type.
       [ "ID", "Type", "Start Date", "End Date", "Hours" ].each { |h| assert_includes text, h }
       # Whole hours-in-place per unit. The removed unit's figure is exact:
-      # placed 2 days ago, removed 2 hours ago → 46 hours. (In-place units cap
-      # at the report day's end, so their figures depend on the frozen clock.)
+      # placed 2 days ago, removed 2 hours ago → 46 hours.
       assert_match(/\b46\b/, text, "removed unit shows its cumulative hours (48h placed - 2h early removal)")
+      # In-place units cap at NOW, not the report day's end — a same-day report
+      # generated mid-morning must not count the rest of the day. DH-101 was
+      # placed exactly 48 hours before the frozen clock.
+      assert_match(/\b48\b/, text, "in-place unit hours must stop at the current time, not day end")
+      refute_match(/\b63\b/, text, "day-end cap (would be 63h) must not apply to a same-day report")
       assert_includes text, "DH-101"
       assert_includes text, "SN-555"
       assert_includes text, "AM-7"
@@ -313,16 +317,19 @@ class DfrPdfJobTest < ActiveSupport::TestCase
   # --- weekly reports ---
 
   test "end_date produces a weekly_report attachment spanning the range" do
-    start_date = Date.current - 6.days
+    # Dates captured once as locals: re-evaluating Date.current across a
+    # midnight rollover would split the range mid-test.
+    end_date = Date.current
+    start_date = end_date - 6.days
 
     assert_difference -> { @incident.attachments.where(category: "weekly_report").count }, 1 do
-      DfrPdfJob.perform_now(@incident.id, start_date.to_s, "America/Chicago", @manager.id, [], nil, Date.current.to_s)
+      DfrPdfJob.perform_now(@incident.id, start_date.to_s, "America/Chicago", @manager.id, [], nil, end_date.to_s)
     end
 
     attachment = @incident.attachments.where(category: "weekly_report").last
     assert attachment.file.attached?
     assert_equal start_date, attachment.log_date
-    assert_equal Date.current, attachment.log_date_end
+    assert_equal end_date, attachment.log_date_end
     assert_includes attachment.description, "Weekly Field Report"
 
     require "pdf/inspector"
@@ -332,18 +339,20 @@ class DfrPdfJobTest < ActiveSupport::TestCase
 
   test "weekly filename spans the range" do
     @incident.update!(job_id: "JOB-123")
-    start_date = Date.current - 6.days
+    end_date = Date.current
+    start_date = end_date - 6.days
 
-    DfrPdfJob.perform_now(@incident.id, start_date.to_s, "America/Chicago", @manager.id, [], nil, Date.current.to_s)
+    DfrPdfJob.perform_now(@incident.id, start_date.to_s, "America/Chicago", @manager.id, [], nil, end_date.to_s)
 
     attachment = @incident.attachments.where(category: "weekly_report").last
-    assert_equal "Weekly Report - Sunset Apts - JOB-123 - #{start_date} to #{Date.current}.pdf",
+    assert_equal "Weekly Report - Sunset Apts - JOB-123 - #{start_date} to #{end_date}.pdf",
       attachment.file.filename.to_s
   end
 
   test "regenerating the same span replaces the file instead of adding a row" do
-    start_date = Date.current - 6.days
-    args = [ @incident.id, start_date.to_s, "America/Chicago", @manager.id, [], nil, Date.current.to_s ]
+    end_date = Date.current
+    start_date = end_date - 6.days
+    args = [ @incident.id, start_date.to_s, "America/Chicago", @manager.id, [], nil, end_date.to_s ]
 
     DfrPdfJob.perform_now(*args)
     report = @incident.attachments.find_by(category: "weekly_report", log_date: start_date)
@@ -405,13 +414,14 @@ class DfrPdfJobTest < ActiveSupport::TestCase
 
   test "weekly report threads per-day cached weather into the PDF" do
     require "pdf/inspector"
-    start_date = Date.current - 2.days
+    end_date = Date.current
+    start_date = end_date - 2.days
     WeatherSnapshot.create!(incident: @incident, date: start_date, temp_max: 90, temp_min: 70,
       conditions: "Sunny start", fetched_at: Time.current)
-    WeatherSnapshot.create!(incident: @incident, date: Date.current, temp_max: 60, temp_min: 50,
+    WeatherSnapshot.create!(incident: @incident, date: end_date, temp_max: 60, temp_min: 50,
       conditions: "Rainy finish", fetched_at: Time.current)
 
-    DfrPdfJob.perform_now(@incident.id, start_date.to_s, "America/Chicago", @manager.id, [], nil, Date.current.to_s)
+    DfrPdfJob.perform_now(@incident.id, start_date.to_s, "America/Chicago", @manager.id, [], nil, end_date.to_s)
 
     pdf = @incident.attachments.where(category: "weekly_report").last.file.download
     text = PDF::Inspector::Text.analyze(pdf).strings.join(" ")

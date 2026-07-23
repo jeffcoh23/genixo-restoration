@@ -89,7 +89,7 @@ export default function EquipmentPanel({ equipment_log = [], can_manage_equipmen
           onClick={() => onViewChange(key)}
           data-testid={`equipment-view-${key}`}
           className={`h-8 rounded-none text-xs px-3 ${
-            view === key ? "bg-muted font-semibold text-foreground" : "text-muted-foreground"
+            view === key ? "bg-accent text-accent-foreground font-semibold" : "text-muted-foreground"
           }`}
         >
           {label}

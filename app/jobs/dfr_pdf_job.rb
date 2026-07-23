@@ -59,6 +59,9 @@ class DfrPdfJob < ApplicationJob
       rescue ActiveRecord::RecordNotUnique
         # A concurrent generation for the same span won the insert (partial
         # unique index on generated-report identity) — attach over its row.
+        # Weekly-only in practice: DFR rows keep NULL log_date_end, and
+        # Postgres NULLs-distinct means the index never fires for them (the
+        # daily double-generate race predates this feature; see TODOS.md).
         winner = incident.attachments.find_by!(category: category, log_date: parsed_date, log_date_end: parsed_end_date)
         attach_file(winner, pdf_data, filename, user)
       end

@@ -445,11 +445,6 @@ class IncidentsController < ApplicationController
     Array(params[key]).flatten.filter_map { |v| Integer(v, exception: false) }.uniq
   end
 
-  def parse_iso_date(value)
-    Date.iso8601(value.to_s)
-  rescue ArgumentError, TypeError
-    nil
-  end
 
   # Some legacy uploads (camera capture path that ran the file through
   # browser-image-compression) landed in storage with filename "blob" — no
@@ -1197,11 +1192,8 @@ class IncidentsController < ApplicationController
     when "consumables_logged"
       log_date = metadata_value(metadata, :log_date)
       count = metadata_value(metadata, :count)
-      date_label = begin
-        log_date.present? ? format_date(Date.iso8601(log_date.to_s)) : nil
-      rescue ArgumentError, TypeError
-        nil
-      end
+      parsed = parse_iso_date(log_date)
+      date_label = parsed && format_date(parsed)
       [ "equipment", "Consumables logged", [ date_label, count.present? ? "#{count} item#{count.to_i == 1 ? '' : 's'}" : nil ].compact.join(" · ").presence ]
     when "contact_added"
       name = metadata_value(metadata, :contact_name) || "Contact"
@@ -1322,6 +1314,7 @@ class IncidentsController < ApplicationController
     incident.attachments.includes(:uploaded_by_user, file_attachment: :blob)
       .where(category: "weekly_report")
       .order(log_date: :desc, log_date_end: :desc)
+      .limit(200)
       .map { |att|
         serialize_single_attachment(att).merge(
           log_date_end: att.log_date_end&.iso8601,
@@ -1380,7 +1373,7 @@ class IncidentsController < ApplicationController
   # tab's sheet view and history list.
   def serialize_consumable_entries(incident)
     incident.consumable_entries
-      .includes(:consumable_type, :logged_by_user)
+      .includes(:consumable_type)
       .order(log_date: :desc, created_at: :asc)
       .group_by(&:log_date)
       .map do |date, entries|
@@ -1393,8 +1386,7 @@ class IncidentsController < ApplicationController
               consumable_type_id: e.consumable_type_id,
               name: e.display_name,
               custom_name: e.custom_name,
-              quantity: e.quantity,
-              logged_by_name: e.logged_by_user.full_name
+              quantity: e.quantity
             }
           }
         }

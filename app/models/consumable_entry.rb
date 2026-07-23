@@ -3,7 +3,13 @@ class ConsumableEntry < ApplicationRecord
   belongs_to :consumable_type, optional: true
   belongs_to :logged_by_user, class_name: "User"
 
-  validates :quantity, presence: true, numericality: { only_integer: true, greater_than: 0 }
+  # The upper bound keeps absurd values out of billing totals AND below the
+  # int4 column limit — without it an oversized quantity raises RangeError at
+  # attribute cast, bypassing validation entirely.
+  MAX_QUANTITY = 100_000
+
+  validates :quantity, presence: true, numericality: { only_integer: true, greater_than: 0, less_than_or_equal_to: MAX_QUANTITY }
+  validates :custom_name, length: { maximum: 255 }
   validates :log_date, presence: true
   validate :type_xor_custom
 

@@ -335,7 +335,7 @@ export default function IncidentShow() {
             </Deferred>
           )}
           {activeTab === "equipment" && (
-            <Deferred data={["equipment_log", "equipment_types", "equipment_items_by_type", "attachable_equipment_entries"]} fallback={<PanelSkeleton />}>
+            <Deferred data={["equipment_log", "equipment_types", "equipment_items_by_type", "attachable_equipment_entries", "consumable_types", "consumable_entries"]} fallback={<PanelSkeleton />}>
               <EquipmentPanel
                 equipment_log={equipment_log}
                 can_manage_equipment={can_manage_equipment}

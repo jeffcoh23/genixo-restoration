@@ -81,27 +81,7 @@ class WeatherService
   end
 
   def fetch_and_store(existing = nil)
-    return nil if api_key.blank?
-
-    location = location_string
-    return nil if location.blank?
-
-    url = "#{BASE_URL}/#{ERB::Util.url_encode(location)}/#{@date.iso8601}"
-    response = connection.get(url) do |req|
-      req.params["key"] = api_key
-      req.params["include"] = "days"
-      req.params["elements"] = ELEMENTS
-      req.params["unitGroup"] = "us"
-      req.params["contentType"] = "json"
-    end
-    unless response.success?
-      # Never silent: a 401 (bad key) or 429 (quota) must be visible in logs,
-      # not just a missing weather line. Status only — the key stays out.
-      Rails.logger.warn("[WeatherService] Visual Crossing returned #{response.status} for incident #{@incident.id} #{@date}")
-      return nil
-    end
-
-    day = JSON.parse(response.body).dig("days", 0)
+    day = timeline_days(@date.iso8601, "#{@date}")&.first
     return nil if day.blank?
 
     # store_snapshot rescues the concurrent-generation race (RecordNotUnique
@@ -110,18 +90,18 @@ class WeatherService
     store_snapshot(day, @date, existing)
   end
 
-  # One Timeline API range request covering min(needed)..max(needed). The
-  # response includes every day in that span; only the needed (missing or
-  # provisional) days are upserted, so a final snapshot in the middle of the
-  # span is never overwritten. Returns a Hash of Date => WeatherSnapshot for
-  # the days that were stored.
-  def fetch_and_store_range(needed, cached)
-    return {} if api_key.blank?
+  # One Timeline API request for the given date path ("2026-07-01" or
+  # "2026-07-01/2026-07-07"). Returns the parsed days array, or nil when the
+  # key/address is missing or the API answered non-2xx (logged, never silent —
+  # a 401 (bad key) or 429 (quota) must be visible in logs, not just a missing
+  # weather line; status only, the key stays out).
+  def timeline_days(date_path, log_label)
+    return nil if api_key.blank?
 
     location = location_string
-    return {} if location.blank?
+    return nil if location.blank?
 
-    url = "#{BASE_URL}/#{ERB::Util.url_encode(location)}/#{needed.min.iso8601}/#{needed.max.iso8601}"
+    url = "#{BASE_URL}/#{ERB::Util.url_encode(location)}/#{date_path}"
     response = connection.get(url) do |req|
       req.params["key"] = api_key
       req.params["include"] = "days"
@@ -130,11 +110,22 @@ class WeatherService
       req.params["contentType"] = "json"
     end
     unless response.success?
-      Rails.logger.warn("[WeatherService] Visual Crossing returned #{response.status} for incident #{@incident.id} #{needed.min}..#{needed.max}")
-      return {}
+      Rails.logger.warn("[WeatherService] Visual Crossing returned #{response.status} for incident #{@incident.id} #{log_label}")
+      return nil
     end
 
-    days = JSON.parse(response.body)["days"] || []
+    JSON.parse(response.body)["days"] || []
+  end
+
+  # One Timeline API range request covering min(needed)..max(needed). The
+  # response includes every day in that span; only the needed (missing or
+  # provisional) days are upserted, so a final snapshot in the middle of the
+  # span is never overwritten. Returns a Hash of Date => WeatherSnapshot for
+  # the days that were stored.
+  def fetch_and_store_range(needed, cached)
+    days = timeline_days("#{needed.min.iso8601}/#{needed.max.iso8601}", "#{needed.min}..#{needed.max}")
+    return {} if days.nil?
+
     needed_set = needed.to_set
     days.each_with_object({}) do |day, stored|
       day_date = begin

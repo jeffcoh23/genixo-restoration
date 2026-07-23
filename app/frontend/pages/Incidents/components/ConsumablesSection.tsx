@@ -137,8 +137,9 @@ export default function ConsumablesSection({
                 value={quantities[type.id] ?? ""}
                 onChange={(e) => setQuantity(type.id, e.target.value)}
                 placeholder="0"
+                aria-label={`${type.name} quantity`}
                 data-testid={`consumable-qty-${type.id}`}
-                className="h-8 w-20 text-right"
+                className="h-10 sm:h-8 w-20 text-right"
               />
             ) : (
               <span className="text-sm tabular-nums text-muted-foreground">{quantities[type.id] ?? "—"}</span>
@@ -155,16 +156,18 @@ export default function ConsumablesSection({
                   value={row.name}
                   onChange={(e) => setWriteIn(index, { name: e.target.value })}
                   placeholder="Item name"
+                  aria-label={`Write-in item ${index + 1} name`}
                   data-testid={`consumable-writein-name-${index}`}
-                  className="h-8 flex-1"
+                  className="h-10 sm:h-8 flex-1"
                 />
                 <Input
                   inputMode="numeric"
                   value={row.quantity}
                   onChange={(e) => setWriteIn(index, { quantity: e.target.value })}
                   placeholder="0"
+                  aria-label={`Write-in item ${index + 1} quantity`}
                   data-testid={`consumable-writein-qty-${index}`}
-                  className="h-8 w-20 text-right"
+                  className="h-10 sm:h-8 w-20 text-right"
                 />
               </div>
             ))}
@@ -204,7 +207,7 @@ export default function ConsumablesSection({
                 size="sm"
                 onClick={() => setSelectedDate(day.log_date)}
                 data-testid={`consumables-day-${day.log_date}`}
-                className="h-7 text-xs"
+                className="h-9 sm:h-7 text-xs"
               >
                 {day.date_label}
                 <span className="ml-1.5 opacity-70">({day.entries.length})</span>

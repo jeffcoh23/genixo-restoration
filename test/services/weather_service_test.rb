@@ -238,6 +238,19 @@ class WeatherServiceTest < ActiveSupport::TestCase
     assert_equal 0, WeatherSnapshot.count
   end
 
+  test "for_range returns cached days on a timeout without raising" do
+    cached = WeatherSnapshot.create!(incident: @incident, date: @date, temp_max: 60,
+      conditions: "Cached", fetched_at: (@date + 1.day).to_time.change(hour: 6))
+    stub_request(:get, /weather\.visualcrossing\.com/).to_timeout
+
+    result = nil
+    assert_nothing_raised do
+      result = WeatherService.for_range(incident: @incident, start_date: @date, end_date: @date + 3.days)
+    end
+    assert_equal cached.id, result[@date].id
+    assert_equal 1, result.size
+  end
+
   test "for_range ignores response days outside the needed set" do
     # API padding/misalignment: a day we already hold as final must not be
     # clobbered even if the response includes it.
