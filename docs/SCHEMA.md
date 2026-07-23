@@ -433,7 +433,7 @@ Optional equipment actions attached to an `activity_entry`.
 
 ### labor_entries
 
-Time tracking per incident. Supports both user-specific entries (a technician's own hours) and role-based entries (generic "Supervisor: 2hrs" not tied to a system user).
+Time tracking per incident. Supports both user-specific entries (hours attributed to an eligible mitigation worker) and role-based entries (generic "Supervisor: 2hrs" not tied to a system user).
 
 | Column | Type | Constraints | Notes |
 |--------|------|-------------|-------|
@@ -451,7 +451,7 @@ Time tracking per incident. Supports both user-specific entries (a technician's 
 | updated_at | datetime | NOT NULL | |
 
 **Notes:**
-- If `user_id` is set: this is a specific person's hours (e.g., tech logging their own time).
+- If `user_id` is set: this is a specific person's hours. The referenced user must belong to the incident's mitigation organization and have the manager or technician role.
 - If `user_id` is null: generic role-based hours (e.g., "General Labor: 1hr" — person not in the system).
 - `role_label` is always present and describes the type of labor.
 - `hours` is the canonical value. If `started_at` and `ended_at` are both provided, `hours` is calculated from them.
