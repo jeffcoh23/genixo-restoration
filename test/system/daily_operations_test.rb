@@ -62,6 +62,11 @@ class DailyOperationsTest < ApplicationSystemTestCase
 
     # Fill date and time inputs (no id attributes — find by type within the modal)
     within("[role='dialog']") do
+      find("[role='combobox']").click
+    end
+    find("[role='option']", text: "Bob Tech").click
+
+    within("[role='dialog']") do
       find("input[type='date']").fill_in with: Date.current.iso8601
       all("input[type='time']")[0].fill_in with: "08:00"
       all("input[type='time']")[1].fill_in with: "16:30"

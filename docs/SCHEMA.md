@@ -823,7 +823,7 @@ Generated via consolidated migration. See playbook for details.
 | User Type | Properties Visible | Incidents Visible | Can Create | Can Modify |
 |-----------|-------------------|-------------------|------------|------------|
 | **Manager** (Mitigation) | All properties their org services | All incidents on those properties | Properties, PM orgs, users, incidents, labor, equipment, notes | Status, assignments, labor, equipment |
-| **Technician** (Mitigation) | Only via assigned incidents | Only assigned incidents | Labor (own), equipment, operational notes, attachments | Own labor entries |
+| **Technician** (Mitigation) | Only via assigned incidents | Only assigned incidents | Labor, equipment, operational notes, attachments | All labor entries on assigned incidents |
 | **Office/Sales** (Mitigation) | All properties their org services | All incidents (read-only operational) | Properties, PM orgs, users | Nothing operational |
 | **Property Manager** (PM) | Assigned properties only | Incidents on assigned properties | Incidents, messages, intake attachments | Nothing operational |
 | **Area Manager** (PM) | Assigned properties (multiple) | Incidents on assigned properties | Same as Property Manager | Same as Property Manager |

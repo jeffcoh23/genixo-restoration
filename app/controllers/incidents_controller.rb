@@ -579,9 +579,8 @@ class IncidentsController < ApplicationController
     can_manage_activities? && entry.performed_by_user_id == current_user.id
   end
 
-  def can_edit_labor_entry?(entry)
-    return true if mitigation_admin?
-    can_create_labor? && entry.created_by_user_id == current_user.id
+  def can_edit_labor_entry?(_entry)
+    can_create_labor?
   end
 
   def can_edit_equipment_entry?(entry)
@@ -1242,15 +1241,13 @@ class IncidentsController < ApplicationController
   end
 
   def assignable_labor_users(incident)
-    if mitigation_admin?
-      users = User.where(active: true, organization_id: incident.property.mitigation_org_id)
-        .where.not(user_type: User::OFFICE_SALES)
-        .order(:last_name, :first_name)
-      sorted = users.sort_by { |u| [ User::LABOR_SORT_ORDER.index(u.user_type) || 99, u.last_name, u.first_name ] }
-      sorted.map { |u| { id: u.id, full_name: u.full_name, role_label: User::ROLE_LABELS[u.user_type] } }
-    else
-      [ { id: current_user.id, full_name: current_user.full_name, role_label: User::ROLE_LABELS[current_user.user_type] } ]
-    end
+    return [] unless can_create_labor?
+
+    users = User.where(active: true, organization_id: incident.property.mitigation_org_id)
+      .where.not(user_type: User::OFFICE_SALES)
+      .order(:last_name, :first_name)
+    sorted = users.sort_by { |u| [ User::LABOR_SORT_ORDER.index(u.user_type) || 99, u.last_name, u.first_name ] }
+    sorted.map { |u| { id: u.id, full_name: u.full_name, role_label: User::ROLE_LABELS[u.user_type] } }
   end
 
   def serialize_attachments(incident)

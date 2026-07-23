@@ -72,13 +72,14 @@ class LaborEntriesControllerTest < ActionDispatch::IntegrationTest
     assert_nil LaborEntry.last.user_id
   end
 
-  test "tech can create labor entry forced to self" do
+  test "tech can create labor entry for self" do
     login_as @tech
     assert_difference "LaborEntry.count", 1 do
       post incident_labor_entries_path(@incident), params: {
         labor_entry: {
           role_label: "Technician", log_date: Date.current,
-          started_at: @started.iso8601, ended_at: @ended.iso8601
+          started_at: @started.iso8601, ended_at: @ended.iso8601,
+          user_id: @tech.id
         }
       }
     end
@@ -87,7 +88,7 @@ class LaborEntriesControllerTest < ActionDispatch::IntegrationTest
     assert_equal @tech.id, LaborEntry.last.created_by_user_id
   end
 
-  test "tech cannot set user_id to another user" do
+  test "tech can create labor entry for another user" do
     login_as @tech
     post incident_labor_entries_path(@incident), params: {
       labor_entry: {
@@ -97,7 +98,24 @@ class LaborEntriesControllerTest < ActionDispatch::IntegrationTest
       }
     }
     assert_redirected_to incident_path(@incident)
-    assert_equal @tech.id, LaborEntry.last.user_id
+    assert_equal @other_tech.id, LaborEntry.last.user_id
+    assert_equal @tech.id, LaborEntry.last.created_by_user_id
+  end
+
+  test "tech cannot attribute labor to an ineligible user" do
+    login_as @tech
+
+    assert_no_difference "LaborEntry.count" do
+      post incident_labor_entries_path(@incident), params: {
+        labor_entry: {
+          role_label: "Property Manager", log_date: Date.current,
+          started_at: @started.iso8601, ended_at: @ended.iso8601,
+          user_id: @pm_user.id
+        }
+      }
+    end
+
+    assert_redirected_to incident_path(@incident)
   end
 
   test "office_sales cannot create labor entry" do
@@ -163,15 +181,55 @@ class LaborEntriesControllerTest < ActionDispatch::IntegrationTest
     assert_equal 3.0, entry.reload.hours.to_f
   end
 
-  test "tech cannot update another users entry" do
+  test "tech can update another users entry" do
     login_as @tech
     entry = create_labor_entry(user: @other_tech, created_by_user: @other_tech, hours: 2.0)
     new_ended = Time.zone.parse("2026-02-15 17:00:00")
     patch incident_labor_entry_path(@incident, entry), params: {
       labor_entry: { ended_at: new_ended.iso8601 }
     }
+    assert_redirected_to incident_path(@incident)
+    assert_equal 9.0, entry.reload.hours.to_f
+  end
+
+  test "tech can reassign another users entry" do
+    login_as @tech
+    entry = create_labor_entry(user: @other_tech, created_by_user: @other_tech, hours: 2.0)
+
+    patch incident_labor_entry_path(@incident, entry), params: {
+      labor_entry: { user_id: @tech.id }
+    }
+
+    assert_redirected_to incident_path(@incident)
+    assert_equal @tech.id, entry.reload.user_id
+  end
+
+  test "tech can delete another users entry" do
+    login_as @tech
+    entry = create_labor_entry(user: @other_tech, created_by_user: @other_tech, hours: 2.0)
+
+    assert_difference "LaborEntry.count", -1 do
+      delete incident_labor_entry_path(@incident, entry)
+    end
+
+    assert_redirected_to incident_path(@incident)
+  end
+
+  test "tech without daily log privilege cannot manage labor" do
+    @tech.update!(permissions: @tech.permissions - [ Permissions::MANAGE_DAILY_LOGS.to_s ])
+    login_as @tech
+
+    assert_no_difference "LaborEntry.count" do
+      post incident_labor_entries_path(@incident), params: {
+        labor_entry: {
+          role_label: "Technician", log_date: Date.current,
+          started_at: @started.iso8601, ended_at: @ended.iso8601,
+          user_id: @other_tech.id
+        }
+      }
+    end
+
     assert_response :not_found
-    assert_equal 2.0, entry.reload.hours.to_f
   end
 
   # --- Activity + calculation tests ---
