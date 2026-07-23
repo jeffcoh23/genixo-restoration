@@ -146,7 +146,11 @@ class DfrPdfJobTest < ActiveSupport::TestCase
       text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
       assert_includes text, "Equipment:"
       # Header row + one row per unit, tagged by ID and type.
-      [ "ID", "Type", "Start Date", "End Date" ].each { |h| assert_includes text, h }
+      [ "ID", "Type", "Start Date", "End Date", "Hours" ].each { |h| assert_includes text, h }
+      # Whole hours-in-place per unit. The removed unit's figure is exact:
+      # placed 2 days ago, removed 2 hours ago → 46 hours. (In-place units cap
+      # at the report day's end, so their figures depend on the frozen clock.)
+      assert_match(/\b46\b/, text, "removed unit shows its cumulative hours (48h placed - 2h early removal)")
       assert_includes text, "DH-101"
       assert_includes text, "SN-555"
       assert_includes text, "AM-7"

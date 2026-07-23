@@ -341,7 +341,7 @@ When an incident is created, the system auto-assigns users based on the `auto_as
 - Weekly photo selection defaults to **none selected** (a DFR preselects the report date's photos); documents are opt-in on both.
 - Generated reports (`dfr`, `weekly_report`) can never be selected into another generated report (server-side exclusion from the pickers).
 - Weekly content per day: same sections as a DFR, day-scoped; days with nothing recorded show "No activity recorded." (weather still renders — rain days document delays); incident-level summary fallbacks (units, rooms, EDR) don't repeat under every day.
-- Equipment on reports lists **per-unit rows** (tag/ID, type, start date, end date or "In place") — never aggregated computed hours.
+- Equipment on reports lists **per-unit rows** (tag/ID, type, start date, end date or "In place", and whole hours-in-place capped at the report day) — never a per-type aggregate.
 
 ### Delayed Flag
 

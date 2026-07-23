@@ -336,13 +336,14 @@ class DfrPdfService
     pdf.font_size(10) { pdf.text "Equipment:", style: :bold }
     pdf.move_down 3
 
-    rows = [ [ "ID", "Type", "Start Date", "End Date" ] ]
+    rows = [ [ "ID", "Type", "Start Date", "End Date", "Hours" ] ]
     entries.each do |entry|
       rows << [
         t(equipment_id_label(entry)) || "-",
         t(entry.type_name.to_s.strip) || "-",
         entry.placed_at.strftime("%-m/%-d/%y"),
-        entry.removed_at ? entry.removed_at.strftime("%-m/%-d/%y") : "In place"
+        entry.removed_at ? entry.removed_at.strftime("%-m/%-d/%y") : "In place",
+        equipment_hours_through(entry, day).to_s
       ]
     end
 
@@ -392,6 +393,14 @@ class DfrPdfService
     end
 
     pdf.move_down 10
+  end
+
+  # Cumulative time-in-place in whole hours, like the Equipment tab — but
+  # capped at the report day's end so a historical report shows the hours as
+  # of ITS date, not a live counter that grows every regeneration.
+  def equipment_hours_through(entry, day)
+    cutoff = [ entry.removed_at, day_range(day).last ].compact.min
+    [ ((cutoff - entry.placed_at) / 1.hour).round, 0 ].max
   end
 
   def equipment_id_label(entry)
