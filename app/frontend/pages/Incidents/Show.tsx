@@ -4,6 +4,8 @@ import { ChevronDown, ChevronRight, Mail, Pencil, Phone } from "lucide-react";
 import AppLayout from "@/layout/AppLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import InlineActionFeedback from "@/components/InlineActionFeedback";
 import useInertiaAction from "@/hooks/useInertiaAction";
 import { SharedProps } from "@/types";
@@ -298,6 +300,24 @@ export default function IncidentShow() {
                 </div>
               )}
               <ReportPanel reportPath={incident.report_path} />
+              {can_edit && incident.edit_path && (
+                <div className="flex items-start gap-2 rounded-lg border border-border bg-muted/20 px-3 py-2.5">
+                  <Checkbox
+                    id="show_delayed"
+                    checked={incident.delayed}
+                    onCheckedChange={(v) =>
+                      router.patch(incident.edit_path!, { incident: { delayed: v === true } }, { preserveScroll: true })
+                    }
+                    data-testid="incident-delayed-toggle"
+                  />
+                  <div className="space-y-0.5">
+                    <Label htmlFor="show_delayed" className="text-xs">Delayed</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Shows a Delayed line on field reports and a badge on the incident.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
