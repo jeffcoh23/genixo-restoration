@@ -26,12 +26,13 @@ class LoginRequestsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
-  test "create saves the request and emails MANAGE_USERS holders" do
+  test "create saves the request and emails opted-in MANAGE_USERS holders" do
     original_adapter = ActiveJob::Base.queue_adapter
     ActiveJob::Base.queue_adapter = :test
+    @manager.update!(notification_preferences: { "login_request" => true })
 
     assert_difference -> { LoginRequest.count }, 1 do
-      # @manager holds MANAGE_USERS; @tech and @pm_user do not
+      # @manager holds MANAGE_USERS and opted in; @tech and @pm_user do not
       assert_enqueued_emails 1 do
         post login_requests_path, params: valid_params
       end
