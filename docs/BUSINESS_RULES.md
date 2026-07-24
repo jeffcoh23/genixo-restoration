@@ -333,6 +333,22 @@ When an incident is created, the system auto-assigns users based on the `auto_as
 - `occurred_at` is captured with a **date-only** input; the stored datetime is midnight-padded. Activity rows therefore display no clock time (a fabricated "12:00 AM" was shown before 2026-07) and order by `created_at` within a day.
 - Creating/updating an activity generates an `activity_event` (`activity_logged` / `activity_updated`) and updates `last_activity_at`.
 
+### Field Reports (DFR + Weekly)
+
+- **Who can generate:** anyone with `MANAGE_DAILY_LOGS` on an incident they can see (`authorize_dfr!` — same gate for daily and weekly).
+- **DFR** — one per incident per `log_date`; regeneration attaches a new file over the same row (never purge-then-attach).
+- **Weekly Field Report** — spans `start_date..end_date`; end must be after start and the span at most **31 days** (validated pre-enqueue in the controller AND in `DfrPdfService`). Identity is `(incident, log_date, log_date_end)` — regenerating the same span replaces the file; different end dates are distinct reports. Lives in its own Weekly Reports tab on the incident page.
+- Weekly photo selection defaults to **none selected** (a DFR preselects the report date's photos); documents are opt-in on both.
+- Generated reports (`dfr`, `weekly_report`) can never be selected into another generated report (server-side exclusion from the pickers).
+- Weekly content per day: same sections as a DFR, day-scoped; days with nothing recorded show "No activity recorded." (weather still renders — rain days document delays); incident-level summary fallbacks (units, rooms, EDR) don't repeat under every day.
+- Equipment on reports lists **per-unit rows** (tag/ID, type, start date, end date or "In place", and whole hours-in-place capped at the report day) — never a per-type aggregate.
+
+### Delayed Flag
+
+- Any user who can edit the incident can toggle `delayed` (edit form checkbox).
+- When true: warning badge on the incident header and a "Delayed: Yes" grid line on field reports. When false: nothing renders anywhere.
+- Toggling logs an `incident_flags_updated` activity event.
+
 ---
 
 ## 9. Labor Tracking Rules
@@ -382,13 +398,24 @@ When an incident is created, the system auto-assigns users based on the `auto_as
 - Placing and removing equipment each generate an `activity_event`.
 - Daily log equipment chronology should be read from activity equipment actions attached to activity entries.
 
+### Consumables
+
+- Consumables used on an incident are logged per day from the Equipment tab's Consumables view (a digitized version of the paper sheet).
+- **Who can log:** `MANAGE_DAILY_LOGS` (technicians, managers). Everyone else sees the sheet read-only.
+- The standard list is the mitigation org's `consumable_types` (org-scoped, seeded with 11 items, soft-deactivatable). Anything else goes in as a free-text **write-in** (at least 4 rows, extendable).
+- Each entry is a standard type XOR a write-in name, with an integer quantity > 0 (DB check constraint).
+- Saving is whole-day **replace**: the submitted sheet becomes that date's entries; cleared/zero rows disappear. Each save logs one `consumables_logged` activity event.
+- Reports: daily + weekly field reports render a per-day "Consumables Used" section; weeklies add a summed totals block across the span.
+- No self-serve type management yet — deferred (TODOS.md); new standard items are added via console.
+
 ---
 
 ## 11. Attachment Rules
 
 - Polymorphic — can attach to `Incident` or `Message`.
 - **Who can upload:** Any user who can see the incident/message.
-- Each attachment has a `category`: `photo`, `dfr`, `moisture_mapping`, `moisture_readings`, `psychrometric_log`, `signed_document`, `sign_in_sheet`, `proposal`, `general`.
+- Each attachment has a `category`: `photo`, `dfr`, `weekly_report`, `moisture_mapping`, `moisture_readings`, `psychrometric_log`, `signed_document`, `sign_in_sheet`, `proposal`, `general`.
+- `dfr` and `weekly_report` are app-generated: excluded from the report pickers, and `weekly_report` is excluded from the Documents tab (it has its own tab) and from daily-log date labels.
 - Files are stored via Active Storage (local disk in dev, S3 in production).
 - Attachments are **never deleted** for audit trail purposes.
 - Uploading an attachment generates an `activity_event` on the parent incident.

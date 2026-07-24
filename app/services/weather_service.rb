@@ -17,16 +17,27 @@ require "faraday"
 # fails, the stale snapshot is returned rather than nothing.
 class WeatherService
   BASE_URL = "https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline".freeze
-  ELEMENTS = "tempmax,tempmin,temp,conditions,precip,precipprob,windspeed,humidity".freeze
+  # datetime is required to map a range response's days back to their dates.
+  ELEMENTS = "datetime,tempmax,tempmin,temp,conditions,precip,precipprob,windspeed,humidity".freeze
   TIMEOUT_SECONDS = 5
 
   def self.for(incident:, date:)
     new(incident: incident, date: date).call
   end
 
-  def initialize(incident:, date:)
+  # Weather for every day in start_date..end_date as a Hash of Date =>
+  # WeatherSnapshot (days that could not be fetched are simply absent). Days
+  # already cached as final are served from the DB; the remaining span is
+  # fetched in ONE Timeline API range request — never a call per day, so a
+  # 31-day report costs one HTTP round-trip, not 31 sequential timeouts.
+  def self.for_range(incident:, start_date:, end_date:)
+    new(incident: incident, date: start_date, end_date: end_date).call_range
+  end
+
+  def initialize(incident:, date:, end_date: nil)
     @incident = incident
     @date = date.is_a?(String) ? Date.parse(date) : date
+    @end_date = end_date.nil? ? @date : (end_date.is_a?(String) ? Date.parse(end_date) : end_date)
   end
 
   def call
@@ -44,6 +55,20 @@ class WeatherService
     cached
   end
 
+  def call_range
+    cached = WeatherSnapshot.where(incident_id: @incident.id, date: @date..@end_date).index_by(&:date)
+    needed = (@date..@end_date).reject { |day| cached[day] && final?(cached[day]) }
+    return cached if needed.empty?
+
+    cached.merge(fetch_and_store_range(needed, cached))
+  rescue StandardError => e
+    Rails.logger.warn("[WeatherService] range weather unavailable for incident #{@incident.id} #{@date}..#{@end_date}: #{e.class}: #{redact(e.message)}")
+    unless e.is_a?(Faraday::Error) || e.is_a?(JSON::ParserError)
+      Honeybadger.notify(e) if defined?(Honeybadger)
+    end
+    cached || {}
+  end
+
   private
 
   # A snapshot holds final (observed) data once it was fetched after its date
@@ -56,12 +81,27 @@ class WeatherService
   end
 
   def fetch_and_store(existing = nil)
+    day = timeline_days(@date.iso8601, "#{@date}")&.first
+    return nil if day.blank?
+
+    # store_snapshot rescues the concurrent-generation race (RecordNotUnique
+    # from the DB index, RecordInvalid from the model validation seeing the
+    # winner first) by returning the winner's row.
+    store_snapshot(day, @date, existing)
+  end
+
+  # One Timeline API request for the given date path ("2026-07-01" or
+  # "2026-07-01/2026-07-07"). Returns the parsed days array, or nil when the
+  # key/address is missing or the API answered non-2xx (logged, never silent —
+  # a 401 (bad key) or 429 (quota) must be visible in logs, not just a missing
+  # weather line; status only, the key stays out).
+  def timeline_days(date_path, log_label)
     return nil if api_key.blank?
 
     location = location_string
     return nil if location.blank?
 
-    url = "#{BASE_URL}/#{ERB::Util.url_encode(location)}/#{@date.iso8601}"
+    url = "#{BASE_URL}/#{ERB::Util.url_encode(location)}/#{date_path}"
     response = connection.get(url) do |req|
       req.params["key"] = api_key
       req.params["include"] = "days"
@@ -70,16 +110,51 @@ class WeatherService
       req.params["contentType"] = "json"
     end
     unless response.success?
-      # Never silent: a 401 (bad key) or 429 (quota) must be visible in logs,
-      # not just a missing weather line. Status only — the key stays out.
-      Rails.logger.warn("[WeatherService] Visual Crossing returned #{response.status} for incident #{@incident.id} #{@date}")
+      Rails.logger.warn("[WeatherService] Visual Crossing returned #{response.status} for incident #{@incident.id} #{log_label}")
       return nil
     end
 
-    day = JSON.parse(response.body).dig("days", 0)
-    return nil if day.blank?
+    JSON.parse(response.body)["days"] || []
+  end
 
-    attrs = {
+  # One Timeline API range request covering min(needed)..max(needed). The
+  # response includes every day in that span; only the needed (missing or
+  # provisional) days are upserted, so a final snapshot in the middle of the
+  # span is never overwritten. Returns a Hash of Date => WeatherSnapshot for
+  # the days that were stored.
+  def fetch_and_store_range(needed, cached)
+    days = timeline_days("#{needed.min.iso8601}/#{needed.max.iso8601}", "#{needed.min}..#{needed.max}")
+    return {} if days.nil?
+
+    needed_set = needed.to_set
+    days.each_with_object({}) do |day, stored|
+      day_date = begin
+        Date.parse(day["datetime"].to_s)
+      rescue ArgumentError, TypeError
+        next
+      end
+      next unless needed_set.include?(day_date)
+
+      snapshot = store_snapshot(day, day_date, cached[day_date])
+      stored[day_date] = snapshot if snapshot
+    end
+  end
+
+  def store_snapshot(day, day_date, existing)
+    attrs = snapshot_attrs(day)
+    if existing
+      existing.update!(attrs)
+      existing
+    else
+      WeatherSnapshot.create!(attrs.merge(incident_id: @incident.id, date: day_date))
+    end
+  rescue ActiveRecord::RecordNotUnique, ActiveRecord::RecordInvalid
+    # A concurrent generation stored this day first — use the winner's row.
+    WeatherSnapshot.find_by(incident_id: @incident.id, date: day_date)
+  end
+
+  def snapshot_attrs(day)
+    {
       temp_max: day["tempmax"],
       temp_min: day["tempmin"],
       temp_avg: day["temp"],
@@ -90,19 +165,6 @@ class WeatherService
       humidity: day["humidity"],
       fetched_at: Time.current
     }
-
-    if existing
-      existing.update!(attrs)
-      existing
-    else
-      WeatherSnapshot.create!(attrs.merge(incident_id: @incident.id, date: @date))
-    end
-  rescue ActiveRecord::RecordNotUnique, ActiveRecord::RecordInvalid
-    # A concurrent generation stored it first — use the winner's row. The race
-    # surfaces two ways: the DB unique index (RecordNotUnique) or the model's
-    # uniqueness validation seeing the winner just before our INSERT
-    # (RecordInvalid). Both mean the same thing.
-    WeatherSnapshot.find_by(incident_id: @incident.id, date: @date)
   end
 
   def connection

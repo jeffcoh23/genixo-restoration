@@ -29,16 +29,24 @@ class DfrPdfService
   ACTIVE_CONTENT_KEYS = %i[JS JavaScript AA OpenAction Launch].freeze
   ACTIVE_ACTION_TYPES = %i[JavaScript Launch].freeze
 
-  def initialize(incident:, date:, timezone: "America/Chicago", include_photos: true,
+  # Longest allowed report span. The controller enforces the same limit
+  # pre-enqueue; this guard keeps a bad caller from rendering an unbounded PDF.
+  MAX_REPORT_DAYS = 31
+
+  def initialize(incident:, date:, end_date: nil, timezone: "America/Chicago", include_photos: true,
                  photo_attachment_ids: nil, document_attachment_ids: nil, weather: nil)
     @incident = incident
     @date = date.is_a?(String) ? Date.parse(date) : date
+    @end_date = end_date ? (end_date.is_a?(String) ? Date.parse(end_date) : end_date) : @date
+    raise ArgumentError, "end_date (#{@end_date}) precedes date (#{@date})" if @end_date < @date
+    raise ArgumentError, "report span exceeds #{MAX_REPORT_DAYS} days" if (@end_date - @date).to_i >= MAX_REPORT_DAYS
     @timezone = timezone
     @include_photos = include_photos
     @photo_attachment_ids = photo_attachment_ids
     @document_attachment_ids = document_attachment_ids
-    # A WeatherSnapshot (or nil). Fetched by the caller so the PDF service stays
-    # pure and testable without HTTP; nil simply omits the weather line.
+    # Daily: a WeatherSnapshot (or nil). Weekly: a Hash of Date => WeatherSnapshot.
+    # Fetched by the caller so the PDF service stays pure and testable without
+    # HTTP; nil/missing days simply omit the weather line.
     @weather = weather
   end
 
@@ -62,7 +70,8 @@ class DfrPdfService
   # Assembly pipeline. Peak memory is bounded to one photo batch, not the whole
   # report:
   #
-  #   body.pdf ─────────────────────────────┐
+  #   body.pdf (daily: one day's sections;  ─┐
+  #     weekly: per-day blocks + totals)      │
   #   photos_0.pdf (batch of PHOTO_BATCH_SIZE)│
   #   photos_1.pdf ...                        ├─ pdfunite (streams on disk) ─► PDF bytes
   #   documents.pdf (inline images + listings)│
@@ -84,16 +93,61 @@ class DfrPdfService
     end
   end
 
+  # Single-day output is pinned by DfrPdfServiceTest ("fully-populated
+  # single-day report..."): the daily flow must stay byte-for-byte-in-spirit
+  # identical through the range generalization. Multi-day prepends a heading
+  # per day and renders the same section stack day by day.
   def render_body(pdf)
     render_header(pdf)
     render_info_grid(pdf)
-    render_weather(pdf)
-    render_employees_section(pdf)
-    render_work_details(pdf)
-    render_notes(pdf)
-    render_summary_fields(pdf)
-    render_labor_section(pdf)
-    render_equipment_section(pdf)
+    if multi_day?
+      (@date..@end_date).each_with_index do |day, i|
+        render_day_heading(pdf, day, first: i.zero?)
+        if day_empty?(day)
+          # Weather still renders on an empty day — a rain day with no work is
+          # exactly what a delay needs documented.
+          render_weather(pdf, weather_for(day))
+          pdf.font_size(10) { pdf.text "No activity recorded.", color: "777777" }
+          pdf.move_down 10
+        else
+          render_day_sections(pdf, day)
+        end
+      end
+      render_consumables_totals(pdf)
+    else
+      render_day_sections(pdf, @date)
+    end
+  end
+
+  def render_day_sections(pdf, day)
+    render_weather(pdf, weather_for(day))
+    render_employees_section(pdf, day)
+    render_work_details(pdf, day)
+    render_notes(pdf, day)
+    render_summary_fields(pdf, day)
+    render_labor_section(pdf, day)
+    render_equipment_section(pdf, day)
+    render_consumables_section(pdf, day)
+  end
+
+  def render_day_heading(pdf, day, first:)
+    pdf.move_down 8 unless first
+    pdf.font_size(13) { pdf.text day.strftime("%A, %B %-d, %Y"), style: :bold }
+    pdf.move_down 2
+    pdf.stroke_horizontal_rule
+    pdf.move_down 8
+  end
+
+  def day_empty?(day)
+    activities_for_date(day).empty? &&
+      labor_entries_for_date(day).empty? &&
+      notes_for_date(day).empty? &&
+      equipment_entries_for_date(day).empty? &&
+      consumable_entries_for_date(day).empty?
+  end
+
+  def multi_day?
+    @end_date > @date
   end
 
   # Renders a Prawn document via the block, flushes it to a temp PDF, and returns
@@ -109,7 +163,8 @@ class DfrPdfService
   end
 
   def render_header(pdf)
-    pdf.font_size(18) { pdf.text "Daily Field Report", style: :bold, align: :center }
+    title = multi_day? ? "Weekly Field Report" : "Daily Field Report"
+    pdf.font_size(18) { pdf.text title, style: :bold, align: :center }
     pdf.move_down 15
   end
 
@@ -120,10 +175,14 @@ class DfrPdfService
 
     data = [
       [ label_cell("Site Name:"), t(property.name), label_cell("Job Name:"), t(property.name) ],
-      [ label_cell("Job Number:"), t(@incident.job_id) || "-", label_cell("Date:"), @date.strftime("%-m/%-d/%y") ],
+      [ label_cell("Job Number:"), t(@incident.job_id) || "-", label_cell("Date:"), report_date_label ],
       [ label_cell("Project Manager:"), t(manager&.full_name) || "-", label_cell("Superintendent:"), t(superintendent&.full_name) || "-" ],
-      [ label_cell("Visitors:"), t(visitors_for_date) || "-", label_cell("Status:"), t(@incident.display_status_label) ]
+      # Visitors are day-scoped; a weekly report lists them under each day's
+      # summary fields instead of pretending one value covers the whole span.
+      [ label_cell("Visitors:"), multi_day? ? "-" : (t(visitors_for_date(@date)) || "-"), label_cell("Status:"), t(@incident.display_status_label) ]
     ]
+    # Only when flagged — an always-present "Delayed: No" row would read as noise.
+    data << [ label_cell("Delayed:"), "Yes", "", "" ] if @incident.delayed
 
     pdf.table(data, width: pdf.bounds.width) do |t|
       t.cells.borders = []
@@ -140,8 +199,8 @@ class DfrPdfService
     pdf.move_down 10
   end
 
-  def render_weather(pdf)
-    line = @weather&.summary_line
+  def render_weather(pdf, snapshot)
+    line = snapshot&.summary_line
     return if line.blank?
 
     pdf.font_size(10) do
@@ -156,8 +215,8 @@ class DfrPdfService
     Rails.logger.warn("[DfrPdfService] weather line skipped for incident #{@incident.id}: #{e.message}")
   end
 
-  def render_employees_section(pdf)
-    labor = labor_entries_for_date
+  def render_employees_section(pdf, day)
+    labor = labor_entries_for_date(day)
     return if labor.empty?
 
     names = labor.map { |e| e.user&.full_name || e.created_by_user.full_name }.uniq
@@ -167,8 +226,8 @@ class DfrPdfService
     pdf.move_down 10
   end
 
-  def render_work_details(pdf)
-    activities = activities_for_date
+  def render_work_details(pdf, day)
+    activities = activities_for_date(day)
     return if activities.empty?
 
     activities.each do |activity|
@@ -188,8 +247,8 @@ class DfrPdfService
     pdf.move_down 5
   end
 
-  def render_notes(pdf)
-    notes = notes_for_date
+  def render_notes(pdf, day)
+    notes = notes_for_date(day)
     return if notes.empty?
 
     pdf.font_size(10) do
@@ -203,17 +262,20 @@ class DfrPdfService
     pdf.move_down 10
   end
 
-  def render_summary_fields(pdf)
-    # Use the most recent activity's metadata for this date, or fall back to incident-level
-    activity = activities_for_date.first
+  def render_summary_fields(pdf, day)
+    # Use the most recent activity's metadata for this date, or fall back to
+    # incident-level. In a weekly report the incident-level fallbacks (units,
+    # rooms, EDR) would repeat identically under every day, so multi-day mode
+    # renders only what that day's activity actually recorded.
+    activity = activities_for_date(day).first
 
     fields = []
-    units = activity&.units_affected || @incident.units_affected
+    units = activity&.units_affected || (multi_day? ? nil : @incident.units_affected)
     units_desc = activity&.units_affected_description
-    rooms = @incident.affected_room_numbers
+    rooms = multi_day? ? nil : @incident.affected_room_numbers
     visitors = activity&.visitors
     usable_returned = activity&.usable_rooms_returned
-    edr = activity&.estimated_date_of_return || @incident.estimated_date_of_return
+    edr = activity&.estimated_date_of_return || (multi_day? ? nil : @incident.estimated_date_of_return)
 
     fields << [ "Number of Units Affected:", t("#{units}#{units_desc.present? ? " — #{units_desc}" : ""}") ] if units.present?
     fields << [ "Affected Room Numbers:", t(rooms) ] if rooms.present?
@@ -235,8 +297,8 @@ class DfrPdfService
     pdf.move_down 5
   end
 
-  def render_labor_section(pdf)
-    labor = labor_entries_for_date
+  def render_labor_section(pdf, day)
+    labor = labor_entries_for_date(day)
     return if labor.empty?
 
     pdf.stroke_horizontal_rule
@@ -260,8 +322,12 @@ class DfrPdfService
     pdf.move_down 10
   end
 
-  def render_equipment_section(pdf)
-    entries = equipment_entries_for_date
+  # Per-unit rows matching the Equipment tab (Daniel: "listed out by ID number,
+  # equipment type, start date, and end date"). The old per-type "N Type X hrs"
+  # aggregate summed each unit's computed time-in-place, which read as a
+  # mystery number on the report.
+  def render_equipment_section(pdf, day)
+    entries = equipment_entries_for_date(day)
     return if entries.empty?
 
     pdf.stroke_horizontal_rule
@@ -270,15 +336,82 @@ class DfrPdfService
     pdf.font_size(10) { pdf.text "Equipment:", style: :bold }
     pdf.move_down 3
 
-    by_type = entries.group_by { |e| e.type_name.to_s.strip }.sort_by { |name, _| name.downcase }
-    by_type.each do |type_name, type_entries|
-      total_hours = type_entries.sum { |e| equipment_hours_for_date(e) }
-      pdf.font_size(10) do
-        pdf.text t("• #{type_entries.size} #{type_name}  #{total_hours} hrs")
-      end
+    rows = [ [ "ID", "Type", "Start Date", "End Date", "Hours" ] ]
+    entries.each do |entry|
+      rows << [
+        t(equipment_id_label(entry)) || "-",
+        t(entry.type_name.to_s.strip) || "-",
+        entry.placed_at.strftime("%-m/%-d/%y"),
+        entry.removed_at ? entry.removed_at.strftime("%-m/%-d/%y") : "In place",
+        equipment_hours_through(entry, day).to_s
+      ]
+    end
+
+    pdf.table(rows, width: pdf.bounds.width, header: true) do |t|
+      t.cells.borders = []
+      t.cells.padding = [ 2, 5, 2, 5 ]
+      t.cells.size = 10
+      t.row(0).font_style = :bold
     end
 
     pdf.move_down 10
+  end
+
+  def render_consumables_section(pdf, day)
+    entries = consumable_entries_for_date(day)
+    return if entries.empty?
+
+    pdf.stroke_horizontal_rule
+    pdf.move_down 8
+
+    pdf.font_size(10) { pdf.text "Consumables Used:", style: :bold }
+    pdf.move_down 3
+
+    entries.each do |entry|
+      pdf.font_size(10) { pdf.text t("• #{entry.display_name}  ×#{entry.quantity}") }
+    end
+
+    pdf.move_down 10
+  end
+
+  # Weekly only: one summed block after the last day, so billing doesn't have
+  # to tally quantities across seven day sections by hand.
+  def render_consumables_totals(pdf)
+    all_entries = consumables_by_day.values.flatten
+    return if all_entries.empty?
+
+    pdf.move_down 4
+    pdf.stroke_horizontal_rule
+    pdf.move_down 8
+
+    pdf.font_size(11) { pdf.text "Consumables Totals (#{report_date_label}):", style: :bold }
+    pdf.move_down 3
+
+    totals = all_entries.group_by(&:display_name).map { |name, group| [ name, group.sum(&:quantity) ] }
+    totals.sort_by { |name, _| name.to_s.downcase }.each do |name, quantity|
+      pdf.font_size(10) { pdf.text t("• #{name}  ×#{quantity}") }
+    end
+
+    pdf.move_down 10
+  end
+
+  # Cumulative time-in-place in whole hours, like the Equipment tab — but
+  # capped at the report day's end so a historical report shows the hours as
+  # of ITS date, not a live counter that grows every regeneration. Also capped
+  # at now: a same-day report generated at 10am must not count hours through
+  # 11:59pm that haven't happened yet.
+  def equipment_hours_through(entry, day)
+    cutoff = [ entry.removed_at, day_range(day).last, Time.current ].compact.min
+    [ ((cutoff - entry.placed_at) / 1.hour).round, 0 ].max
+  end
+
+  def equipment_id_label(entry)
+    [ entry.tag_number, entry.equipment_identifier ]
+      .map { |v| v.to_s.strip }
+      .reject(&:blank?)
+      .uniq
+      .join(" / ")
+      .presence
   end
 
   # Photos in batches of PHOTO_BATCH_SIZE, each rendered to its own PDF part (see
@@ -454,9 +587,12 @@ class DfrPdfService
   def build_document_results
     return [] if @document_attachment_ids.blank?
 
+    # GENERATED_REPORT_CATEGORIES excluded here — not just in the picker UI —
+    # so a crafted document_ids param can never embed one generated report
+    # inside another (recursive size amplification).
     docs = @incident.attachments
       .includes(file_attachment: :blob)
-      .where.not(category: %w[photo dfr])
+      .where.not(category: [ "photo" ] + Attachment::GENERATED_REPORT_CATEGORIES)
       .where(id: @document_attachment_ids)
       .order(:created_at)
 
@@ -520,40 +656,73 @@ class DfrPdfService
   end
 
   # --- Data queries ---
+  #
+  # Each collection is fetched ONCE for the whole report span and grouped by
+  # day, so a 7-day weekly report issues the same number of queries as a
+  # single-day DFR instead of 7x.
 
-  def activities_for_date
-    @activities_for_date ||= @incident.activity_entries
-      .includes(:performed_by_user, equipment_actions: :equipment_type)
-      .where(occurred_at: date_range)
-      .order(occurred_at: :asc)
+  def activities_for_date(day)
+    activities_by_day[day] || []
   end
 
-  def equipment_entries_for_date
-    @equipment_entries_for_date ||= @incident.equipment_entries
+  def activities_by_day
+    @activities_by_day ||= @incident.activity_entries
+      .includes(:performed_by_user, equipment_actions: :equipment_type)
+      .where(occurred_at: full_range)
+      .order(occurred_at: :asc)
+      .group_by { |a| a.occurred_at.in_time_zone.to_date }
+  end
+
+  def equipment_entries_for_date(day)
+    range = day_range(day)
+    equipment_entries_in_range.select do |e|
+      e.placed_at <= range.last && (e.removed_at.nil? || e.removed_at >= range.first)
+    end
+  end
+
+  def equipment_entries_in_range
+    @equipment_entries_in_range ||= @incident.equipment_entries
       .includes(:equipment_type)
       .where("placed_at <= ? AND (removed_at IS NULL OR removed_at >= ?)",
-        date_range.last, date_range.first)
+        full_range.last, full_range.first)
       .order(:placed_at)
+      .to_a
   end
 
-  def equipment_hours_for_date(entry)
-    day_start = [ entry.placed_at, date_range.first ].max
-    day_end = [ entry.removed_at || Time.current, date_range.last ].min
-    ((day_end - day_start) / 1.hour).round(1)
+  def labor_entries_for_date(day)
+    labor_by_day[day] || []
   end
 
-  def labor_entries_for_date
-    @labor_entries_for_date ||= @incident.labor_entries
+  def labor_by_day
+    @labor_by_day ||= @incident.labor_entries
       .includes(:user, :created_by_user)
-      .where(log_date: @date)
+      .where(log_date: @date..@end_date)
       .order(:created_at)
+      .group_by(&:log_date)
   end
 
-  def notes_for_date
-    @notes_for_date ||= @incident.operational_notes
-      .includes(:created_by_user)
-      .where(log_date: @date)
+  def notes_for_date(day)
+    notes_by_day[day] || []
+  end
+
+  def consumable_entries_for_date(day)
+    consumables_by_day[day] || []
+  end
+
+  def consumables_by_day
+    @consumables_by_day ||= @incident.consumable_entries
+      .includes(:consumable_type)
+      .where(log_date: @date..@end_date)
       .order(:created_at)
+      .group_by(&:log_date)
+  end
+
+  def notes_by_day
+    @notes_by_day ||= @incident.operational_notes
+      .includes(:created_by_user)
+      .where(log_date: @date..@end_date)
+      .order(:created_at)
+      .group_by(&:log_date)
   end
 
   def photos_for_date
@@ -562,12 +731,12 @@ class DfrPdfService
         .includes(file_attachment: :blob)
         .where(category: "photo")
       # An explicit selection may span any date ("select any photos, not just
-      # photos for that day"); without one, default to the report date's photos.
+      # photos for that day"); without one, default to the report span's photos.
       # Scoping through @incident.attachments means foreign IDs can never leak in.
       scope = if @photo_attachment_ids
         scope.where(id: @photo_attachment_ids)
       else
-        scope.where(log_date: @date)
+        scope.where(log_date: @date..@end_date)
       end
       scope.order(:created_at)
     end
@@ -580,13 +749,27 @@ class DfrPdfService
     User.none
   end
 
-  def visitors_for_date
-    activities_for_date.filter_map(&:visitors).last
+  def visitors_for_date(day)
+    activities_for_date(day).filter_map(&:visitors).last
   end
 
-  def date_range
-    start_of_day = Time.zone.local(@date.year, @date.month, @date.day).beginning_of_day
+  def weather_for(day)
+    return @weather[day] if @weather.is_a?(Hash)
+    day == @date ? @weather : nil
+  end
+
+  def report_date_label
+    return @date.strftime("%-m/%-d/%y") unless multi_day?
+    "#{@date.strftime("%-m/%-d/%y")} – #{@end_date.strftime("%-m/%-d/%y")}"
+  end
+
+  def day_range(day)
+    start_of_day = Time.zone.local(day.year, day.month, day.day).beginning_of_day
     start_of_day..start_of_day.end_of_day
+  end
+
+  def full_range
+    day_range(@date).first..day_range(@end_date).last
   end
 
   def label_cell(text)

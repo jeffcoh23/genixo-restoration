@@ -5,10 +5,12 @@ class ActivityEvent < ApplicationRecord
     labor_created labor_updated labor_deleted
     activity_logged activity_updated
     equipment_placed equipment_removed equipment_updated equipment_deleted
+    consumables_logged
     attachment_uploaded attachment_deleted
     operational_note_added
     escalation_attempted escalation_skipped escalation_exhausted
     contact_added contact_removed
+    incident_flags_updated
     moisture_point_created moisture_point_deleted
     moisture_readings_recorded moisture_reading_updated moisture_reading_deleted
     moisture_supervisor_updated

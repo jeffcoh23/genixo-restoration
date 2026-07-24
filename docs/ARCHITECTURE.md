@@ -506,14 +506,15 @@ All business logic lives in `app/services/`. Controllers are thin — they valid
 | `DashboardService` | Compiles dashboard data with unread counts |
 | `NotificationDispatchService` | Provider-agnostic notification delivery (email, SMS, voice) |
 | `ActivityLogger` | Creates activity events + touches `last_activity_at` (used by all services) |
-| `DfrPdfService` | Builds the Daily Field Report PDF: renders body + photos (in batches) + documents to separate Prawn PDFs, concatenated on disk with `pdfunite` so peak memory is bounded to one batch, not the whole report |
+| `DfrPdfService` | Builds daily AND weekly field report PDFs from one pipeline: renders body + photos (in batches) + documents to separate Prawn PDFs, concatenated on disk with `pdfunite` so peak memory is bounded to one batch, not the whole report. `end_date:` (≤31 days after `date`) switches to weekly mode: per-day section blocks under day headings, "No activity recorded." markers (weather still renders on empty days), day-scoped summary fields, per-unit equipment rows, per-day consumables + a weekly totals block. All day-scoped collections are fetched once for the span and grouped by day |
 | `IncidentReportService` | Builds the on-demand summary report PDF (synchronous download) |
 | `PdfFontSupport` (module) | Shared by both PDF services: NotoSans font family + glyph-fallback retry (sanitizes to ASCII if a glyph can't render) |
-| `WeatherService` | Fetches + caches the day's weather (Visual Crossing Timeline API) for the DFR; `for(incident:, date:)` → `WeatherSnapshot` or nil |
+| `WeatherService` | Fetches + caches weather (Visual Crossing Timeline API) for field reports; `for(incident:, date:)` → `WeatherSnapshot` or nil; `for_range(incident:, start_date:, end_date:)` → `{Date => WeatherSnapshot}` via ONE range request for the uncached span (final cached days are never re-fetched or overwritten) |
 
 ### PDF Generation
 
 - **DFR** is generated async by `DfrPdfJob` (Solid Queue); the Daily Log panel polls every 5s until the attachment appears. The summary report stays synchronous (`send_data`).
+- **Weekly report** reuses the same job with a trailing `end_date` arg (kept tail-positional with a default so pre-deploy Solid Queue payloads still run). Stored as a `weekly_report` attachment keyed on `(log_date, log_date_end)` — regenerating a span attaches over the existing row; a concurrent double-generate hits the partial unique index and the loser attaches over the winner. The Weekly Reports tab polls `weekly_reports` every 5s with a hard 3-minute timeout and a visible failure message (real job-status tracking is in TODOS.md). Photo selection defaults to none (opt-in), and generated reports (`dfr`/`weekly_report`) are excluded server-side from the pickers so a report can never be appended into another report.
 - Batched assembly (memory): a single Prawn document holding every photo spikes at `pdf.render` — serializing all embedded images at once (a 673-photo report was ~175MB in one shot → worker OOM / Heroku R15). Instead the body, photos (in slices of `PHOTO_BATCH_SIZE`), and documents each render to their own PDF, and `pdfunite` (poppler, on the dyno) concatenates them **on disk** — it streams pages without parsing contents into Ruby, so peak memory is bounded to one batch regardless of photo count (verified flat at ~250MB for 160 photos vs. 1.7GB for a monolithic render). If `pdfunite` is unavailable, it falls back to an in-memory CombinePDF merge. Note: source photo size is irrelevant to this — every photo is re-encoded to 1600px before embedding, so the memory is set by the report's own re-encode, not the original file.
 - Photos: MiniMagick auto-orients (EXIF) and resizes to 1600px longest-side via tempfiles — sequential, one at a time, memory-safe. `render_photo_parts` slices them into batches (`PHOTO_BATCH_SIZE`), each its own concatenation part; a batch boundary forces a page break (cosmetically identical since photos already paginate 2-up).
 - Documents: selected PDFs are parsed with `combine_pdf` **per file** (to strip active content and classify appended/embedded/listed) — capped at **15MB/file and 40MB aggregate** since CombinePDF holds ~3-5× the file size in memory; oversized/corrupt files fall back to an annotated filename listing. Each scrubbed document is then re-serialized as its own concatenation part (`pdfunite`), not merged into a giant in-memory document. Script/launch actions (`/JS`, `/AA`, `/OpenAction`, `/Launch`) are stripped from appended pages.
@@ -644,7 +645,7 @@ end
 | `AssignmentNotificationJob` | `default` | Sends assignment notification to newly assigned user |
 | `MessageNotificationJob` | `default` | Sends new message notifications |
 | `DailyDigestJob` | `low` | Compiles and sends daily digest emails |
-| `DfrPdfJob` | `default` | Generates the DFR PDF and attaches it to the incident (positional args carry defaults so pre-deploy queued jobs survive new params) |
+| `DfrPdfJob` | `default` | Generates the DFR — or, with a trailing `end_date`, the Weekly Field Report — and attaches it to the incident (positional args carry defaults so pre-deploy queued jobs survive new params) |
 
 ```ruby
 # config/solid_queue.yml (recurring tasks)

@@ -1,5 +1,6 @@
 import { useForm } from "@inertiajs/react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -26,6 +27,7 @@ export default function IncidentEditForm({ incident, project_types, damage_types
     location_of_damage: incident.location_of_damage ?? "",
     project_type: incident.project_type,
     damage_type: incident.damage_type,
+    delayed: incident.delayed,
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -175,6 +177,21 @@ export default function IncidentEditForm({ incident, project_types, damage_types
                 className="h-9"
               />
               {errors.affected_room_numbers && <p className="text-xs text-destructive">{errors.affected_room_numbers}</p>}
+            </div>
+          </div>
+
+          <div className="flex items-start gap-2">
+            <Checkbox
+              id="edit_delayed"
+              checked={data.delayed}
+              onCheckedChange={(v) => setData("delayed", v === true)}
+              data-testid="incident-delayed-checkbox"
+            />
+            <div className="space-y-0.5">
+              <Label htmlFor="edit_delayed" className="text-xs">Delayed</Label>
+              <p className="text-xs text-muted-foreground">
+                Shows a Delayed line on field reports and a badge on the incident.
+              </p>
             </div>
           </div>
 

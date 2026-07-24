@@ -41,6 +41,8 @@ export interface SharedProps extends Record<string, unknown> {
   has_unread_incidents: boolean;
   emergency_phone?: string;
   today: string;
+  week_ago: string;
+  max_report_days: number;
   now_datetime: string;
   nav_items: NavItem[];
   routes: {

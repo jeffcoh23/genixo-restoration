@@ -237,6 +237,14 @@ equipment_types = {}
   equipment_types[name] = EquipmentType.find_or_create_by!(organization: genixo, name: name)
 end
 
+# Standard consumables sheet (mirrors the CreateConsumables migration seed for
+# orgs created after that migration ran).
+ConsumableType::DEFAULT_NAMES.each_with_index do |name, position|
+  ConsumableType.find_or_create_by!(organization: genixo, name: name) do |type|
+    type.position = position
+  end
+end
+
 EQUIPMENT_INVENTORY = [
   # Dehumidifiers — Drieaz LGR 5000 LI-127690
   { category: "Dehumidifier", make: "Drieaz", model: "LGR 5000 LI-127690", serial: "2284", tag: "1000" },

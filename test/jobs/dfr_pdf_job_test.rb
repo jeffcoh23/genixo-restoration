@@ -122,31 +122,48 @@ class DfrPdfJobTest < ActiveSupport::TestCase
     refute_equal original_blob_id, dfr.file.blob.id, "regeneration should attach a new blob"
   end
 
-  test "PDF includes equipment summary with counts and hours for on-site equipment" do
+  test "PDF lists equipment per unit with ID, type, start date, and end date" do
     require "pdf/inspector"
 
-    dehu = EquipmentType.create!(name: "Dehumidifier", organization: @genixo)
-    air_mover = EquipmentType.create!(name: "Air Mover", organization: @genixo)
+    # Pinned to mid-morning Chicago: relative times ("2 hours ago") land on the
+    # same calendar day in UTC and America/Chicago — around the UTC date
+    # rollover they otherwise straddle days and the removed unit vanishes.
+    travel_to Time.utc(2026, 5, 15, 14, 0, 0) do
+      dehu = EquipmentType.create!(name: "Dehumidifier", organization: @genixo)
+      air_mover = EquipmentType.create!(name: "Air Mover", organization: @genixo)
 
-    # 2 dehumidifiers placed yesterday, still on-site
-    EquipmentEntry.create!(incident: @incident, equipment_type: dehu,
-      placed_at: 1.day.ago, logged_by_user: @manager)
-    EquipmentEntry.create!(incident: @incident, equipment_type: dehu,
-      placed_at: 1.day.ago, logged_by_user: @manager)
+      EquipmentEntry.create!(incident: @incident, equipment_type: dehu, tag_number: "DH-101",
+        placed_at: 2.days.ago, logged_by_user: @manager)
+      EquipmentEntry.create!(incident: @incident, equipment_type: dehu, equipment_identifier: "SN-555",
+        placed_at: 1.day.ago, logged_by_user: @manager)
+      EquipmentEntry.create!(incident: @incident, equipment_type: air_mover, tag_number: "AM-7",
+        placed_at: 2.days.ago, removed_at: 2.hours.ago, logged_by_user: @manager)
 
-    # 1 air mover placed yesterday, still on-site
-    EquipmentEntry.create!(incident: @incident, equipment_type: air_mover,
-      placed_at: 1.day.ago, logged_by_user: @manager)
+      pdf_data = DfrPdfService.new(
+        incident: @incident, date: Date.current, timezone: "America/Chicago", include_photos: false
+      ).generate
 
-    pdf_data = DfrPdfService.new(
-      incident: @incident, date: Date.current, timezone: "America/Chicago", include_photos: false
-    ).generate
-
-    text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
-    assert_includes text, "Equipment:"
-    assert_includes text, "2 Dehumidifier"
-    assert_includes text, "1 Air Mover"
-    assert_match(/\d+\.\d+ hrs/, text, "Should include hours for equipment")
+      text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
+      assert_includes text, "Equipment:"
+      # Header row + one row per unit, tagged by ID and type.
+      [ "ID", "Type", "Start Date", "End Date", "Hours" ].each { |h| assert_includes text, h }
+      # Whole hours-in-place per unit. The removed unit's figure is exact:
+      # placed 2 days ago, removed 2 hours ago → 46 hours.
+      assert_match(/\b46\b/, text, "removed unit shows its cumulative hours (48h placed - 2h early removal)")
+      # In-place units cap at NOW, not the report day's end — a same-day report
+      # generated mid-morning must not count the rest of the day. DH-101 was
+      # placed exactly 48 hours before the frozen clock.
+      assert_match(/\b48\b/, text, "in-place unit hours must stop at the current time, not day end")
+      refute_match(/\b63\b/, text, "day-end cap (would be 63h) must not apply to a same-day report")
+      assert_includes text, "DH-101"
+      assert_includes text, "SN-555"
+      assert_includes text, "AM-7"
+      assert_includes text, "Dehumidifier"
+      assert_includes text, "Air Mover"
+      assert_includes text, "In place", "still-deployed units must show In place, not an end date"
+      assert_includes text, "5/15/26", "removed unit shows its end date"
+      refute_match(/\d+\.\d+ hrs/, text, "the computed hours aggregate must be gone")
+    end
   end
 
   test "PDF excludes equipment removed before the report date" do
@@ -168,7 +185,7 @@ class DfrPdfJobTest < ActiveSupport::TestCase
     ).generate
 
     text = PDF::Inspector::Text.analyze(pdf_data).strings.join(" ")
-    assert_includes text, "1 Dehumidifier"
+    assert_includes text, "Dehumidifier"
     refute_includes text, "Air Mover", "Removed equipment should not appear"
   end
 
@@ -295,6 +312,121 @@ class DfrPdfJobTest < ActiveSupport::TestCase
     attachment = @incident.attachments.where(category: "dfr").last
     text = PDF::Inspector::Text.analyze(attachment.file.download).strings.join(" ")
     assert_includes text, "scope.pdf (attached)"
+  end
+
+  # --- weekly reports ---
+
+  test "end_date produces a weekly_report attachment spanning the range" do
+    # Dates captured once as locals: re-evaluating Date.current across a
+    # midnight rollover would split the range mid-test.
+    end_date = Date.current
+    start_date = end_date - 6.days
+
+    assert_difference -> { @incident.attachments.where(category: "weekly_report").count }, 1 do
+      DfrPdfJob.perform_now(@incident.id, start_date.to_s, "America/Chicago", @manager.id, [], nil, end_date.to_s)
+    end
+
+    attachment = @incident.attachments.where(category: "weekly_report").last
+    assert attachment.file.attached?
+    assert_equal start_date, attachment.log_date
+    assert_equal end_date, attachment.log_date_end
+    assert_includes attachment.description, "Weekly Field Report"
+
+    require "pdf/inspector"
+    text = PDF::Inspector::Text.analyze(attachment.file.download).strings.join(" ")
+    assert_includes text, "Weekly Field Report"
+  end
+
+  test "weekly filename spans the range" do
+    @incident.update!(job_id: "JOB-123")
+    end_date = Date.current
+    start_date = end_date - 6.days
+
+    DfrPdfJob.perform_now(@incident.id, start_date.to_s, "America/Chicago", @manager.id, [], nil, end_date.to_s)
+
+    attachment = @incident.attachments.where(category: "weekly_report").last
+    assert_equal "Weekly Report - Sunset Apts - JOB-123 - #{start_date} to #{end_date}.pdf",
+      attachment.file.filename.to_s
+  end
+
+  test "regenerating the same span replaces the file instead of adding a row" do
+    end_date = Date.current
+    start_date = end_date - 6.days
+    args = [ @incident.id, start_date.to_s, "America/Chicago", @manager.id, [], nil, end_date.to_s ]
+
+    DfrPdfJob.perform_now(*args)
+    report = @incident.attachments.find_by(category: "weekly_report", log_date: start_date)
+    original_blob_id = report.file.blob.id
+
+    assert_no_difference -> { @incident.attachments.count } do
+      DfrPdfJob.perform_now(*args)
+    end
+    report.reload
+    assert report.file.attached?
+    refute_equal original_blob_id, report.file.blob.id
+  end
+
+  test "same start date with different end dates are distinct weekly reports" do
+    start_date = Date.current - 13.days
+
+    DfrPdfJob.perform_now(@incident.id, start_date.to_s, "America/Chicago", @manager.id, [], nil, (start_date + 6).to_s)
+    DfrPdfJob.perform_now(@incident.id, start_date.to_s, "America/Chicago", @manager.id, [], nil, (start_date + 13).to_s)
+
+    assert_equal 2, @incident.attachments.where(category: "weekly_report", log_date: start_date).count
+  end
+
+  test "a weekly report and a DFR for the same date coexist" do
+    date = Date.current
+
+    DfrPdfJob.perform_now(@incident.id, date.to_s, "America/Chicago", @manager.id)
+    DfrPdfJob.perform_now(@incident.id, date.to_s, "America/Chicago", @manager.id, [], nil, (date + 6).to_s)
+
+    assert_equal 1, @incident.attachments.where(category: "dfr", log_date: date).count
+    assert_equal 1, @incident.attachments.where(category: "weekly_report", log_date: date).count
+  end
+
+  test "a losing concurrent weekly insert attaches over the winner's row" do
+    start_date = Date.current - 6.days
+    end_date = Date.current
+
+    # Simulate the race: the winner's row appears after this job's find_by
+    # returned nothing. The unique index rejects the insert; the job must
+    # rescue and attach over the winner instead of failing.
+    winner = @incident.attachments.create!(category: "weekly_report",
+      log_date: start_date, log_date_end: end_date, uploaded_by_user: @manager)
+
+    original_find_by = Attachment.method(:find_by)
+    faked_once = false
+    assert_no_difference -> { @incident.attachments.count } do
+      @incident.attachments.singleton_class.define_method(:find_by) do |*args, **kw|
+        if !faked_once && kw[:category] == "weekly_report"
+          faked_once = true
+          nil
+        else
+          super(*args, **kw)
+        end
+      end
+      DfrPdfJob.perform_now(@incident.id, start_date.to_s, "America/Chicago", @manager.id, [], nil, end_date.to_s)
+    end
+
+    assert winner.reload.file.attached?, "the job must attach its PDF onto the winner's row"
+  end
+
+  test "weekly report threads per-day cached weather into the PDF" do
+    require "pdf/inspector"
+    end_date = Date.current
+    start_date = end_date - 2.days
+    WeatherSnapshot.create!(incident: @incident, date: start_date, temp_max: 90, temp_min: 70,
+      conditions: "Sunny start", fetched_at: Time.current)
+    WeatherSnapshot.create!(incident: @incident, date: end_date, temp_max: 60, temp_min: 50,
+      conditions: "Rainy finish", fetched_at: Time.current)
+
+    DfrPdfJob.perform_now(@incident.id, start_date.to_s, "America/Chicago", @manager.id, [], nil, end_date.to_s)
+
+    pdf = @incident.attachments.where(category: "weekly_report").last.file.download
+    text = PDF::Inspector::Text.analyze(pdf).strings.join(" ")
+    assert_includes text, "Sunny start"
+    assert_includes text, "Rainy finish"
   end
 
   private

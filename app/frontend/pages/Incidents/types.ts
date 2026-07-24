@@ -177,6 +177,12 @@ export interface IncidentAttachment {
   destroy_path?: string | null;
 }
 
+// Generated weekly field report: an attachment spanning log_date..log_date_end.
+export interface WeeklyReport extends IncidentAttachment {
+  log_date_end: string | null;
+  range_label: string;
+}
+
 // Photo as returned by the dfr_photos endpoint: every incident photo,
 // annotated so the selection modal can group by day and preselect the
 // report date's photos.
@@ -189,6 +195,26 @@ export interface DfrSelectablePhoto extends IncidentAttachment {
 export interface EquipmentType {
   id: number;
   name: string;
+}
+
+export interface ConsumableType {
+  id: number;
+  name: string;
+}
+
+export interface ConsumableDayEntry {
+  id: number;
+  consumable_type_id: number | null;
+  name: string;
+  custom_name: string | null;
+  quantity: number;
+}
+
+// One logged day of consumables (newest day first from the server).
+export interface ConsumableDay {
+  log_date: string;
+  date_label: string;
+  entries: ConsumableDayEntry[];
 }
 
 export interface AttachableEquipmentEntry {
@@ -257,11 +283,13 @@ export interface IncidentDetail {
   activity_entries_path: string;
   labor_entries_path: string;
   equipment_entries_path: string;
+  consumable_entries_path: string;
   operational_notes_path: string;
   attachments_path: string;
   upload_photo_path: string;
   photos_zip_path: string;
   dfr_path: string;
+  weekly_report_path: string;
   dfr_photos_path: string;
   report_path: string;
   mark_read_path: string;
@@ -284,6 +312,7 @@ export interface IncidentDetail {
   damage_type: string;
   damage_label: string;
   emergency: boolean;
+  delayed: boolean;
   job_id: string | null;
   do_not_exceed_limit: string | null;
   location_of_damage: string | null;
@@ -483,7 +512,10 @@ export interface ShowProps {
   labor_entries: LaborEntry[];
   operational_notes: OperationalNote[];
   attachments: IncidentAttachment[];
+  weekly_reports: WeeklyReport[];
   equipment_log: EquipmentLogItem[];
+  consumable_types: ConsumableType[];
+  consumable_entries: ConsumableDay[];
   labor_log: LaborLog;
   can_transition: boolean;
   can_assign: boolean;

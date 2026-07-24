@@ -4,13 +4,17 @@ import { ChevronDown, ChevronRight, Mail, Pencil, Phone } from "lucide-react";
 import AppLayout from "@/layout/AppLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import InlineActionFeedback from "@/components/InlineActionFeedback";
 import useInertiaAction from "@/hooks/useInertiaAction";
 import { SharedProps } from "@/types";
 import RightPanelShell from "./components/RightPanelShell";
 import MessagePanel from "./components/MessagePanel";
 import DailyLogPanel from "./components/DailyLogPanel";
+import WeeklyReportsPanel, { useWeeklyReportPolling } from "./components/WeeklyReportsPanel";
 import EquipmentPanel from "./components/EquipmentPanel";
+import type { EquipmentView } from "./components/EquipmentPanel";
 import LaborPanel from "./components/LaborPanel";
 import PhotosPanel from "./components/PhotosPanel";
 import DocumentPanel from "./components/DocumentPanel";
@@ -27,8 +31,9 @@ import { statusColor } from "@/lib/statusColor";
 // keys via `router.reload` on activation. Mirrors incidents_controller.rb.
 // daily_log is absent: all its data is eager (daily_activities, daily_log_dates, etc.).
 const TAB_PROP_KEYS: Record<string, string[] | undefined> = {
+  weekly_reports: ["weekly_reports"],
   labor: ["labor_log", "assignable_labor_users"],
-  equipment: ["equipment_log", "equipment_types", "equipment_items_by_type", "attachable_equipment_entries"],
+  equipment: ["equipment_log", "equipment_types", "equipment_items_by_type", "attachable_equipment_entries", "consumable_types", "consumable_entries"],
   documents: ["attachments", "operational_notes"],
   messages: ["messages"],
   readings: ["moisture_data", "psychrometric_data"],
@@ -49,6 +54,7 @@ export default function IncidentShow() {
     labor_entries = [],
     labor_log = { dates: [], date_labels: [], employees: [] },
     attachments = [],
+    weekly_reports = [],
     can_transition,
     can_edit = false,
     can_assign = false,
@@ -65,12 +71,14 @@ export default function IncidentShow() {
     assignable_labor_users = [],
     equipment_types = [],
     equipment_items_by_type = {},
+    consumable_types = [],
+    consumable_entries = [],
     project_types = [],
     damage_types = [],
     back_path,
   } = usePage<SharedProps & ShowProps>().props;
 
-  const VALID_TABS = ["daily_log", "labor", "equipment", "photos", "documents", "messages", "readings", "manage"];
+  const VALID_TABS = ["daily_log", "weekly_reports", "labor", "equipment", "photos", "documents", "messages", "readings", "manage"];
   const initialTab = (() => {
     const param = new URLSearchParams(window.location.search).get("tab");
     return param && VALID_TABS.includes(param) ? param : "daily_log";
@@ -79,6 +87,10 @@ export default function IncidentShow() {
   const [statusOpen, setStatusOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(initialTab);
   const [readingsView, setReadingsView] = useState<ReadingsView>("moisture");
+  const [equipmentView, setEquipmentView] = useState<EquipmentView>("equipment");
+  // Hosted here (not in the panel) so pending state and the 5s poll survive
+  // the Deferred wrapper remounting the panel after the generate redirect.
+  const weeklyReportPolling = useWeeklyReportPolling(weekly_reports);
   const [editFormOpen, setEditFormOpen] = useState(false);
   const [markedTabs, setMarkedTabs] = useState<Set<string>>(new Set());
   const statusAction = useInertiaAction();
@@ -190,12 +202,19 @@ export default function IncidentShow() {
               )}
             </div>
 
+            {incident.delayed && (
+              <Badge className="text-sm px-3 py-1.5 bg-status-warning text-black" data-testid="incident-delayed-badge">
+                Delayed
+              </Badge>
+            )}
+
             {can_edit && incident.edit_path && (
               <Button
                 variant="outline"
                 size="sm"
                 className="h-10 sm:h-8 text-sm sm:text-xs gap-1.5"
                 onClick={() => setEditFormOpen(true)}
+                data-testid="edit-incident-btn"
               >
                 <Pencil className="h-3.5 w-3.5" />
                 Edit
@@ -281,6 +300,24 @@ export default function IncidentShow() {
                 </div>
               )}
               <ReportPanel reportPath={incident.report_path} />
+              {can_edit && incident.edit_path && (
+                <div className="flex items-start gap-2 rounded-lg border border-border bg-muted/20 px-3 py-2.5">
+                  <Checkbox
+                    id="show_delayed"
+                    checked={incident.delayed}
+                    onCheckedChange={(v) =>
+                      router.patch(incident.edit_path!, { incident: { delayed: v === true } }, { preserveScroll: true })
+                    }
+                    data-testid="incident-delayed-toggle"
+                  />
+                  <div className="space-y-0.5">
+                    <Label htmlFor="show_delayed" className="text-xs">Delayed</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Shows a Delayed line on field reports and a badge on the incident.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -304,14 +341,33 @@ export default function IncidentShow() {
               dfr_photos_path={incident.dfr_photos_path}
             />
           )}
+          {activeTab === "weekly_reports" && (
+            <Deferred data={["weekly_reports"]} fallback={<PanelSkeleton />}>
+              <WeeklyReportsPanel
+                weekly_reports={weekly_reports}
+                incident_has_photos={incident_has_photos}
+                incident_has_documents={incident_has_documents}
+                can_generate={can_manage_activities}
+                weekly_report_path={incident.weekly_report_path}
+                dfr_photos_path={incident.dfr_photos_path}
+                polling={weeklyReportPolling}
+              />
+            </Deferred>
+          )}
           {activeTab === "equipment" && (
-            <Deferred data={["equipment_log", "equipment_types", "equipment_items_by_type", "attachable_equipment_entries"]} fallback={<PanelSkeleton />}>
+            <Deferred data={["equipment_log", "equipment_types", "equipment_items_by_type", "attachable_equipment_entries", "consumable_types", "consumable_entries"]} fallback={<PanelSkeleton />}>
               <EquipmentPanel
                 equipment_log={equipment_log}
                 can_manage_equipment={can_manage_equipment}
                 equipment_entries_path={incident.equipment_entries_path}
                 equipment_types={equipment_types}
                 equipment_items_by_type={equipment_items_by_type}
+                consumable_types={consumable_types}
+                consumable_days={consumable_entries}
+                consumable_entries_path={incident.consumable_entries_path}
+                can_manage_consumables={can_manage_activities}
+                view={equipmentView}
+                onViewChange={setEquipmentView}
               />
             </Deferred>
           )}

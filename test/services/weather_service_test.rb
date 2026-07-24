@@ -164,6 +164,106 @@ class WeatherServiceTest < ActiveSupport::TestCase
     end
   end
 
+  # --- Range fetch (weekly reports) ---
+
+  def range_body(dates)
+    {
+      "days" => dates.map do |d|
+        {
+          "datetime" => d.iso8601, "tempmax" => 88.2, "tempmin" => 71.4, "temp" => 79.1,
+          "conditions" => "Cloudy #{d.iso8601}", "precip" => 0.1, "precipprob" => 30,
+          "windspeed" => 9.3, "humidity" => 65
+        }
+      end
+    }.to_json
+  end
+
+  test "for_range fetches the whole span in ONE request and returns a date-keyed hash" do
+    start_date = @date
+    end_date = @date + 6.days
+    stub = stub_vc(body: range_body((start_date..end_date).to_a))
+
+    result = WeatherService.for_range(incident: @incident, start_date: start_date, end_date: end_date)
+
+    assert_requested stub, times: 1
+    assert_equal 7, result.size
+    assert_equal "Cloudy #{start_date.iso8601}", result[start_date].conditions
+    assert_equal "Cloudy #{end_date.iso8601}", result[end_date].conditions
+    assert result.values.all?(&:persisted?)
+  end
+
+  test "for_range serves final cached days from the DB and only fetches the gap" do
+    start_date = @date
+    end_date = @date + 2.days
+    # Day 1 is final (fetched after its date ended) — must not be re-fetched
+    # or overwritten.
+    final = WeatherSnapshot.create!(incident: @incident, date: start_date,
+      temp_max: 50, conditions: "Final cached", fetched_at: (start_date + 1.day).to_time.change(hour: 6))
+
+    stub = stub_vc(body: range_body([ start_date + 1.day, end_date ]))
+    result = WeatherService.for_range(incident: @incident, start_date: start_date, end_date: end_date)
+
+    assert_requested stub, times: 1
+    assert_equal 3, result.size
+    assert_equal final.id, result[start_date].id
+    assert_equal "Final cached", result[start_date].reload.conditions
+  end
+
+  test "for_range makes no request when every day is cached final" do
+    (@date..@date + 1.day).each do |d|
+      WeatherSnapshot.create!(incident: @incident, date: d, temp_max: 60,
+        conditions: "Done", fetched_at: (d + 1.day).to_time.change(hour: 6))
+    end
+
+    # No stub registered: an HTTP call would raise via WebMock.
+    result = WeatherService.for_range(incident: @incident, start_date: @date, end_date: @date + 1.day)
+    assert_equal 2, result.size
+  end
+
+  test "for_range returns the cached days when the API fails" do
+    cached = WeatherSnapshot.create!(incident: @incident, date: @date, temp_max: 60,
+      conditions: "Cached", fetched_at: (@date + 1.day).to_time.change(hour: 6))
+    stub_vc(status: 500, body: "boom")
+
+    result = WeatherService.for_range(incident: @incident, start_date: @date, end_date: @date + 3.days)
+
+    assert_equal({ @date => cached }, result.transform_values(&:itself).slice(@date))
+    assert_equal 1, result.size, "only the cached day should be present after an API failure"
+  end
+
+  test "for_range returns an empty hash when the API key is absent and nothing is cached" do
+    ENV.delete("VISUAL_CROSSING_API_KEY")
+    result = WeatherService.for_range(incident: @incident, start_date: @date, end_date: @date + 2.days)
+    assert_equal({}, result)
+    assert_equal 0, WeatherSnapshot.count
+  end
+
+  test "for_range returns cached days on a timeout without raising" do
+    cached = WeatherSnapshot.create!(incident: @incident, date: @date, temp_max: 60,
+      conditions: "Cached", fetched_at: (@date + 1.day).to_time.change(hour: 6))
+    stub_request(:get, /weather\.visualcrossing\.com/).to_timeout
+
+    result = nil
+    assert_nothing_raised do
+      result = WeatherService.for_range(incident: @incident, start_date: @date, end_date: @date + 3.days)
+    end
+    assert_equal cached.id, result[@date].id
+    assert_equal 1, result.size
+  end
+
+  test "for_range ignores response days outside the needed set" do
+    # API padding/misalignment: a day we already hold as final must not be
+    # clobbered even if the response includes it.
+    final = WeatherSnapshot.create!(incident: @incident, date: @date, temp_max: 50,
+      conditions: "Final cached", fetched_at: (@date + 1.day).to_time.change(hour: 6))
+    stub_vc(body: range_body([ @date, @date + 1.day ]))
+
+    result = WeatherService.for_range(incident: @incident, start_date: @date, end_date: @date + 1.day)
+
+    assert_equal "Final cached", final.reload.conditions
+    assert_equal "Cloudy #{(@date + 1.day).iso8601}", result[@date + 1.day].conditions
+  end
+
   # --- Operational visibility ---
 
   test "logs the HTTP status on a non-2xx response" do

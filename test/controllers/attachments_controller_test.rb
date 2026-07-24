@@ -52,6 +52,24 @@ class AttachmentsControllerTest < ActionDispatch::IntegrationTest
     assert att.file.attached?
   end
 
+  test "generated-report categories cannot be uploaded by users" do
+    login_as @manager
+
+    Attachment::GENERATED_REPORT_CATEGORIES.each do |category|
+      assert_no_difference "Attachment.count" do
+        post incident_attachments_path(@incident), params: {
+          attachment: {
+            file: fixture_file_upload("test_photo.jpg", "image/jpeg"),
+            category: category,
+            log_date: Date.current.iso8601
+          }
+        }
+      end
+      assert_redirected_to incident_path(@incident)
+      assert_match(/reserved for system-generated reports/, flash[:alert])
+    end
+  end
+
   test "tech can upload attachment" do
     login_as @tech
     assert_difference "Attachment.count", 1 do

@@ -19,6 +19,13 @@ interface DfrPhotoSelectionModalProps {
   isLoading: boolean;
   loadError: boolean;
   onRetry: () => void;
+  /** Report name used in the title and submit button. Defaults to "DFR". */
+  reportLabel?: string;
+  /**
+   * Weekly reports open with nothing selected — a week of photos preselected
+   * would bloat the PDF by default; the user opts photos in instead.
+   */
+  defaultSelectNone?: boolean;
 }
 
 function formatBytes(bytes: number): string {
@@ -44,6 +51,8 @@ export default function DfrPhotoSelectionModal({
   isLoading,
   loadError,
   onRetry,
+  reportLabel = "DFR",
+  defaultSelectNone = false,
 }: DfrPhotoSelectionModalProps) {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [selectedDocIds, setSelectedDocIds] = useState<Set<number>>(new Set());
@@ -55,7 +64,9 @@ export default function DfrPhotoSelectionModal({
   const [prevPhotos, setPrevPhotos] = useState<DfrSelectablePhoto[]>(photos);
   if (photos !== prevPhotos) {
     setPrevPhotos(photos);
-    setSelectedIds(new Set(photos.filter((p) => p.is_report_date).map((p) => p.id)));
+    setSelectedIds(
+      defaultSelectNone ? new Set() : new Set(photos.filter((p) => p.is_report_date).map((p) => p.id))
+    );
     setSelectedDocIds(new Set());
   }
 
@@ -144,7 +155,7 @@ export default function DfrPhotoSelectionModal({
       <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>
-            Select {documents.length > 0 ? "Photos & Documents" : "Photos"} for DFR — {dateLabel}
+            Select {documents.length > 0 ? "Photos & Documents" : "Photos"} for {reportLabel} — {dateLabel}
           </DialogTitle>
         </DialogHeader>
 
@@ -164,7 +175,7 @@ export default function DfrPhotoSelectionModal({
           <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
             <ImageIcon className="h-8 w-8 mb-2" />
             <p className="text-sm">No photos or documents on this incident.</p>
-            <p className="text-xs mt-1">You can still generate the DFR without attachments.</p>
+            <p className="text-xs mt-1">You can still generate the {reportLabel} without attachments.</p>
           </div>
         ) : (
           <>
@@ -319,9 +330,9 @@ export default function DfrPhotoSelectionModal({
             )}
             <Button
               onClick={handleSubmit}
-              disabled={(hasContent && totalSelected === 0) || isLoading || loadError}
+              disabled={(hasContent && totalSelected === 0 && !defaultSelectNone) || isLoading || loadError}
             >
-              Generate DFR
+              Generate {reportLabel}
               {totalSelected > 0 && (
                 <span className="ml-1.5 text-xs opacity-80">
                   ({totalSelected} item{totalSelected !== 1 ? "s" : ""})

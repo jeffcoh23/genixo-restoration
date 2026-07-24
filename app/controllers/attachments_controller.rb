@@ -31,6 +31,13 @@ class AttachmentsController < ApplicationController
   end
 
   def create
+    # dfr/weekly_report rows render in the app as system-generated reports —
+    # a user upload wearing those categories would impersonate official
+    # output (and appear in the Weekly Reports tab with broken dates).
+    if Attachment::GENERATED_REPORT_CATEGORIES.include?(params.dig(:attachment, :category))
+      return redirect_to incident_path(@incident), alert: "That category is reserved for system-generated reports."
+    end
+
     attachment = @incident.attachments.new(attachment_params)
     attachment.uploaded_by_user = current_user
 

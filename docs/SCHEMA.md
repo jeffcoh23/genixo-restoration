@@ -197,6 +197,7 @@ The core work unit. Tracks a mitigation job from intake through payment.
 | status | string | NOT NULL, DEFAULT `'new'` | See lifecycle below |
 | project_type | string | NOT NULL | `emergency_response`, `mitigation_rfq`, `buildback_rfq`, `capex_rfq`, `other` |
 | emergency | boolean | NOT NULL, DEFAULT false | Triggers escalation if true |
+| delayed | boolean | NOT NULL, DEFAULT false | Job-is-delayed flag: badge on the incident header, "Delayed: Yes" line on field reports (only when true). Toggling logs an `incident_flags_updated` activity event. |
 | damage_type | string | NOT NULL | `flood`, `fire`, `smoke`, `mold`, `odor`, `other`, `not_applicable` |
 | description | text | NOT NULL | Free text — what happened, narrative |
 | cause | text | | What caused the damage |
@@ -489,6 +490,51 @@ Predefined equipment types scoped to a mitigation org. Managers can add to this 
 
 ---
 
+### consumable_types
+
+The standard consumables sheet, scoped to a mitigation org. Seeded with Daniel's 11 line items (HEPA filters/vacuums small+large, Hydroxyl Unit, Portable Water Extractor, Truck Mount Unit, Truck/Van Vehicle, Decontamination of Equipment, Filter Replacement, Disposal). No self-serve management UI yet (see TODOS.md) — new standard items are a console `ConsumableType.create!`; one-offs go in as write-ins on `consumable_entries`.
+
+| Column | Type | Constraints | Notes |
+|--------|------|-------------|-------|
+| id | bigint | PK | |
+| organization_id | bigint | NOT NULL, FK → organizations | Mitigation org |
+| name | string | NOT NULL | |
+| position | integer | NOT NULL, DEFAULT 0 | Sheet order |
+| active | boolean | NOT NULL, DEFAULT true | Soft delete |
+| created_at | datetime | NOT NULL | |
+| updated_at | datetime | NOT NULL | |
+
+**Indexes:**
+- `index_consumable_types_on_organization_id`
+- `index_consumable_types_on_organization_id_and_name` (unique)
+
+---
+
+### consumable_entries
+
+Consumables used on an incident on a given day. Each row is either a standard type (`consumable_type_id`) or a free-text write-in (`custom_name`) — XOR, enforced by a DB check constraint and the model. Saved as a whole-day sheet: the Equipment tab's Consumables view posts every row for a date and the controller replaces that date's entries (zero/blank rows are dropped). Rendered on daily and weekly field reports per day, with a summed totals block on weeklies.
+
+| Column | Type | Constraints | Notes |
+|--------|------|-------------|-------|
+| id | bigint | PK | |
+| incident_id | bigint | NOT NULL, FK | |
+| consumable_type_id | bigint | FK → consumable_types | XOR with custom_name |
+| custom_name | string | | Write-in item name |
+| quantity | integer | NOT NULL | > 0 |
+| log_date | date | NOT NULL | The day the consumables were used |
+| logged_by_user_id | bigint | NOT NULL, FK → users | |
+| created_at | datetime | NOT NULL | |
+| updated_at | datetime | NOT NULL | |
+
+**Indexes:**
+- `index_consumable_entries_on_incident_id`
+- `index_consumable_entries_on_incident_id_and_log_date`
+- `index_consumable_entries_on_consumable_type_id`
+- `index_consumable_entries_on_logged_by_user_id`
+- Check constraint `consumable_entries_type_xor_custom`
+
+---
+
 ### equipment_items
 
 Individual pieces of equipment in the company's inventory. Each item belongs to an equipment type (category) and is identified by a short code. Items can be linked to equipment entries when placed on incidents.
@@ -619,7 +665,8 @@ File uploads. Polymorphic — can attach to an Incident or a Message. Uses Activ
 | uploaded_by_user_id | bigint | NOT NULL, FK → users | |
 | category | string | NOT NULL | See categories below |
 | description | string | | Optional label |
-| log_date | date | | The date this attachment applies to (for daily log grouping). Nullable for message attachments. |
+| log_date | date | | The date this attachment applies to (for daily log grouping). Nullable for message attachments. For a `weekly_report`, the range start. |
+| log_date_end | date | | Range end for generated `weekly_report` attachments; NULL for everything else. |
 | created_at | datetime | NOT NULL | |
 | updated_at | datetime | NOT NULL | |
 
@@ -631,16 +678,20 @@ Each attachment `has_one_attached :file` via Active Storage.
 - `moisture_readings`
 - `psychrometric_log`
 - `dfr` (Daily Field Report)
+- `weekly_report` (Weekly Field Report — generated, spans `log_date..log_date_end`)
 - `signed_document`
 - `sign_in_sheet`
 - `proposal`
 - `general`
+
+`Attachment::GENERATED_REPORT_CATEGORIES` (`dfr`, `weekly_report`) are app-generated reports: excluded from the DFR/weekly photo-and-document pickers (a generated report must never be appendable into another one) and, for `weekly_report`, from the Documents tab (it has its own Weekly Reports tab).
 
 **Indexes:**
 - `index_attachments_on_attachable` (attachable_type, attachable_id)
 - `index_attachments_on_attachable_and_category` (attachable_type, attachable_id, category)
 - `index_attachments_on_uploaded_by_user_id`
 - `index_attachments_on_attachable_and_log_date` (attachable_type, attachable_id, log_date)
+- `index_attachments_on_generated_report_identity` (unique, partial: attachable + category + log_date + log_date_end WHERE category IN ('dfr','weekly_report')) — makes a concurrent double-generate of the same weekly span a `RecordNotUnique` (rescued in `DfrPdfJob` by attaching over the winner). DFRs keep NULL `log_date_end`, and Postgres treats NULLs as distinct, so existing DFR rows are unaffected.
 
 ---
 
@@ -772,7 +823,7 @@ Public "request access" form submissions (`/request-access`, rate-limited). The 
 
 ### weather_snapshots
 
-Cached daily weather for an incident's property, fetched from the Visual Crossing Timeline API on DFR generation. US units (°F / mph / inches). A snapshot fetched on the report date itself may hold provisional forecast values, so it's refreshed on the next generation after the day ends; once fetched after its date, the row is final and regeneration never re-hits the API. Fetch failures are not cached (a later regeneration retries), and a failed refresh falls back to the stale row.
+Cached daily weather for an incident's property, fetched from the Visual Crossing Timeline API on field-report generation (one request per DFR; ONE range request covering the uncached span per weekly report). US units (°F / mph / inches). A snapshot fetched on the report date itself may hold provisional forecast values, so it's refreshed on the next generation after the day ends; once fetched after its date, the row is final and regeneration never re-hits the API. Fetch failures are not cached (a later regeneration retries), and a failed refresh falls back to the stale row.
 
 | Column | Type | Constraints | Notes |
 |--------|------|-------------|-------|
