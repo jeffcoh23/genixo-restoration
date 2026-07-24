@@ -43,6 +43,21 @@ class LoginRequestsControllerTest < ActionDispatch::IntegrationTest
     ActiveJob::Base.queue_adapter = original_adapter
   end
 
+  test "create sends no emails when no MANAGE_USERS holder has opted in" do
+    original_adapter = ActiveJob::Base.queue_adapter
+    ActiveJob::Base.queue_adapter = :test
+
+    # @manager holds MANAGE_USERS but login_request defaults off
+    assert_difference -> { LoginRequest.count }, 1 do
+      assert_no_enqueued_emails do
+        post login_requests_path, params: valid_params
+      end
+    end
+    assert_redirected_to new_login_request_path
+  ensure
+    ActiveJob::Base.queue_adapter = original_adapter
+  end
+
   test "create with invalid params redirects back with errors and sends nothing" do
     original_adapter = ActiveJob::Base.queue_adapter
     ActiveJob::Base.queue_adapter = :test
