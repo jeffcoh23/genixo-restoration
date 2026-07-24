@@ -109,6 +109,15 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_equal false, props.fetch("can_edit_role")
   end
 
+  test "show props include login_request in notification_options" do
+    login_as @manager
+    get user_path(@tech)
+
+    option = inertia_props.fetch("notification_options").find { |o| o["key"] == "login_request" }
+    assert_not_nil option, "login_request must appear in notification_options"
+    assert_equal "Login requests", option["label"]
+  end
+
   test "show props prevent office_sales from editing other users" do
     login_as @office
     get user_path(@tech)

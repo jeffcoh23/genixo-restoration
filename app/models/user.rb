@@ -108,13 +108,15 @@ class User < ApplicationRecord
   NOTIFICATION_DEFAULTS = {
     "status_change" => false,
     "new_message" => false,
-    "incident_user_assignment" => false
+    "incident_user_assignment" => false,
+    "login_request" => false
   }.freeze
 
   NOTIFICATION_LABELS = {
     "status_change" => { label: "Status changes", description: "Get notified when an incident status changes" },
     "new_message" => { label: "New messages", description: "Get notified when someone sends a message on your incidents" },
-    "incident_user_assignment" => { label: "Assignment alerts", description: "Get notified when you're assigned to or a new incident is created for you" }
+    "incident_user_assignment" => { label: "Assignment alerts", description: "Get notified when you're assigned to or a new incident is created for you" },
+    "login_request" => { label: "Login requests", description: "Get notified when someone requests access from the login page" }
   }.freeze
 
   def notification_preference(key)

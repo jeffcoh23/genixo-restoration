@@ -1,6 +1,13 @@
 ---
 api_key: <%= ENV["HONEYBADGER_API_KEY"] %>
 
+# MailDeliveryJob retries transient SMTP failures up to 5x; Honeybadger's
+# ActiveJob hook otherwise notifies on EVERY failed attempt (default
+# attempt_threshold is 0), so a self-healing retry would fire up to 5 alerts.
+# Report only from the 3rd attempt on — still fires well before the job dies.
+active_job:
+  attempt_threshold: 3
+
 development:
   report_data: false
 

@@ -4,7 +4,8 @@ class LoginRequestMailerTest < ActionMailer::TestCase
   setup do
     @org = Organization.create!(name: "Genixo", organization_type: "mitigation")
     @manager = User.create!(organization: @org, user_type: "manager",
-      email_address: "mgr@genixo.com", first_name: "Test", last_name: "Manager", password: "password123")
+      email_address: "mgr@genixo.com", first_name: "Test", last_name: "Manager", password: "password123",
+      notification_preferences: { "login_request" => true })
     @request = LoginRequest.create!(
       email: "dan@acme.com", first_name: "Dan", last_name: "Hutson",
       company_name: "Acme PM", phone: "(210) 555-0100", message: "I manage the Sunset portfolio."
@@ -27,5 +28,21 @@ class LoginRequestMailerTest < ActionMailer::TestCase
     @request.update!(company_name: nil, message: nil)
     mail = LoginRequestMailer.new_request(@manager, @request)
     refute_includes mail.html_part.body.to_s, "Company"
+  end
+
+  # Eligibility can change between enqueue and render (deactivation, opt-out);
+  # the mailer must re-check so queued jobs don't leak requester PII.
+  test "sends nothing when the reviewer was deactivated after enqueue" do
+    @manager.update!(active: false)
+    assert_emails 0 do
+      LoginRequestMailer.new_request(@manager, @request).deliver_now
+    end
+  end
+
+  test "sends nothing when the reviewer opted out after enqueue" do
+    @manager.update!(notification_preferences: { "login_request" => false })
+    assert_emails 0 do
+      LoginRequestMailer.new_request(@manager, @request).deliver_now
+    end
   end
 end

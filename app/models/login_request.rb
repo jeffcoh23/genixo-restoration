@@ -59,12 +59,15 @@ class LoginRequest < ApplicationRecord
   end
 
   # Active mitigation-org users who can act on a request (MANAGE_USERS
-  # holders). Deliberately NOT the on-call escalation chain — that carries
+  # holders) AND have opted into login-request emails. The opt-in matters:
+  # MANAGE_USERS is held broadly, and emailing every holder both spams the
+  # company and can burst past the mail provider's rate limit.
+  # Deliberately NOT the on-call escalation chain — that carries
   # emergency semantics; a signup form must never page the on-call contact.
   def self.reviewer_recipients
     User.where(active: true)
         .joins(:organization)
         .where(organizations: { organization_type: "mitigation" })
-        .select { |u| u.can?(Permissions::MANAGE_USERS) }
+        .select { |u| u.can?(Permissions::MANAGE_USERS) && u.notification_preference("login_request") }
   end
 end

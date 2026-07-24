@@ -21,5 +21,9 @@ module GenixoRestoration
 
     # Use Solid Queue for background jobs
     config.active_job.queue_adapter = :solid_queue
+
+    # deliver_later runs through our MailDeliveryJob (retries transient SMTP
+    # failures) instead of the retry-less ActionMailer default.
+    config.action_mailer.delivery_job = "MailDeliveryJob"
   end
 end

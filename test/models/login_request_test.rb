@@ -108,16 +108,21 @@ class LoginRequestTest < ActiveSupport::TestCase
     assert_raises(ArgumentError) { request.approve!(@manager) }
   end
 
-  test "reviewer_recipients returns active mitigation users with MANAGE_USERS only" do
+  test "reviewer_recipients returns active mitigation MANAGE_USERS holders who opted into login_request emails" do
+    @manager.update!(notification_preferences: { "login_request" => true })
     office = User.create!(organization: @genixo, user_type: "office_sales",
-      email_address: "office@genixo.com", first_name: "Office", last_name: "User", password: "password123")
+      email_address: "office@genixo.com", first_name: "Office", last_name: "User", password: "password123",
+      notification_preferences: { "login_request" => true })
     tech = User.create!(organization: @genixo, user_type: "technician",
-      email_address: "tech@genixo.com", first_name: "Tech", last_name: "User", password: "password123")
+      email_address: "tech@genixo.com", first_name: "Tech", last_name: "User", password: "password123",
+      notification_preferences: { "login_request" => true })
     inactive = User.create!(organization: @genixo, user_type: "manager", active: false,
-      email_address: "gone@genixo.com", first_name: "Gone", last_name: "Manager", password: "password123")
+      email_address: "gone@genixo.com", first_name: "Gone", last_name: "Manager", password: "password123",
+      notification_preferences: { "login_request" => true })
     pm_org = Organization.create!(name: "Greystar", organization_type: "property_management")
     pm = User.create!(organization: pm_org, user_type: "property_manager",
-      email_address: "pm@greystar.com", first_name: "PM", last_name: "User", password: "password123")
+      email_address: "pm@greystar.com", first_name: "PM", last_name: "User", password: "password123",
+      notification_preferences: { "login_request" => true })
 
     recipients = LoginRequest.reviewer_recipients
     assert_includes recipients, @manager
@@ -125,5 +130,10 @@ class LoginRequestTest < ActiveSupport::TestCase
     refute_includes recipients, tech
     refute_includes recipients, inactive
     refute_includes recipients, pm
+  end
+
+  test "reviewer_recipients excludes MANAGE_USERS holders who have not opted into login_request emails" do
+    refute @manager.notification_preference("login_request"), "login_request must default off"
+    assert_empty LoginRequest.reviewer_recipients
   end
 end
