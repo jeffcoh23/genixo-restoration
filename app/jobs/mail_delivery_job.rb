@@ -25,4 +25,11 @@ class MailDeliveryJob < ActionMailer::MailDeliveryJob
   ].freeze
 
   retry_on(*TRANSIENT_SMTP_ERRORS, wait: :polynomially_longer, attempts: 5)
+
+  # Pace bulk sends: at most 3 emails deliver simultaneously, app-wide.
+  # Resend's SMTP limit is 10 req/s — a fan-out loop (login-request
+  # notifications, incident status changes) enqueues everything at once, and
+  # without this the workers blast all of them in the same second. Excess jobs
+  # block (never discard) and start as slots free up.
+  limits_concurrency key: "smtp", to: 3
 end

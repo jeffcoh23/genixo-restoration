@@ -26,6 +26,14 @@ class MailDeliveryJobTest < ActiveSupport::TestCase
   # Guards the retry_on list: transient SMTP failures (Resend's 10 req/s rate
   # limit surfaces as Net::SMTPFatalError) must retry instead of permanently
   # dropping the email on first failure.
+  # Guards the send pacing: without the concurrency cap, fan-out loops enqueue
+  # everything at once and workers exceed Resend's 10 req/s SMTP limit.
+  test "limits concurrent deliveries so bulk sends can't burst the SMTP rate limit" do
+    assert_equal 3, MailDeliveryJob.concurrency_limit
+    assert_equal :block, MailDeliveryJob.concurrency_on_conflict
+    assert MailDeliveryJob.new("PasswordResetMailer", "reset_link", "deliver_now", args: [ @user ]).concurrency_limited?
+  end
+
   test "registers retry handlers for transient SMTP failures" do
     handled = MailDeliveryJob.rescue_handlers.map(&:first)
     MailDeliveryJob::TRANSIENT_SMTP_ERRORS.each do |klass|
